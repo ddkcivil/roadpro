@@ -13,8 +13,7 @@ import {
     ShieldCheck, History, AlertOctagon, TrendingUp, Filter,
     Activity, Beaker, MapPin, ChevronDown
 } from 'lucide-react';
-import { Project, UserRole, LabTest, NCR } from '../types';
-import { MOCK_USERS } from '../constants';
+import { Project, UserRole, LabTest, NCR, User } from '../types';
 
 interface Props {
   project: Project;
@@ -55,7 +54,7 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
       location: '',
       date: new Date().toISOString().split('T')[0],
       assetId: '',
-      technicianId: MOCK_USERS[3].id,
+      technicianId: '', // Will be populated dynamically
       testData: {} as Record<string, number>,
   });
 
@@ -89,7 +88,11 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
       
       const mainVal = Object.values(testForm.testData)[0] || 0;
       const isPass = selectedType.inverse ? mainVal <= selectedType.limit : mainVal >= selectedType.limit;
-      const technician = MOCK_USERS.find(u => u.id === testForm.technicianId)?.name || userRole;
+      
+      // Get technician name from project users or use role as fallback
+      const savedUsers = localStorage.getItem('roadmaster-users');
+      const users: User[] = savedUsers ? JSON.parse(savedUsers) : [];
+      const technician = users.find(u => u.id === testForm.technicianId)?.name || userRole;
 
       const newEntry: LabTest = {
           id: `LAB-${Date.now()}`,
@@ -220,7 +223,11 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                                     <FormControl fullWidth size="small">
                                         <InputLabel>Assigned Technician</InputLabel>
                                         <Select value={testForm.technicianId} label="Assigned Technician" onChange={e => setTestForm({...testForm, technicianId: e.target.value})}>
-                                            {MOCK_USERS.map(u => <MenuItem key={u.id} value={u.id}>{u.name} ({u.role})</MenuItem> )}
+                                            {(() => {
+                                              const savedUsers = localStorage.getItem('roadmaster-users');
+                                              const users: User[] = savedUsers ? JSON.parse(savedUsers) : [];
+                                              return users.map(u => <MenuItem key={u.id} value={u.id}>{u.name} ({u.role})</MenuItem> );
+                                            })()}
                                         </Select>
                                     </FormControl>
                                     <TextField label="Testing Date" type="date" InputLabelProps={{ shrink: true }} fullWidth size="small" value={testForm.date} onChange={e => setTestForm({...testForm, date: e.target.value})} />

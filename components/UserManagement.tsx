@@ -1,6 +1,5 @@
 import React, { useState, ChangeEvent } from 'react';
 import { User, UserRole } from '../types';
-import { MOCK_USERS } from '../constants';
 import { UserPlus, Trash2, Mail, Shield, Edit3, Upload, X, Save } from 'lucide-react';
 import { 
   Avatar, 
@@ -31,7 +30,7 @@ import {
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>(() => {
     const savedUsers = localStorage.getItem('roadmaster-users');
-    return savedUsers ? JSON.parse(savedUsers) : MOCK_USERS;
+    return savedUsers ? JSON.parse(savedUsers) : []; // Start with empty array instead of mock data
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);

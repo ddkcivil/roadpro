@@ -138,10 +138,7 @@ const Login: React.FC<Props> = ({ onLogin }) => {
       }, 1200);
   };
 
-  const setDemo = (e: string) => {
-      setEmail(e);
-      setPassword('password123');
-  };
+
 
   return (
     <Box sx={{ 
@@ -428,34 +425,7 @@ const Login: React.FC<Props> = ({ onLogin }) => {
                             )}
                         </CardContent>
 
-                        {/* Minimal Demo Access Section */}
-                        {view === 'LOGIN' && (
-                            <Box sx={{ bgcolor: '#f8fafc', p: 3, borderTop: '1px solid #f1f5f9' }}>
-                                <Typography variant="caption" sx={{ color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', mb: 2, textAlign: 'center' }}>
-                                    Quick Access Profiles
-                                </Typography>
-                                <Box display="flex" gap={1} flexWrap="wrap" justifyContent="center">
-                                    <Chip 
-                                        label="Admin" 
-                                        onClick={() => setDemo('admin@roadmaster.com')} 
-                                        variant="outlined"
-                                        sx={{ borderRadius: '8px', fontSize: '0.7rem', fontWeight: 600, border: '1px solid #e2e8f0', bgcolor: 'white', '&:hover': { bgcolor: '#f1f5f9' } }}
-                                    />
-                                    <Chip 
-                                        label="Project Mgr" 
-                                        onClick={() => setDemo('pm@roadmaster.com')} 
-                                        variant="outlined"
-                                        sx={{ borderRadius: '8px', fontSize: '0.7rem', fontWeight: 600, border: '1px solid #e2e8f0', bgcolor: 'white' }}
-                                    />
-                                    <Chip 
-                                        label="Site Engineer" 
-                                        onClick={() => setDemo('site@roadmaster.com')} 
-                                        variant="outlined"
-                                        sx={{ borderRadius: '8px', fontSize: '0.7rem', fontWeight: 600, border: '1px solid #e2e8f0', bgcolor: 'white' }}
-                                    />
-                                </Box>
-                            </Box>
-                        )}
+
                     </Card>
 
                     {/* Footer Copyright */}

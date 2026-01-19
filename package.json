@@ -25,11 +25,13 @@
     "react-dom": "18.2.0",
     "react-pdf": "^10.3.0",
     "recharts": "2.13.3",
+    "sql.js": "^1.13.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^22.14.0",
+    "@types/sql.js": "^1.4.9",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.23",
     "postcss": "^8.5.6",

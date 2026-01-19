@@ -15,8 +15,7 @@ import {
     Droplets, Wind, Sun, Zap, Layers, Users, Calendar,
     Clock, MapPin, Info, History
 } from 'lucide-react';
-import { Project, UserRole, LabTest, NCR, RFI } from '../types';
-import { MOCK_USERS } from '../constants';
+import { Project, UserRole, LabTest, NCR, RFI, User } from '../types';
 
 interface Props {
   project: Project;

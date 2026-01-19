@@ -68,10 +68,12 @@ import {
   Download
 } from 'lucide-react';
 import { UserRole, Project, AppSettings, Message, UserWithPermissions, Permission } from './types';
-import { MOCK_PROJECTS, MOCK_USERS, MOCK_MESSAGES } from './constants';
 import { PermissionsService } from './services/permissionsService';
 import { AuditService } from './services/auditService';
 import { DataCache, getCacheKey } from './utils/cacheUtils';
+import { LocalStorageUtils } from './utils/localStorageUtils';
+import { sqliteService } from './services/sqliteService';
+import { DataSyncService } from './services/dataSyncService';
 import { addSkipLink } from './utils/a11yUtils';
 import AboutPage from './components/AboutPage';
 import ContactPage from './components/ContactPage';
@@ -82,6 +84,7 @@ import { NotificationProvider } from './contexts/NotificationContext';
 
 // Components
 import Login from './components/Login';
+import DataAnalysisModule from './components/DataAnalysisModule';
 
 // Lazy-loaded components for performance optimization
 const Dashboard = lazy(() => import('./components/Dashboard'));
@@ -232,6 +235,42 @@ const darkTheme = createTheme({
 const App: React.FC = () => {
   // Register service worker and add accessibility features on component mount
   useEffect(() => {
+    // Initialize localStorage with empty arrays if no data exists
+    LocalStorageUtils.initializeEmptyData();
+    
+    // Ensure admin user exists
+    const savedUsers = localStorage.getItem('roadmaster-users');
+    if (!savedUsers || JSON.parse(savedUsers).length === 0) {
+      const adminUser = {
+        id: 'admin-001',
+        name: 'Dharma Dhoj Kunwar',
+        email: 'dharmadkunwar20@gmail.com',
+        phone: '9779802877286',
+        role: 'Admin',
+        avatar: 'https://ui-avatars.com/api/?name=Dharma+Kunwar&background=random'
+      };
+      localStorage.setItem('roadmaster-users', JSON.stringify([adminUser]));
+    }
+    
+    // Initialize SQLite service and migrate data from localStorage if needed
+    const initializeSQLite = async () => {
+      try {
+        await sqliteService.initialize();
+        
+        // Check if we need to migrate data from localStorage to SQLite
+        const sqliteDataExists = localStorage.getItem('roadmaster-sqlite-db');
+        if (!sqliteDataExists) {
+          console.log('Migrating data from localStorage to SQLite...');
+          await sqliteService.migrateFromLocalStorage();
+          console.log('Data migration to SQLite completed');
+        }
+      } catch (error) {
+        console.error('Error initializing SQLite service:', error);
+      }
+    };
+    
+    initializeSQLite();
+    
     if ('serviceWorker' in navigator) {
       const registerSW = async () => {
         try {
@@ -262,10 +301,20 @@ const App: React.FC = () => {
   const [themePrimaryColor, setThemePrimaryColor] = useState('#4f46e5');
   const [themeSecondaryColor, setThemeSecondaryColor] = useState('#0f172a');
   // Authentication state
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<UserRole>(UserRole.PROJECT_MANAGER);
-  const [userName, setUserName] = useState('');
-  const [currentUserId, setCurrentUserId] = useState<string>('u2');
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    // Check if user was previously authenticated
+    return localStorage.getItem('roadmaster-authenticated') === 'true';
+  });
+  const [userRole, setUserRole] = useState<UserRole>(() => {
+    const savedRole = localStorage.getItem('roadmaster-user-role');
+    return savedRole ? savedRole as UserRole : UserRole.PROJECT_MANAGER;
+  });
+  const [userName, setUserName] = useState(() => {
+    return localStorage.getItem('roadmaster-user-name') || 'Guest';
+  });
+  const [currentUserId, setCurrentUserId] = useState<string>(() => {
+    return localStorage.getItem('roadmaster-current-user-id') || 'u2';
+  });
   
   // Project selection state
   const [hasSelectedProject, setHasSelectedProject] = useState(false);
@@ -285,7 +334,12 @@ const App: React.FC = () => {
     }
     
     const savedProjects = localStorage.getItem('roadmaster-projects');
-    const projectsData = savedProjects ? JSON.parse(savedProjects) : MOCK_PROJECTS;
+    const projectsData = savedProjects ? JSON.parse(savedProjects) : [];
+    
+    // Initialize with empty array if no data exists
+    if (!savedProjects) {
+      localStorage.setItem('roadmaster-projects', JSON.stringify([]));
+    }
     
     // Cache the projects
     DataCache.set(cacheKey, projectsData, { ttl: 10 * 60 * 1000 }); // 10 minutes
@@ -319,7 +373,12 @@ const App: React.FC = () => {
     }
     
     const savedMessages = localStorage.getItem('roadmaster-messages');
-    const messagesData = savedMessages ? JSON.parse(savedMessages) : MOCK_MESSAGES;
+    const messagesData = savedMessages ? JSON.parse(savedMessages) : [];
+    
+    // Initialize with empty array if no data exists
+    if (!savedMessages) {
+      localStorage.setItem('roadmaster-messages', JSON.stringify([]));
+    }
     
     // Cache the messages
     DataCache.set(cacheKey, messagesData, { ttl: 5 * 60 * 1000 }); // 5 minutes
@@ -375,7 +434,43 @@ const App: React.FC = () => {
   }, [projects, selectedProjectId]);
   
   const currentUser = useMemo(() => {
-    const user = MOCK_USERS.find(u => u.id === currentUserId) || MOCK_USERS[1];
+    // Get users from localStorage, fallback to empty array
+    const savedUsers = localStorage.getItem('roadmaster-users');
+    const users = savedUsers ? JSON.parse(savedUsers) : [];
+    
+    // Initialize with empty array if no data exists
+    if (!savedUsers) {
+      // Create admin user by default
+      const adminUser = {
+        id: 'admin-001',
+        name: 'Dharma Dhoj Kunwar',
+        email: 'dharmadkunwar20@gmail.com',
+        phone: '9779802877286',
+        role: 'Admin',
+        avatar: 'https://ui-avatars.com/api/?name=Dharma+Kunwar&background=random'
+      };
+      const defaultUsers = [adminUser];
+      localStorage.setItem('roadmaster-users', JSON.stringify(defaultUsers));
+    }
+    
+    // Find user by ID or use a default user
+    let user = users.find(u => u.id === currentUserId);
+    if (!user && users.length > 0) {
+      user = users[0]; // Use first user as fallback
+    }
+    
+    // If no user found, create a default user
+    if (!user) {
+      user = {
+        id: currentUserId || 'admin-001',
+        name: 'Dharma Dhoj Kunwar',
+        email: 'dharmadkunwar20@gmail.com',
+        phone: '9779802877286',
+        role: UserRole.ADMIN,
+        avatar: 'https://ui-avatars.com/api/?name=Dharma+Kunwar&background=random'
+      };
+    }
+    
     return PermissionsService.createUserWithPermissions(user);
   }, [currentUserId]);
   
@@ -387,7 +482,43 @@ const App: React.FC = () => {
           setIsAuthenticated(true);
           setUserRole(role);
           setUserName(name);
-          setCurrentUserId(MOCK_USERS.find(u => u.role === role)?.id || 'u2');
+          
+          // Save authentication state to localStorage
+          localStorage.setItem('roadmaster-authenticated', 'true');
+          localStorage.setItem('roadmaster-user-role', role);
+          localStorage.setItem('roadmaster-user-name', name);
+          
+          // Get users from localStorage
+          const savedUsers = localStorage.getItem('roadmaster-users');
+          let users = savedUsers ? JSON.parse(savedUsers) : [];
+          
+          // Initialize with empty array if no data exists
+          if (!savedUsers) {
+            // Create admin user by default
+            const adminUser = {
+              id: 'admin-001',
+              name: 'Dharma Dhoj Kunwar',
+              email: 'dharmadkunwar20@gmail.com',
+              phone: '9779802877286',
+              role: 'Admin',
+              avatar: 'https://ui-avatars.com/api/?name=Dharma+Kunwar&background=random'
+            };
+            users = [adminUser];
+            localStorage.setItem('roadmaster-users', JSON.stringify(users));
+          }
+          
+          // Look for admin user first, then by role, then default
+          let userId = 'u2'; // default fallback
+          
+          if (role === UserRole.ADMIN) {
+            const adminUser = users.find(u => u.role === 'Admin' || u.role === UserRole.ADMIN);
+            userId = adminUser ? adminUser.id : 'admin-001';
+          } else {
+            userId = users.find(u => u.role === role)?.id || userId;
+          }
+          
+          setCurrentUserId(userId);
+          localStorage.setItem('roadmaster-current-user-id', userId);
       });
   };
 
@@ -500,7 +631,8 @@ const App: React.FC = () => {
         { id: 'quality', label: 'Quality Hub', icon: Shield },
         { id: 'lab', label: 'Material Testing', icon: Scale },
         { id: 'environment', label: 'EMP Compliance', icon: Trees },
-        { id: 'output-export', label: 'Exports & Reports', icon: Download }
+        { id: 'output-export', label: 'Exports & Reports', icon: Download },
+        { id: 'data-analysis', label: 'Data Analysis', icon: BarChart3 }
     ]},
     { title: 'Information', items: [
         { id: 'about', label: 'About', icon: HardHat },
@@ -554,6 +686,12 @@ const App: React.FC = () => {
                     setUserRole(UserRole.PROJECT_MANAGER);
                     setUserName('');
                     setCurrentUserId('u2');
+                    
+                    // Clear authentication state from localStorage
+                    localStorage.removeItem('roadmaster-authenticated');
+                    localStorage.removeItem('roadmaster-user-role');
+                    localStorage.removeItem('roadmaster-user-name');
+                    localStorage.removeItem('roadmaster-current-user-id');
                   }}
                   size="small"
                 >
@@ -695,7 +833,18 @@ const App: React.FC = () => {
           </Box>
 
           <Box p={2} borderTop="1px solid rgba(255,255,255,0.05)">
-              <ListItemButton onClick={() => setIsAuthenticated(false)} sx={{ borderRadius: '12px', color: '#fca5a5', '&:hover': { bgcolor: alpha('#ef4444', 0.1) } }}>
+              <ListItemButton onClick={() => {
+                setIsAuthenticated(false);
+                setUserRole(UserRole.PROJECT_MANAGER);
+                setUserName('');
+                setCurrentUserId('u2');
+                
+                // Clear authentication state from localStorage
+                localStorage.removeItem('roadmaster-authenticated');
+                localStorage.removeItem('roadmaster-user-role');
+                localStorage.removeItem('roadmaster-user-name');
+                localStorage.removeItem('roadmaster-current-user-id');
+              }} sx={{ borderRadius: '12px', color: '#fca5a5', '&:hover': { bgcolor: alpha('#ef4444', 0.1) } }}>
                   <ListItemIcon sx={{ minWidth: sidebarCollapsed ? 0 : 36, color: 'inherit' }}><LogOut size={18}/></ListItemIcon>
                   {!sidebarCollapsed && <ListItemText primary="Log Out" primaryTypographyProps={{ fontSize: 13, fontWeight: 700 }} />}
               </ListItemButton>
@@ -788,6 +937,7 @@ const App: React.FC = () => {
                         {activeTab === 'environment' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <EnvironmentModule project={currentProject} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'reports-analytics' && (currentUser as UserWithPermissions).permissions.includes(Permission.REPORT_READ) && <ReportsAnalyticsHub project={currentProject} userRole={userRole} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'output-export' && (currentUser as UserWithPermissions).permissions.includes(Permission.REPORT_READ) && <OutputExportModule project={currentProject} userRole={userRole} settings={appSettings} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'data-analysis' && <DataAnalysisModule />}
                         {activeTab === 'pre-construction' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <PreConstructionModule project={currentProject} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'projects' && (currentUser as UserWithPermissions).permissions.includes(Permission.PROJECT_READ) && <ProjectsList 
                           projects={projects} 
@@ -801,7 +951,7 @@ const App: React.FC = () => {
                         {activeTab === 'messages' && (currentUser as UserWithPermissions).permissions.includes(Permission.DOCUMENT_READ) && (
                           <MessagesModule 
                             currentUser={currentUser} 
-                            users={MOCK_USERS} 
+                            users={LocalStorageUtils.getUsers()} 
                             messages={messages} 
                             onSendMessage={(text, receiverId) => {
                               const newMessage: Message = {
