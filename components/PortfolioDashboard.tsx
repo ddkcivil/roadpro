@@ -32,7 +32,8 @@ import {
   IconButton,
   Dialog,
   DialogContent,
-  DialogActions
+  DialogActions,
+  DialogTitle
 } from '@mui/material';
 import { UserRole, Project, AppSettings } from '../types';
 import { formatCurrency } from '../utils/exportUtils';
@@ -442,11 +443,13 @@ const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onS
 
                   {/* Project Creation Modal */}
                   <Dialog open={isModalOpen} onClose={() => setIsModalOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+                    <DialogTitle>
+                      <Typography variant="h5" fontWeight="bold">
+                        {editForm?.id ? 'Edit Project Definition' : 'Define New Project'}
+                      </Typography>
+                    </DialogTitle>
                     <DialogContent dividers>
                       <Box mb={2}>
-                        <Typography variant="h5" fontWeight="bold">
-                          {editForm?.id ? 'Edit Project Definition' : 'Define New Project'}
-                        </Typography>
                         <Typography variant="body2" color="text.secondary">
                           Configure contractual dates and master registry code
                         </Typography>

@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
+  DialogTitle,
   Grid,
   TextField,
   Typography,
@@ -47,11 +48,13 @@ const ProjectModal: React.FC<Props> = ({ open, onClose, onSave, project }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+      <DialogTitle>
+        <Typography variant="h5" fontWeight="bold">
+          {editForm.id ? 'Edit Project Definition' : 'Define New Project'}
+        </Typography>
+      </DialogTitle>
       <DialogContent dividers>
         <Box mb={2}>
-          <Typography variant="h5" fontWeight="bold">
-            {editForm.id ? 'Edit Project Definition' : 'Define New Project'}
-          </Typography>
           <Typography variant="body2" color="text.secondary">
             Configure contractual dates and master registry code
           </Typography>
