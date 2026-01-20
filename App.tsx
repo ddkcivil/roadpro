@@ -555,11 +555,81 @@ const App: React.FC = () => {
       });
   };
 
-  const onSaveProject = (project: Project) => {
+  const onSaveProject = (project: Partial<Project>) => {
     setProjects(prev => {
+      // Create a complete project object with default values for missing fields
+      const completeProject: Project = {
+        id: project.id || `proj-${Date.now()}`,
+        name: project.name || '',
+        code: project.code || '',
+        location: project.location || '',
+        contractor: project.contractor || '',
+        startDate: project.startDate || '',
+        endDate: project.endDate || '',
+        client: project.client || '',
+        boq: project.boq || [],
+        rfis: project.rfis || [],
+        labTests: project.labTests || [],
+        schedule: project.schedule || [],
+        inventory: project.inventory || [],
+        inventoryTransactions: project.inventoryTransactions || [],
+        vehicles: project.vehicles || [],
+        vehicleLogs: project.vehicleLogs || [],
+        documents: project.documents || [],
+        dailyReports: project.dailyReports || [],
+        preConstruction: project.preConstruction || [],
+        landParcels: project.landParcels || [],
+        mapOverlays: project.mapOverlays || [],
+        hindrances: project.hindrances || [],
+        ncrs: project.ncrs || [],
+        contractBills: project.contractBills || [],
+        measurementSheets: project.measurementSheets || [],
+        staffLocations: project.staffLocations || [],
+        // Initialize optional arrays if not provided
+        structures: project.structures || [],
+        agencies: project.agencies || [],
+        agencyPayments: project.agencyPayments || [],
+        linearWorks: project.linearWorks || [],
+        subcontractorBills: project.subcontractorBills || [],
+        sitePhotos: project.sitePhotos || [],
+        purchaseOrders: project.purchaseOrders || [],
+        agencyMaterials: project.agencyMaterials || [],
+        agencyBills: project.agencyBills || [],
+        subcontractorPayments: project.subcontractorPayments || [],
+        preConstructionTasks: project.preConstructionTasks || [],
+        kmlData: project.kmlData || [],
+        variationOrders: project.variationOrders || [],
+        resources: project.resources || [],
+        resourceAllocations: project.resourceAllocations || [],
+        milestones: project.milestones || [],
+        comments: project.comments || [],
+        checklists: project.checklists || [],
+        defects: project.defects || [],
+        complianceWorkflows: project.complianceWorkflows || [],
+        auditLogs: project.auditLogs || [],
+        structureTemplates: project.structureTemplates || [],
+        accountingIntegrations: project.accountingIntegrations || [],
+        accountingTransactions: project.accountingTransactions || [],
+        personnel: project.personnel || [],
+        fleet: project.fleet || [],
+        weather: project.weather,
+        lastSynced: project.lastSynced,
+        spreadsheetId: project.spreadsheetId,
+        settings: project.settings,
+        environmentRegistry: project.environmentRegistry,
+        projectManager: project.projectManager,
+        supervisor: project.supervisor,
+        consultantName: project.consultantName,
+        clientName: project.clientName,
+        logo: project.logo,
+        engineer: project.engineer,
+        contractNo: project.contractNo,
+        contractPeriod: project.contractPeriod
+      };
+      
       const updatedProjects = project.id 
-        ? prev.map(p => p.id === project.id ? project : p)
-        : [...prev, { ...project, id: `proj-${Date.now()}` }];
+        ? prev.map(p => p.id === project.id ? completeProject : p)
+        : [...prev, completeProject];
       
       localStorage.setItem('roadmaster-projects', JSON.stringify(updatedProjects));
       
