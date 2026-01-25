@@ -32,6 +32,12 @@ const UserManagement: React.FC = () => {
     const savedUsers = localStorage.getItem('roadmaster-users');
     return savedUsers ? JSON.parse(savedUsers) : []; // Start with empty array instead of mock data
   });
+  
+  const [pendingUsers, setPendingUsers] = useState<any[]>(() => {
+    const savedPendingUsers = localStorage.getItem('roadmaster-pending-users');
+    return savedPendingUsers ? JSON.parse(savedPendingUsers) : [];
+  });
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -205,6 +211,44 @@ const UserManagement: React.FC = () => {
     setAvatarFile(null);
     setPreviewUrl(null);
   };
+  
+  const approveUser = (pendingUser: any) => {
+    // Move user from pending to active users
+    const newUser: User = {
+      id: `u-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`, // Ensure unique ID
+      name: pendingUser.name,
+      email: pendingUser.email,
+      phone: pendingUser.phone,
+      role: pendingUser.requestedRole,
+      avatar: pendingUser.avatar
+    };
+    
+    setUsers(prev => {
+      const updatedUsers = [...prev, newUser];
+      localStorage.setItem('roadmaster-users', JSON.stringify(updatedUsers));
+      return updatedUsers;
+    });
+    
+    // Remove from pending users
+    setPendingUsers(prev => {
+      const updatedPending = prev.filter((u: any) => u.id !== pendingUser.id);
+      localStorage.setItem('roadmaster-pending-users', JSON.stringify(updatedPending));
+      return updatedPending;
+    });
+    
+    alert(`User ${pendingUser.name} has been approved and added to the system.`);
+  };
+  
+  const rejectUser = (pendingUser: any) => {
+    if (window.confirm(`Are you sure you want to reject ${pendingUser.name}'s registration?`)) {
+      setPendingUsers(prev => {
+        const updatedPending = prev.filter((u: any) => u.id !== pendingUser.id);
+        localStorage.setItem('roadmaster-pending-users', JSON.stringify(updatedPending));
+        return updatedPending;
+      });
+      alert(`User ${pendingUser.name}'s registration has been rejected.`);
+    }
+  };
 
   const getUserRoleColor = (role: UserRole) => {
     switch (role) {
@@ -230,15 +274,115 @@ const UserManagement: React.FC = () => {
           <Typography variant="h5" fontWeight="900">User Management</Typography>
           <Typography variant="body2" color="text.secondary">Manage system access and roles</Typography>
         </Box>
-        <Button 
-          variant="contained" 
-          startIcon={<UserPlus size={16}/>} 
-          onClick={() => setIsModalOpen(true)}
-          sx={{ paddingX: 1.5, paddingY: 0.75 }}
-        >
-          Add User
-        </Button>
+        <Box display="flex" gap={1}>
+          <Button 
+            variant="outlined" 
+            startIcon={<UserPlus size={16}/>} 
+            onClick={() => setIsModalOpen(true)}
+            sx={{ paddingX: 1.5, paddingY: 0.75 }}
+          >
+            Add User
+          </Button>
+          {pendingUsers.length > 0 && (
+            <Button 
+              variant="contained" 
+              color="warning"
+              onClick={() => {}}
+              sx={{ paddingX: 1.5, paddingY: 0.75 }}
+            >
+              Pending ({pendingUsers.length})
+            </Button>
+          )}
+        </Box>
       </Box>
+      
+      {/* Pending Users Section */}
+      {pendingUsers.length > 0 && (
+        <Paper variant="outlined" sx={{ borderRadius: 4, mb: 3 }}>
+          <Box p={2} bgcolor="#fef3c7" borderBottom="1px solid #fbbf24">
+            <Typography variant="h6" fontWeight="bold" color="#92400e">
+              Pending Registrations ({pendingUsers.length})
+            </Typography>
+          </Box>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ bgcolor: 'amber.50' }}>
+                  <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>User</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Requested Role</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Email</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Phone</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {pendingUsers.map((user: any) => (
+                  <TableRow key={user.id} hover>
+                    <TableCell>
+                      <Stack direction="column" spacing={0.5}>
+                        <Stack direction="row" alignItems="center" spacing={2}>
+                          <Avatar 
+                            src={user.avatar} 
+                            sx={{ width: 40, height: 40 }}
+                          >
+                            {user.name.charAt(0)}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body2" fontWeight="bold">{user.name}</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Registered: {new Date(user.createdAt).toLocaleDateString()}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </Stack>
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={user.requestedRole} 
+                        size="small" 
+                        color={getUserRoleColor(user.requestedRole as UserRole)}
+                        variant="outlined"
+                        sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <Mail size={14} />
+                        <Typography variant="body2">{user.email}</Typography>
+                      </Stack>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{user.phone || '-'}</Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Stack direction="row" justifyContent="flex-end" spacing={1}>
+                        <Button 
+                          variant="outlined" 
+                          color="success"
+                          size="small" 
+                          startIcon={<Shield size={16}/>} 
+                          onClick={() => approveUser(user)}
+                        >
+                          Approve
+                        </Button>
+                        <Button 
+                          variant="outlined" 
+                          color="error" 
+                          size="small" 
+                          startIcon={<X size={16}/>} 
+                          onClick={() => rejectUser(user)}
+                        >
+                          Reject
+                        </Button>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      )}
 
       <Paper variant="outlined" sx={{ borderRadius: 4 }}>
         <TableContainer>
@@ -256,24 +400,26 @@ const UserManagement: React.FC = () => {
               {users.map(user => (
                 <TableRow key={user.id} hover>
                   <TableCell>
-                    <Stack direction="row" alignItems="center" spacing={2}>
-                      <Avatar 
-                        src={user.avatar} 
-                        sx={{ width: 40, height: 40 }}
-                      >
-                        {user.name.charAt(0)}
-                      </Avatar>
-                      <Typography variant="body2" fontWeight="bold">{user.name}</Typography>
+                    <Stack direction="column" spacing={0.5}>
+                      <Stack direction="row" alignItems="center" spacing={2}>
+                        <Avatar 
+                          src={user.avatar} 
+                          sx={{ width: 40, height: 40 }}
+                        >
+                          {user.name.charAt(0)}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body2" fontWeight="bold">{user.name}</Typography>
+                          <Chip 
+                            label={user.role} 
+                            size="small" 
+                            color={getUserRoleColor(user.role)}
+                            variant="outlined"
+                            sx={{ fontWeight: 'bold', fontSize: '0.75rem', mt: 0.5 }}
+                          />
+                        </Box>
+                      </Stack>
                     </Stack>
-                  </TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={user.role} 
-                      size="small" 
-                      color={getUserRoleColor(user.role)}
-                      variant="outlined"
-                      sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}
-                    />
                   </TableCell>
                   <TableCell>
                     <Stack direction="row" alignItems="center" spacing={1}>
@@ -356,6 +502,33 @@ const UserManagement: React.FC = () => {
               </Box>
             </Stack>
             
+            <Stack direction="row" spacing={2} alignItems="center" mb={1}>
+              <Typography variant="body2" fontWeight="bold" sx={{ minWidth: 80 }}>
+                Role:
+              </Typography>
+              <FormControl fullWidth margin="normal" sx={{ m: 0 }}>
+                <Select 
+                  value={newUser.role} 
+                  onChange={e => setNewUser({...newUser, role: e.target.value as UserRole})}
+                  size="small"
+                >
+                  {Object.values(UserRole).map(role => (
+                    <MenuItem key={role} value={role}>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <Chip 
+                          label={role} 
+                          size="small" 
+                          color={getUserRoleColor(role as UserRole)}
+                          variant="outlined"
+                          sx={{ height: 20, fontSize: '0.75rem' }}
+                        />
+                      </Stack>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Stack>
+            
             <TextField 
               required
               label="Full Name" 
@@ -380,18 +553,6 @@ const UserManagement: React.FC = () => {
               onChange={e => setNewUser({...newUser, phone: e.target.value})} 
               margin="normal"
             />
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Role</InputLabel>
-              <Select 
-                value={newUser.role} 
-                label="Role"
-                onChange={e => setNewUser({...newUser, role: e.target.value as UserRole})}
-              >
-                {Object.values(UserRole).map(role => (
-                  <MenuItem key={role} value={role}>{role}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3, bgcolor: '#f8fafc' }}>
@@ -445,6 +606,35 @@ const UserManagement: React.FC = () => {
                 </Box>
               </Stack>
               
+              {editingUser && (
+                <Stack direction="row" spacing={2} alignItems="center" mb={1}>
+                  <Typography variant="body2" fontWeight="bold" sx={{ minWidth: 80 }}>
+                    Role:
+                  </Typography>
+                  <FormControl fullWidth margin="normal" sx={{ m: 0 }}>
+                    <Select 
+                      value={editingUser.role} 
+                      onChange={e => setEditingUser({...editingUser, role: e.target.value as UserRole})}
+                      size="small"
+                    >
+                      {Object.values(UserRole).map(role => (
+                        <MenuItem key={role} value={role}>
+                          <Stack direction="row" alignItems="center" spacing={1}>
+                            <Chip 
+                              label={role} 
+                              size="small" 
+                              color={getUserRoleColor(role as UserRole)}
+                              variant="outlined"
+                              sx={{ height: 20, fontSize: '0.75rem' }}
+                            />
+                          </Stack>
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Stack>
+              )}
+              
               <TextField 
                 required
                 label="Full Name" 
@@ -469,18 +659,6 @@ const UserManagement: React.FC = () => {
                 onChange={e => setEditingUser({...editingUser, phone: e.target.value})} 
                 margin="normal"
               />
-              <FormControl fullWidth margin="normal">
-                <InputLabel>Role</InputLabel>
-                <Select 
-                  value={editingUser.role} 
-                  label="Role"
-                  onChange={e => setEditingUser({...editingUser, role: e.target.value as UserRole})}
-                >
-                  {Object.values(UserRole).map(role => (
-                    <MenuItem key={role} value={role}>{role}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
             </Box>
           )}
         </DialogContent>

@@ -11,9 +11,7 @@ import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
 import 'leaflet-geosearch/dist/geosearch.css';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-// Import omnivore for KML support
-// @ts-ignore
-import * as omnivore from '@mapbox/leaflet-omnivore';
+import omnivore from 'leaflet-omnivore';
 
 // Fix for default icons when using webpack
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -152,8 +150,9 @@ const MapModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                   }
                 }
               }
-          } catch (error) {
-            console.error('Error loading KML layer:', error);
+            }
+        } catch (error) {
+            console.error('Error restoring KML layer:', error);
           }
         });
       }
@@ -171,149 +170,6 @@ const MapModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
           } 
       };
   }, [project]);
-
-  // Define missing functions
-  const displayStructures = () => {
-    if (!mapRef.current) return;
-    
-    // Clear existing structure markers
-    structureMarkers.forEach(marker => mapRef.current.removeLayer(marker));
-    setStructureMarkers([]);
-    
-    const newMarkers: any[] = [];
-    
-    (project.structures || []).forEach(structure => {
-      // Structures don't have direct coordinates, skip for now
-      // We could implement a reverse geocoding of the location field if needed
-      // For now, just skip adding markers for structures
-    });
-    
-    setStructureMarkers(newMarkers);
-  };
-  
-  const displayVehicles = () => {
-    if (!mapRef.current) return;
-    
-    // Clear existing vehicle markers
-    vehicleMarkers.forEach(marker => mapRef.current.removeLayer(marker));
-    setVehicleMarkers([]);
-    
-    const newMarkers: any[] = [];
-    
-    (project.vehicles || []).forEach(vehicle => {
-      // Use GPS location or last known location from the vehicle
-      let lat, lng;
-      
-      if (vehicle.gpsLocation && typeof vehicle.gpsLocation.latitude === 'number' && typeof vehicle.gpsLocation.longitude === 'number') {
-        lat = vehicle.gpsLocation.latitude;
-        lng = vehicle.gpsLocation.longitude;
-      } else if (vehicle.lastKnownLocation && typeof vehicle.lastKnownLocation.latitude === 'number' && typeof vehicle.lastKnownLocation.longitude === 'number') {
-        lat = vehicle.lastKnownLocation.latitude;
-        lng = vehicle.lastKnownLocation.longitude;
-      } else {
-        // Skip if no valid coordinates available
-        return;
-      }
-      
-      // Validate coordinates
-      if (isNaN(lat) || isNaN(lng)) {
-        return; // Skip invalid coordinates
-      }
-      
-      // Different icons based on vehicle status
-      let iconColor = '#3b82f6'; // blue for Active
-      if (vehicle.status === 'Maintenance') iconColor = '#ef4444'; // red
-      if (vehicle.status === 'Idle') iconColor = '#f59e0b'; // amber
-      
-      const vehicleIcon = L.divIcon({
-        className: 'custom-marker',
-        html: `<div style="background-color: ${iconColor}; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: bold; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);">
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/>
-            <path d="M14 16v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4"/> 
-            <circle cx="7.5" cy="13.5" r=".5" fill="none"/> 
-            <circle cx="15.5" cy="13.5" r=".5" fill="none"/> 
-          </svg>
-        </div>`,
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
-      });
-      
-      const marker = L.marker([lat, lng], { icon: vehicleIcon })
-        .addTo(mapRef.current)
-        .bindPopup(`<b>${vehicle.plateNumber || 'Unknown Vehicle'}</b><br/>Type: ${vehicle.type}<br/>Status: ${vehicle.status}<br/>Chainage: ${vehicle.chainage || 'N/A'}<br/>Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
-      
-      newMarkers.push(marker);
-    });
-    
-    setVehicleMarkers(newMarkers);
-  };
-  
-  const displayAssets = () => {
-    if (!mapRef.current) return;
-    
-    // Clear existing asset markers
-    assetMarkers.forEach(marker => mapRef.current.removeLayer(marker));
-    setAssetMarkers([]);
-    
-    const newMarkers: any[] = [];
-    
-    // Since Project interface doesn't have 'assets' property, we'll skip adding asset markers
-    // We could implement a location-based system for materials if needed
-    // For now, just iterate over an empty array
-    [].forEach(() => {});
-    
-    setAssetMarkers(newMarkers);
-  };
-  
-  const displayStaff = () => {
-    if (!mapRef.current) return;
-    
-    // Clear existing staff markers
-    staffMarkers.forEach(marker => mapRef.current.removeLayer(marker));
-    setStaffMarkers([]);
-    
-    const newMarkers: any[] = [];
-    
-    (project.staffLocations || []).forEach(staff => {
-      // Use actual coordinates from the staff location data
-      const lat = staff.latitude;
-      const lng = staff.longitude;
-      
-      // Different icons based on staff status
-      let iconColor = '#8b5cf6'; // purple for Active
-      if (staff.status === 'Idle') iconColor = '#64748b'; // gray
-      if (staff.status === 'Offline') iconColor = '#9ca3af'; // light gray
-      
-      const staffIcon = L.divIcon({
-        className: 'custom-marker',
-        html: `<div style="background-color: ${iconColor}; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-            <circle cx="12" cy="7" r="4"/>
-          </svg>
-        </div>`,
-        iconSize: [26, 26],
-        iconAnchor: [13, 13]
-      });
-      
-      const marker = L.marker([lat, lng], { icon: staffIcon })
-        .addTo(mapRef.current)
-        .bindPopup(`<b>${staff.userName}</b><br/>Role: ${staff.role}<br/>Status: ${staff.status}<br/>Time: ${new Date(staff.timestamp).toLocaleTimeString()}`);
-      
-      newMarkers.push(marker);
-    });
-    
-    setStaffMarkers(newMarkers);
-  };
-  
-  // Define displayAllElements function
-  const displayAllElements = () => {
-    displayVehicles();
-    displayAssets();
-    displayStaff();
-    displayStructures();
-  };
 
   const toggleOverlay = (id: string) => {
       const ov = activeOverlays[id];
@@ -344,8 +200,8 @@ const MapModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
         const reader = new FileReader();
         reader.onload = (e) => {
           const kmlContent = e.target?.result as string;
-          try {
-            if (mapRef.current && kmlContent) {
+          if (mapRef.current && kmlContent) {
+            try {
               // Store KML content in project data
               const kmlData: KMLData = {
                 id: `kml-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -432,7 +288,8 @@ const MapModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
               }
             }
           } catch (error) {
-            console.error('Error parsing KML file:', error);
+              console.error('Error parsing KML file:', error);
+            }
           }
         };
         reader.readAsText(file);
@@ -440,7 +297,7 @@ const MapModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
     });
     
     // Reset the input to allow importing the same file again
-    (event.target as HTMLInputElement).value = '';
+    event.target.value = '';
   };
 
   const removeKmlLayer = (layerId: string) => {
@@ -468,8 +325,448 @@ const MapModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
   };
 
   // Function to add vehicle markers to the map
+  const displayVehicles = () => {
+    if (!mapRef.current) return;
+    
+    // Clear existing vehicle markers
+    vehicleMarkers.forEach(marker => mapRef.current.removeLayer(marker));
+    setVehicleMarkers([]);
+    
+    const newMarkers: any[] = [];
+    
+    (project.vehicles || []).forEach(vehicle => {
+      let lat, lng;
+      
+      // Check if the vehicle has a chainage value and we have KML layers to position it along
+      if (vehicle.chainage && kmlLayers.length > 0) {
+        // Parse the chainage value (format: "0+250" means 0km and 250m = 250m total)
+        const chainageMatch = vehicle.chainage.match(/(\d+)\+(\d+)/);
+        if (chainageMatch) {
+          const kilometers = parseInt(chainageMatch[1]);
+          const meters = parseInt(chainageMatch[2]);
+          const totalMeters = kilometers * 1000 + meters;
+          
+          // Find the first KML layer that represents the road alignment
+          // We'll position the vehicle at the point that corresponds to the chainage distance
+          let foundPosition = false;
+          for (const kmlLayer of kmlLayers) {
+            if (kmlLayer.getLatLngs) {
+              let coords: [number, number][] = [];
+              
+              const latLngs = kmlLayer.getLatLngs();
+              if (Array.isArray(latLngs)) {
+                if (latLngs[0] && typeof latLngs[0] === 'object' && 'lat' in latLngs[0]) {
+                  // Simple array of latlngs
+                  coords = latLngs.map((ll: any) => [ll.lat, ll.lng] as [number, number]);
+                } else if (Array.isArray(latLngs[0])) {
+                  // Array of arrays (for polygons)
+                  coords = latLngs.flat().map((ll: any) => [ll.lat, ll.lng] as [number, number]);
+                }
+              }
+              
+              if (coords.length >= 2) {
+                // Calculate cumulative distances along the path
+                const cumulativeDistances: number[] = [0];
+                let totalPathDistance = 0;
+                
+                for (let i = 1; i < coords.length; i++) {
+                  const [lat1, lng1] = coords[i - 1];
+                  const [lat2, lng2] = coords[i];
+                  const segmentDistance = calculateDistance(lat1, lng1, lat2, lng2);
+                  totalPathDistance += segmentDistance;
+                  cumulativeDistances.push(totalPathDistance);
+                }
+                
+                // Find the segment where the vehicle should be positioned
+                if (totalMeters <= totalPathDistance) {
+                  // Find which segment contains the desired distance
+                  let segmentIndex = 0;
+                  for (let i = 1; i < cumulativeDistances.length; i++) {
+                    if (cumulativeDistances[i] >= totalMeters) {
+                      segmentIndex = i;
+                      break;
+                    }
+                  }
+                  
+                  // Calculate the exact position along the segment
+                  if (segmentIndex > 0) {
+                    const [lat1, lng1] = coords[segmentIndex - 1];
+                    const [lat2, lng2] = coords[segmentIndex];
+                    
+                    // Calculate the ratio along the segment
+                    const segmentStartDistance = cumulativeDistances[segmentIndex - 1];
+                    const segmentEndDistance = cumulativeDistances[segmentIndex];
+                    const segmentLength = segmentEndDistance - segmentStartDistance;
+                    
+                    if (segmentLength > 0) {
+                      const ratio = (totalMeters - segmentStartDistance) / segmentLength;
+                      
+                      // Interpolate the position
+                      lat = lat1 + (lat2 - lat1) * ratio;
+                      lng = lng1 + (lng2 - lng1) * ratio;
+                      foundPosition = true;
+                      break;
+                    }
+                  }
+                } else {
+                  // If the chainage is beyond the total path length, place at the end
+                  const [lastLat, lastLng] = coords[coords.length - 1];
+                  lat = lastLat;
+                  lng = lastLng;
+                  foundPosition = true;
+                  break;
+                }
+              }
+            }
+          }
+          
+          // If no position was found along the KML path, fall back to GPS or random
+          if (!foundPosition) {
+            if (vehicle.gpsLocation) {
+              lat = vehicle.gpsLocation.latitude;
+              lng = vehicle.gpsLocation.longitude;
+            } else {
+              lat = 27.6600 + (Math.random() - 0.5) * 0.01; // Random offset from center
+              lng = 83.4650 + (Math.random() - 0.5) * 0.01;
+            }
+          }
+        } else {
+          // Invalid chainage format, fall back to GPS or random
+          if (vehicle.gpsLocation) {
+            lat = vehicle.gpsLocation.latitude;
+            lng = vehicle.gpsLocation.longitude;
+          } else {
+            lat = 27.6600 + (Math.random() - 0.5) * 0.01; // Random offset from center
+            lng = 83.4650 + (Math.random() - 0.5) * 0.01;
+          }
+        }
+      } else {
+        // No chainage provided, use GPS if available, otherwise random
+        if (vehicle.gpsLocation) {
+          lat = vehicle.gpsLocation.latitude;
+          lng = vehicle.gpsLocation.longitude;
+        } else {
+          lat = 27.6600 + (Math.random() - 0.5) * 0.01; // Random offset from center
+          lng = 83.4650 + (Math.random() - 0.5) * 0.01;
+        }
+      }
+      
+      // Different icons based on vehicle status
+      let iconColor = '#3b82f6'; // blue for Active
+      if (vehicle.status === 'Maintenance') iconColor = '#ef4444'; // red
+      if (vehicle.status === 'Idle') iconColor = '#f59e0b'; // yellow
+      
+      const vehicleIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="background-color: ${iconColor}; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="2" width="14" height="20" rx="2"/>
+            <circle cx="12" cy="16" r="1"/>
+            <circle cx="8" cy="16" r="1"/>
+            <circle cx="16" cy="16" r="1"/>
+          </svg>
+        </div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+      
+      // Prepare popup content with chainage information
+      const popupContent = `<b>${vehicle.type}</b><br/>Plate: ${vehicle.plateNumber}<br/>Status: ${vehicle.status}<br/>Driver: ${vehicle.driver}<br/>Chainage: ${vehicle.chainage || 'N/A'}<br/>Agency: ${vehicle.agencyId ? (project.agencies?.find(a => a.id === vehicle.agencyId)?.name || 'Unknown Agency') : 'Unassigned'}`;
+      
+      // Create a circle marker for better visibility on the KML path
+      const marker = L.circleMarker([lat, lng], {
+        radius: 7,
+        fillColor: iconColor,
+        color: '#fff',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.8
+      })
+        .addTo(mapRef.current)
+        .bindPopup(popupContent);
+      
+      // Add a more prominent label near the marker showing the chainage and status
+      if (vehicle.chainage) {
+        const label = L.marker([lat, lng], {
+          icon: L.divIcon({
+            className: 'chainage-label',
+            html: `<div style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); color: #333; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; white-space: nowrap; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); min-width: 60px; text-align: center;">${vehicle.chainage}<br/><small>${vehicle.status}</small></div>`,
+            iconSize: [70, 30],
+            iconAnchor: [35, 25]
+          }),
+          interactive: false
+        }).addTo(mapRef.current);
+        
+        // Store reference to label for layer management
+        newMarkers.push(label);
+      }
+      
+      newMarkers.push(marker);
+    });
+    
+    setVehicleMarkers(newMarkers);
+  };
 
-  
+  // Function to add asset markers to the map
+  const displayAssets = () => {
+    if (!mapRef.current) return;
+    
+    // Clear existing asset markers
+    assetMarkers.forEach(marker => mapRef.current.removeLayer(marker));
+    setAssetMarkers([]);
+    
+    const newMarkers: any[] = [];
+    
+    // Display structure assets
+    if (project.structures && project.structures.length > 0) {
+      project.structures.forEach(asset => {
+        // Check if we have coordinates from KML layers
+        let lat, lng;
+        
+        // Check if the asset has a chainage value and we have KML layers to position it along
+        let foundPosition = false;
+        if (asset.chainage && kmlLayers.length > 0) {
+          // Parse the chainage value (format: "0+250" means 0km and 250m = 250m total)
+          const chainageMatch = asset.chainage.match(/(\d+)\+(\d+)/);
+          if (chainageMatch) {
+            const kilometers = parseInt(chainageMatch[1]);
+            const meters = parseInt(chainageMatch[2]);
+            const totalMeters = kilometers * 1000 + meters;
+            
+            // Find the first KML layer that represents the road alignment
+            // We'll position the asset at the point that corresponds to the chainage distance
+            for (const kmlLayer of kmlLayers) {
+              if (kmlLayer.getLatLngs) {
+                let coords: [number, number][] = [];
+                
+                const latLngs = kmlLayer.getLatLngs();
+                if (Array.isArray(latLngs)) {
+                  if (latLngs[0] && typeof latLngs[0] === 'object' && 'lat' in latLngs[0]) {
+                    // Simple array of latlngs
+                    coords = latLngs.map((ll: any) => [ll.lat, ll.lng] as [number, number]);
+                  } else if (Array.isArray(latLngs[0])) {
+                    // Array of arrays (for polygons)
+                    coords = latLngs.flat().map((ll: any) => [ll.lat, ll.lng] as [number, number]);
+                  }
+                }
+                
+                if (coords.length >= 2) {
+                  // Calculate cumulative distances along the path
+                  const cumulativeDistances: number[] = [0];
+                  let totalPathDistance = 0;
+                  
+                  for (let i = 1; i < coords.length; i++) {
+                    const [lat1, lng1] = coords[i - 1];
+                    const [lat2, lng2] = coords[i];
+                    const segmentDistance = calculateDistance(lat1, lng1, lat2, lng2);
+                    totalPathDistance += segmentDistance;
+                    cumulativeDistances.push(totalPathDistance);
+                  }
+                  
+                  // Find the segment where the asset should be positioned
+                  if (totalMeters <= totalPathDistance) {
+                    // Find which segment contains the desired distance
+                    let segmentIndex = 0;
+                    for (let i = 1; i < cumulativeDistances.length; i++) {
+                      if (cumulativeDistances[i] >= totalMeters) {
+                        segmentIndex = i;
+                        break;
+                      }
+                    }
+                    
+                    // Calculate the exact position along the segment
+                    if (segmentIndex > 0) {
+                      const [lat1, lng1] = coords[segmentIndex - 1];
+                      const [lat2, lng2] = coords[segmentIndex];
+                      
+                      // Calculate the ratio along the segment
+                      const segmentStartDistance = cumulativeDistances[segmentIndex - 1];
+                      const segmentEndDistance = cumulativeDistances[segmentIndex];
+                      const segmentLength = segmentEndDistance - segmentStartDistance;
+                      
+                      if (segmentLength > 0) {
+                        const ratio = (totalMeters - segmentStartDistance) / segmentLength;
+                        
+                        // Interpolate the position
+                        lat = lat1 + (lat2 - lat1) * ratio;
+                        lng = lng1 + (lng2 - lng1) * ratio;
+                        foundPosition = true;
+                        break;
+                      }
+                    }
+                  } else {
+                    // If the chainage is beyond the total path length, place at the end
+                    const [lastLat, lastLng] = coords[coords.length - 1];
+                    lat = lastLat;
+                    lng = lastLng;
+                    foundPosition = true;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        // If no position was found based on chainage, try to find coordinates from KML layers
+        if (!foundPosition) {
+          // Try to find coordinates from KML layers
+          let foundCoordinates = false;
+          for (const kmlLayer of kmlLayers) {
+            if (kmlLayer.getLayers) {
+              const layers = kmlLayer.getLayers();
+              for (const layer of layers) {
+                // Check if the layer name matches the asset name
+                if (layer.feature && layer.feature.properties && 
+                    layer.feature.properties.name && 
+                    layer.feature.properties.name.includes(asset.name)) {
+                  
+                  if (layer.getLatLng) {
+                    // Point feature
+                    const latLng = layer.getLatLng();
+                    lat = latLng.lat;
+                    lng = latLng.lng;
+                    foundCoordinates = true;
+                    break;
+                  } else if (layer.getLatLngs) {
+                    // Line or polygon feature - use centroid
+                    const latLngs = layer.getLatLngs();
+                    if (Array.isArray(latLngs) && latLngs.length > 0) {
+                      if (latLngs[0] && typeof latLngs[0] === 'object' && 'lat' in latLngs[0]) {
+                        // Simple array of latlngs
+                        const sum = latLngs.reduce((acc, ll) => {
+                          return { lat: acc.lat + ll.lat, lng: acc.lng + ll.lng };
+                        }, { lat: 0, lng: 0 });
+                        lat = sum.lat / latLngs.length;
+                        lng = sum.lng / latLngs.length;
+                        foundCoordinates = true;
+                        break;
+                      } else if (Array.isArray(latLngs[0])) {
+                        // Array of arrays (for polygons)
+                        const flatLatLngs = latLngs.flat();
+                        const sum = flatLatLngs.reduce((acc, ll) => {
+                          return { lat: acc.lat + ll.lat, lng: acc.lng + ll.lng };
+                        }, { lat: 0, lng: 0 });
+                        lat = sum.lat / flatLatLngs.length;
+                        lng = sum.lng / flatLatLngs.length;
+                        foundCoordinates = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+              if (foundCoordinates) break;
+            }
+          }
+          
+          // If no coordinates found from KML, use mock coordinates
+          if (!foundCoordinates) {
+            lat = 27.6600 + (Math.random() - 0.5) * 0.02;
+            lng = 83.4650 + (Math.random() - 0.5) * 0.02;
+          }
+        }
+        
+        // Different icons based on asset type
+        let iconColor = '#10b981'; // green for completed
+        if (asset.status === 'In Progress') iconColor = '#f59e0b'; // yellow
+        if (asset.status === 'Not Started') iconColor = '#9ca3af'; // gray
+        
+        const assetIcon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="background-color: ${iconColor}; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: bold; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3v17.5M7 12h10M7 7h10M7 17h10"/>
+            </svg>
+          </div>`,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14]
+        });
+        
+        // Create a circle marker for better visibility on the KML path
+        const marker = L.circleMarker([lat, lng], {
+          radius: 8,
+          fillColor: iconColor,
+          color: '#fff',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.8
+        })
+          .addTo(mapRef.current)
+          .bindPopup(`<b>${asset.name}</b><br/>Type: ${asset.type}<br/>Status: ${asset.status}<br/>Chainage: ${asset.chainage || 'N/A'}`);
+        
+        // Add a more prominent label near the marker showing the chainage and status
+        if (asset.chainage) {
+          const label = L.marker([lat, lng], {
+            icon: L.divIcon({
+              className: 'chainage-label',
+              html: `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; white-space: nowrap; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); min-width: 60px; text-align: center;">${asset.chainage}<br/><small>${asset.status}</small></div>`,
+              iconSize: [70, 30],
+              iconAnchor: [35, 25]
+            }),
+            interactive: false
+          }).addTo(mapRef.current);
+          
+          // Store reference to label for layer management
+          newMarkers.push(label);
+        }
+        
+        newMarkers.push(marker);
+      });
+    }
+    
+    setAssetMarkers(newMarkers);
+  };
+
+  // Function to add staff location markers to the map
+  const displayStaff = () => {
+    if (!mapRef.current) return;
+    
+    // Clear existing staff markers
+    staffMarkers.forEach(marker => mapRef.current.removeLayer(marker));
+    setStaffMarkers([]);
+    
+    const newMarkers: any[] = [];
+    
+    (project.staffLocations || []).forEach(staff => {
+      // Use actual coordinates from the staff location data
+      const lat = staff.latitude;
+      const lng = staff.longitude;
+      
+      // Different icons based on staff status
+      let iconColor = '#8b5cf6'; // purple for Active
+      if (staff.status === 'Idle') iconColor = '#64748b'; // gray
+      if (staff.status === 'Offline') iconColor = '#9ca3af'; // light gray
+      
+      const staffIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="background-color: ${iconColor}; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>`,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
+      
+      const marker = L.marker([lat, lng], { icon: staffIcon })
+        .addTo(mapRef.current)
+        .bindPopup(`<b>${staff.userName}</b><br/>Role: ${staff.role}<br/>Status: ${staff.status}<br/>Time: ${new Date(staff.timestamp).toLocaleTimeString()}`);
+      
+      newMarkers.push(marker);
+    });
+    
+    setStaffMarkers(newMarkers);
+  };
+
+  // Function to display all project elements
+  const displayAllElements = () => {
+    displayVehicles();
+    displayAssets();
+    displayStaff();
+    displayChainageMarkers();
+  };
 
   // Helper function to calculate distance between two coordinates in meters
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {

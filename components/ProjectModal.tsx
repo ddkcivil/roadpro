@@ -27,8 +27,8 @@ const ProjectModal: React.FC<Props> = ({ open, onClose, onSave, project }) => {
     setEditForm(project || {});
   }, [project]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = () => {
+    console.log('ProjectModal handleSubmit called with editForm:', editForm);
     if (
       !editForm.name ||
       !editForm.code ||
@@ -46,11 +46,12 @@ const ProjectModal: React.FC<Props> = ({ open, onClose, onSave, project }) => {
     onClose();
   };
 
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
       <DialogTitle>
         <Typography variant="h5" fontWeight="bold">
-          {editForm.id ? 'Edit Project Definition' : 'Define New Project'}
+          {editForm.id ? 'Edit Project Definition' : 'Create New Project'}
         </Typography>
       </DialogTitle>
       <DialogContent dividers>
@@ -59,8 +60,7 @@ const ProjectModal: React.FC<Props> = ({ open, onClose, onSave, project }) => {
             Configure contractual dates and master registry code
           </Typography>
         </Box>
-        <form onSubmit={handleSubmit}>
-          <Grid container spacing={3}>
+        <Grid container spacing={3}>
             <Grid item xs={12} md={12}>
               <TextField
                 fullWidth
@@ -180,7 +180,6 @@ const ProjectModal: React.FC<Props> = ({ open, onClose, onSave, project }) => {
               />
             </Grid>
           </Grid>
-        </form>
       </DialogContent>
       <DialogActions sx={{ p: 3 }}>
         <Button onClick={onClose}>Cancel</Button>

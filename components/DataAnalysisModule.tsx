@@ -168,7 +168,7 @@ const DataAnalysisModule: React.FC = () => {
             <Card variant="outlined">
               <CardContent>
                 <Typography variant="h6" gutterBottom>Data Sources</Typography>
-                <Typography variant="body2">
+                <Typography variant="body2" component="div">
                   <ul>
                     <li>Projects: {projects.length} records</li>
                     <li>Users: {users.length} records</li>

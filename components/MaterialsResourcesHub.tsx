@@ -186,12 +186,17 @@ const MaterialsResourcesHub: React.FC<Props> = ({ project, onProjectUpdate, user
             // Add new asset
             const newAsset: Vehicle = {
                 id: `asset-${Date.now()}`,
+                name: `${assetForm.plateNumber} - ${assetForm.type}`, // Required by BaseResource
                 plateNumber: assetForm.plateNumber,
                 type: assetForm.type,
+                unit: 'unit', // Required by BaseResource
+                quantity: 1, // Required by BaseResource
                 status: assetForm.status || 'Active',
                 driver: assetForm.driver || '',
                 agencyId: assetForm.agencyId || undefined,
-                gpsLocation: assetForm.gpsLocation
+                location: 'Site', // Required by BaseResource
+                gpsLocation: assetForm.gpsLocation,
+                lastUpdated: new Date().toISOString().split('T')[0] // Required by BaseResource
             };
             
             onProjectUpdate({
@@ -257,7 +262,12 @@ const MaterialsResourcesHub: React.FC<Props> = ({ project, onProjectUpdate, user
             // Update existing inventory
             const updatedInventory = inventory.map(item => 
                 item.id === editingInventoryId 
-                    ? { ...item, ...inventoryForm } 
+                    ? { 
+                        ...item, 
+                        ...inventoryForm,
+                        name: inventoryForm.itemName, // Sync name field for BaseResource compatibility
+                        lastUpdated: new Date().toISOString().split('T')[0]
+                    } 
                     : item
             );
             
@@ -269,11 +279,13 @@ const MaterialsResourcesHub: React.FC<Props> = ({ project, onProjectUpdate, user
             // Add new inventory
             const newItem: InventoryItem = {
                 id: `inv-${Date.now()}`,
-                itemName: inventoryForm.itemName,
+                name: inventoryForm.itemName || '', // Required by BaseResource
+                itemName: inventoryForm.itemName || '',
                 quantity: inventoryForm.quantity || 0,
                 unit: inventoryForm.unit || 'unit',
                 reorderLevel: inventoryForm.reorderLevel || 10,
                 location: inventoryForm.location || 'Warehouse',
+                status: 'Available', // Required by BaseResource
                 lastUpdated: new Date().toISOString().split('T')[0]
             };
             

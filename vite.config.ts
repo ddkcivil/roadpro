@@ -3,33 +3,53 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', '');
-    return {
-      server: {
-        port: 3000,
+  const env = loadEnv(mode, '.', '');
+  return {
+    server: {
+      host: 'localhost',
+      port: 3000,
+      strictPort: false,
+      hmr: {
+        overlay: true,
         host: 'localhost',
-        hmr: {
-          overlay: true,
-          host: 'localhost',
-          protocol: 'ws',
-          clientPort: 3000,
-        },
-        watch: {
-          usePolling: true,
-          interval: 1000,
-        },
+        protocol: 'ws',
+        clientPort: 3000,
+        path: '/__vite_hmr',
+        timeout: 30000,
       },
-      plugins: [react()],
-      define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+      watch: {
+        usePolling: true,
+        interval: 1000,
       },
-      resolve: {
-        alias: {
-          '@': path.resolve(__dirname, '.'),
-          'react': path.resolve(__dirname, './node_modules/react'),
-          'react-dom': path.resolve(__dirname, './node_modules/react-dom')
-        }
+      cors: true,
+    },
+    plugins: [react()],
+    define: {
+      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+    },
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, '.'),
+        'react': path.resolve(__dirname, './node_modules/react'),
+        'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
+        '@emotion/react': path.resolve(__dirname, './node_modules/@emotion/react'),
+        '@emotion/styled': path.resolve(__dirname, './node_modules/@emotion/styled'),
       }
-    };
+    },
+    // optimizeDeps: {
+    //   exclude: [
+    //     'sql.js',
+    //     'pdfjs-dist',
+    //     'react-pdf'
+    //   ],
+    //   include: []
+    // },
+    css: {
+      modules: {
+        localsConvention: 'camelCase',
+      }
+    },
+    // assetsInclude: [/\.css$/, /\.scss$/, /\.sass$/, /\.less$/],
+  };
 });

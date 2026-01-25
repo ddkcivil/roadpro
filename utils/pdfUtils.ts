@@ -295,3 +295,219 @@ export const generateRFIPDF = async (project: Project) => {
   
   doc.save(`${project.code}_RFI_Report.pdf`);
 };
+
+// Function to generate a Resource Management report in PDF
+export const generateResourcePDF = async (project: Project) => {
+  const { jsPDF } = await import('jspdf');
+  
+  const doc = new jsPDF();
+  
+  // Add title
+  doc.setFontSize(22);
+  doc.text(`${project.name} - Resource Management Report`, 20, 30);
+  
+  doc.setFontSize(16);
+  doc.text(`Project: ${project.name}`, 20, 45);
+  doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 55);
+  
+  // Initialize y position for content
+  let yPos = 75;
+  
+  // Add Materials Section
+  if (project.materials && project.materials.length > 0) {
+    doc.setFontSize(18);
+    doc.text('Materials', 20, yPos);
+    yPos += 10;
+    
+    // Add table headers
+    doc.setFontSize(12);
+    doc.text('Name', 20, yPos);
+    doc.text('Category', 60, yPos);
+    doc.text('Unit', 100, yPos);
+    doc.text('Qty', 120, yPos);
+    doc.text('Avail', 140, yPos);
+    doc.text('Unit Cost', 160, yPos);
+    doc.text('Status', 190, yPos);
+    
+    yPos += 10;
+    const materials = project.materials || [];
+    materials.forEach((material, index) => {
+      const pageHeight = doc.internal.pageSize.height;
+      if (yPos > pageHeight - 20) {
+        doc.addPage();
+        yPos = 20;
+        doc.setFontSize(12);
+        doc.text('Name', 20, yPos);
+        doc.text('Category', 60, yPos);
+        doc.text('Unit', 100, yPos);
+        doc.text('Qty', 120, yPos);
+        doc.text('Avail', 140, yPos);
+        doc.text('Unit Cost', 160, yPos);
+        doc.text('Status', 190, yPos);
+        yPos += 10;
+      }
+      
+      doc.text(material.name || '', 20, yPos);
+      doc.text(material.category || '', 60, yPos);
+      doc.text(material.unit || '', 100, yPos);
+      doc.text((material.quantity || 0).toString(), 120, yPos);
+      doc.text((material.availableQuantity || 0).toString(), 140, yPos);
+      doc.text((material.unitCost || 0).toString(), 160, yPos);
+      doc.text(material.status || '', 190, yPos);
+      yPos += 10;
+    });
+    
+    yPos += 15; // Add some space before next section
+  }
+  
+  // Add Equipment/Vehicles Section
+  if (project.vehicles && project.vehicles.length > 0) {
+    const pageHeight = doc.internal.pageSize.height;
+    if (yPos > pageHeight - 20) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    doc.setFontSize(18);
+    doc.text('Equipment & Vehicles', 20, yPos);
+    yPos += 10;
+    
+    // Add table headers
+    doc.setFontSize(12);
+    doc.text('Plate/ID', 20, yPos);
+    doc.text('Type', 70, yPos);
+    doc.text('Status', 120, yPos);
+    doc.text('Driver', 160, yPos);
+    
+    yPos += 10;
+    
+    const vehicles = project.vehicles || [];
+    vehicles.forEach((vehicle, index) => {
+      const pageHeight = doc.internal.pageSize.height;
+      if (yPos > pageHeight - 20) {
+        doc.addPage();
+        yPos = 20;
+        doc.setFontSize(12);
+        doc.text('Plate/ID', 20, yPos);
+        doc.text('Type', 70, yPos);
+        doc.text('Status', 120, yPos);
+        doc.text('Driver', 160, yPos);
+        yPos += 10;
+      }
+      
+      doc.text(vehicle.plateNumber || '', 20, yPos);
+      doc.text(vehicle.type || '', 70, yPos);
+      doc.text(vehicle.status || '', 120, yPos);
+      doc.text(vehicle.driver || '', 160, yPos);
+      yPos += 10;
+    });
+    
+    yPos += 15; // Add some space before next section
+  }
+  
+  // Add Lab Tests Section
+  if (project.labTests && project.labTests.length > 0) {
+    const pageHeight = doc.internal.pageSize.height;
+    if (yPos > pageHeight - 20) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    doc.setFontSize(18);
+    doc.text('Lab Tests', 20, yPos);
+    yPos += 10;
+    
+    // Add table headers
+    doc.setFontSize(12);
+    doc.text('Test Name', 20, yPos);
+    doc.text('Sample ID', 70, yPos);
+    doc.text('Category', 110, yPos);
+    doc.text('Date', 150, yPos);
+    doc.text('Result', 180, yPos);
+    
+    yPos += 10;
+    
+    const labTests = project.labTests || [];
+    labTests.forEach((test, index) => {
+      const pageHeight = doc.internal.pageSize.height;
+      if (yPos > pageHeight - 20) {
+        doc.addPage();
+        yPos = 20;
+        doc.setFontSize(12);
+        doc.text('Test Name', 20, yPos);
+        doc.text('Sample ID', 70, yPos);
+        doc.text('Category', 110, yPos);
+        doc.text('Date', 150, yPos);
+        doc.text('Result', 180, yPos);
+        yPos += 10;
+      }
+      
+      doc.text(test.testName || '', 20, yPos);
+      doc.text(test.sampleId || '', 70, yPos);
+      doc.text(test.category || '', 110, yPos);
+      doc.text(test.date || '', 150, yPos);
+      doc.text(test.result || '', 180, yPos);
+      yPos += 10;
+    });
+    
+    yPos += 15; // Add some space before next section
+  }
+  
+  // Add Purchase Orders Section
+  if (project.purchaseOrders && project.purchaseOrders.length > 0) {
+    const pageHeight = doc.internal.pageSize.height;
+    if (yPos > pageHeight - 20) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    doc.setFontSize(18);
+    doc.text('Purchase Orders', 20, yPos);
+    yPos += 10;
+    
+    // Add table headers
+    doc.setFontSize(12);
+    doc.text('PO Number', 20, yPos);
+    doc.text('Vendor', 70, yPos);
+    doc.text('Date', 120, yPos);
+    doc.text('Items', 150, yPos);
+    doc.text('Amount', 170, yPos);
+    doc.text('Status', 190, yPos);
+    
+    yPos += 10;
+    
+    const purchaseOrders = project.purchaseOrders || [];
+    purchaseOrders.forEach((po, index) => {
+      const pageHeight = doc.internal.pageSize.height;
+      if (yPos > pageHeight - 20) {
+        doc.addPage();
+        yPos = 20;
+        doc.setFontSize(12);
+        doc.text('PO Number', 20, yPos);
+        doc.text('Vendor', 70, yPos);
+        doc.text('Date', 120, yPos);
+        doc.text('Items', 150, yPos);
+        doc.text('Amount', 170, yPos);
+        doc.text('Status', 190, yPos);
+        yPos += 10;
+      }
+      
+      doc.text(po.poNumber || '', 20, yPos);
+      doc.text(po.vendor || '', 70, yPos);
+      doc.text(po.date || '', 120, yPos);
+      doc.text(po.items.length.toString(), 150, yPos);
+      doc.text(po.totalAmount.toString(), 170, yPos);
+      doc.text(po.status || '', 190, yPos);
+      yPos += 10;
+    });
+  }
+  
+  // Add footer
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.text(`Page ${i} of ${pageCount}`, 200, doc.internal.pageSize.height - 10, { align: 'right' });
+  }
+  
+  doc.save(`${project.code}_Resource_Report.pdf`);
+};

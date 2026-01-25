@@ -66,6 +66,7 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
   const [logForm, setLogForm] = useState({ 
     date: new Date().toISOString().split('T')[0], 
     quantity: 0, 
+    rate: 0,
     remarks: '', 
     boqItemId: '', 
     subcontractorId: '',
@@ -186,6 +187,7 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
     setLogForm({
         date: new Date().toISOString().split('T')[0],
         quantity: 0,
+        rate: 0,
         remarks: '',
         boqItemId: comp.boqItemId || '',
         subcontractorId: comp.subcontractorId || '',
@@ -257,6 +259,7 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
         id: `wl-${Date.now()}`,
         date: logForm.date,
         quantity: qty,
+        rate: logForm.rate,
         subcontractorId: logForm.subcontractorId,
         remarks: logForm.remarks,
         rfiId: logForm.rfiId,
@@ -302,7 +305,7 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
 
     onProjectUpdate(updatedProject);
     setIsLogWorkOpen(false);
-    setLogForm({ date: new Date().toISOString().split('T')[0], quantity: 0, remarks: '', boqItemId: '', subcontractorId: '', rfiId: '', labTestId: '' }); // Reset form
+    setLogForm({ date: new Date().toISOString().split('T')[0], quantity: 0, rate: 0, remarks: '', boqItemId: '', subcontractorId: '', rfiId: '', labTestId: '' }); // Reset form
   };
 
   const handleDeleteWorkLog = (structureId: string, componentId: string, logId: string) => {
@@ -741,6 +744,9 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
                                 <TextField label="Quantity Done" type="number" fullWidth value={logForm.quantity} onChange={e => setLogForm({...logForm, quantity: Number(e.target.value)})} InputProps={{ endAdornment: <InputAdornment position="end">{currentLogComponent?.unit}</InputAdornment> }} />
                             </Grid>
                             <Grid item xs={12} md={6}>
+                                <TextField label="Rate" type="number" fullWidth value={logForm.rate} onChange={e => setLogForm({...logForm, rate: Number(e.target.value)})} InputProps={{ startAdornment: <InputAdornment position="start">{project.settings?.currency || 'Rs'}</InputAdornment> }} />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
                                 <TextField label="Date" type="date" fullWidth value={logForm.date} onChange={e => setLogForm({...logForm, date: e.target.value})} InputLabelProps={{ shrink: true }} />
                             </Grid>
                           </Grid>
@@ -806,7 +812,7 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
                       </Stack>
                   </DialogContent>
                   <DialogActions sx={{ p: 3 }}>
-                      <Button onClick={() => {setIsLogWorkOpen(false); setLogForm({ date: new Date().toISOString().split('T')[0], quantity: 0, remarks: '', boqItemId: '', subcontractorId: '', rfiId: '', labTestId: '' });}}>Back</Button>
+                      <Button onClick={() => {setIsLogWorkOpen(false); setLogForm({ date: new Date().toISOString().split('T')[0], quantity: 0, rate: 0, remarks: '', boqItemId: '', subcontractorId: '', rfiId: '', labTestId: '' });}}>Back</Button>
                       <Button variant="contained" onClick={handleSaveWorkLog} disabled={!logForm.quantity}>Commit Work Record</Button>
                   </DialogActions>
               </Dialog>
@@ -824,6 +830,7 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
                                       <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
                                       <TableCell sx={{ fontWeight: 'bold' }}>Component</TableCell>
                                       <TableCell sx={{ fontWeight: 'bold' }}>Qty Executed</TableCell>
+                                      <TableCell sx={{ fontWeight: 'bold' }}>Rate</TableCell>
                                       <TableCell sx={{ fontWeight: 'bold' }}>Unit</TableCell>
                                       <TableCell sx={{ fontWeight: 'bold' }}>Contractor</TableCell>
                                       <TableCell sx={{ fontWeight: 'bold' }}>BOQ Item</TableCell>
@@ -840,6 +847,7 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
                                                   <TableCell>{log.date}</TableCell>
                                                   <TableCell>{comp.name}</TableCell>
                                                   <TableCell>{log.quantity}</TableCell>
+                                                  <TableCell>{log.rate ? `${project.settings?.currency || 'Rs'}${log.rate.toFixed(2)}` : 'N/A'}</TableCell>
                                                   <TableCell>{comp.unit}</TableCell>
                                                   <TableCell>{subcontractor?.name || 'Internal'}</TableCell>
                                                   <TableCell>{boqItem ? `[${boqItem.itemNo}] ${boqItem.description.substring(0, 30)}...` : 'N/A'}</TableCell>

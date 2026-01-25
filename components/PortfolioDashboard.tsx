@@ -38,6 +38,7 @@ import {
 import { UserRole, Project, AppSettings } from '../types';
 import { formatCurrency } from '../utils/exportUtils';
 
+
 interface Props {
   projects: Project[];
   userRole: UserRole;
@@ -49,8 +50,7 @@ interface Props {
 
 const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onSelectProject, onSaveProject, onDeleteProject }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState<Partial<Project> | null>(null);
+
 
   // Calculate portfolio metrics
   const totalProjects = projects.length;
@@ -94,16 +94,6 @@ const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onS
     p.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleOpenNew = () => {
-    setEditForm(null);
-    setIsModalOpen(true);
-  };
-
-  const handleSave = (project: Partial<Project>) => {
-    onSaveProject(project);
-    setIsModalOpen(false);
-  };
-
   // Handle deleting a project
   const handleDeleteProject = (id: string) => {
     onDeleteProject(id);
@@ -113,6 +103,8 @@ const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onS
   const handleSelectProject = (id: string) => {
     onSelectProject(id);
   };
+
+  // Calculate progress functions (from ProjectsList)
 
   // Calculate progress functions (from ProjectsList)
   const calculateProgress = (boq?: any[]) => {
@@ -428,197 +420,12 @@ const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onS
                 }}
               />
             </Box>
-                        {userRole === UserRole.ADMIN || userRole === UserRole.PROJECT_MANAGER ? (
-                          <Button
-                            variant="contained"
-                            startIcon={<Plus size={18} />}
-                            onClick={handleOpenNew}
-                          >
-                            Create New Project
-                          </Button>
-                        ) : null}
+
                       </Box>
                     </Box>
                   </Paper>
 
-                  {/* Project Creation Modal */}
-                  <Dialog open={isModalOpen} onClose={() => setIsModalOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
-                    <DialogTitle>
-                      <Typography variant="h5" fontWeight="bold">
-                        {editForm?.id ? 'Edit Project Definition' : 'Define New Project'}
-                      </Typography>
-                    </DialogTitle>
-                    <DialogContent dividers>
-                      <Box mb={2}>
-                        <Typography variant="body2" color="text.secondary">
-                          Configure contractual dates and master registry code
-                        </Typography>
-                      </Box>
-                      <Grid container spacing={3}>
-                          <Grid item xs={12} md={12}>
-                            <TextField
-                              fullWidth
-                              label="Full Project Title"
-                              value={editForm?.name || ''}
-                              onChange={e => setEditForm({...editForm!, name: e.target.value})}
-                              placeholder="e.g. Urban Resilience and Livability Improvement Project"
-                              required
-                              size="small"
-                            />
-                          </Grid>
-                          
-                          <Grid item xs={12} md={6}>
-                            <TextField
-                              fullWidth
-                              label="Project Identification Code"
-                              value={editForm?.code || ''}
-                              onChange={e => setEditForm({...editForm!, code: e.target.value})}
-                              placeholder="e.g. URLIP-TT-01"
-                              required
-                              size="small"
-                            />
-                          </Grid>
-                          
-                          <Grid item xs={12} md={6}>
-                            <TextField
-                              fullWidth
-                              label="Contract Agreement No."
-                              value={editForm?.contractNo || ''}
-                              onChange={e => setEditForm({...editForm!, contractNo: e.target.value})}
-                              placeholder="e.g. CWO1/2024"
-                              size="small"
-                            />
-                          </Grid>
 
-                          <Grid item xs={12} md={12}>
-                            <Typography variant="h6" color="primary" gutterBottom>
-                              CONTRACTUAL TIMELINE
-                            </Typography>
-                            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                              <Grid container spacing={2}>
-                                <Grid item xs={6}>
-                                  <TextField
-                                    fullWidth
-                                    label="Official Commencement"
-                                    type="date"
-                                    value={editForm?.startDate || ''}
-                                    onChange={e => setEditForm({...editForm!, startDate: e.target.value})}
-                                    InputLabelProps={{ shrink: true }}
-                                    required
-                                    size="small"
-                                  />
-                                </Grid>
-                                <Grid item xs={6}>
-                                  <TextField
-                                    fullWidth
-                                    label="Intended Completion"
-                                    type="date"
-                                    value={editForm?.endDate || ''}
-                                    onChange={e => setEditForm({...editForm!, endDate: e.target.value})}
-                                    InputLabelProps={{ shrink: true }}
-                                    required
-                                    size="small"
-                                  />
-                                </Grid>
-                              </Grid>
-                            </Paper>
-                          </Grid>
-
-                          <Grid item xs={12} md={6}>
-                            <TextField
-                              fullWidth
-                              label="Employer / Client"
-                              value={editForm?.client || ''}
-                              onChange={e => setEditForm({...editForm!, client: e.target.value})}
-                              placeholder="e.g. Ministry of Transport"
-                              required
-                              size="small"
-                            />
-                          </Grid>
-
-                          <Grid item xs={12} md={6}>
-                            <TextField
-                              fullWidth
-                              label="Main Contractor"
-                              value={editForm?.contractor || ''}
-                              onChange={e => setEditForm({...editForm!, contractor: e.target.value})}
-                              required
-                              size="small"
-                            />
-                          </Grid>
-
-                          <Grid item xs={12} md={12}>
-                            <TextField
-                              fullWidth
-                              label="Site Location Coordinates/City"
-                              value={editForm?.location || ''}
-                              onChange={e => setEditForm({...editForm!, location: e.target.value})}
-                              placeholder="e.g. Tilottama, Lumbini"
-                              size="small"
-                            />
-                          </Grid>
-                        </Grid>
-                    </DialogContent>
-                    <DialogActions sx={{ p: 3 }}>
-                      <Button onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                      <Button variant="contained" onClick={() => {
-                        // Validate required fields
-                        if (!editForm?.name || !editForm?.code || !editForm?.startDate || !editForm?.endDate || !editForm?.client || !editForm?.contractor) {
-                          alert('Please fill in all required fields: Name, Code, Dates, Client, and Contractor.');
-                          return;
-                        }
-                        
-                        // Ensure all required arrays are initialized for new projects
-                        const projectToSave = {
-                          ...editForm,
-                          // Initialize required array fields if not present
-                          rfis: editForm?.rfis || [],
-                          labTests: editForm?.labTests || [],
-                          schedule: editForm?.schedule || [],
-                          inventory: editForm?.inventory || [],
-                          inventoryTransactions: editForm?.inventoryTransactions || [],
-                          vehicles: editForm?.vehicles || [],
-                          vehicleLogs: editForm?.vehicleLogs || [],
-                          documents: editForm?.documents || [],
-                          dailyReports: editForm?.dailyReports || [],
-                          preConstruction: editForm?.preConstruction || [],
-                          landParcels: editForm?.landParcels || [],
-                          mapOverlays: editForm?.mapOverlays || [],
-                          hindrances: editForm?.hindrances || [],
-                          ncrs: editForm?.ncrs || [],
-                          contractBills: editForm?.contractBills || [],
-                          measurementSheets: editForm?.measurementSheets || [],
-                          staffLocations: editForm?.staffLocations || [],
-                          boq: editForm?.boq || [],
-                          variationOrders: editForm?.variationOrders || [],
-                          structures: editForm?.structures || [],
-                          agencies: editForm?.agencies || [],
-                          agencyPayments: editForm?.agencyPayments || [],
-                          linearWorks: editForm?.linearWorks || [],
-                          purchaseOrders: editForm?.purchaseOrders || [],
-                          subcontractorBills: editForm?.subcontractorBills || [],
-                          resources: editForm?.resources || [],
-                          resourceAllocations: editForm?.resourceAllocations || [],
-                          milestones: editForm?.milestones || [],
-                          comments: editForm?.comments || [],
-                          checklists: editForm?.checklists || [],
-                          defects: editForm?.defects || [],
-                          complianceWorkflows: editForm?.complianceWorkflows || [],
-                          auditLogs: editForm?.auditLogs || [],
-                          structureTemplates: editForm?.structureTemplates || [],
-                          accountingIntegrations: editForm?.accountingIntegrations || [],
-                          accountingTransactions: editForm?.accountingTransactions || [],
-                          // Initialize with default ID if not present
-                          id: editForm?.id || `proj-${Date.now()}`
-                        };
-                        
-                        onSaveProject(projectToSave);
-                        setIsModalOpen(false);
-                      }}>
-                        {editForm?.id ? 'Update Project' : 'Create Project'}
-                      </Button>
-                    </DialogActions>
-                  </Dialog>
                   
                   {/* Project Grid */}
                   <Grid container spacing={3}>

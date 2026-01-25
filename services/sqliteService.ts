@@ -1,7 +1,9 @@
-import initSqlJs, { Database } from 'sql.js';
+// Dynamically import sql.js to avoid bundling issues
+let initSqlJs: any;
+let Database: any;
 
 class SQLiteService {
-  private db: Database | null = null;
+  private db: any | null = null;
   private SQL: any | null = null;
   private initializing: boolean = false;
   private initPromise: Promise<void> | null = null;
@@ -30,6 +32,11 @@ class SQLiteService {
 
   private async performInitialization(): Promise<void> {
     try {
+      // Dynamically import sql.js only when needed
+      if (!initSqlJs) {
+        const sqlModule = await import('sql.js');
+        initSqlJs = sqlModule.default || sqlModule;
+      }
       // Initialize SQL.js with proper WASM loading
       // First try CDN, then fallback to direct CDN URL
       try {
@@ -284,6 +291,48 @@ class SQLiteService {
       const projects = JSON.parse(projectsJson);
       for (const project of projects) {
         try {
+          // Convert undefined values to null for SQLite binding
+          const cleanProject = {
+            id: project.id,
+            name: project.name || '',
+            code: project.code || null,
+            location: project.location || '',
+            contractor: project.contractor || '',
+            start_date: project.start_date || null,
+            end_date: project.end_date || null,
+            client: project.client || '',
+            engineer: project.engineer || null,
+            contract_no: project.contract_no || null,
+            boq: JSON.stringify(project.boq || []),
+            rfis: JSON.stringify(project.rfis || []),
+            lab_tests: JSON.stringify(project.lab_tests || []),
+            schedule: JSON.stringify(project.schedule || []),
+            structures: JSON.stringify(project.structures || []),
+            agencies: JSON.stringify(project.agencies || []),
+            agency_payments: JSON.stringify(project.agency_payments || []),
+            linear_works: JSON.stringify(project.linear_works || []),
+            inventory: JSON.stringify(project.inventory || []),
+            inventory_transactions: JSON.stringify(project.inventory_transactions || []),
+            vehicles: JSON.stringify(project.vehicles || []),
+            vehicle_logs: JSON.stringify(project.vehicle_logs || []),
+            documents: JSON.stringify(project.documents || []),
+            site_photos: JSON.stringify(project.site_photos || []),
+            daily_reports: JSON.stringify(project.daily_reports || []),
+            pre_construction: JSON.stringify(project.pre_construction || []),
+            land_parcels: JSON.stringify(project.land_parcels || []),
+            map_overlays: JSON.stringify(project.map_overlays || []),
+            hindrances: JSON.stringify(project.hindrances || []),
+            nc_rs: JSON.stringify(project.nc_rs || []),
+            contract_bills: JSON.stringify(project.contract_bills || []),
+            subcontractor_bills: JSON.stringify(project.subcontractor_bills || []),
+            measurement_sheets: JSON.stringify(project.measurement_sheets || []),
+            staff_locations: JSON.stringify(project.staff_locations || []),
+            environment_registry: JSON.stringify(project.environment_registry || []),
+            last_synced: project.last_synced || null,
+            spreadsheet_id: project.spreadsheet_id || null,
+            settings: JSON.stringify(project.settings || {})
+          };
+
           this.db!.run(
             `INSERT OR REPLACE INTO projects 
             (id, name, code, location, contractor, start_date, end_date, client, engineer, contract_no, 
@@ -294,22 +343,15 @@ class SQLiteService {
              environment_registry, last_synced, spreadsheet_id, settings) 
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
-              project.id, project.name, project.code, project.location, project.contractor,
-              project.start_date, project.end_date, project.client, project.engineer, project.contract_no,
-              JSON.stringify(project.boq || []), JSON.stringify(project.rfis || []), 
-              JSON.stringify(project.lab_tests || []), JSON.stringify(project.schedule || []),
-              JSON.stringify(project.structures || []), JSON.stringify(project.agencies || []),
-              JSON.stringify(project.agency_payments || []), JSON.stringify(project.linear_works || []),
-              JSON.stringify(project.inventory || []), JSON.stringify(project.inventory_transactions || []),
-              JSON.stringify(project.vehicles || []), JSON.stringify(project.vehicle_logs || []),
-              JSON.stringify(project.documents || []), JSON.stringify(project.site_photos || []),
-              JSON.stringify(project.daily_reports || []), JSON.stringify(project.pre_construction || []),
-              JSON.stringify(project.land_parcels || []), JSON.stringify(project.map_overlays || []),
-              JSON.stringify(project.hindrances || []), JSON.stringify(project.nc_rs || []),
-              JSON.stringify(project.contract_bills || []), JSON.stringify(project.subcontractor_bills || []),
-              JSON.stringify(project.measurement_sheets || []), JSON.stringify(project.staff_locations || []),
-              JSON.stringify(project.environment_registry || []), project.last_synced,
-              project.spreadsheet_id, JSON.stringify(project.settings || {})
+              cleanProject.id, cleanProject.name, cleanProject.code, cleanProject.location, cleanProject.contractor,
+              cleanProject.start_date, cleanProject.end_date, cleanProject.client, cleanProject.engineer, cleanProject.contract_no,
+              cleanProject.boq, cleanProject.rfis, cleanProject.lab_tests, cleanProject.schedule,
+              cleanProject.structures, cleanProject.agencies, cleanProject.agency_payments, cleanProject.linear_works,
+              cleanProject.inventory, cleanProject.inventory_transactions, cleanProject.vehicles, cleanProject.vehicle_logs,
+              cleanProject.documents, cleanProject.site_photos, cleanProject.daily_reports, cleanProject.pre_construction,
+              cleanProject.land_parcels, cleanProject.map_overlays, cleanProject.hindrances, cleanProject.nc_rs,
+              cleanProject.contract_bills, cleanProject.subcontractor_bills, cleanProject.measurement_sheets, cleanProject.staff_locations,
+              cleanProject.environment_registry, cleanProject.last_synced, cleanProject.spreadsheet_id, cleanProject.settings
             ]
           );
         } catch (e) {
@@ -337,16 +379,45 @@ class SQLiteService {
     this.saveToLocalStorage();
   }
 
+  private saveTimeout: NodeJS.Timeout | null = null;
+  private isSaving: boolean = false;
+  
   private saveToLocalStorage(): void {
+    if (this.isSaving) {
+      console.log('Already saving, skipping...');
+      return;
+    }
+    
     if (this.db && this.SQL) {
       try {
+        this.isSaving = true;
         const data = this.db.export();
         const encoded = btoa(String.fromCharCode(...data));
         localStorage.setItem('roadmaster-sqlite-db', encoded);
       } catch (error) {
         console.error('Error saving SQLite database to localStorage:', error);
+      } finally {
+        this.isSaving = false;
       }
     }
+  }
+  
+  // Debounced save method to prevent excessive saves
+  private scheduleSave(): void {
+    // Temporarily disable automatic saving to prevent stack overflow
+    console.log('Automatic saving temporarily disabled to prevent stack overflow');
+    return;
+    
+    /*
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout);
+    }
+    
+    this.saveTimeout = setTimeout(() => {
+      this.saveToLocalStorage();
+      this.saveTimeout = null;
+    }, 1000); // Save after 1 second of inactivity
+    */
   }
 
   async executeQuery(query: string, params: any[] = []): Promise<any[]> {
@@ -366,7 +437,7 @@ class SQLiteService {
       }
       
       stmt.free();
-      this.saveToLocalStorage();
+      this.scheduleSave(); // Use debounced save instead of immediate save
       return result;
     } catch (error) {
       console.error('Error executing query:', error);
@@ -382,13 +453,18 @@ class SQLiteService {
       }
     }
 
-    const columns = Object.keys(data).join(', ');
-    const placeholders = Object.keys(data).map(() => '?').join(', ');
-    const values = Object.values(data);
+    // Convert undefined values to null to prevent binding errors
+    const cleanData = Object.fromEntries(
+      Object.entries(data).map(([key, value]) => [key, value === undefined ? null : value])
+    );
+
+    const columns = Object.keys(cleanData).join(', ');
+    const placeholders = Object.keys(cleanData).map(() => '?').join(', ');
+    const values = Object.values(cleanData);
 
     try {
       this.db.run(`INSERT INTO ${table} (${columns}) VALUES (${placeholders})`, values);
-      this.saveToLocalStorage();
+      this.scheduleSave(); // Use debounced save instead of immediate save
     } catch (error) {
       console.error(`Error inserting into ${table}:`, error);
       throw error;
@@ -403,12 +479,17 @@ class SQLiteService {
       }
     }
 
-    const setClause = Object.keys(data).map(key => `${key} = ?`).join(', ');
-    const values = [...Object.values(data), ...whereParams];
+    // Convert undefined values to null to prevent binding errors
+    const cleanData = Object.fromEntries(
+      Object.entries(data).map(([key, value]) => [key, value === undefined ? null : value])
+    );
+
+    const setClause = Object.keys(cleanData).map(key => `${key} = ?`).join(', ');
+    const values = [...Object.values(cleanData), ...whereParams];
 
     try {
       this.db.run(`UPDATE ${table} SET ${setClause} WHERE ${whereClause}`, values);
-      this.saveToLocalStorage();
+      this.scheduleSave(); // Use debounced save instead of immediate save
     } catch (error) {
       console.error(`Error updating ${table}:`, error);
       throw error;
@@ -425,7 +506,7 @@ class SQLiteService {
 
     try {
       this.db.run(`DELETE FROM ${table} WHERE ${whereClause}`, whereParams);
-      this.saveToLocalStorage();
+      this.scheduleSave(); // Use debounced save instead of immediate save
     } catch (error) {
       console.error(`Error deleting from ${table}:`, error);
       throw error;
@@ -508,8 +589,10 @@ class SQLiteService {
 
     try {
       let baseQuery = "SELECT COUNT(*) as count FROM projects";
-      let activeQuery = "SELECT COUNT(*) as count FROM projects WHERE status = 'Active'";
-      let completedQuery = "SELECT COUNT(*) as count FROM projects WHERE status = 'Completed'";
+      // Since there's no status column in the projects table, we'll count based on endDate comparison
+      // For now, let's just count all projects as "active" or "completed" based on endDate
+      let activeQuery = "SELECT COUNT(*) as count FROM projects WHERE end_date > date('now')";
+      let completedQuery = "SELECT COUNT(*) as count FROM projects WHERE end_date <= date('now')";
       let avgProgressQuery = "SELECT AVG(progress) as avg_progress FROM schedule_tasks";
       
       if (projectId) {

@@ -16,33 +16,20 @@ import {
     X, Tag
 } from 'lucide-react';
 import { ocrService } from '../services/ocrService';
-import { Document, Page } from 'react-pdf';
+// PDF imports moved to dynamic imports to avoid Vite optimization issues
+// import { Document, Page, pdfjs } from 'react-pdf';
+let Document: any;
+let Page: any;
+let pdfjs: any;
+
+
 import CommentsPanel from './CommentsPanel';
 
-// Utility function to calculate a simple hash of file content
-const getFileHash = async (file: File): Promise<string> => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as ArrayBuffer;
-      if (content) {
-        // Simple hash algorithm
-        const hashBuffer = new Uint8Array(content.slice(0, Math.min(content.byteLength, 1024))); // Hash first 1KB
-        let hash = 0;
-        for (let i = 0; i < hashBuffer.length; i++) {
-          const char = hashBuffer[i];
-          hash = ((hash << 5) - hash) + char;
-          hash |= 0; // Convert to 32bit integer
-        }
-        resolve(hash.toString());
-      } else {
-        resolve(file.name + file.size.toString()); // Fallback
-      }
-    };
-    reader.onerror = () => resolve(file.name + file.size.toString()); // Fallback on error
-    reader.readAsArrayBuffer(file);
-  });
-};
+// NOTE: We'll configure the PDF.js worker when the component mounts to ensure proper initialization
+// This avoids conflicts with react-pdf's internal initialization
+
+// Log initialization for debugging
+console.log('PDF.js worker initialization deferred to component mount');
 
 interface Props {
   project: Project;
@@ -53,6 +40,84 @@ interface Props {
 const FOLDERS = ['General', 'Contracts', 'Drawings', 'Reports', 'Correspondence', 'Financials', 'Sub-Docs'];
 
 const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
+  // Utility function to convert File to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  // Utility function to convert base64 to blob URL
+  const base64ToBlobUrl = (base64: string): string => {
+    try {
+      const byteString = atob(base64.split(',')[1]);
+      const mimeString = base64.split(',')[0].split(':')[1].split(';')[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: mimeString });
+      return URL.createObjectURL(blob);
+    } catch (error) {
+      console.error('Error converting base64 to blob URL:', error);
+      return '';
+    }
+  };
+
+  // Utility function to get file URL - handles both blob URLs and base64 data
+  const getFileUrl = (doc: ProjectDocument): string => {
+    if (!doc.fileUrl) return '';
+    
+    // If it's a base64 string, convert it to blob URL
+    if (doc.fileUrl.startsWith('data:')) {
+      return base64ToBlobUrl(doc.fileUrl);
+    }
+    
+    // For blob URLs and other URLs, return as-is
+    // Note: Expired blob URLs will cause errors when accessed
+    // This is handled by the PDF component's error handling
+    return doc.fileUrl;
+  };
+  // Dynamically load PDF components when needed
+  useEffect(() => {
+    const loadPdfComponents = async () => {
+      try {
+        const pdfModule = await import('react-pdf');
+        Document = pdfModule.Document;
+        Page = pdfModule.Page;
+        pdfjs = pdfModule.pdfjs;
+        
+        // Log the actual version from the loaded pdfjs
+        console.log('PDF.js version detected:', pdfjs?.version);
+        
+        // Configure the worker after pdfjs is loaded with local file to avoid CORS issues
+        if (pdfjs && pdfjs.GlobalWorkerOptions) {
+          // Use the local worker file to avoid CORS issues and version mismatches
+          pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
+        }
+        
+        console.log('PDF.js components loaded successfully with version:', pdfjs?.version);
+      } catch (error) {
+        console.warn('Failed to load PDF components:', error);
+        // Set fallback values to prevent undefined errors
+        Document = () => <div>PDF viewer unavailable</div>;
+        Page = () => <div>PDF page unavailable</div>;
+      }
+    };
+    
+    loadPdfComponents();
+  }, []);
+  // Initialize PDF.js worker after component mounts to ensure version match
+  useEffect(() => {
+    if (pdfjs && pdfjs.version) {
+      console.log(`PDF.js worker initialized with version: ${pdfjs.version}`);
+    }
+  }, []);
+  
   const [activeFolder, setActiveFolder] = useState('General');
   const [searchTerm, setSearchTerm] = useState('');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -63,13 +128,63 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
   const [previewDoc, setPreviewDoc] = useState<ProjectDocument | null>(null);
   const [newTagInput, setNewTagInput] = useState('');
   
+  // PDF Viewer State and Functions
+  const [currentPageState, setCurrentPageState] = useState(1);
+  const [numPagesState, setNumPagesState] = useState<number | null>(null);
+  const [scaleState, setScaleState] = useState(1.0);
+  
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    setNumPagesState(numPages);
+    setCurrentPageState(1); // Reset to first page when document loads
+  };
+  
+  const goToPrevPage = () => {
+    setCurrentPageState(prev => Math.max(1, prev - 1));
+  };
+  
+  const goToNextPage = () => {
+    if (numPagesState !== null) {
+      setCurrentPageState(prev => Math.min(numPagesState, prev + 1));
+    }
+  };
+  
+  const zoomIn = () => {
+    setScaleState(prev => Math.min(2, prev + 0.2));
+  };
+  
+  const zoomOut = () => {
+    setScaleState(prev => Math.max(0.5, prev - 0.2));
+  };
+  
+  // Check for and clean up expired blob URLs in documents
+  useEffect(() => {
+    const cleanExpiredBlobUrls = () => {
+      if (project.documents && project.documents.some(doc => doc.fileUrl?.startsWith('blob:') && !doc.fileUrl.startsWith('data:'))) {
+        console.log('Cleaning up expired blob URLs from documents...');
+        const cleanedDocs = project.documents.map(doc => {
+          if (doc.fileUrl?.startsWith('blob:') && !doc.fileUrl.startsWith('data:')) {
+            console.warn('Found expired blob URL for document:', doc.name);
+            return { ...doc, fileUrl: undefined, status: 'Unavailable' as const };
+          }
+          return doc;
+        });
+        
+        if (cleanedDocs !== project.documents) {
+          onProjectUpdate({ ...project, documents: cleanedDocs });
+        }
+      }
+    };
+    
+    cleanExpiredBlobUrls();
+  }, [project.documents, onProjectUpdate]); // Run when documents change
+  
   // Clean up object URLs when component unmounts or when documents change
   useEffect(() => {
     // Clean up any object URLs from the previous project state
     return () => {
       (project.documents || []).forEach(doc => {
-        if (doc.fileUrl && !doc.fileUrl.startsWith('blob:http')) {
-          // Only revoke non-blob URLs to avoid errors
+        if (doc.fileUrl && doc.fileUrl.startsWith('blob:') && !doc.fileUrl.startsWith('data:')) {
+          // Only revoke blob URLs, not base64 data
           URL.revokeObjectURL(doc.fileUrl);
         }
       });
@@ -80,17 +195,19 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
   useEffect(() => {
     return () => {
       // Clean up preview document URL when preview changes
-      if (previewDoc && previewDoc.fileUrl && !previewDoc.fileUrl.startsWith('blob:http')) {
-        // Only revoke non-blob URLs to avoid errors
+      if (previewDoc && previewDoc.fileUrl && previewDoc.fileUrl.startsWith('blob:') && !previewDoc.fileUrl.startsWith('data:')) {
+        // Only revoke blob URLs, not base64 data
         URL.revokeObjectURL(previewDoc.fileUrl);
       }
     };
   }, [previewDoc]);
-  
+
   // Bill State
   const [addBillModal, setAddBillModal] = useState(false);
   const [isBillAutoFilling, setIsBillAutoFilling] = useState(false);
   const [newBill, setNewBill] = useState<Partial<ContractBill>>({ items: [] });
+
+  
 
   const subcontractors = project.agencies?.filter(agency => agency.type === 'subcontractor') || [];
 
@@ -207,9 +324,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
           );
           
           if (existingDoc) {
-              // Optionally, we could also check content hash for more accuracy
-              const fileHash = await getFileHash(f);
-              // For now, we'll skip based on name and size only
+              // Skip based on name and size only
               skippedDocs.push(f.name);
               continue;
           }
@@ -282,14 +397,14 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
       if (confirm("Permanently delete this document?")) {
           // Find the document to delete and clean up its file URL if it exists
           const docToDelete = (project.documents || []).find(d => d.id === id);
-          if (docToDelete && docToDelete.fileUrl && !docToDelete.fileUrl.startsWith('blob:http')) {
-              // Only revoke non-blob URLs to avoid errors
+          if (docToDelete && docToDelete.fileUrl && docToDelete.fileUrl.startsWith('blob:') && !docToDelete.fileUrl.startsWith('data:')) {
+              // Only revoke blob URLs, not base64 data
               URL.revokeObjectURL(docToDelete.fileUrl);
           }
           
           // Clean up the object URL if this document is currently being previewed
-          if (previewDoc && previewDoc.id === id && previewDoc.fileUrl && !previewDoc.fileUrl.startsWith('blob:http')) {
-              // Only revoke non-blob URLs to avoid errors
+          if (previewDoc && previewDoc.id === id && previewDoc.fileUrl && previewDoc.fileUrl.startsWith('blob:') && !previewDoc.fileUrl.startsWith('data:')) {
+              // Only revoke blob URLs, not base64 data
               URL.revokeObjectURL(previewDoc.fileUrl);
           }
           
@@ -315,11 +430,12 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
       }
     }
     
-    const updatedDocs = (project.documents || []).map(doc => {
+    const updatedDocs = [];
+    for (const doc of project.documents || []) {
       if (doc.id === docId) {
-        // Revoke the old file URL if it exists and it's not a blob URL
-        if (doc.fileUrl && !doc.fileUrl.startsWith('blob:http')) {
-          // Only revoke non-blob URLs to avoid errors
+        // Revoke the old file URL if it exists and it's a blob URL (but not base64)
+        if (doc.fileUrl && doc.fileUrl.startsWith('blob:') && !doc.fileUrl.startsWith('data:')) {
+          // Only revoke blob URLs, not base64 data
           URL.revokeObjectURL(doc.fileUrl);
         }
         
@@ -340,30 +456,34 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
         const isImage = file.type.includes('image') || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => file.name.toLowerCase().endsWith(ext));
         const isPdf = file.type.includes('pdf') || file.name.toLowerCase().endsWith('.pdf');
         
-        // Create a temporary URL for the new file
-        const fileUrl = URL.createObjectURL(file);
+        // Convert file to base64 for persistent storage
+        const base64Data = await fileToBase64(file);
         
-        return {
+        updatedDocs.push({
           ...doc,
           type: isImage ? 'IMAGE' : isPdf ? 'PDF' : 'OTHER', // Update type based on new file
-          fileUrl: fileUrl, // Update with new file URL
+          fileUrl: base64Data, // Store base64 data instead of blob URL
           versions: [...doc.versions, newVersion],
           currentVersion: newVersionNumber,
           lastModified: new Date().toISOString().split('T')[0]
-        };
+        });
+      } else {
+        updatedDocs.push(doc);
       }
-      return doc;
-    });
+    }
     
     onProjectUpdate({ ...project, documents: updatedDocs });
     
     // Update preview doc if this document is currently being previewed
     if (previewDoc && previewDoc.id === docId) {
+      // Convert file to base64 for persistent storage
+      const base64Data = await fileToBase64(file);
+      
       setPreviewDoc(prev => {
         if (!prev) return null;
-        // Revoke the old URL in the preview doc if it exists and it's not a blob URL
-        if (prev.fileUrl && !prev.fileUrl.startsWith('blob:http')) {
-          // Only revoke non-blob URLs to avoid errors
+        // Revoke the old URL in the preview doc if it exists and it's a blob URL (but not base64)
+        if (prev.fileUrl && prev.fileUrl.startsWith('blob:') && !prev.fileUrl.startsWith('data:')) {
+          // Only revoke blob URLs, not base64 data
           URL.revokeObjectURL(prev.fileUrl);
         }
         
@@ -374,7 +494,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
         return { 
           ...prev, 
           type: isImage ? 'IMAGE' : isPdf ? 'PDF' : 'OTHER',
-          fileUrl: URL.createObjectURL(file) 
+          fileUrl: base64Data 
         };
       });
     }
@@ -386,9 +506,9 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
         // Store the old file URL to clean it up later
         const oldFileUrl = doc.fileUrl;
         
-        // Revoke the old file URL if it exists and it's not a blob URL
-        if (oldFileUrl && !oldFileUrl.startsWith('blob:http')) {
-          // Only revoke non-blob URLs to avoid errors
+        // Revoke the old file URL if it exists and it's a blob URL (but not base64)
+        if (oldFileUrl && oldFileUrl.startsWith('blob:') && !oldFileUrl.startsWith('data:')) {
+          // Only revoke blob URLs, not base64 data
           URL.revokeObjectURL(oldFileUrl);
         }
         
@@ -410,9 +530,9 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
     if (previewDoc && previewDoc.id === docId) {
       setPreviewDoc(prev => {
         if (!prev) return null;
-        // Revoke the old URL in the preview doc if it exists and it's not a blob URL
-        if (prev.fileUrl && !prev.fileUrl.startsWith('blob:http')) {
-          // Only revoke non-blob URLs to avoid errors
+        // Revoke the old URL in the preview doc if it exists and it's a blob URL (but not base64)
+        if (prev.fileUrl && prev.fileUrl.startsWith('blob:') && !prev.fileUrl.startsWith('data:')) {
+          // Only revoke blob URLs, not base64 data
           URL.revokeObjectURL(prev.fileUrl);
         }
         // Since we don't have the actual file for the reverted version, 
@@ -487,8 +607,24 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                           <TableRow key={doc.id} hover sx={{ cursor: 'pointer' }} onClick={() => setPreviewDoc(doc)}>
                               <TableCell>
                                   <Box display="flex" alignItems="center" gap={1.5}>
-                                      {doc.type === 'IMAGE' ? <ImageIcon size={18} className="text-blue-500"/> : <FileText size={18} className="text-rose-500"/>}
-                                      <Typography variant="body2" fontWeight="medium">{doc.name}</Typography>
+                                      {doc.status === 'Unavailable' ? (
+                                          <FileText size={18} className="text-gray-400"/>
+                                      ) : doc.type === 'IMAGE' ? (
+                                          <ImageIcon size={18} className="text-blue-500"/>
+                                      ) : (
+                                          <FileText size={18} className="text-rose-500"/>
+                                      )}
+                                      <Typography 
+                                          variant="body2" 
+                                          fontWeight="medium"
+                                          sx={{ 
+                                            textDecoration: doc.status === 'Unavailable' ? 'line-through' : 'none',
+                                            color: doc.status === 'Unavailable' ? 'text.disabled' : 'text.primary'
+                                          }}
+                                      >
+                                          {doc.name}
+                                          {doc.status === 'Unavailable' && ' (Unavailable)'}
+                                      </Typography>
                                   </Box>
                               </TableCell>
                               <TableCell>
@@ -654,17 +790,68 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                         {previewDoc.fileUrl ? (
                             <Box width="100%" height="100%" display="flex" alignItems="center" justifyContent="center">
                                 {previewDoc.type === 'PDF' || previewDoc.fileUrl.toLowerCase().endsWith('.pdf') ? (
-                                    <iframe
-                                        src={previewDoc.fileUrl + '#toolbar=0&navpanes=0&scrollbar=0&view=FitH'}
-                                        width="100%"
-                                        height="100%"
-                                        title="Document Preview"
-                                        style={{ border: 'none' }}
-                                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                                    />
+                                    <Box width="100%" height="100%" display="flex" flexDirection="column">
+                                        <Box flex={1} overflow="auto" display="flex" alignItems="center" justifyContent="center" p={2}>
+                                            <Document
+                                                file={getFileUrl(previewDoc)}
+                                                loading={<Typography variant="body2">Loading PDF...</Typography>}
+                                                error={
+                                                    <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" p={4}>
+                                                        <FileText size={48} className="text-red-500 mb-2" />
+                                                        <Typography variant="body2" color="error">Failed to load PDF</Typography>
+                                                        <Typography variant="caption" color="text.secondary" align="center" mt={1}>
+                                                            This document may have an expired link. Please re-upload the file.
+                                                        </Typography>
+                                                    </Box>
+                                                }
+                                                onLoadSuccess={onDocumentLoadSuccess}
+                                                onError={() => {
+                                                    console.error('Failed to load PDF:', previewDoc.name);
+                                                    // Optionally update the document status to unavailable
+                                                    if (previewDoc.fileUrl?.startsWith('blob:') && !previewDoc.fileUrl.startsWith('data:')) {
+                                                        // This indicates a possibly expired blob URL
+                                                        // Update the document to mark it as unavailable
+                                                        const updatedDocs = (project.documents || []).map(doc => 
+                                                            doc.id === previewDoc.id 
+                                                                ? { ...doc, status: 'Unavailable' as const, fileUrl: undefined } 
+                                                                : doc
+                                                        );
+                                                        onProjectUpdate({ ...project, documents: updatedDocs });
+                                                        setPreviewDoc(prev => prev ? { ...prev, status: 'Unavailable', fileUrl: undefined } : null);
+                                                    }
+                                                }}
+                                            >
+                                                <Page pageNumber={currentPageState} scale={scaleState} renderTextLayer={false} renderAnnotationLayer={false} />
+                                            </Document>
+                                        </Box>
+                                        <Box display="flex" justifyContent="center" alignItems="center" p={1} bgcolor="#f5f5f5" gap={2}>
+                                            <Button 
+                                                size="small" 
+                                                onClick={goToPrevPage}
+                                                disabled={currentPageState <= 1}
+                                            >
+                                                Prev
+                                            </Button>
+                                            <Typography variant="body2">
+                                                Page {currentPageState} of {numPagesState}
+                                            </Typography>
+                                            <Button 
+                                                size="small" 
+                                                onClick={goToNextPage}
+                                                disabled={currentPageState >= numPagesState}
+                                            >
+                                                Next
+                                            </Button>
+                                            <Box display="flex" alignItems="center" gap={1}>
+                                                <Button size="small" onClick={zoomOut}>-</Button>
+                                                <Typography variant="caption">{Math.round(scaleState * 100)}%</Typography>
+                                                <Button size="small" onClick={zoomIn}>+</Button>
+                                            </Box>
+                                        </Box>
+                                    </Box>
                                 ) : previewDoc.type === 'IMAGE' || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => previewDoc.fileUrl.toLowerCase().endsWith(ext)) ? (
                                     <img
-                                        src={previewDoc.fileUrl}
+                                        src={getFileUrl(previewDoc)}
                                         alt="Document Preview"
                                         style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                                     />
@@ -677,7 +864,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                                             variant="outlined" 
                                             size="small" 
                                             startIcon={<ExternalLink size={14} />}
-                                            href={previewDoc.fileUrl}
+                                            href={getFileUrl(previewDoc)}
                                             target="_blank"
                                             sx={{ mt: 2 }}
                                             onClick={(e) => e.stopPropagation()}
@@ -688,9 +875,15 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                                 )}
                             </Box>
                         ) : (
-                            <Typography color="text.secondary" variant="caption" sx={{ opacity: 0.5 }}>
-                                No preview available
-                            </Typography>
+                            <Box textAlign="center" p={3}>
+                                <FileText size={48} className="mx-auto text-slate-400 mb-2" />
+                                <Typography variant="body2" color="text.secondary">
+                                    {previewDoc.status === 'Unavailable' 
+                                        ? 'This document is no longer available. Please re-upload the file.' 
+                                        : 'No preview available'}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">{previewDoc.name}</Typography>
+                            </Box>
                         )}
                     </Box>
                     <Box width={320} bgcolor="white" p={3} borderLeft="1px solid #eee" sx={{ overflowY: 'auto' }}>

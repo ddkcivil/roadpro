@@ -37,6 +37,21 @@ const ResourceManager: React.FC<Props> = ({ project, onProjectUpdate, userRole }
   });
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   
+  // Helper function to map between itemName and name fields
+  const mapInventoryItemToForm = (item: InventoryItem) => ({
+    id: item.id,
+    itemName: item.itemName || item.name, // Use itemName if available, fallback to name
+    quantity: item.quantity,
+    unit: item.unit,
+    reorderLevel: item.reorderLevel,
+    location: item.location
+  });
+
+  const mapFormToInventoryItem = (form: Partial<InventoryItem>): Partial<InventoryItem> => ({
+    ...form,
+    name: form.itemName, // Set name to match itemName for BaseResource compatibility
+  });
+  
   // New PO State
   const [poForm, setPoForm] = useState<Partial<PurchaseOrder>>({
       poNumber: `PO-${Date.now().toString().slice(-6)}`,
@@ -139,11 +154,13 @@ const ResourceManager: React.FC<Props> = ({ project, onProjectUpdate, userRole }
       // Add new item
       const newItem: InventoryItem = {
         id: `inv-${Date.now()}`,
-        itemName: inventoryForm.itemName,
+        name: inventoryForm.itemName || '', // Required by BaseResource
+        itemName: inventoryForm.itemName || '',
         quantity: inventoryForm.quantity || 0,
         unit: inventoryForm.unit || 'unit',
         reorderLevel: inventoryForm.reorderLevel || 10,
         location: inventoryForm.location || 'Warehouse',
+        status: 'Available', // Required by BaseResource
         lastUpdated: new Date().toISOString().split('T')[0]
       };
       

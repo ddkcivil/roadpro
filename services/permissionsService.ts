@@ -50,6 +50,7 @@ export class PermissionsService {
     {
       role: UserRole.PROJECT_MANAGER,
       permissions: [
+        Permission.PROJECT_CREATE,
         Permission.PROJECT_READ,
         Permission.PROJECT_UPDATE,
         Permission.USER_READ,

@@ -115,7 +115,7 @@ export interface RFI {
   question?: string;
   priority?: string;
   responseDate?: string;
-  inspectionPurpose?: 'First' | 'Second' | 'Third' | 'Routine' | 'Special';
+  inspectionPurpose?: 'First' | 'Second' | 'Third' | 'Routine' | 'Special' | 'Other';
   inspectionReport?: string;
   engineerComments?: string;
   areSignature?: string;
@@ -128,6 +128,11 @@ export interface RFI {
   receivedBy?: string;
   submittedDate?: string;
   receivedDate?: string;
+  linkedChecklistIds?: string[];
+  inspectionType?: string;
+  specificWorkDetails?: string;
+  engineerRepresentativeComments?: string;
+  worksStatus?: 'Approved' | 'Approved as Noted' | 'Approved for Subsequent Work' | '';
 }
 
 export interface LabTest {
@@ -189,6 +194,7 @@ export interface StructureWorkLog {
   id: string;
   date: string;
   quantity: number;
+  rate?: number; // Rate per unit for this work log entry
   subcontractorId?: string;
   remarks: string;
   rfiId?: string;
@@ -229,20 +235,6 @@ export interface ScheduleTask {
   dependencies: TaskDependency[];
   isCritical?: boolean;
   boqItemId?: string;
-}
-
-export interface InventoryItem {
-  id: string;
-  itemName: string;
-  name?: string;
-  quantity: number;
-  unit: string;
-  location: string;
-  lastUpdated: string;
-  reorderLevel: number;
-  requiredQuantity?: number;
-  receivedQuantity?: number;
-  currentQuantity?: number;
 }
 
 export interface InventoryTransaction {
@@ -445,7 +437,7 @@ export interface ProjectDocument {
   versions: DocumentVersion[];
   createdBy: string;
   lastModified: string;
-  status: 'Active' | 'Archived' | 'Draft' | 'Review';
+  status: 'Active' | 'Archived' | 'Draft' | 'Review' | 'Unavailable';
   comments?: Comment[];
 }
 
@@ -669,34 +661,6 @@ export interface AgencyPayment {
   status: 'Draft' | 'Confirmed';
 }
 
-export interface AgencyMaterial {
-  id: string;
-  agencyId: string;
-  materialName: string;
-  quantity: number;
-  unit: string;
-  rate: number;
-  totalAmount: number;
-  receivedDate: string;
-  invoiceNumber?: string;
-  status: 'Received' | 'Pending' | 'Verified' | 'In Transit' | 'Ordered' | 'Delivered';
-  remarks?: string;
-  // Logistics related fields
-  orderedDate?: string;
-  expectedDeliveryDate?: string;
-  deliveryDate?: string;
-  deliveryLocation?: string;
-  transportMode?: string;
-  driverName?: string;
-  vehicleNumber?: string;
-  deliveryCharges?: number;
-  taxAmount?: number;
-  batchNumber?: string;
-  expiryDate?: string;
-  qualityCertification?: string;
-  supplierInvoiceRef?: string;
-}
-
 export interface AgencyBill {
   id: string;
   agencyId: string;
@@ -915,6 +879,7 @@ export interface Project {
   // Added agency materials and bills properties
   agencyMaterials?: AgencyMaterial[];
   agencyBills?: AgencyBill[];
+  materials?: Material[];
   // Legacy subcontractorPayments property
   subcontractorPayments?: SubcontractorPayment[];
   linearWorks?: LinearWorkLog[];
@@ -1090,4 +1055,248 @@ export interface AccountingTransaction {
   synced: boolean;
   syncedAt?: string;
   syncError?: string;
+}
+
+// === BASE TYPE DEFINITIONS ===
+
+// Base resource type that can be extended by specific resource types
+export interface BaseResource {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  unit: string;
+  quantity: number;
+  location: string;
+  status: string;
+  lastUpdated: string;
+}
+
+// Base logistics type for transportation and delivery fields
+export interface LogisticsFields {
+  deliveryLocation?: string;
+  transportMode?: string;
+  driverName?: string;
+  vehicleNumber?: string;
+  deliveryCharges?: number;
+  taxAmount?: number;
+  batchNumber?: string;
+  expiryDate?: string;
+  qualityCertification?: string;
+  supplierInvoiceRef?: string;
+  orderedDate?: string;
+  expectedDeliveryDate?: string;
+  deliveryDate?: string;
+}
+
+// Base supplier information type
+export interface SupplierInfo {
+  supplierId?: string;
+  supplierName?: string;
+  supplierRate?: number;
+  rateHistory?: MaterialRateEntry[];
+}
+
+// Consolidated status enums
+export enum ResourceStatus {
+  AVAILABLE = 'Available',
+  LOW_STOCK = 'Low Stock',
+  OUT_OF_STOCK = 'Out of Stock',
+  DISCONTINUED = 'Discontinued',
+  ALLOCATED = 'Allocated',
+  IN_TRANSIT = 'In Transit',
+  RESERVED = 'Reserved',
+  RECEIVED = 'Received',
+  PENDING = 'Pending',
+  VERIFIED = 'Verified',
+  ORDERED = 'Ordered',
+  DELIVERED = 'Delivered',
+  COMPLETED = 'Completed',
+  ACTIVE = 'Active',
+  MAINTENANCE = 'Maintenance',
+  IDLE = 'Idle',
+  SUSPENDED = 'Suspended'
+}
+
+export enum ResourceType {
+  MATERIAL = 'Material',
+  LABOR = 'Labor',
+  EQUIPMENT = 'Equipment',
+  SUBCONTRACTOR = 'Subcontractor'
+}
+
+export enum EntityStatus {
+  DRAFT = 'Draft',
+  SUBMITTED = 'Submitted',
+  APPROVED = 'Approved',
+  PAID = 'Paid',
+  COMPLETED = 'Completed',
+  RECEIVED = 'Received',
+  ISSUED = 'Issued',
+  CANCELLED = 'Cancelled'
+}
+
+// Generic resource interface that can be used across modules
+export interface GenericResource<T = any> {
+  id: string;
+  type: ResourceType;
+  subtype?: string; // More specific type classification
+  name: string;
+  description?: string;
+  category?: string;
+  unit: string;
+  quantity: number;
+  availableQuantity: number;
+  unitCost?: number;
+  totalValue?: number;
+  location: string;
+  status: ResourceStatus;
+  metadata?: T; // Type-specific additional data
+  supplierInfo?: SupplierInfo;
+  logisticsInfo?: LogisticsFields;
+  lastUpdated: string;
+  createdDate: string;
+  tags?: string[];
+  notes?: string;
+}
+
+// === UNIFIED RESOURCE TYPES ===
+
+// Unified Material type that combines all resource-related fields
+export interface Material {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  unit: string;
+  quantity: number;
+  location: string;
+  lastUpdated: string;
+  availableQuantity: number;
+  reservedQuantity?: number;
+  unitCost?: number;
+  totalValue?: number;
+  reorderLevel: number;
+  maxStockLevel?: number;
+  status: 'Available' | 'Low Stock' | 'Out of Stock' | 'Discontinued';
+  criticality?: 'High' | 'Medium' | 'Low';
+  leadTime?: number;
+  notes?: string;
+  tags?: string[];
+  // LogisticsFields
+  deliveryLocation?: string;
+  transportMode?: string;
+  driverName?: string;
+  vehicleNumber?: string;
+  deliveryCharges?: number;
+  taxAmount?: number;
+  batchNumber?: string;
+  expiryDate?: string;
+  qualityCertification?: string;
+  supplierInvoiceRef?: string;
+  orderedDate?: string;
+  expectedDeliveryDate?: string;
+  deliveryDate?: string;
+  // SupplierInfo
+  supplierId?: string;
+  supplierName?: string;
+  supplierRate?: number;
+  rateHistory?: MaterialRateEntry[];
+}
+
+// Unified Vehicle/Equipment type
+export interface Vehicle {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  unit: string;
+  quantity: number;
+  location: string;
+  lastUpdated: string;
+  plateNumber: string;
+  type: string;
+  status: 'Active' | 'Maintenance' | 'Idle';
+  driver: string;
+  agencyId?: string;
+  chainage?: string;
+  geofenceStatus?: 'Inside' | 'Outside';
+  gpsLocation?: {
+    latitude: number;
+    longitude: number;
+    timestamp: string;
+    accuracy?: number;
+    speed?: number;
+    heading?: number;
+  };
+  lastKnownLocation?: {
+    latitude: number;
+    longitude: number;
+    timestamp: string;
+  };
+}
+
+// Unified Inventory type
+export interface InventoryItem {
+  id: string;
+  name: string; // Alias for itemName
+  description?: string;
+  category?: string;
+  unit: string;
+  quantity: number;
+  location: string;
+  status: string;
+  lastUpdated: string;
+  itemName: string; // Main identifier field (keeping backward compatibility)
+  reorderLevel: number;
+  requiredQuantity?: number;
+  receivedQuantity?: number;
+  currentQuantity?: number;
+  // name is inherited from BaseResource and will be used as alias to itemName
+}
+
+// Agency Material type (standalone interface for agency-specific materials)
+export interface AgencyMaterial {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  unit: string;
+  quantity: number;
+  location: string;
+  lastUpdated: string;
+  // LogisticsFields
+  deliveryLocation?: string;
+  transportMode?: string;
+  driverName?: string;
+  vehicleNumber?: string;
+  deliveryCharges?: number;
+  taxAmount?: number;
+  batchNumber?: string;
+  expiryDate?: string;
+  qualityCertification?: string;
+  supplierInvoiceRef?: string;
+  orderedDate?: string;
+  expectedDeliveryDate?: string;
+  deliveryDate?: string;
+  // AgencyMaterial specific fields
+  agencyId: string;
+  materialName: string;
+  rate: number;
+  totalAmount: number;
+  receivedDate: string;
+  invoiceNumber?: string;
+  remarks?: string;
+  status: 'Received' | 'Pending' | 'Verified' | 'In Transit' | 'Ordered' | 'Delivered';
+}
+
+export interface MaterialRateEntry {
+  id: string;
+  materialId: string;
+  supplierId: string;
+  rate: number;
+  effectiveDate: string;
+  expiryDate?: string;
+  description?: string;
+  status: 'Active' | 'Expired' | 'Suspended';
 }

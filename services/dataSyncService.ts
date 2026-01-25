@@ -11,11 +11,11 @@ export class DataSyncService {
         for (const user of users) {
           await sqliteService.insert('users', {
             id: user.id,
-            name: user.name,
-            email: user.email,
-            phone: user.phone,
+            name: user.name || '',
+            email: user.email || '',
+            phone: user.phone || '',
             role: user.role,
-            avatar: user.avatar
+            avatar: user.avatar || null
           });
         }
       }
@@ -33,42 +33,42 @@ export class DataSyncService {
         for (const project of projects) {
           await sqliteService.insert('projects', {
             id: project.id,
-            name: project.name,
-            code: project.code,
-            location: project.location,
-            contractor: project.contractor,
-            start_date: project.startDate,
-            end_date: project.endDate,
-            client: project.client,
-            engineer: project.engineer,
-            contract_no: project.contractNo,
-            boq: JSON.stringify(project.boq),
-            rfis: JSON.stringify(project.rfis),
-            lab_tests: JSON.stringify(project.labTests),
-            schedule: JSON.stringify(project.schedule),
+            name: project.name || '',
+            code: project.code || null,
+            location: project.location || '',
+            contractor: project.contractor || '',
+            start_date: project.startDate || null,
+            end_date: project.endDate || null,
+            client: project.client || '',
+            engineer: project.engineer || null,
+            contract_no: project.contractNo || null,
+            boq: JSON.stringify(project.boq || []),
+            rfis: JSON.stringify(project.rfis || []),
+            lab_tests: JSON.stringify(project.labTests || []),
+            schedule: JSON.stringify(project.schedule || []),
             structures: JSON.stringify(project.structures || []),
             agencies: JSON.stringify(project.agencies || []),
             agency_payments: JSON.stringify(project.agencyPayments || []),
             linear_works: JSON.stringify(project.linearWorks || []),
-            inventory: JSON.stringify(project.inventory),
-            inventory_transactions: JSON.stringify(project.inventoryTransactions),
-            vehicles: JSON.stringify(project.vehicles),
-            vehicle_logs: JSON.stringify(project.vehicleLogs),
-            documents: JSON.stringify(project.documents),
+            inventory: JSON.stringify(project.inventory || []),
+            inventory_transactions: JSON.stringify(project.inventoryTransactions || []),
+            vehicles: JSON.stringify(project.vehicles || []),
+            vehicle_logs: JSON.stringify(project.vehicleLogs || []),
+            documents: JSON.stringify(project.documents || []),
             site_photos: JSON.stringify(project.sitePhotos || []),
-            daily_reports: JSON.stringify(project.dailyReports),
+            daily_reports: JSON.stringify(project.dailyReports || []),
             pre_construction: JSON.stringify(project.preConstruction || []),
-            land_parcels: JSON.stringify(project.landParcels),
-            map_overlays: JSON.stringify(project.mapOverlays),
-            hindrances: JSON.stringify(project.hindrances),
-            nc_rs: JSON.stringify(project.ncrs),
-            contract_bills: JSON.stringify(project.contractBills),
+            land_parcels: JSON.stringify(project.landParcels || []),
+            map_overlays: JSON.stringify(project.mapOverlays || []),
+            hindrances: JSON.stringify(project.hindrances || []),
+            nc_rs: JSON.stringify(project.ncrs || []),
+            contract_bills: JSON.stringify(project.contractBills || []),
             subcontractor_bills: JSON.stringify(project.subcontractorBills || []),
-            measurement_sheets: JSON.stringify(project.measurementSheets),
-            staff_locations: JSON.stringify(project.staffLocations),
+            measurement_sheets: JSON.stringify(project.measurementSheets || []),
+            staff_locations: JSON.stringify(project.staffLocations || []),
             environment_registry: JSON.stringify(project.environmentRegistry || {}),
-            last_synced: project.lastSynced,
-            spreadsheet_id: project.spreadsheetId,
+            last_synced: project.lastSynced || null,
+            spreadsheet_id: project.spreadsheetId || null,
             settings: JSON.stringify(project.settings || {})
           });
         }
@@ -87,12 +87,12 @@ export class DataSyncService {
         for (const message of messages) {
           await sqliteService.insert('messages', {
             id: message.id,
-            sender_id: message.senderId,
-            receiver_id: message.receiverId,
-            content: message.content,
-            timestamp: message.timestamp,
+            sender_id: message.senderId || '',
+            receiver_id: message.receiverId || '',
+            content: message.content || '',
+            timestamp: message.timestamp || '',
             read_status: message.read ? 1 : 0,
-            project_id: message.projectId
+            project_id: message.projectId || null
           });
         }
       }
@@ -108,7 +108,7 @@ export class DataSyncService {
       if (settingsJson) {
         await sqliteService.insert('settings', {
           key: 'app_settings',
-          value: settingsJson
+          value: settingsJson || '{}'
         });
       }
     } catch (error) {

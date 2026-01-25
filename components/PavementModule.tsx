@@ -52,7 +52,7 @@ const PavementModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
         </Tabs>
         {/* Fix: Replaced deprecated Grid props with v6 size prop */}
         <Grid container spacing={3}>
-            <Grid xs={12} lg={8}>
+            <Grid item xs={12} lg={8}>
                 <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
                     <Table size="small">
                         <TableHead sx={{ bgcolor: '#f8fafc' }}>
@@ -91,10 +91,10 @@ const PavementModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                     <TextField label="Work Layer" fullWidth size="small" value={newLog.layer || ''} onChange={e => setNewLog({...newLog, layer: e.target.value})} placeholder="e.g. GSB, WMM..." />
                     {/* Fix: Replaced deprecated Grid props with v6 size prop */}
                     <Grid container spacing={2}>
-                        <Grid xs={6}>
+                        <Grid item xs={6}>
                             <TextField label="Start Km" type="number" fullWidth size="small" value={newLog.startChainage} onChange={e => setNewLog({...newLog, startChainage: Number(e.target.value)})} />
                         </Grid>
-                        <Grid xs={6}>
+                        <Grid item xs={6}>
                             <TextField label="End Km" type="number" fullWidth size="small" value={newLog.endChainage} onChange={e => setNewLog({...newLog, endChainage: Number(e.target.value)})} />
                         </Grid>
                     </Grid>

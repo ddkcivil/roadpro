@@ -109,10 +109,39 @@ const Login: React.FC<Props> = ({ onLogin }) => {
       
       setLoading(true);
       try {
-          // Simulate registration
-          await new Promise(resolve => setTimeout(resolve, 1200));
+          // Check for existing user
+          const existingUsers = localStorage.getItem('roadmaster-users');
+          const users = existingUsers ? JSON.parse(existingUsers) : [];
+          const isDuplicate = users.some((u: any) => u.email.toLowerCase() === regEmail.toLowerCase());
+          
+          if (isDuplicate) {
+              setMessage({ type: 'error', text: 'A user with this email already exists.' });
+              setLoading(false);
+              return;
+          }
+          
+          // Create pending user entry
+          const pendingUser = {
+            id: `pending-${Date.now()}`,
+            name: regName,
+            email: regEmail,
+            phone: '',  // Could be added as a field if needed
+            role: regRole,
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(regName)}&background=random`,
+            status: 'pending',
+            requestedRole: regRole,
+            createdAt: new Date().toISOString(),
+            requestedBy: 'self'
+          };
+          
+          // Store in pending users
+          const pendingUsersJson = localStorage.getItem('roadmaster-pending-users');
+          const pendingUsers = pendingUsersJson ? JSON.parse(pendingUsersJson) : [];
+          pendingUsers.push(pendingUser);
+          localStorage.setItem('roadmaster-pending-users', JSON.stringify(pendingUsers));
+          
           setLoading(false);
-          setMessage({ type: 'success', text: 'Registration successful! Please login.' });
+          setMessage({ type: 'success', text: 'Registration submitted! An administrator will review your request and approve your account.' });
           setView('LOGIN');
           setEmail(regEmail);
       } catch (error) {
@@ -304,6 +333,9 @@ const Login: React.FC<Props> = ({ onLogin }) => {
                                                 <Link component="button" type="button" onClick={() => setView('REGISTER')} fontWeight="700" underline="none" sx={{ color: '#6366f1' }}>
                                                     Create Account
                                                 </Link>
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: '0.7rem', mt: 0.5, display: 'block' }}>
+                                                Note: New accounts require admin approval
                                             </Typography>
                                         </Box>
                                     </Stack>

@@ -1,4 +1,7 @@
 ﻿import React, { useState, useEffect, useMemo, startTransition, lazy, Suspense } from 'react';
+// PDF imports moved to dynamic imports to avoid Vite optimization issues
+// import { pdfjs } from 'react-pdf';
+// import workerSrc from 'pdfjs-dist/build/pdf.worker.mjs?url';
 import { 
   ThemeProvider, 
   createTheme, 
@@ -25,14 +28,14 @@ import {
   Snackbar,
   Alert,
 } from '@mui/material';
-import { 
+import {
   Sun,
   Moon,
-  LayoutDashboard, 
-  HardHat, 
-  Hammer, 
-  FileText, 
-  Settings, 
+  LayoutDashboard,
+  HardHat,
+  Hammer,
+  FileText,
+  Settings,
   Menu as MenuIcon,
   Bot,
   CalendarClock,
@@ -65,7 +68,8 @@ import {
   Truck,
   Layers,
   Trees,
-  Download
+  Download,
+  Plus
 } from 'lucide-react';
 import { UserRole, Project, AppSettings, Message, UserWithPermissions, Permission } from './types';
 import { PermissionsService } from './services/permissionsService';
@@ -74,11 +78,14 @@ import { DataCache, getCacheKey } from './utils/cacheUtils';
 import { LocalStorageUtils } from './utils/localStorageUtils';
 import { sqliteService } from './services/sqliteService';
 import { DataSyncService } from './services/dataSyncService';
+import { prepareProjectWithMaterials } from './utils/materialMigrationUtils';
 import { addSkipLink } from './utils/a11yUtils';
 import AboutPage from './components/AboutPage';
 import ContactPage from './components/ContactPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import NotificationsBadge from './components/NotificationsBadge';
+import ProjectModal from './components/ProjectModal';
+import TestProjectCreation from './components/TestProjectCreation';
 import { I18nProvider } from './contexts/I18nContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 
@@ -94,10 +101,12 @@ const VariationModule = lazy(() => import('./components/VariationModule'));
 const RFIModule = lazy(() => import('./components/RFIModule'));
 const ScheduleModule = lazy(() => import('./components/ScheduleModule'));
 const DailyReportModule = lazy(() => import('./components/DailyReportModule'));
-const ProjectsList = lazy(() => import('./components/ProjectsList'));
+// const ProjectsList = lazy(() => import('./components/ProjectsList'));
+import ProjectsList from './components/ProjectsList';
 const PortfolioDashboard = lazy(() => import('./components/PortfolioDashboard'));
 const AIChatModal = lazy(() => import('./components/AIChatModal'));
 const UserManagement = lazy(() => import('./components/UserManagement'));
+const UserRegistration = lazy(() => import('./components/UserRegistration'));
 const SettingsModule = lazy(() => import('./components/SettingsModule'));
 const ConstructionModule = lazy(() => import('./components/ConstructionModule'));
 const MapModule = lazy(() => import('./components/MapModule'));
@@ -117,10 +126,11 @@ const PavementModule = lazy(() => import('./components/PavementModule'));
 const AgencyModule = lazy(() => import('./components/AgencyModule'));
 const AssetsModule = lazy(() => import('./components/AssetsModule'));
 const ResourceMatrixModule = lazy(() => import('./components/ResourceMatrixModule'));
-const MaterialsResourcesHub = lazy(() => import('./components/MaterialsResourcesHub'));
+// Old MaterialsResourcesHub removed - replaced by unified MaterialManagementModule
 const FinancialsCommercialHub = lazy(() => import('./components/FinancialsCommercialHub'));
 const ReportsAnalyticsHub = lazy(() => import('./components/ReportsAnalyticsHub'));
 const ChandraOCRAnalyzer = lazy(() => import('./components/ChandraOCRAnalyzer'));
+const MaterialManagementModule = lazy(() => import('./components/MaterialManagementModule'));
 const MPRReportModule = lazy(() => import('./components/MPRReportModule'));
 const OutputExportModule = lazy(() => import('./components/OutputExportModule'));
 
@@ -135,21 +145,73 @@ const lightTheme = createTheme({
   },
   typography: {
     fontFamily: '"Inter", "system-ui", "sans-serif"',
-    h5: { fontWeight: 800, letterSpacing: '-0.02em' },
-    subtitle1: { fontWeight: 600 },
-    button: { textTransform: 'none', fontWeight: 600, letterSpacing: '0.01em' },
+    h5: { fontWeight: 800, letterSpacing: '-0.02em', fontSize: '1.25rem' },
+    subtitle1: { fontWeight: 600, fontSize: '0.875rem' },
+    button: { textTransform: 'none', fontWeight: 600, letterSpacing: '0.01em', fontSize: '0.875rem' },
+    body1: { fontSize: '0.875rem' },
+    body2: { fontSize: '0.75rem' },
   },
-  shape: { borderRadius: 2 },
+  spacing: 4,
+  shape: { borderRadius: 4 },
   components: {
+    MuiListItemButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: '8px',
+          margin: '2px 0',
+          padding: '6px 12px',
+        }
+      }
+    },
+    MuiToolbar: {
+      styleOverrides: {
+        root: {
+          minHeight: '48px !important',
+        }
+      }
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          minHeight: '48px',
+        }
+      }
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          height: '24px',
+          fontSize: '0.75rem',
+        }
+      }
+    },
     MuiButton: {
       styleOverrides: {
         root: {
-          padding: '8px 16px',
+          padding: '6px 12px',
+          minHeight: '32px',
+          fontSize: '0.875rem',
           boxShadow: 'none',
-          '&:hover': { boxShadow: '0 4px 12px rgba(79, 70, 229, 0.15)' },
+          '&:hover': { boxShadow: '0 2px 8px rgba(79, 70, 229, 0.15)' },
         },
         containedPrimary: {
           background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+          boxShadow: '0 2px 8px rgba(79, 70, 229, 0.3)',
+          '&:hover': { boxShadow: '0 4px 12px rgba(79, 70, 229, 0.4)' },
+        },
+        contained: {
+          boxShadow: '0 1px 4px rgba(0, 0, 0, 0.1)',
+          '&:hover': { boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)' },
+        },
+        outlined: {
+          borderWidth: '1px',
+          padding: '5px 11px',
+          '&:hover': { borderWidth: '1px', boxShadow: '0 1px 4px rgba(0, 0, 0, 0.1)' },
+        },
+        sizeSmall: {
+          padding: '4px 8px',
+          minHeight: '24px',
+          fontSize: '0.75rem',
         }
       }
     },
@@ -166,13 +228,13 @@ const lightTheme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
+          borderRadius: 8,
           border: '1px solid rgba(0,0,0,0.04)',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.02), 0 8px 24px rgba(0,0,0,0.02)',
-          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.02), 0 4px 12px rgba(0,0,0,0.02)',
+          transition: 'transform 0.1s ease, box-shadow 0.1s ease',
           '&:hover': {
-            transform: 'translateY(-2px)',
-            boxShadow: '0 12px 32px rgba(0,0,0,0.04)',
+            transform: 'translateY(-1px)',
+            boxShadow: '0 6px 16px rgba(0,0,0,0.04)',
           }
         }
       }
@@ -191,12 +253,46 @@ const darkTheme = createTheme({
   },
   typography: {
     fontFamily: '"Inter", "system-ui", "sans-serif"',
-    h5: { fontWeight: 800, letterSpacing: '-0.02em' },
-    subtitle1: { fontWeight: 600 },
-    button: { textTransform: 'none', fontWeight: 600, letterSpacing: '0.01em' },
+    h5: { fontWeight: 800, letterSpacing: '-0.02em', fontSize: '1.25rem' },
+    subtitle1: { fontWeight: 600, fontSize: '0.875rem' },
+    button: { textTransform: 'none', fontWeight: 600, letterSpacing: '0.01em', fontSize: '0.875rem' },
+    body1: { fontSize: '0.875rem' },
+    body2: { fontSize: '0.75rem' },
   },
-  shape: { borderRadius: 2 },
+  spacing: 4,
+  shape: { borderRadius: 4 },
   components: {
+    MuiListItemButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: '8px',
+          margin: '2px 0',
+          padding: '6px 12px',
+        }
+      }
+    },
+    MuiToolbar: {
+      styleOverrides: {
+        root: {
+          minHeight: '48px !important',
+        }
+      }
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          minHeight: '48px',
+        }
+      }
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          height: '24px',
+          fontSize: '0.75rem',
+        }
+      }
+    },
     MuiButton: {
       styleOverrides: {
         root: {
@@ -206,6 +302,16 @@ const darkTheme = createTheme({
         },
         containedPrimary: {
           background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+          boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+          '&:hover': { boxShadow: '0 6px 16px rgba(99, 102, 241, 0.4)' },
+        },
+        contained: {
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+          '&:hover': { boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)' },
+        },
+        outlined: {
+          borderWidth: '2px',
+          '&:hover': { borderWidth: '2px', boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)' },
         }
       }
     },
@@ -222,9 +328,9 @@ const darkTheme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
+          borderRadius: 8,
           border: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: 'none',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
           backgroundImage: 'none',
         }
       }
@@ -296,6 +402,52 @@ const App: React.FC = () => {
     
     // Add accessibility features
     addSkipLink('#main-content', 'Skip to main content');
+  }, []);
+
+  // Handle focus management to prevent aria-hidden conflicts
+  useEffect(() => {
+    let isHandlingFocus = false;
+    
+    const handleFocusIn = (event: FocusEvent) => {
+      // Prevent infinite recursion
+      if (isHandlingFocus) return;
+      
+      // Check if we have any open dialogs/modals
+      const openDialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+      
+      if (openDialogs.length > 0) {
+        // Check if the focused element is inside an open dialog
+        const target = event.target as HTMLElement;
+        const isInsideDialog = Array.from(openDialogs).some(dialog => 
+          dialog.contains(target) || target === dialog
+        );
+        
+        // If focus is trying to move outside an open dialog, trap it inside
+        if (!isInsideDialog) {
+          isHandlingFocus = true;
+          try {
+            // Try to focus back to the dialog or the first focusable element inside it
+            const firstFocusable = openDialogs[0].querySelector(
+              'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            ) as HTMLElement;
+            
+            if (firstFocusable) {
+              firstFocusable.focus();
+            } else {
+              (openDialogs[0] as HTMLElement).focus();
+            }
+          } finally {
+            // Reset the flag after a short delay to allow normal focus events
+            setTimeout(() => {
+              isHandlingFocus = false;
+            }, 0);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('focusin', handleFocusIn);
+    return () => document.removeEventListener('focusin', handleFocusIn);
   }, []);
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
   const [themePrimaryColor, setThemePrimaryColor] = useState('#4f46e5');
@@ -379,6 +531,73 @@ const App: React.FC = () => {
     return projectsData;
   });
   
+  // Load projects from SQLite database on initial render
+  useEffect(() => {
+    const loadProjectsFromSQLite = async () => {
+      try {
+        await sqliteService.initialize();
+        const sqliteProjects = await sqliteService.getAllProjects();
+        
+        if (sqliteProjects.length > 0) {
+          // Convert SQLite data back to Project objects
+          const convertedProjects = sqliteProjects.map(sqlProject => ({
+            id: sqlProject.id,
+            name: sqlProject.name,
+            code: sqlProject.code,
+            location: sqlProject.location,
+            contractor: sqlProject.contractor,
+            startDate: sqlProject.start_date,
+            endDate: sqlProject.end_date,
+            client: sqlProject.client,
+            engineer: sqlProject.engineer,
+            contractNo: sqlProject.contract_no,
+            boq: sqlProject.boq ? JSON.parse(sqlProject.boq) : [],
+            rfis: sqlProject.rfis ? JSON.parse(sqlProject.rfis) : [],
+            labTests: sqlProject.lab_tests ? JSON.parse(sqlProject.lab_tests) : [],
+            schedule: sqlProject.schedule ? JSON.parse(sqlProject.schedule) : [],
+            structures: sqlProject.structures ? JSON.parse(sqlProject.structures) : [],
+            agencies: sqlProject.agencies ? JSON.parse(sqlProject.agencies) : [],
+            agencyPayments: sqlProject.agency_payments ? JSON.parse(sqlProject.agency_payments) : [],
+            linearWorks: sqlProject.linear_works ? JSON.parse(sqlProject.linear_works) : [],
+            inventory: sqlProject.inventory ? JSON.parse(sqlProject.inventory) : [],
+            inventoryTransactions: sqlProject.inventory_transactions ? JSON.parse(sqlProject.inventory_transactions) : [],
+            vehicles: sqlProject.vehicles ? JSON.parse(sqlProject.vehicles) : [],
+            vehicleLogs: sqlProject.vehicle_logs ? JSON.parse(sqlProject.vehicle_logs) : [],
+            documents: sqlProject.documents ? JSON.parse(sqlProject.documents) : [],
+            sitePhotos: sqlProject.site_photos ? JSON.parse(sqlProject.site_photos) : [],
+            dailyReports: sqlProject.daily_reports ? JSON.parse(sqlProject.daily_reports) : [],
+            preConstruction: sqlProject.pre_construction ? JSON.parse(sqlProject.pre_construction) : [],
+            landParcels: sqlProject.land_parcels ? JSON.parse(sqlProject.land_parcels) : [],
+            mapOverlays: sqlProject.map_overlays ? JSON.parse(sqlProject.map_overlays) : [],
+            hindrances: sqlProject.hindrances ? JSON.parse(sqlProject.hindrances) : [],
+            ncrs: sqlProject.nc_rs ? JSON.parse(sqlProject.nc_rs) : [],
+            contractBills: sqlProject.contract_bills ? JSON.parse(sqlProject.contract_bills) : [],
+            subcontractorBills: sqlProject.subcontractor_bills ? JSON.parse(sqlProject.subcontractor_bills) : [],
+            measurementSheets: sqlProject.measurement_sheets ? JSON.parse(sqlProject.measurement_sheets) : [],
+            staffLocations: sqlProject.staff_locations ? JSON.parse(sqlProject.staff_locations) : [],
+            environmentRegistry: sqlProject.environment_registry ? JSON.parse(sqlProject.environment_registry) : [],
+            lastSynced: sqlProject.last_synced,
+            spreadsheetId: sqlProject.spreadsheet_id,
+            settings: sqlProject.settings ? JSON.parse(sqlProject.settings) : {}
+          }));
+          
+          // Update state with SQLite projects
+          setProjects(convertedProjects);
+          
+          // Also save to localStorage to keep it in sync
+          localStorage.setItem('roadmaster-projects', JSON.stringify(convertedProjects));
+          
+          // Update cache
+          DataCache.set(getCacheKey('projects'), convertedProjects, { ttl: 10 * 60 * 1000 }); // 10 minutes
+        }
+      } catch (error) {
+        console.error('Error loading projects from SQLite:', error);
+      }
+    };
+    
+    loadProjectsFromSQLite();
+  }, []);
+  
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() => {
     // Try to restore the last selected project from localStorage
     const savedSelectedProject = localStorage.getItem('roadmaster-selected-project');
@@ -461,9 +680,13 @@ const App: React.FC = () => {
       }
     };
   });
+
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [editProject, setEditProject] = useState<Partial<Project> | null>(null);
   
   const currentProject = useMemo(() => {
-    return projects.find(p => p.id === selectedProjectId);
+    const project = projects.find(p => p.id === selectedProjectId);
+    return project ? prepareProjectWithMaterials(project) : project;
   }, [projects, selectedProjectId]);
   
   const currentUser = useMemo(() => {
@@ -555,10 +778,11 @@ const App: React.FC = () => {
       });
   };
 
-  const onSaveProject = (project: Partial<Project>) => {
+  const onSaveProject = async (project: Partial<Project>) => {
+    console.log('onSaveProject called with:', project);
     setProjects(prev => {
       // Create a complete project object with default values for missing fields
-      const completeProject: Project = {
+      const baseProject: Project = {
         id: project.id || `proj-${Date.now()}`,
         name: project.name || '',
         code: project.code || '',
@@ -627,6 +851,16 @@ const App: React.FC = () => {
         contractPeriod: project.contractPeriod
       };
       
+      // Apply material migration to ensure unified material system is used
+      let completeProject: Project;
+      try {
+        completeProject = prepareProjectWithMaterials(baseProject);
+        console.log('prepareProjectWithMaterials succeeded:', completeProject);
+      } catch (error) {
+        console.error('prepareProjectWithMaterials failed:', error);
+        completeProject = baseProject; // Fallback to base project
+      }
+      
       const updatedProjects = project.id 
         ? prev.map(p => p.id === project.id ? completeProject : p)
         : [...prev, completeProject];
@@ -635,6 +869,65 @@ const App: React.FC = () => {
       
       // Update cache
       DataCache.set(getCacheKey('projects'), updatedProjects, { ttl: 10 * 60 * 1000 }); // 10 minutes
+      
+      // Save to SQLite database as well
+      (async () => {
+        try {
+          await sqliteService.initialize();
+          const projectData = {
+            id: completeProject.id,
+            name: completeProject.name || '',
+            code: completeProject.code || null,
+            location: completeProject.location || '',
+            contractor: completeProject.contractor || '',
+            start_date: completeProject.startDate || null,
+            end_date: completeProject.endDate || null,
+            client: completeProject.client || '',
+            engineer: completeProject.engineer || null,
+            contract_no: completeProject.contractNo || null,
+            boq: JSON.stringify(completeProject.boq || []),
+            rfis: JSON.stringify(completeProject.rfis || []),
+            lab_tests: JSON.stringify(completeProject.labTests || []),
+            schedule: JSON.stringify(completeProject.schedule || []),
+            structures: JSON.stringify(completeProject.structures || []),
+            agencies: JSON.stringify(completeProject.agencies || []),
+            agency_payments: JSON.stringify(completeProject.agencyPayments || []),
+            linear_works: JSON.stringify(completeProject.linearWorks || []),
+            inventory: JSON.stringify(completeProject.inventory || []),
+            inventory_transactions: JSON.stringify(completeProject.inventoryTransactions || []),
+            vehicles: JSON.stringify(completeProject.vehicles || []),
+            vehicle_logs: JSON.stringify(completeProject.vehicleLogs || []),
+            documents: JSON.stringify(completeProject.documents || []),
+            site_photos: JSON.stringify(completeProject.sitePhotos || []),
+            daily_reports: JSON.stringify(completeProject.dailyReports || []),
+            pre_construction: JSON.stringify(completeProject.preConstruction || []),
+            land_parcels: JSON.stringify(completeProject.landParcels || []),
+            map_overlays: JSON.stringify(completeProject.mapOverlays || []),
+            hindrances: JSON.stringify(completeProject.hindrances || []),
+            nc_rs: JSON.stringify(completeProject.ncrs || []),
+            contract_bills: JSON.stringify(completeProject.contractBills || []),
+            subcontractor_bills: JSON.stringify(completeProject.subcontractorBills || []),
+            measurement_sheets: JSON.stringify(completeProject.measurementSheets || []),
+            staff_locations: JSON.stringify(completeProject.staffLocations || []),
+            environment_registry: JSON.stringify(completeProject.environmentRegistry || []),
+            last_synced: completeProject.lastSynced || null,
+            spreadsheet_id: completeProject.spreadsheetId || null,
+            settings: JSON.stringify(completeProject.settings || {})
+          };
+
+          // Check if project exists in SQLite
+          const existingProjects = await sqliteService.select('projects', ['id'], 'id = ?', [completeProject.id]);
+          if (existingProjects.length > 0) {
+            // Update existing project
+            await sqliteService.update('projects', projectData, 'id = ?', [completeProject.id]);
+          } else {
+            // Insert new project
+            await sqliteService.insert('projects', projectData);
+          }
+        } catch (error) {
+          console.error('Error saving project to SQLite:', error);
+        }
+      })();
       
       return updatedProjects;
     });
@@ -651,13 +944,23 @@ const App: React.FC = () => {
     });
   };
   
-  const onDeleteProject = (projectId: string) => {
+  const onDeleteProject = async (projectId: string) => {
     setProjects(prev => {
       const updatedProjects = prev.filter(p => p.id !== projectId);
       localStorage.setItem('roadmaster-projects', JSON.stringify(updatedProjects));
       
       // Update cache
       DataCache.set(getCacheKey('projects'), updatedProjects, { ttl: 10 * 60 * 1000 }); // 10 minutes
+      
+      // Remove from SQLite database as well
+      (async () => {
+        try {
+          await sqliteService.initialize();
+          await sqliteService.delete('projects', 'id = ?', [projectId]);
+        } catch (error) {
+          console.error('Error deleting project from SQLite:', error);
+        }
+      })();
       
       return updatedProjects;
     });
@@ -696,6 +999,7 @@ const App: React.FC = () => {
     if ((currentUser as UserWithPermissions).permissions.includes(Permission.USER_READ)) {
       items.push({ id: 'user-management', label: 'User Management', icon: UserCheck });
     }
+    items.push({ id: 'user-registration', label: 'Create Account', icon: Shield });
     
     return items;
   }, [currentUser]);
@@ -810,17 +1114,28 @@ const App: React.FC = () => {
               <Typography variant="body1" color="text.secondary">Select an engineering project to begin</Typography>
             </Box>
 
-            <Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" height="200px"><CircularProgress /></Box>}>
-              <ProjectsList
-                projects={projects}
-                userRole={userRole}
-                onSelectProject={handleSelectProject}
-                onSaveProject={onSaveProject}
-                onDeleteProject={onDeleteProject}
-              />
-            </Suspense>
+            <ProjectsList
+              projects={projects}
+              userRole={userRole}
+              onSelectProject={handleSelectProject}
+              onSaveProject={onSaveProject}
+              onDeleteProject={onDeleteProject}
+              onOpenModal={(project) => {
+                setEditProject(project);
+                setIsProjectModalOpen(true);
+              }}
+            />
           </Box>
         </Box>
+        <ProjectModal
+          open={isProjectModalOpen}
+          onClose={() => setIsProjectModalOpen(false)}
+          onSave={(project) => {
+            onSaveProject(project);
+            setIsProjectModalOpen(false);
+          }}
+          project={editProject}
+        />
           </NotificationProvider>
         </I18nProvider>
       </ThemeProvider>
@@ -975,6 +1290,18 @@ const App: React.FC = () => {
                       >
                         Switch Project
                       </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => {
+                          setEditProject(null);
+                          setIsProjectModalOpen(true);
+                        }}
+                        startIcon={<Plus size={16} />}
+                        sx={{ ml: 1, textTransform: 'none', borderRadius: 2, fontSize: 12 }}
+                      >
+                        Create New Project
+                      </Button>
                       </Box>
                     </Box>
 
@@ -1007,7 +1334,7 @@ const App: React.FC = () => {
                   </Toolbar>
                 </AppBar>
 
-                <Box p={{ xs: 1, sm: 1.5, md: 2 }} flexGrow={1} overflow="auto" tabIndex={-1}>
+                <Box p={{ xs: 0.5, sm: 1, md: 1.5 }} flexGrow={1} overflow="auto" tabIndex={-1}>
                   <ErrorBoundary>
                     <Suspense fallback={<Box display="flex" justifyContent="center" alignItems="center" height="400px"><CircularProgress /></Box>}>
                         <Box>
@@ -1024,6 +1351,7 @@ const App: React.FC = () => {
                         {activeTab === 'financials' && (currentUser as UserWithPermissions).permissions.includes(Permission.FINANCE_READ) && <FinancialsCommercialHub userRole={userRole} project={currentProject} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'map' && (currentUser as UserWithPermissions).permissions.includes(Permission.PROJECT_READ) && <MapModule project={currentProject} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'rfis' && (currentUser as UserWithPermissions).permissions.includes(Permission.RFI_READ) && <RFIModule userRole={userRole} project={currentProject} onProjectUpdate={onSaveProject} />}
+
                         {activeTab === 'assets' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <AssetsModule userRole={userRole} project={currentProject} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'daily-reports' && (currentUser as UserWithPermissions).permissions.includes(Permission.REPORT_READ) && <DailyReportModule userRole={userRole} project={currentProject} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'site-photos' && (currentUser as UserWithPermissions).permissions.includes(Permission.DOCUMENT_READ) && <SitePhotosModule userRole={userRole} project={currentProject} onProjectUpdate={onSaveProject} />}
@@ -1032,22 +1360,26 @@ const App: React.FC = () => {
                         {activeTab === 'ocr-extraction' && (currentUser as UserWithPermissions).permissions.includes(Permission.DOCUMENT_READ) && <ChandraOCRAnalyzer />}
                         {activeTab === 'fleet' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <FleetModule project={currentProject} userRole={userRole} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'linear-works' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <LinearWorksModule project={currentProject} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'materials-hub' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <MaterialsResourcesHub project={currentProject} userRole={userRole} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'materials-hub' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <MaterialManagementModule project={currentProject} userRole={userRole} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'resources' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <ResourceManager project={currentProject} userRole={userRole} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'resource-matrix' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <ResourceMatrixModule project={currentProject} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'quality' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <QualityHub project={currentProject} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                                              {activeTab === 'lab' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <LabModule project={currentProject} userRole={userRole} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'lab' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <LabModule project={currentProject} userRole={userRole} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'environment' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <EnvironmentModule project={currentProject} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'reports-analytics' && (currentUser as UserWithPermissions).permissions.includes(Permission.REPORT_READ) && <ReportsAnalyticsHub project={currentProject} userRole={userRole} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'output-export' && (currentUser as UserWithPermissions).permissions.includes(Permission.REPORT_READ) && <OutputExportModule project={currentProject} userRole={userRole} settings={appSettings} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'data-analysis' && <DataAnalysisModule />}
                         {activeTab === 'pre-construction' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <PreConstructionModule project={currentProject} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'projects' && (currentUser as UserWithPermissions).permissions.includes(Permission.PROJECT_READ) && <ProjectsList 
-                          projects={projects} 
-                          userRole={userRole} 
-                          onSelectProject={handleSelectProject} 
-                          onSaveProject={onSaveProject} 
-                          onDeleteProject={onDeleteProject} 
+                        {activeTab === 'projects' && (currentUser as UserWithPermissions).permissions.includes(Permission.PROJECT_READ) && <ProjectsList
+                          projects={projects}
+                          userRole={userRole}
+                          onSelectProject={handleSelectProject}
+                          onSaveProject={onSaveProject}
+                          onDeleteProject={onDeleteProject}
+                          onOpenModal={(project) => {
+                            setEditProject(project);
+                            setIsProjectModalOpen(true);
+                          }}
                         />}
                         {activeTab === 'pavement' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <PavementModule userRole={userRole} project={currentProject} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'mpr-report' && (currentUser as UserWithPermissions).permissions.includes(Permission.REPORT_READ) && <MPRReportModule project={currentProject} userRole={userRole} settings={appSettings} onProjectUpdate={onSaveProject} />}
@@ -1081,6 +1413,7 @@ const App: React.FC = () => {
                           />
                         )}
                         {activeTab === 'user-management' && (currentUser as UserWithPermissions).permissions.includes(Permission.USER_READ) && <UserManagement />}
+                                                {activeTab === 'user-registration' && <UserRegistration />}
                         {activeTab === 'subcontractors' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <SubcontractorModule userRole={userRole} project={currentProject} settings={appSettings} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'subcontractor-billing' && (currentUser as UserWithPermissions).permissions.includes(Permission.FINANCE_READ) && <SubcontractorBillingModule userRole={userRole} project={currentProject} settings={appSettings} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'settings' && (currentUser as UserWithPermissions).permissions.includes(Permission.SETTINGS_UPDATE) && <SettingsModule settings={appSettings} onUpdate={setAppSettings} />}
@@ -1112,13 +1445,30 @@ const App: React.FC = () => {
                     onSelectProject={handleSelectProject}
                     onSaveProject={onSaveProject}
                     onDeleteProject={onDeleteProject}
+                    onOpenModal={(project) => {
+                      setEditProject(project);
+                      setIsProjectModalOpen(true);
+                    }}
                   />
                </Suspense>
             </Box>
           )}
         </Box>
-        {isAIModalOpen && currentProject && <AIChatModal project={currentProject} onClose={() => setIsAIModalOpen(false)} />}
       </Box>
+      {isAIModalOpen && currentProject && <AIChatModal project={currentProject} onClose={() => setIsAIModalOpen(false)} />}
+      <ProjectModal
+        open={isProjectModalOpen}
+        onClose={() => {
+          console.log('ProjectModal onClose called');
+          setIsProjectModalOpen(false);
+        }}
+        onSave={(project) => {
+          console.log('ProjectModal onSave called with:', project);
+          onSaveProject(project);
+          setIsProjectModalOpen(false);
+        }}
+        project={editProject}
+      />
         </NotificationProvider>
       </I18nProvider>
     </ThemeProvider>

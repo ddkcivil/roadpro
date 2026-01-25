@@ -28,6 +28,7 @@ import {
   IconButton,
   alpha
 } from '@mui/material';
+import { BaseResource } from '../types';
 import { Plus, X, Calendar, Package, Users, Wrench, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 
 interface ResourceMatrixModuleProps {
@@ -89,9 +90,12 @@ const ResourceMatrixModule: React.FC<ResourceMatrixModuleProps> = ({ project, on
       const newResource = {
         ...editingResource,
         id: `res-${Date.now()}`,
+        // Map ResourceMatrix fields to BaseResource fields
+        quantity: editingResource.totalQuantity || 0, // Required by BaseResource
+        location: editingResource.location || 'Warehouse', // Required by BaseResource
+        lastUpdated: new Date().toISOString().split('T')[0], // Required by BaseResource
         availableQuantity: editingResource.totalQuantity,
-        allocatedQuantity: 0,
-        lastUpdated: new Date().toISOString().split('T')[0]
+        allocatedQuantity: 0
       };
       updatedResources = [...resources, newResource];
     }

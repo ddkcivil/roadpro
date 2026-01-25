@@ -460,15 +460,20 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
     
     const newMaterial: AgencyMaterial = {
       id: `mat-${Date.now()}`,
+      name: materialForm.materialName || '', // Required by BaseResource
+      description: materialForm.remarks || '', // Map remarks to description
+      category: '', // Could be enhanced to use material categories
+      unit: materialForm.unit || 'unit', // Required by BaseResource
+      quantity: materialForm.quantity || 0, // Required by BaseResource
+      location: materialForm.deliveryLocation || 'Vendor', // Required by BaseResource
+      status: materialForm.status || 'Ordered', // Required by BaseResource
+      lastUpdated: new Date().toISOString().split('T')[0], // Required by BaseResource
       agencyId: selectedAgencyId,
       materialName: materialForm.materialName,
-      quantity: materialForm.quantity,
-      unit: materialForm.unit,
       rate: materialForm.rate,
       totalAmount: totalAmount,
       receivedDate: materialForm.receivedDate || new Date().toISOString().split('T')[0],
       invoiceNumber: materialForm.invoiceNumber,
-      status: materialForm.status || 'Ordered',
       remarks: materialForm.remarks,
       orderedDate: materialForm.orderedDate,
       expectedDeliveryDate: materialForm.expectedDeliveryDate,
@@ -608,7 +613,7 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
         <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ bgcolor: 'primary.light/20', borderBottom: 1, borderColor: 'divider', minHeight: 50 }}>
           <Tab label="Vendors" icon={<Briefcase size={20}/>} iconPosition="start" sx={{ minHeight: 50, textTransform: 'none', fontWeight: 600, fontSize: 14 }} />
           <Tab label="Rates" icon={<Calculator size={20}/>} iconPosition="start" sx={{ minHeight: 50, textTransform: 'none', fontWeight: 600, fontSize: 14 }} />
-          <Tab label="Materials" icon={<Package size={20}/>} iconPosition="start" sx={{ minHeight: 50, textTransform: 'none', fontWeight: 600, fontSize: 14 }} />
+
           <Tab label="Logistics" icon={<Navigation size={20}/>} iconPosition="start" sx={{ minHeight: 50, textTransform: 'none', fontWeight: 600, fontSize: 14 }} />
           <Tab label="Bills" icon={<FileText size={20}/>} iconPosition="start" sx={{ minHeight: 50, textTransform: 'none', fontWeight: 600, fontSize: 14 }} />
           <Tab label="Payments" icon={<DollarSign size={20}/>} iconPosition="start" sx={{ minHeight: 50, textTransform: 'none', fontWeight: 600, fontSize: 14 }} />
@@ -1667,6 +1672,14 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
               onChange={e => setRateForm({...rateForm, materialId: e.target.value})} 
               required
               SelectProps={{
+                displayEmpty: true,
+                renderValue: (selected) => {
+                  if (!selected) {
+                    return <em>Select Material (saved)</em>;
+                  }
+                  const material = project.agencyMaterials?.find(m => m.id === selected);
+                  return material ? `${material.materialName} - ${material.quantity} ${material.unit}` : '';
+                },
                 MenuProps: {
                   PaperProps: {
                     sx: {
@@ -1678,6 +1691,9 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
                 }
               }}
             >
+              <MenuItem value="" disabled>
+                <em>Select Material (saved)</em>
+              </MenuItem>
               {project.agencyMaterials?.filter(mat => mat.agencyId === selectedAgencyId).map(material => (
                 <MenuItem key={material.id} value={material.id}>{material.materialName} - {material.quantity} {material.unit}</MenuItem>
               ))}

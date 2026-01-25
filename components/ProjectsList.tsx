@@ -18,12 +18,11 @@ interface Props {
   onSelectProject: (projectId: string) => void;
   onSaveProject: (project: Partial<Project>) => void;
   onDeleteProject: (id: string) => void;
+  onOpenModal: (project: Partial<Project> | null) => void;
 }
 
-const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, onSaveProject, onDeleteProject }) => {
+const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, onSaveProject, onDeleteProject, onOpenModal }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState<Partial<Project> | null>(null);
   const [viewMode, setViewMode] = useState<'LIST' | 'GRID'>('LIST');
 
   const hasEditPrivilege = userRole === UserRole.ADMIN || userRole === UserRole.PROJECT_MANAGER;
@@ -37,18 +36,11 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const handleOpenNew = () => {
-    setEditForm(null);
-    setIsModalOpen(true);
+    onOpenModal(null);
   };
 
   const handleOpenEdit = (project: Project) => {
-    setEditForm(project);
-    setIsModalOpen(true);
-  };
-
-  const handleSave = (project: Partial<Project>) => {
-    onSaveProject(project);
-    setIsModalOpen(false);
+    onOpenModal(project);
   };
 
   const handleSelectProject = (projectId: string) => {
@@ -149,7 +141,7 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
             </ToggleButtonGroup>
             {hasEditPrivilege && (
               <Button onClick={handleOpenNew} variant="contained" startIcon={<Plus size={18} />}>
-                 New Project
+                 Create New Project
               </Button>
             )}
         </Stack>
@@ -337,7 +329,7 @@ This is the FINAL step. Click OK to DELETE PERMANENTLY or Cancel to abort.`)) {
                         const status = getProjectStatus(project.startDate, project.endDate);
 
                         return (
-                            <Grid xs={12} md={6} lg={4} key={project.id}>
+                            <Grid item xs={12} md={6} lg={4} key={project.id}>
                                 <Card 
                                     onClick={() => handleSelectProject(project.id)}
                                     sx={{ 
@@ -415,12 +407,6 @@ This is the FINAL step. Click OK to DELETE PERMANENTLY or Cancel to abort.`)) {
             <Typography variant="caption" fontWeight="bold" color="primary.main">{filteredProjects.length} Projects Loaded</Typography>
           </Box>
       </Paper>
-      <ProjectModal 
-        open={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSave={handleSave} 
-        project={editForm} 
-      />
     </Box>
   );
 };
