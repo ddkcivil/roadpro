@@ -5,7 +5,7 @@ export const API_CONFIG = {
   // 🚨 UPDATE THIS WITH YOUR RAILWAY DEPLOYMENT URL 🚨
   // After deploying to Railway, replace this with your actual URL
   // Example: 'https://your-app-name-production.up.railway.app'
-  BASE_URL: 'YOUR_RAILWAY_API_URL_HERE',
+  BASE_URL: 'https://baa26027-8f6b-42f7-86d2-1bbfbb30fc13.up.railway.app',
   
   // For local development, uncomment the line below:
   // BASE_URL: 'http://localhost:3001',
