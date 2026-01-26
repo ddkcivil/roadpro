@@ -1,3 +1,5 @@
+import { API_CONFIG } from './apiConfig';
+
 // API service to communicate with backend
 class ApiService {
   private baseUrl: string;
@@ -8,9 +10,8 @@ class ApiService {
   };
 
   constructor() {
-    // In production, this would be your deployed backend URL
-    // For local development with MongoDB:
-    this.baseUrl = 'http://localhost:3001';
+    // Use configured API URL
+    this.baseUrl = API_CONFIG.BASE_URL;
     
     // Fallback mock data for when API is not available
     this.mockData = {
