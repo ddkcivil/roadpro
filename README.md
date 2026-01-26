@@ -21,9 +21,10 @@ A comprehensive construction project management application with cross-browser d
 ## 🛠️ Technical Stack
 
 - **Frontend**: React 18, TypeScript, Material-UI
-- **Backend**: Node.js/Express API (mock implementation)
-- **Storage**: SQLite with localStorage fallback
-- **Deployment**: Vercel (Frontend), Ready for cloud API deployment
+- **Backend**: Node.js/Express with MongoDB
+- **Database**: MongoDB (local or MongoDB Atlas)
+- **Storage**: MongoDB persistence with localStorage fallback
+- **Deployment**: Vercel (Frontend), Railway/Heroku (Backend)
 - **PDF Handling**: PDF.js with proper version management
 - **OCR**: Integrated document scanning and analysis
 
@@ -51,10 +52,11 @@ A comprehensive construction project management application with cross-browser d
 - **API Service**: `services/apiService.ts`
 
 ### Backend API:
-- RESTful endpoints for user/project management
+- RESTful endpoints with MongoDB persistence
+- User and project management with database storage
 - Registration approval workflow
 - Cross-browser data persistence
-- Ready for database integration
+- Automatic fallback to mock data when API unavailable
 
 ## 🔧 Development Setup
 
@@ -88,8 +90,13 @@ npm install -g vercel
 vercel --prod
 ```
 
-### Backend API:
-See `api/README.md` for deployment instructions.
+### Backend API (Railway/Heroku):
+See `api/MONGODB_DEPLOYMENT.md` for detailed deployment instructions.
+
+**Quick MongoDB Atlas Setup:**
+1. Create free account at https://www.mongodb.com/atlas
+2. Create cluster and get connection string
+3. Deploy API to Railway/Heroku with MongoDB URI
 
 ## 📁 Project Structure
 
@@ -105,17 +112,19 @@ See `api/README.md` for deployment instructions.
 ## 🎯 Recent Improvements
 
 - ✅ Fixed PDF.js version mismatch issues
-- ✅ Implemented cross-browser data persistence
+- ✅ Implemented MongoDB-based persistent data storage
 - ✅ Added user registration approval workflow
 - ✅ Enhanced document preview and OCR capabilities
 - ✅ Improved error handling and user experience
 - ✅ Optimized build performance and chunking
+- ✅ Added automatic API detection with fallback to mock data
+- ✅ Implemented cross-browser data persistence
 
 ## 📚 Documentation
 
 - `PERSISTENT_DATA_SOLUTION.md` - Cross-browser data architecture
+- `api/MONGODB_DEPLOYMENT.md` - MongoDB API deployment guide
 - `SQLITE_INTEGRATION_SUMMARY.md` - Database integration details
-- `api/README.md` - Backend API documentation
 - `HELP.md` - User guide and troubleshooting
 
 ## 🤝 Contributing
