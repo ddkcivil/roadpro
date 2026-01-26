@@ -81,6 +81,38 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+// Authentication routes
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    // Find user by email
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    // Return user data (without password)
+    const userData = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      avatar: user.avatar,
+      createdAt: user.createdAt
+    };
+    
+    res.json({
+      success: true,
+      user: userData,
+      token: `token-${user.id}-${Date.now()}` // Simulated token
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
 // User Management
 app.get('/api/users', async (req, res) => {
   try {

@@ -117,24 +117,47 @@ class ApiService {
   }
 
   async loginUser(email, password) {
-    await this.delay();
+    const apiAvailable = await this.isApiAvailable();
     
-    const user = this.mockData.users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!user) {
-      throw new Error('Invalid credentials');
+    if (apiAvailable) {
+      try {
+        const response = await fetch(`${this.baseUrl}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Login failed');
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error('API login request failed:', error);
+        throw error;
+      }
+    } else {
+      await this.delay();
+      
+      // Fallback to mock login
+      const user = this.mockData.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (!user) {
+        throw new Error('Invalid credentials');
+      }
+      
+      return {
+        success: true,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          avatar: user.avatar
+        },
+        token: 'mock-jwt-token-' + Date.now()
+      };
     }
-    
-    return {
-      success: true,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar
-      },
-      token: 'mock-jwt-token-' + Date.now()
-    };
   }
 
   // Pending Registrations
