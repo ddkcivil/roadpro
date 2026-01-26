@@ -2,8 +2,10 @@
 // Update this file with your deployed API URL
 
 export const API_CONFIG = {
-  // Production API URL - UPDATE THIS WITH YOUR RAILWAY DEPLOYMENT URL
-  BASE_URL: 'https://roadpro-api-production.up.railway.app',
+  // 🚨 UPDATE THIS WITH YOUR RAILWAY DEPLOYMENT URL 🚨
+  // After deploying to Railway, replace this with your actual URL
+  // Example: 'https://your-app-name-production.up.railway.app'
+  BASE_URL: 'YOUR_RAILWAY_API_URL_HERE',
   
   // For local development, uncomment the line below:
   // BASE_URL: 'http://localhost:3001',
