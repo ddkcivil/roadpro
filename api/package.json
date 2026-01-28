@@ -2,10 +2,10 @@
   "name": "roadpro-api",
   "version": "1.0.0",
   "description": "Backend API for RoadPro application",
-  "main": "api/mongo-api.js",
+  "main": "mongo-api.js",
   "scripts": {
-    "start": "node api/mongo-api.js",
-    "dev": "nodemon api/mongo-api.js"
+    "start": "node mongo-api.js",
+    "dev": "nodemon mongo-api.js"
   },
   "dependencies": {
     "express": "^4.18.2",

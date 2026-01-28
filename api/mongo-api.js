@@ -12,16 +12,22 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/roadpro', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
+const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/roadpro';
+console.log('Attempting to connect to MongoDB...');
+console.log('URI (first 50 chars):', mongoUri.substring(0, 50) + '...');
+
+mongoose.connect(mongoUri, {
+  maxPoolSize: 10, // Maintain up to 10 socket connections
+  serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+  socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+}).then(() => {
+  console.log('✅ Successfully connected to MongoDB');
+}).catch(err => {
+  console.error('❌ MongoDB connection error:', err);
+  console.error('Please check your MongoDB Atlas credentials and network access settings.');
 });
 
 const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-db.once('open', () => {
-  console.log('Connected to MongoDB');
-});
 
 // User Schema
 const userSchema = new mongoose.Schema({
