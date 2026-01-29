@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
         overlay: true,
         host: 'localhost',
         protocol: 'ws',
-        clientPort: 3000,
+        port: 3000,
         path: '/__vite_hmr',
         timeout: 30000,
       },
