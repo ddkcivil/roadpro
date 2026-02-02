@@ -19,4 +19,4 @@ COPY . .
 EXPOSE 3001
 
 # Start the application
-CMD ["cd", "api", "&&", "npm", "start"]
+CMD cd api && npm start
