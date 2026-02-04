@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, startTransition } from 'react';
 import { Project, UserRole, BOQItem } from '../../types';
 import { Search, Plus, Trash2, Edit, CheckCircle, X, Calendar, MapPin, Activity, Clock, FileEdit, LayoutGrid, List as ListIcon, TrendingUp, Timer } from 'lucide-react';
 import { Avatar, Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, Divider, Grid, IconButton, InputAdornment, LinearProgress, Paper, Stack, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from '@mui/material';
