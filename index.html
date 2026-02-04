@@ -3,12 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta http-equiv="Content-Security-Policy" content="default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https:;
+        <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https: https://js.stripe.com;
     style-src 'self' 'unsafe-inline' https:;
     font-src 'self' https://fonts.gstatic.com;
     img-src 'self' data: https: blob:;
-    connect-src 'self' blob: ws://localhost:* https: http:;
+    connect-src 'self' blob: ws://localhost:* https: http: https://roadpro-weld.vercel.app https://baa26027-8f6b-42f7-86d2-1bbfbb30fc13.up.railway.app;
     frame-src https:;
     child-src 'self' blob: https:;
     worker-src 'self' blob:;">
