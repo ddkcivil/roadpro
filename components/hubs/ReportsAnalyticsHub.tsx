@@ -12,25 +12,27 @@ import {
     FileText, BarChart3, PieChart, TrendingUp, AlertTriangle, CheckCircle, 
     Plus, Edit, Trash2, Filter, Search, X, Save, Calendar, 
     Download, Eye, Printer, FileSpreadsheet, Users, HardHat, MapPin,
-    ChevronDown, Clock, DollarSign, Package, FileSignature
+    ChevronDown, Clock, DollarSign, Package, FileSignature, Info
 } from 'lucide-react';
-import { Project, UserRole, BOQItem, LabTest, RFI, RFIStatus, ScheduleTask, StructureAsset, NCR, DailyReport } from '../../types';
-import { formatCurrency } from '../../utils/formatting/exportUtils';
+import { Project, UserRole, BOQItem, LabTest, RFI, RFIStatus, ScheduleTask, StructureAsset, NCR, DailyReport, AppSettings } from '../../types'; // Added AppSettings to import
+import { formatCurrency, exportBOQToCSV, exportStructuresToCSV, exportRFIToCSV, exportLabTestsToCSV, exportSubcontractorPaymentsToCSV, exportScheduleToCSV } from '../../utils/formatting/exportUtils'; // Added export functions
 
 interface Props {
     project: Project;
     userRole: UserRole;
+    settings: AppSettings; // Added settings
     onProjectUpdate: (project: Project) => void;
 }
 
-const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRole }) => {
+const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRole, settings }) => { // Added settings to destructuring
     const [activeTab, setActiveTab] = useState(0);
     const [searchTerm, setSearchTerm] = useState('');
     const [expandedReport, setExpandedReport] = useState<string | null>(null);
+    const [exportStatus, setExportStatus] = useState<Record<string, 'idle' | 'processing' | 'success' | 'error'>>({});
 
     const boq = project.boq || [];
     const labTests = project.labTests || [];
-    const rfis = project.rfis || [];
+    rfis = project.rfis || [];
     const schedule = project.schedule || [];
     const structures = project.structures || [];
     const ncrs = project.ncrs || [];
@@ -96,29 +98,76 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
         );
     }, [schedule, searchTerm]);
 
+    const startExportProcess = (id: string) => {
+      setExportStatus(prev => ({ ...prev, [id]: 'processing' }));
+    };
+
+    const finishExportProcess = (id: string, status: 'success' | 'error') => {
+      setExportStatus(prev => ({ ...prev, [id]: status }));
+      setTimeout(() => setExportStatus(prev => ({ ...prev, [id]: 'idle' })), 2000); // Reset status after 2 seconds
+    };
+
     // Export functions
-    const handleExportBOQ = () => {
-        alert('BOQ report exported successfully');
+    const handleExportBOQ = (id: string) => {
+        startExportProcess(id);
+        try {
+            exportBOQToCSV(project);
+            finishExportProcess(id, 'success');
+        } catch (error) {
+            console.error('BOQ export failed:', error);
+            finishExportProcess(id, 'error');
+        }
     };
 
-    const handleExportSchedule = () => {
-        alert('Schedule report exported successfully');
+    const handleExportSchedule = (id: string) => {
+        startExportProcess(id);
+        try {
+            exportScheduleToCSV(project);
+            finishExportProcess(id, 'success');
+        } catch (error) {
+            console.error('Schedule export failed:', error);
+            finishExportProcess(id, 'error');
+        }
     };
 
-    const handleExportTests = () => {
-        alert('Lab test report exported successfully');
+    const handleExportTests = (id: string) => {
+        startExportProcess(id);
+        try {
+            exportLabTestsToCSV(project);
+            finishExportProcess(id, 'success');
+        } catch (error) {
+            console.error('Lab Tests export failed:', error);
+            finishExportProcess(id, 'error');
+        }
     };
 
-    const handleExportRfis = () => {
-        alert('RFI report exported successfully');
+    const handleExportRfis = (id: string) => {
+        startExportProcess(id);
+        try {
+            exportRFIToCSV(project);
+            finishExportProcess(id, 'success');
+        } catch (error) {
+            console.error('RFI export failed:', error);
+            finishExportProcess(id, 'error');
+        }
     };
 
-    const handleExportStructures = () => {
-        alert('Structure report exported successfully');
+    const handleExportStructures = (id: string) => {
+        startExportProcess(id);
+        try {
+            exportStructuresToCSV(project);
+            finishExportProcess(id, 'success');
+        } catch (error) {
+            console.error('Structure export failed:', error);
+            finishExportProcess(id, 'error');
+        }
     };
 
-    const handleExportNCRs = () => {
-        alert('NCR report exported successfully');
+    const handleExportNCRs = (id: string) => {
+        startExportProcess(id);
+        // Functionality to export NCRs is not yet implemented in exportUtils.ts
+        alert('Functionality to export NCR Reports is not yet implemented.');
+        finishExportProcess(id, 'error'); // Mark as error since not implemented
     };
 
     return (
@@ -743,129 +792,394 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
                         </Box>
                     )}
 
-                    {/* EXPORT CENTER TAB */}
-                    {activeTab === 5 && (
-                        <Box>
-                            <Alert severity="info" icon={<Download />}>
-                                Export all project reports in various formats (PDF, Excel, CSV) from this centralized hub.
-                            </Alert>
+                                        {/* EXPORT CENTER TAB */}
 
-                            <Grid container spacing={3} mt={2}>
-                                <Grid item xs={12} md={6}>
-                                    <Card variant="outlined" sx={{ borderRadius: 3, height: '100%' }}>
-                                        <CardContent>
-                                            <Box display="flex" alignItems="center" mb={2}>
-                                                <FileText className="text-indigo-600 mr-2" size={24} />
-                                                <Typography variant="h6" fontWeight="bold">BOQ & Financial Reports</Typography>
-                                            </Box>
-                                            <List>
-                                                <ListItem>
-                                                    <ListItemIcon><FileText size={16} /></ListItemIcon>
-                                                    <ListItemText primary="BOQ Summary Report" secondary="Complete BOQ with rates and quantities" />
-                                                    <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={handleExportBOQ}>Export</Button>
-                                                </ListItem>
-                                                <ListItem>
-                                                    <ListItemIcon><DollarSign size={16} /></ListItemIcon>
-                                                    <ListItemText primary="Financial Summary" secondary="Revenue, expenses, and profit margins" />
-                                                    <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={handleExportBOQ}>Export</Button>
-                                                </ListItem>
-                                                <ListItem>
-                                                    <ListItemIcon><FileSignature size={16} /></ListItemIcon>
-                                                    <ListItemText primary="Contract Bills" secondary="All contract billing certificates" />
-                                                    <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={handleExportBOQ}>Export</Button>
-                                                </ListItem>
-                                            </List>
-                                        </CardContent>
-                                    </Card>
-                                </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <Card variant="outlined" sx={{ borderRadius: 3, height: '100%' }}>
-                                        <CardContent>
-                                            <Box display="flex" alignItems="center" mb={2}>
-                                                <BarChart3 className="text-emerald-600 mr-2" size={24} />
-                                                <Typography variant="h6" fontWeight="bold">Schedule & Progress Reports</Typography>
-                                            </Box>
-                                            <List>
-                                                <ListItem>
-                                                    <ListItemIcon><BarChart3 size={16} /></ListItemIcon>
-                                                    <ListItemText primary="Schedule Progress" secondary="Task completion and timeline analysis" />
-                                                    <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={handleExportSchedule}>Export</Button>
-                                                </ListItem>
-                                                <ListItem>
-                                                    <ListItemIcon><TrendingUp size={16} /></ListItemIcon>
-                                                    <ListItemText primary="Progress Report" secondary="Daily/weekly progress summary" />
-                                                    <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={handleExportSchedule}>Export</Button>
-                                                </ListItem>
-                                                <ListItem>
-                                                    <ListItemIcon><MapPin size={16} /></ListItemIcon>
-                                                    <ListItemText primary="Structure Status" secondary="All structures and their completion status" />
-                                                    <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={handleExportStructures}>Export</Button>
-                                                </ListItem>
-                                            </List>
-                                        </CardContent>
-                                    </Card>
-                                </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <Card variant="outlined" sx={{ borderRadius: 3, height: '100%' }}>
-                                        <CardContent>
-                                            <Box display="flex" alignItems="center" mb={2}>
-                                                <CheckCircle className="text-amber-600 mr-2" size={24} />
-                                                <Typography variant="h6" fontWeight="bold">Quality & Inspection Reports</Typography>
-                                            </Box>
-                                            <List>
-                                                <ListItem>
-                                                    <ListItemIcon><CheckCircle size={16} /></ListItemIcon>
-                                                    <ListItemText primary="Lab Test Results" secondary="All material testing results" />
-                                                    <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={handleExportTests}>Export</Button>
-                                                </ListItem>
-                                                <ListItem>
-                                                    <ListItemIcon><Eye size={16} /></ListItemIcon>
-                                                    <ListItemText primary="RFI Log" secondary="All Requests for Information" />
-                                                    <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={handleExportRfis}>Export</Button>
-                                                </ListItem>
-                                                <ListItem>
-                                                    <ListItemIcon><AlertTriangle size={16} /></ListItemIcon>
-                                                    <ListItemText primary="NCR Report" secondary="Non-Conformance Reports" />
-                                                    <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={handleExportNCRs}>Export</Button>
-                                                </ListItem>
-                                            </List>
-                                        </CardContent>
-                                    </Card>
-                                </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <Card variant="outlined" sx={{ borderRadius: 3, height: '100%' }}>
-                                        <CardContent>
-                                            <Box display="flex" alignItems="center" mb={2}>
-                                                <Download className="text-violet-600 mr-2" size={24} />
-                                                <Typography variant="h6" fontWeight="bold">Master Reports</Typography>
-                                            </Box>
-                                            <List>
-                                                <ListItem>
-                                                    <ListItemIcon><FileSpreadsheet size={16} /></ListItemIcon>
-                                                    <ListItemText primary="Project Dashboard" secondary="Complete project overview" />
-                                                    <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={() => alert('Project dashboard exported')}>Export</Button>
-                                                </ListItem>
-                                                <ListItem>
-                                                    <ListItemIcon><Users size={16} /></ListItemIcon>
-                                                    <ListItemText primary="Resource Utilization" secondary="Assets, inventory, and workforce" />
-                                                    <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={() => alert('Resource report exported')}>Export</Button>
-                                                </ListItem>
-                                                <ListItem>
-                                                    <ListItemIcon><Package size={16} /></ListItemIcon>
-                                                    <ListItemText primary="Comprehensive Export" secondary="All data in single package" />
-                                                    <Button variant="contained" size="small" startIcon={<Download size={14}/>} onClick={() => alert('Complete project export initiated')}>Export All</Button>
-                                                </ListItem>
-                                            </List>
-                                        </CardContent>
-                                    </Card>
-                                </Grid>
-                            </Grid>
-                        </Box>
-                    )}
-                </Box>
-            </Paper>
-        </Box>
-    );
-};
+                                        {activeTab === 5 && (
 
-export default ReportsAnalyticsHub;
+                                            <Box>
+
+                                                <Alert severity="info" icon={<Download />}>
+
+                                                    Export all project reports in various formats (PDF, Excel, CSV) from this centralized hub.
+
+                                                </Alert>
+
+                    
+
+                                                <Grid container spacing={3} mt={2}>
+
+                                                    <Grid item xs={12} md={6}>
+
+                                                        <Card variant="outlined" sx={{ borderRadius: 3, height: '100%' }}>
+
+                                                            <CardContent>
+
+                                                                <Box display="flex" alignItems="center" mb={2}>
+
+                                                                    <FileText className="text-indigo-600 mr-2" size={24} />
+
+                                                                    <Typography variant="h6" fontWeight="bold">BOQ & Financial Reports</Typography>
+
+                                                                </Box>
+
+                                                                <List>
+
+                                                                    <ListItem>
+
+                                                                        <ListItemIcon><FileText size={16} /></ListItemIcon>
+
+                                                                        <ListItemText primary="BOQ Summary Report" secondary="Complete BOQ with rates and quantities" />
+
+                                                                        <Stack direction="row" spacing={1} alignItems="center">
+
+                                                                            {getStatusIcon(exportStatus['boq-summary'] || 'idle')}
+
+                                                                            <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={() => handleExportBOQ('boq-summary')} disabled={exportStatus['boq-summary'] === 'processing'}>
+
+                                                                                {exportStatus['boq-summary'] === 'processing' ? 'Exporting...' : 'Export'}
+
+                                                                            </Button>
+
+                                                                        </Stack>
+
+                                                                    </ListItem>
+
+                                                                    <ListItem>
+
+                                                                        <ListItemIcon><DollarSign size={16} /></ListItemIcon>
+
+                                                                        <ListItemText primary="Financial Summary" secondary="Revenue, expenses, and profit margins" />
+
+                                                                        <Stack direction="row" spacing={1} alignItems="center">
+
+                                                                            {getStatusIcon(exportStatus['financial-summary'] || 'idle')}
+
+                                                                            <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={() => alert('Financial Summary export functionality is not yet implemented.')} disabled={exportStatus['financial-summary'] === 'processing'}>
+
+                                                                                {exportStatus['financial-summary'] === 'processing' ? 'Exporting...' : 'Export'}
+
+                                                                            </Button>
+
+                                                                        </Stack>
+
+                                                                    </ListItem>
+
+                                                                    <ListItem>
+
+                                                                        <ListItemIcon><FileSignature size={16} /></ListItemIcon>
+
+                                                                        <ListItemText primary="Contract Bills" secondary="All contract billing certificates" />
+
+                                                                        <Stack direction="row" spacing={1} alignItems="center">
+
+                                                                            {getStatusIcon(exportStatus['contract-bills'] || 'idle')}
+
+                                                                            <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={() => alert('Contract Bills export functionality is not yet implemented.')} disabled={exportStatus['contract-bills'] === 'processing'}>
+
+                                                                                {exportStatus['contract-bills'] === 'processing' ? 'Exporting...' : 'Export'}
+
+                                                                            </Button>
+
+                                                                        </Stack>
+
+                                                                    </ListItem>
+
+                                                                </List>
+
+                                                            </CardContent>
+
+                                                        </Card>
+
+                                                    </Grid>
+
+                                                    <Grid item xs={12} md={6}>
+
+                                                        <Card variant="outlined" sx={{ borderRadius: 3, height: '100%' }}>
+
+                                                            <CardContent>
+
+                                                                <Box display="flex" alignItems="center" mb={2}>
+
+                                                                    <BarChart3 className="text-emerald-600 mr-2" size={24} />
+
+                                                                    <Typography variant="h6" fontWeight="bold">Schedule & Progress Reports</Typography>
+
+                                                                </Box>
+
+                                                                <List>
+
+                                                                    <ListItem>
+
+                                                                        <ListItemIcon><BarChart3 size={16} /></ListItemIcon>
+
+                                                                        <ListItemText primary="Schedule Progress" secondary="Task completion and timeline analysis" />
+
+                                                                        <Stack direction="row" spacing={1} alignItems="center">
+
+                                                                            {getStatusIcon(exportStatus['schedule-progress'] || 'idle')}
+
+                                                                            <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={() => handleExportSchedule('schedule-progress')} disabled={exportStatus['schedule-progress'] === 'processing'}>
+
+                                                                                {exportStatus['schedule-progress'] === 'processing' ? 'Exporting...' : 'Export'}
+
+                                                                            </Button>
+
+                                                                        </Stack>
+
+                                                                    </ListItem>
+
+                                                                    <ListItem>
+
+                                                                        <ListItemIcon><TrendingUp size={16} /></ListItemIcon>
+
+                                                                        <ListItemText primary="Progress Report" secondary="Daily/weekly progress summary" />
+
+                                                                        <Stack direction="row" spacing={1} alignItems="center">
+
+                                                                            {getStatusIcon(exportStatus['progress-report'] || 'idle')}
+
+                                                                            <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={() => alert('Progress Report export functionality is not yet implemented.')} disabled={exportStatus['progress-report'] === 'processing'}>
+
+                                                                                {exportStatus['progress-report'] === 'processing' ? 'Exporting...' : 'Export'}
+
+                                                                            </Button>
+
+                                                                        </Stack>
+
+                                                                    </ListItem>
+
+                                                                    <ListItem>
+
+                                                                        <ListItemIcon><MapPin size={16} /></ListItemIcon>
+
+                                                                        <ListItemText primary="Structure Status" secondary="All structures and their completion status" />
+
+                                                                        <Stack direction="row" spacing={1} alignItems="center">
+
+                                                                            {getStatusIcon(exportStatus['structure-status'] || 'idle')}
+
+                                                                            <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={() => handleExportStructures('structure-status')} disabled={exportStatus['structure-status'] === 'processing'}>
+
+                                                                                {exportStatus['structure-status'] === 'processing' ? 'Exporting...' : 'Export'}
+
+                                                                            </Button>
+
+                                                                        </Stack>
+
+                                                                    </ListItem>
+
+                                                                </List>
+
+                                                            </CardContent>
+
+                                                        </Card>
+
+                                                    </Grid>
+
+                                                    <Grid item xs={12} md={6}>
+
+                                                        <Card variant="outlined" sx={{ borderRadius: 3, height: '100%' }}>
+
+                                                            <CardContent>
+
+                                                                <Box display="flex" alignItems="center" mb={2}>
+
+                                                                    <CheckCircle className="text-amber-600 mr-2" size={24} />
+
+                                                                    <Typography variant="h6" fontWeight="bold">Quality & Inspection Reports</Typography>
+
+                                                                </Box>
+
+                                                                <List>
+
+                                                                    <ListItem>
+
+                                                                        <ListItemIcon><CheckCircle size={16} /></ListItemIcon>
+
+                                                                        <ListItemText primary="Lab Test Results" secondary="All material testing results" />
+
+                                                                        <Stack direction="row" spacing={1} alignItems="center">
+
+                                                                            {getStatusIcon(exportStatus['lab-test-results'] || 'idle')}
+
+                                                                            <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={() => handleExportTests('lab-test-results')} disabled={exportStatus['lab-test-results'] === 'processing'}>
+
+                                                                                {exportStatus['lab-test-results'] === 'processing' ? 'Exporting...' : 'Export'}
+
+                                                                            </Button>
+
+                                                                        </Stack>
+
+                                                                    </ListItem>
+
+                                                                    <ListItem>
+
+                                                                        <ListItemIcon><Eye size={16} /></ListItemIcon>
+
+                                                                        <ListItemText primary="RFI Log" secondary="All Requests for Information" />
+
+                                                                        <Stack direction="row" spacing={1} alignItems="center">
+
+                                                                            {getStatusIcon(exportStatus['rfi-log'] || 'idle')}
+
+                                                                            <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={() => handleExportRfis('rfi-log')} disabled={exportStatus['rfi-log'] === 'processing'}>
+
+                                                                                {exportStatus['rfi-log'] === 'processing' ? 'Exporting...' : 'Export'}
+
+                                                                            </Button>
+
+                                                                        </Stack>
+
+                                                                    </ListItem>
+
+                                                                    <ListItem>
+
+                                                                        <ListItemIcon><AlertTriangle size={16} /></ListItemIcon>
+
+                                                                        <ListItemText primary="NCR Report" secondary="Non-Conformance Reports" />
+
+                                                                        <Stack direction="row" spacing={1} alignItems="center">
+
+                                                                            {getStatusIcon(exportStatus['ncr-report'] || 'idle')}
+
+                                                                            <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={() => handleExportNCRs('ncr-report')} disabled={exportStatus['ncr-report'] === 'processing'}>
+
+                                                                                {exportStatus['ncr-report'] === 'processing' ? 'Exporting...' : 'Export'}
+
+                                                                            </Button>
+
+                                                                        </Stack>
+
+                                                                    </ListItem>
+
+                                                                </List>
+
+                                                            </CardContent>
+
+                                                        </Card>
+
+                                                    </Grid>
+
+                                                    <Grid item xs={12} md={6}>
+
+                                                        <Card variant="outlined" sx={{ borderRadius: 3, height: '100%' }}>
+
+                                                            <CardContent>
+
+                                                                <Box display="flex" alignItems="center" mb={2}>
+
+                                                                    <Download className="text-violet-600 mr-2" size={24} />
+
+                                                                    <Typography variant="h6" fontWeight="bold">Master Reports</Typography>
+
+                                                                </Box>
+
+                                                                <List>
+
+                                                                    <ListItem>
+
+                                                                        <ListItemIcon><FileSpreadsheet size={16} /></ListItemIcon>
+
+                                                                        <ListItemText primary="Project Dashboard" secondary="Complete project overview" />
+
+                                                                        <Stack direction="row" spacing={1} alignItems="center">
+
+                                                                            {getStatusIcon(exportStatus['project-dashboard'] || 'idle')}
+
+                                                                            <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={() => alert('Project Dashboard export functionality is not yet implemented.')} disabled={exportStatus['project-dashboard'] === 'processing'}>
+
+                                                                                {exportStatus['project-dashboard'] === 'processing' ? 'Exporting...' : 'Export'}
+
+                                                                            </Button>
+
+                                                                        </Stack>
+
+                                                                    </ListItem>
+
+                                                                    <ListItem>
+
+                                                                        <ListItemIcon><Users size={16} /></ListItemIcon>
+
+                                                                        <ListItemText primary="Resource Utilization" secondary="Assets, inventory, and workforce" />
+
+                                                                        <Stack direction="row" spacing={1} alignItems="center">
+
+                                                                            {getStatusIcon(exportStatus['resource-utilization'] || 'idle')}
+
+                                                                            <Button variant="outlined" size="small" startIcon={<Download size={14}/>} onClick={() => alert('Resource Utilization export functionality is not yet implemented.')} disabled={exportStatus['resource-utilization'] === 'processing'}>
+
+                                                                                {exportStatus['resource-utilization'] === 'processing' ? 'Exporting...' : 'Export'}
+
+                                                                            </Button>
+
+                                                                        </Stack>
+
+                                                                    </ListItem>
+
+                                                                    <ListItem>
+
+                                                                        <ListItemIcon><Package size={16} /></ListItemIcon>
+
+                                                                        <ListItemText primary="Comprehensive Export" secondary="All data in single package" />
+
+                                                                        <Stack direction="row" spacing={1} alignItems="center">
+
+                                                                            {getStatusIcon(exportStatus['comprehensive-export'] || 'idle')}
+
+                                                                            <Button variant="contained" size="small" startIcon={<Download size={14}/>} onClick={() => alert('Comprehensive Export functionality is not yet implemented.')} disabled={exportStatus['comprehensive-export'] === 'processing'}>
+
+                                                                                {exportStatus['comprehensive-export'] === 'processing' ? 'Exporting...' : 'Export All'}
+
+                                                                            </Button>
+
+                                                                        </Stack>
+
+                                                                    </ListItem>
+
+                                                                </List>
+
+                                                            </CardContent>
+
+                                                        </Card>
+
+                                                    </Grid>
+
+                                                </Grid>
+
+                                            </Box>
+
+                                        )}
+
+                                    </Box>
+
+                                </Paper>
+
+                            </Box>
+
+                        );
+
+                    };
+
+                    
+
+                    export default ReportsAnalyticsHub;
+
+                    
+
+                    const getStatusIcon = (status: 'idle' | 'processing' | 'success' | 'error') => {
+
+                        switch (status) {
+
+                            case 'processing': return <FileText size={16} className="animate-pulse text-blue-600" />;
+
+                            case 'success': return <CheckCircle size={16} className="text-green-600" />;
+
+                            case 'error': return <AlertTriangle size={16} className="text-red-600" />;
+
+                            default: return <Download size={16} className="text-gray-600" />;
+
+                        }
+
+                    };
+
+                    

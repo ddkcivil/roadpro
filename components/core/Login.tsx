@@ -4,6 +4,8 @@ import { PermissionsService } from '../../services/auth/permissionsService';
 import { validatePasswordStrength, validateEmail } from '../../utils/validation/validationUtils';
 import { AuthService } from '../../services/auth/authService';
 import { AuditService } from '../../services/analytics/auditService';
+import { apiService } from '../../services/api/apiService';
+import { LocalStorageUtils } from '../../utils/data/localStorageUtils';
 import { 
   Box, 
   Card, 
@@ -66,20 +68,86 @@ const Login: React.FC<Props> = ({ onLogin }) => {
     }
     
     try {
-        // Authenticate using the auth service
-        const authResult = await AuthService.authenticate(email, password);
+        // Try to authenticate with API first
+        let authResult;
+        try {
+          authResult = await apiService.loginUser(email, password);
+        } catch (apiError) {
+          // Fallback to local authentication
+          console.log('API login failed, trying local authentication');
+          authResult = await AuthService.authenticate(email, password);
+        }
         
-        if (authResult.success) {
+        if (authResult.success || authResult.user) {
             let role = UserRole.PROJECT_MANAGER;
             let name = "Project Manager";
-            const emailLower = email.toLowerCase();
-            if (emailLower.includes('admin')) { role = UserRole.ADMIN; name = "Administrator"; }
-            else if (emailLower.includes('site')) { role = UserRole.SITE_ENGINEER; name = "Site Engineer"; }
-            else if (emailLower.includes('lab')) { role = UserRole.LAB_TECHNICIAN; name = "Lab Tech"; }
-            else if (emailLower.includes('super')) { role = UserRole.SUPERVISOR; name = "Supervisor"; }
+            const user = authResult.user || authResult;
+            
+            // Use the authenticated user's data if available
+            if (user) {
+              name = user.name || name;
+              role = user.role || role;
+              
+              // Save the authenticated user to localStorage
+              const users = LocalStorageUtils.getUsers();
+              const existingUserIndex = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+              
+              const currentUser = {
+                id: user.id || `user-${Date.now()}`,
+                name: user.name || name,
+                email: email,
+                phone: user.phone || '',
+                role: user.role || role,
+                avatar: user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
+              };
+              
+              if (existingUserIndex >= 0) {
+                users[existingUserIndex] = currentUser;
+              } else {
+                users.push(currentUser);
+              }
+              
+              LocalStorageUtils.setUsers(users);
+              name = currentUser.name;
+              role = currentUser.role as UserRole;
+            } else {
+              // Fallback logic for role assignment
+              const emailLower = email.toLowerCase();
+              if (emailLower.includes('admin')) { role = UserRole.ADMIN; name = "Administrator"; }
+              else if (emailLower.includes('site')) { role = UserRole.SITE_ENGINEER; name = "Site Engineer"; }
+              else if (emailLower.includes('lab')) { role = UserRole.LAB_TECHNICIAN; name = "Lab Tech"; }
+              else if (emailLower.includes('super')) { role = UserRole.SUPERVISOR; name = "Supervisor"; }
+              
+              // Save to localStorage
+              const users = LocalStorageUtils.getUsers();
+              const existingUserIndex = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+              
+              const currentUser = {
+                id: `user-${Date.now()}`,
+                name,
+                email,
+                phone: '',
+                role,
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
+              };
+              
+              if (existingUserIndex >= 0) {
+                users[existingUserIndex] = currentUser;
+              } else {
+                users.push(currentUser);
+              }
+              
+              LocalStorageUtils.setUsers(users);
+            }
             
             // Create user with permissions and pass to onLogin
-            const userWithPermissions = PermissionsService.createUserWithPermissions({ id: '', name, email, phone: '', role });
+            const userWithPermissions = PermissionsService.createUserWithPermissions({ 
+              id: user?.id || `user-${Date.now()}`, 
+              name, 
+              email, 
+              phone: user?.phone || '', 
+              role 
+            });
             
             // Log the successful login
             AuditService.logLogin(userWithPermissions.id, userWithPermissions.name);

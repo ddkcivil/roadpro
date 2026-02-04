@@ -16,7 +16,18 @@ let users = [
     email: 'admin@roadpro.com',
     phone: '+1234567890',
     role: 'ADMIN',
+    password: 'admin123',
     avatar: 'https://ui-avatars.com/api/?name=System+Administrator&background=random',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'user-dk-1',
+    name: 'Dharma Kunwar',
+    email: 'dharmadkunwar20@gmail.com',
+    phone: '9779802877286',
+    role: 'ADMIN',
+    password: 'test123',
+    avatar: 'https://ui-avatars.com/api/?name=Dharma+Kunwar&background=random',
     createdAt: new Date().toISOString()
   }
 ];
@@ -72,7 +83,12 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
   
-  // In a real app, you'd verify the password hash
+  // Check password (in a real app, you'd verify password hash)
+  if (user.password !== password) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+  
+  // Return success response
   res.json({
     success: true,
     user: {

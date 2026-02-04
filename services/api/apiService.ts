@@ -48,6 +48,34 @@ class ApiService {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  // Helper methods for localStorage synchronization
+  private getLocalStorageUsers(): any[] {
+    try {
+      const usersJson = localStorage.getItem('roadmaster-users');
+      return usersJson ? JSON.parse(usersJson) : [];
+    } catch (error) {
+      console.error('Error reading users from localStorage:', error);
+      return [];
+    }
+  }
+
+  private saveUserToLocalStorage(user: any): void {
+    try {
+      const users = this.getLocalStorageUsers();
+      const existingIndex = users.findIndex(u => u.email === user.email);
+      
+      if (existingIndex >= 0) {
+        users[existingIndex] = user;
+      } else {
+        users.push(user);
+      }
+      
+      localStorage.setItem('roadmaster-users', JSON.stringify(users));
+    } catch (error) {
+      console.error('Error saving user to localStorage:', error);
+    }
+  }
+
   // User Management
   async getUsers() {
     const apiAvailable = await this.isApiAvailable();
@@ -63,20 +91,35 @@ class ApiService {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        return await response.json();
+        const apiUsers = await response.json();
+        
+        // Also get users from localStorage and merge them
+        const localStorageUsers = this.getLocalStorageUsers();
+        
+        // Merge API users with localStorage users, prioritizing API users
+        const mergedUsers = [...apiUsers];
+        localStorageUsers.forEach(localUser => {
+          if (!mergedUsers.some(apiUser => apiUser.email === localUser.email)) {
+            mergedUsers.push(localUser);
+          }
+        });
+        
+        return mergedUsers;
       } catch (error) {
         console.error('API request failed, falling back to mock data:', error);
         return this.mockData.users;
       }
     } else {
       await this.delay();
-      return this.mockData.users;
+      // Return localStorage users if available, otherwise mock data
+      const localStorageUsers = this.getLocalStorageUsers();
+      return localStorageUsers.length > 0 ? localStorageUsers : this.mockData.users;
     }
   }
 
   async createUser(userData) {
     const apiAvailable = await this.isApiAvailable();
-    
+      
     if (apiAvailable) {
       try {
         const response = await fetch(`${this.baseUrl}/api/users`, {
@@ -84,34 +127,44 @@ class ApiService {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(userData)
         });
-        
+          
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to create user');
         }
-        
-        return await response.json();
+          
+        const createdUser = await response.json();
+          
+        // Also save to localStorage for consistency
+        this.saveUserToLocalStorage(createdUser);
+          
+        return createdUser;
       } catch (error) {
         console.error('API request failed:', error);
         throw error;
       }
     } else {
       await this.delay();
-      
-      // Check if user already exists
-      const existingUser = this.mockData.users.find(u => u.email.toLowerCase() === userData.email.toLowerCase());
+        
+      // Check if user already exists in localStorage
+      const existingUser = this.getLocalStorageUsers().find(u => u.email.toLowerCase() === userData.email.toLowerCase());
       if (existingUser) {
         throw new Error('User already exists');
       }
-      
+        
       const newUser = {
         id: `user-${Date.now()}`,
         ...userData,
         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name)}&background=random`,
         createdAt: new Date().toISOString()
       };
-      
+        
+      // Save to localStorage
+      this.saveUserToLocalStorage(newUser);
+        
+      // Update mock data
       this.mockData.users.push(newUser);
+        
       return newUser;
     }
   }
@@ -441,6 +494,122 @@ class ApiService {
     } else {
       await this.delay(100);
       return { status: 'mock-ok', timestamp: new Date().toISOString() };
+    }
+  }
+
+  // Staff Management APIs
+  async getLeaveRequests() {
+    const apiAvailable = await this.isApiAvailable();
+    
+    if (apiAvailable) {
+      try {
+        const response = await fetch(`${this.baseUrl}/api/leave-requests`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error('API request failed, falling back to localStorage:', error);
+        return this.getLocalStorageLeaveRequests();
+      }
+    } else {
+      await this.delay();
+      return this.getLocalStorageLeaveRequests();
+    }
+  }
+
+  async createLeaveRequest(leaveRequest: any) {
+    const apiAvailable = await this.isApiAvailable();
+    
+    if (apiAvailable) {
+      try {
+        const response = await fetch(`${this.baseUrl}/api/leave-requests`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(leaveRequest)
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create leave request');
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error('API request failed:', error);
+        throw error;
+      }
+    } else {
+      await this.delay();
+      this.saveLeaveRequestToLocalStorage(leaveRequest);
+      return leaveRequest;
+    }
+  }
+
+  async updateLeaveRequest(id: string, updates: any) {
+    const apiAvailable = await this.isApiAvailable();
+    
+    if (apiAvailable) {
+      try {
+        const response = await fetch(`${this.baseUrl}/api/leave-requests/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to update leave request');
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error('API request failed:', error);
+        throw error;
+      }
+    } else {
+      await this.delay();
+      this.updateLeaveRequestInLocalStorage(id, updates);
+      return { ...updates, id };
+    }
+  }
+
+  // Helper methods for staff management
+  private getLocalStorageLeaveRequests(): any[] {
+    try {
+      const requestsJson = localStorage.getItem('staff-leave-requests');
+      return requestsJson ? JSON.parse(requestsJson) : [];
+    } catch (error) {
+      console.error('Error reading leave requests from localStorage:', error);
+      return [];
+    }
+  }
+
+  private saveLeaveRequestToLocalStorage(request: any): void {
+    try {
+      const requests = this.getLocalStorageLeaveRequests();
+      requests.push(request);
+      localStorage.setItem('staff-leave-requests', JSON.stringify(requests));
+    } catch (error) {
+      console.error('Error saving leave request to localStorage:', error);
+    }
+  }
+
+  private updateLeaveRequestInLocalStorage(id: string, updates: any): void {
+    try {
+      const requests = this.getLocalStorageLeaveRequests();
+      const index = requests.findIndex((r: any) => r.id === id);
+      if (index >= 0) {
+        requests[index] = { ...requests[index], ...updates, updatedAt: new Date().toISOString() };
+        localStorage.setItem('staff-leave-requests', JSON.stringify(requests));
+      }
+    } catch (error) {
+      console.error('Error updating leave request in localStorage:', error);
     }
   }
 }

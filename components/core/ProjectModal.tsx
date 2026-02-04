@@ -50,7 +50,7 @@ const ProjectModal: React.FC<Props> = ({ open, onClose, onSave, project }) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
       <DialogTitle>
-        <Typography variant="h5" fontWeight="bold">
+        <Typography component="span" variant="h5" fontWeight="bold">
           {editForm.id ? 'Edit Project Definition' : 'Create New Project'}
         </Typography>
       </DialogTitle>

@@ -107,6 +107,8 @@ const PortfolioDashboard = lazy(() => import('./components/core/PortfolioDashboa
 const AIChatModal = lazy(() => import('./components/utilities/AIChatModal'));
 const UserManagement = lazy(() => import('./components/common/UserManagement'));
 const UserRegistration = lazy(() => import('./components/common/UserRegistration'));
+
+const StaffManagementModule = lazy(() => import('./components/modules/StaffManagementModule'));
 const SettingsModule = lazy(() => import('./components/modules/SettingsModule'));
 const ConstructionModule = lazy(() => import('./components/modules/ConstructionModule'));
 const MapModule = lazy(() => import('./components/modules/MapModule'));
@@ -132,13 +134,14 @@ const ReportsAnalyticsHub = lazy(() => import('./components/hubs/ReportsAnalytic
 const ChandraOCRAnalyzer = lazy(() => import('./components/utilities/ChandraOCRAnalyzer'));
 const MaterialManagementModule = lazy(() => import('./components/modules/MaterialManagementModule'));
 const MPRReportModule = lazy(() => import('./components/modules/MPRReportModule'));
-const OutputExportModule = lazy(() => import('./components/modules/OutputExportModule'));
+
 
 const lightTheme = createTheme({
   palette: {
     mode: 'light',
-    primary: { main: '#4f46e5', light: '#6366f1', dark: '#3730a3', contrastText: '#ffffff' },
-    secondary: { main: '#0f172a', light: '#334155', dark: '#020617' },
+    primary: { main: '#1A2B3C', light: '#2C4257', dark: '#0A1B2C', contrastText: '#ffffff' }, // Dark Blue
+    secondary: { main: '#000000', light: '#333333', dark: '#000000' }, // Black
+    brown: { main: '#8B4513', light: '#A0522D', dark: '#6B370D', contrastText: '#ffffff' }, // Brown
     background: { default: '#f8fafc', paper: '#ffffff' },
     text: { primary: '#0f172a', secondary: '#475569' },
     divider: 'rgba(0,0,0,0.06)',
@@ -245,8 +248,9 @@ const lightTheme = createTheme({
 const darkTheme = createTheme({
   palette: {
     mode: 'dark',
-    primary: { main: '#6366f1', light: '#818cf8', dark: '#4f46e5', contrastText: '#ffffff' },
-    secondary: { main: '#f8fafc', light: '#ffffff', dark: '#cbd5e1' },
+    primary: { main: '#2C4257', light: '#4B6780', dark: '#1A2B3C', contrastText: '#ffffff' }, // Dark Blue (slightly lighter for dark mode)
+    secondary: { main: '#1A1A1A', light: '#333333', dark: '#000000' }, // Black (slightly lighter for dark mode)
+    brown: { main: '#8B4513', light: '#A0522D', dark: '#6B370D', contrastText: '#ffffff' }, // Brown
     background: { default: '#020617', paper: '#0f172a' },
     text: { primary: '#f8fafc', secondary: '#94a3b8' },
     divider: 'rgba(255,255,255,0.1)',
@@ -441,9 +445,10 @@ const App: React.FC = () => {
     document.addEventListener('focusin', handleFocusIn);
     return () => document.removeEventListener('focusin', handleFocusIn);
   }, []);
-  const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
-  const [themePrimaryColor, setThemePrimaryColor] = useState('#4f46e5');
-  const [themeSecondaryColor, setThemeSecondaryColor] = useState('#0f172a');
+        const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
+        const [themePrimaryColor, setThemePrimaryColor] = useState('#1A2B3C'); // New Dark Blue
+        const [themeSecondaryColor, setThemeSecondaryColor] = useState('#000000'); // New Black
+  
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     // Check if user was previously authenticated
@@ -1010,6 +1015,7 @@ const App: React.FC = () => {
         { id: 'resource-matrix', label: 'Resource Matrix', icon: Layers },
         { id: 'quality', label: 'Quality Hub', icon: Shield },
         { id: 'lab', label: 'Material Testing', icon: Scale },
+        { id: 'staff-management', label: 'Staff Management', icon: Users },
         { id: 'environment', label: 'EMP Compliance', icon: Trees },
         { id: 'output-export', label: 'Exports & Reports', icon: Download },
         { id: 'data-analysis', label: 'Data Analysis', icon: BarChart3 }
@@ -1339,8 +1345,8 @@ const App: React.FC = () => {
                         {activeTab === 'quality' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <QualityHub project={currentProject} userRole={userRole} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'lab' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <LabModule project={currentProject} userRole={userRole} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'environment' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <EnvironmentModule project={currentProject} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'reports-analytics' && (currentUser as UserWithPermissions).permissions.includes(Permission.REPORT_READ) && <ReportsAnalyticsHub project={currentProject} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'output-export' && (currentUser as UserWithPermissions).permissions.includes(Permission.REPORT_READ) && <OutputExportModule project={currentProject} userRole={userRole} settings={appSettings} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'reports-analytics' && (currentUser as UserWithPermissions).permissions.includes(Permission.REPORT_READ) && <ReportsAnalyticsHub project={currentProject} userRole={userRole} settings={appSettings} onProjectUpdate={onSaveProject} />}
+
                         {activeTab === 'data-analysis' && <DataAnalysisModule />}
                         {activeTab === 'pre-construction' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <PreConstructionModule project={currentProject} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'projects' && (currentUser as UserWithPermissions).permissions.includes(Permission.PROJECT_READ) && <ProjectsList
@@ -1386,7 +1392,8 @@ const App: React.FC = () => {
                           />
                         )}
                         {activeTab === 'user-management' && (currentUser as UserWithPermissions).permissions.includes(Permission.USER_READ) && <UserManagement />}
-                                                {activeTab === 'user-registration' && <UserRegistration />}
+                        {activeTab === 'user-registration' && <UserRegistration />}
+                        {activeTab === 'staff-management' && <StaffManagementModule />}
                         {activeTab === 'subcontractors' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <SubcontractorModule userRole={userRole} project={currentProject} settings={appSettings} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'subcontractor-billing' && (currentUser as UserWithPermissions).permissions.includes(Permission.FINANCE_READ) && <SubcontractorBillingModule userRole={userRole} project={currentProject} settings={appSettings} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'settings' && (currentUser as UserWithPermissions).permissions.includes(Permission.SETTINGS_UPDATE) && <SettingsModule settings={appSettings} onUpdate={setAppSettings} />}

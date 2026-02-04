@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoadMaster Pro - Project Activity Tracking</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #3b82f6;
+            --secondary: #0f172a;
+            --secondary-dark: #020617;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --white: #ffffff;
+            --radius-lg: 0.5rem;
+            --radius-xl: 0.75rem;
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+            --transition-normal: all 0.3s ease-in-out;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: var(--white);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            background: linear-gradient(135deg, var(--primary), #6366f1);
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: var(--transition-normal);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #6366f1);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: var(--gray-300);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255,255,255,0.1);
+            color: #f8fafc;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #e2e8f0;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.05);
+            color: #f8fafc;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+
+        .form-control::placeholder {
+            color: var(--gray-400);
+        }
+
+        .grid {
+            display: grid;
+            gap: 24px;
+        }
+
+        .grid-cols-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .grid-cols-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .alert {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        .project-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .project-card:hover {
+            transform: translateY(-4px);
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .project-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+
+        .project-code {
+            background: linear-gradient(135deg, var(--primary), #6366f1);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 16px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), #34d399);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 24px 0;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: #f8fafc;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+
+        .activity-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .activity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .activity-date {
+            font-size: 14px;
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+
+        .activity-type {
+            background: rgba(37, 99, 235, 0.2);
+            color: #93c5fd;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .activity-progress {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--success);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: rgba(30, 41, 59, 0.95);
+            border-radius: 16px;
+            padding: 30px;
+            width: 500px;
+            max-width: 90vw;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(20px);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .close-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .grid-cols-2, .grid-cols-3 {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-content {
+                width: 95vw;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-hard-hat"></i>
+                </div>
+                <div class="logo-text">RoadMaster<span style="color: #818cf8;">.Pro</span></div>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <span>Welcome, Project Manager!</span>
+                <button class="btn btn-outline" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-3">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Quick Actions</h3>
+                </div>
+                
+                <button class="btn btn-primary" onclick="showAddProject()" style="width: 100%; margin-bottom: 12px;">
+                    <i class="fas fa-plus"></i> Add New Project
+                </button>
+                
+                <button class="btn btn-outline" onclick="showAddActivity()" style="width: 100%;">
+                    <i class="fas fa-clipboard-list"></i> Record Daily Activity
+                </button>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Project Statistics</h3>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalProjects">3</div>
+                        <div class="stat-label">Total Projects</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="activeProjects">2</div>
+                        <div class="stat-label">Active Projects</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Recent Activity</h3>
+                </div>
+                <p style="color: var(--gray-400);">Latest project updates will appear here</p>
+            </div>
+        </div>
+
+        <!-- Projects List -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Projects</h3>
+            </div>
+            
+            <div class="grid grid-cols-2" id="projectsContainer">
+                <!-- Projects will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Recent Daily Activities</h3>
+            </div>
+            
+            <div id="activitiesContainer">
+                <!-- Activities will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Project Modal -->
+    <div id="addProjectModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="card-title">Add New Project</h3>
+                <button class="close-btn" onclick="closeModal('addProjectModal')">&times;</button>
+            </div>
+            
+            <form id="projectForm">
+                <div class="grid grid-cols-2">
+                    <div class="form-group">
+                        <label class="form-label">Project Name</label>
+                        <input type="text" id="projectName" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Project Code</label>
+                        <input type="text" id="projectCode" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Location</label>
+                        <input type="text" id="projectLocation" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Contractor</label>
+                        <input type="text" id="projectContractor" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" id="projectStartDate" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">End Date</label>
+                        <input type="date" id="projectEndDate" class="form-control">
+                    </div>
+                    
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label class="form-label">Client</label>
+                        <input type="text" id="projectClient" class="form-control">
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i class="fas fa-plus"></i> Create Project
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Activity Modal -->
+    <div id="addActivityModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="card-title">Record Daily Activity</h3>
+                <button class="close-btn" onclick="closeModal('addActivityModal')">&times;</button>
+            </div>
+            
+            <form id="activityForm">
+                <div class="form-group">
+                    <label class="form-label">Project</label>
+                    <select id="activityProject" class="form-control" required>
+                        <option value="">Select Project</option>
+                        <!-- Projects will be populated here -->
+                    </select>
+                </div>
+                
+                <div class="grid grid-cols-2">
+                    <div class="form-group">
+                        <label class="form-label">Date</label>
+                        <input type="date" id="activityDate" class="form-control" value="" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Activity Type</label>
+                        <select id="activityType" class="form-control" required>
+                            <option value="">Select Type</option>
+                            <option value="Site Preparation">Site Preparation</option>
+                            <option value="Excavation">Excavation</option>
+                            <option value="Foundation Work">Foundation Work</option>
+                            <option value="Structural Work">Structural Work</option>
+                            <option value="Paving">Paving</option>
+                            <option value="Utilities">Utilities</option>
+                            <option value="Inspection">Inspection</option>
+                            <option value="Meeting">Meeting</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Progress (%)</label>
+                        <input type="number" id="activityProgress" class="form-control" min="0" max="100" step="0.1">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Weather</label>
+                        <select id="activityWeather" class="form-control">
+                            <option value="Sunny">Sunny</option>
+                            <option value="Cloudy">Cloudy</option>
+                            <option value="Rainy">Rainy</option>
+                            <option value="Windy">Windy</option>
+                            <option value="Snowy">Snowy</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Manpower</label>
+                        <input type="number" id="activityManpower" class="form-control" min="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Equipment Used</label>
+                        <input type="text" id="activityEquipment" class="form-control" placeholder="Comma separated">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea id="activityDescription" class="form-control" rows="3" placeholder="Describe today's activities..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Materials Consumed</label>
+                    <textarea id="activityMaterials" class="form-control" rows="2" placeholder="List materials used..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Issues Encountered</label>
+                    <textarea id="activityIssues" class="form-control" rows="2" placeholder="Any problems or delays..."></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i class="fas fa-save"></i> Record Activity
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Sample data
+        let projects = [
+            {
+                id: 1,
+                name: "Highway Construction Project",
+                code: "HCP-2024-001",
+                location: "Kathmandu-Biratnagar Highway",
+                contractor: "Nepal Infrastructure Ltd",
+                startDate: "2024-01-15",
+                endDate: "2024-12-31",
+                client: "Department of Roads",
+                progress: 65
+            },
+            {
+                id: 2,
+                name: "Bridge Rehabilitation",
+                code: "BR-2024-002",
+                location: "Koshi River Bridge",
+                contractor: "Himalayan Engineering",
+                startDate: "2024-03-01",
+                endDate: "2024-11-30",
+                client: "Nepal Government",
+                progress: 42
+            },
+            {
+                id: 3,
+                name: "Airport Runway Extension",
+                code: "ARE-2024-003",
+                location: "Tribhuvan International Airport",
+                contractor: "Global Construction Group",
+                startDate: "2024-02-01",
+                endDate: "2024-10-31",
+                client: "Civil Aviation Authority",
+                progress: 28
+            }
+        ];
+
+        let activities = [
+            {
+                id: 1,
+                projectId: 1,
+                date: "2024-02-03",
+                type: "Paving",
+                description: "Completed asphalt laying for 2.5km section",
+                progress: 65,
+                weather: "Sunny",
+                manpower: 25,
+                equipment: "Paver, Roller, Dump Trucks",
+                materials: "Asphalt mix 150 tons",
+                issues: "Minor delays due to material delivery"
+            },
+            {
+                id: 2,
+                projectId: 2,
+                date: "2024-02-02",
+                type: "Inspection",
+                description: "Structural inspection of bridge foundation",
+                progress: 42,
+                weather: "Cloudy",
+                manpower: 8,
+                equipment: "NDT Equipment, Scaffolding",
+                materials: "None",
+                issues: "No issues found during inspection"
+            }
+        ];
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            updateProjectsDisplay();
+            updateActivitiesDisplay();
+            updateStats();
+            setDefaultDate();
+            
+            // Form submissions
+            document.getElementById('projectForm').addEventListener('submit', addProject);
+            document.getElementById('activityForm').addEventListener('submit', addActivity);
+        });
+
+        function setDefaultDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('activityDate').value = today;
+        }
+
+        function updateStats() {
+            document.getElementById('totalProjects').textContent = projects.length;
+            document.getElementById('activeProjects').textContent = projects.filter(p => p.progress < 100).length;
+        }
+
+        function updateProjectsDisplay() {
+            const container = document.getElementById('projectsContainer');
+            container.innerHTML = '';
+            
+            projects.forEach(project => {
+                const projectCard = document.createElement('div');
+                projectCard.className = 'project-card';
+                projectCard.innerHTML = `
+                    <div class="project-header">
+                        <h4 class="project-title">${project.name}</h4>
+                        <span class="project-code">${project.code}</span>
+                    </div>
+                    
+                    <p style="color: var(--gray-400); margin-bottom: 16px;">
+                        <i class="fas fa-map-marker-alt"></i> ${project.location}
+                    </p>
+                    
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${project.progress}%"></div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: var(--gray-400); font-size: 14px;">
+                            Progress: ${project.progress}%
+                        </span>
+                        <button class="btn btn-outline" onclick="viewProject(${project.id})">
+                            <i class="fas fa-eye"></i> View Details
+                        </button>
+                    </div>
+                `;
+                container.appendChild(projectCard);
+            });
+        }
+
+        function updateActivitiesDisplay() {
+            const container = document.getElementById('activitiesContainer');
+            container.innerHTML = '';
+            
+            if (activities.length === 0) {
+                container.innerHTML = '<p style="color: var(--gray-400); text-align: center; padding: 20px;">No activities recorded yet</p>';
+                return;
+            }
+
+            activities.slice(0, 5).forEach(activity => {
+                const project = projects.find(p => p.id === activity.projectId);
+                const activityItem = document.createElement('div');
+                activityItem.className = 'activity-item';
+                activityItem.innerHTML = `
+                    <div class="activity-header">
+                        <div>
+                            <div class="activity-date">${activity.date}</div>
+                            <div class="activity-title">${project?.name || 'Unknown Project'}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span class="activity-type">${activity.type}</span>
+                            <div class="activity-progress">${activity.progress}%</div>
+                        </div>
+                    </div>
+                    <div class="activity-description">${activity.description}</div>
+                    <div style="display: flex; gap: 20px; font-size: 12px; color: var(--gray-400);">
+                        <span><i class="fas fa-users"></i> ${activity.manpower} workers</span>
+                        <span><i class="fas fa-cloud-sun"></i> ${activity.weather}</span>
+                        <span><i class="fas fa-tools"></i> ${activity.equipment}</span>
+                    </div>
+                `;
+                container.appendChild(activityItem);
+            });
+        }
+
+        function showAddProject() {
+            document.getElementById('addProjectModal').style.display = 'flex';
+        }
+
+        function showAddActivity() {
+            // Populate project dropdown
+            const projectSelect = document.getElementById('activityProject');
+            projectSelect.innerHTML = '<option value="">Select Project</option>';
+            
+            projects.forEach(project => {
+                const option = document.createElement('option');
+                option.value = project.id;
+                option.textContent = `${project.name} (${project.code})`;
+                projectSelect.appendChild(option);
+            });
+            
+            document.getElementById('addActivityModal').style.display = 'flex';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function addProject(e) {
+            e.preventDefault();
+            
+            const newProject = {
+                id: Date.now(),
+                name: document.getElementById('projectName').value,
+                code: document.getElementById('projectCode').value,
+                location: document.getElementById('projectLocation').value,
+                contractor: document.getElementById('projectContractor').value,
+                startDate: document.getElementById('projectStartDate').value,
+                endDate: document.getElementById('projectEndDate').value,
+                client: document.getElementById('projectClient').value,
+                progress: 0
+            };
+            
+            projects.push(newProject);
+            updateProjectsDisplay();
+            updateStats();
+            closeModal('addProjectModal');
+            
+            // Reset form
+            document.getElementById('projectForm').reset();
+            
+            // Show success message
+            alert('Project added successfully!');
+        }
+
+        function addActivity(e) {
+            e.preventDefault();
+            
+            const newActivity = {
+                id: Date.now(),
+                projectId: parseInt(document.getElementById('activityProject').value),
+                date: document.getElementById('activityDate').value,
+                type: document.getElementById('activityType').value,
+                description: document.getElementById('activityDescription').value,
+                progress: parseFloat(document.getElementById('activityProgress').value) || 0,
+                weather: document.getElementById('activityWeather').value,
+                manpower: parseInt(document.getElementById('activityManpower').value) || 0,
+                equipment: document.getElementById('activityEquipment').value,
+                materials: document.getElementById('activityMaterials').value,
+                issues: document.getElementById('activityIssues').value
+            };
+            
+            activities.unshift(newActivity);
+            
+            // Update project progress
+            const project = projects.find(p => p.id === newActivity.projectId);
+            if (project && newActivity.progress > project.progress) {
+                project.progress = newActivity.progress;
+            }
+            
+            updateProjectsDisplay();
+            updateActivitiesDisplay();
+            closeModal('addActivityModal');
+            
+            // Reset form
+            document.getElementById('activityForm').reset();
+            setDefaultDate();
+            
+            // Show success message
+            alert('Activity recorded successfully!');
+        }
+
+        function viewProject(projectId) {
+            const project = projects.find(p => p.id === projectId);
+            if (project) {
+                alert(`Project Details:\n\nName: ${project.name}\nCode: ${project.code}\nLocation: ${project.location}\nContractor: ${project.contractor}\nClient: ${project.client}\nProgress: ${project.progress}%`);
+            }
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                alert('Logged out successfully!');
+                // In a real app, this would redirect to login page
+            }
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

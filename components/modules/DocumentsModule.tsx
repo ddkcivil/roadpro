@@ -156,28 +156,6 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
     setScaleState(prev => Math.max(0.5, prev - 0.2));
   };
   
-  // Check for and clean up expired blob URLs in documents
-  useEffect(() => {
-    const cleanExpiredBlobUrls = () => {
-      if (project.documents && project.documents.some(doc => doc.fileUrl?.startsWith('blob:') && !doc.fileUrl.startsWith('data:'))) {
-        console.log('Cleaning up expired blob URLs from documents...');
-        const cleanedDocs = project.documents.map(doc => {
-          if (doc.fileUrl?.startsWith('blob:') && !doc.fileUrl.startsWith('data:')) {
-            console.warn('Found expired blob URL for document:', doc.name);
-            return { ...doc, fileUrl: undefined, status: 'Unavailable' as const };
-          }
-          return doc;
-        });
-        
-        if (cleanedDocs !== project.documents) {
-          onProjectUpdate({ ...project, documents: cleanedDocs });
-        }
-      }
-    };
-    
-    cleanExpiredBlobUrls();
-  }, [project.documents, onProjectUpdate]); // Run when documents change
-  
   // Clean up object URLs when component unmounts or when documents change
   useEffect(() => {
     // Clean up any object URLs from the previous project state
@@ -339,8 +317,8 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
               uploadedBy: 'Current User' // In a real app, this would be the current user's ID
           };
           
-          // Create a temporary URL for the file
-          const fileUrl = URL.createObjectURL(f);
+          // Convert file to base64 for persistent storage
+          const fileUrl = await fileToBase64(f);
           
           // Determine document type based on file extension and MIME type
           const isImage = f.type.includes('image') || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => f.name.toLowerCase().endsWith(ext));
@@ -781,7 +759,15 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                         <Typography variant="h6" fontWeight="bold">{previewDoc.name}</Typography>
                     </Box>
                     <Stack direction="row" spacing={1}>
-                        <Button size="small" startIcon={<ExternalLink size={14}/>}>Open Full</Button>
+                        <Button 
+                            size="small" 
+                            startIcon={<ExternalLink size={14}/>}
+                            href={getFileUrl(previewDoc)}
+                            target="_blank"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            Open Full
+                        </Button>
                         <IconButton onClick={() => setPreviewDoc(null)}><X size={20}/></IconButton>
                     </Stack>
                 </DialogTitle>
@@ -805,8 +791,8 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                                                     </Box>
                                                 }
                                                 onLoadSuccess={onDocumentLoadSuccess}
-                                                onError={() => {
-                                                    console.error('Failed to load PDF:', previewDoc.name);
+                                                onError={(error) => {
+                                                    console.error('Failed to load PDF:', previewDoc.name, error);
                                                     // Optionally update the document status to unavailable
                                                     if (previewDoc.fileUrl?.startsWith('blob:') && !previewDoc.fileUrl.startsWith('data:')) {
                                                         // This indicates a possibly expired blob URL
