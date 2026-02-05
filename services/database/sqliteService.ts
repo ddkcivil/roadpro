@@ -134,7 +134,7 @@ class SQLiteService {
         land_parcels TEXT,
         map_overlays TEXT,
         hindrances TEXT,
-        nc_rs TEXT,
+        ncrs TEXT,
         contract_bills TEXT,
         subcontractor_bills TEXT,
         measurement_sheets TEXT,
@@ -322,7 +322,7 @@ class SQLiteService {
             land_parcels: JSON.stringify(project.land_parcels || []),
             map_overlays: JSON.stringify(project.map_overlays || []),
             hindrances: JSON.stringify(project.hindrances || []),
-            nc_rs: JSON.stringify(project.nc_rs || []),
+            ncrs: JSON.stringify(project.ncrs || []),
             contract_bills: JSON.stringify(project.contract_bills || []),
             subcontractor_bills: JSON.stringify(project.subcontractor_bills || []),
             measurement_sheets: JSON.stringify(project.measurement_sheets || []),
@@ -338,7 +338,7 @@ class SQLiteService {
             (id, name, code, location, contractor, start_date, end_date, client, engineer, contract_no, 
              boq, rfis, lab_tests, schedule, structures, agencies, agency_payments, linear_works, 
              inventory, inventory_transactions, vehicles, vehicle_logs, documents, site_photos, 
-             daily_reports, pre_construction, land_parcels, map_overlays, hindrances, nc_rs, 
+             daily_reports, pre_construction, land_parcels, map_overlays, hindrances, ncrs, 
              contract_bills, subcontractor_bills, measurement_sheets, staff_locations, 
              environment_registry, last_synced, spreadsheet_id, settings) 
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -349,7 +349,7 @@ class SQLiteService {
               cleanProject.structures, cleanProject.agencies, cleanProject.agency_payments, cleanProject.linear_works,
               cleanProject.inventory, cleanProject.inventory_transactions, cleanProject.vehicles, cleanProject.vehicle_logs,
               cleanProject.documents, cleanProject.site_photos, cleanProject.daily_reports, cleanProject.pre_construction,
-              cleanProject.land_parcels, cleanProject.map_overlays, cleanProject.hindrances, cleanProject.nc_rs,
+              cleanProject.land_parcels, cleanProject.map_overlays, cleanProject.hindrances, cleanProject.ncrs,
               cleanProject.contract_bills, cleanProject.subcontractor_bills, cleanProject.measurement_sheets, cleanProject.staff_locations,
               cleanProject.environment_registry, cleanProject.last_synced, cleanProject.spreadsheet_id, cleanProject.settings
             ]
