@@ -78,6 +78,7 @@ import { DataCache, getCacheKey } from './utils/data/cacheUtils';
 import { LocalStorageUtils } from './utils/data/localStorageUtils';
 import { sqliteService } from './services/database/sqliteService';
 import { DataSyncService } from './services/database/dataSyncService';
+import { apiService } from './services/api/apiService';
 import { prepareProjectWithMaterials } from './utils/migration/materialMigrationUtils';
 import { addSkipLink } from './utils/accessibility/a11yUtils';
 import AboutPage from './components/core/AboutPage';
@@ -484,71 +485,163 @@ const App: React.FC = () => {
     return projectsData;
   });
   
-  // Load projects from SQLite database on initial render
+  // Load projects from backend, then SQLite, then localStorage on initial render
   useEffect(() => {
-    const loadProjectsFromSQLite = async () => {
+    const loadProjects = async () => {
+      let fetchedProjects: Project[] = [];
+      let loadedFromBackend = false;
+
       try {
-        await sqliteService.initialize();
-        const sqliteProjects = await sqliteService.getAllProjects();
-        
-        if (sqliteProjects.length > 0) {
-          // Convert SQLite data back to Project objects
-          const convertedProjects = sqliteProjects.map(sqlProject => ({
-            id: sqlProject.id,
-            name: sqlProject.name,
-            code: sqlProject.code,
-            location: sqlProject.location,
-            contractor: sqlProject.contractor,
-            startDate: sqlProject.start_date,
-            endDate: sqlProject.end_date,
-            client: sqlProject.client,
-            engineer: sqlProject.engineer,
-            contractNo: sqlProject.contract_no,
-            boq: sqlProject.boq ? JSON.parse(sqlProject.boq) : [],
-            rfis: sqlProject.rfis ? JSON.parse(sqlProject.rfis) : [],
-            labTests: sqlProject.lab_tests ? JSON.parse(sqlProject.lab_tests) : [],
-            schedule: sqlProject.schedule ? JSON.parse(sqlProject.schedule) : [],
-            structures: sqlProject.structures ? JSON.parse(sqlProject.structures) : [],
-            agencies: sqlProject.agencies ? JSON.parse(sqlProject.agencies) : [],
-            agencyPayments: sqlProject.agency_payments ? JSON.parse(sqlProject.agency_payments) : [],
-            linearWorks: sqlProject.linear_works ? JSON.parse(sqlProject.linear_works) : [],
-            inventory: sqlProject.inventory ? JSON.parse(sqlProject.inventory) : [],
-            inventoryTransactions: sqlProject.inventory_transactions ? JSON.parse(sqlProject.inventory_transactions) : [],
-            vehicles: sqlProject.vehicles ? JSON.parse(sqlProject.vehicles) : [],
-            vehicleLogs: sqlProject.vehicle_logs ? JSON.parse(sqlProject.vehicle_logs) : [],
-            documents: sqlProject.documents ? JSON.parse(sqlProject.documents) : [],
-            sitePhotos: sqlProject.site_photos ? JSON.parse(sqlProject.site_photos) : [],
-            dailyReports: sqlProject.daily_reports ? JSON.parse(sqlProject.daily_reports) : [],
-            preConstruction: sqlProject.pre_construction ? JSON.parse(sqlProject.pre_construction) : [],
-            landParcels: sqlProject.land_parcels ? JSON.parse(sqlProject.land_parcels) : [],
-            mapOverlays: sqlProject.map_overlays ? JSON.parse(sqlProject.map_overlays) : [],
-            hindrances: sqlProject.hindrances ? JSON.parse(sqlProject.hindrances) : [],
-            ncrs: sqlProject.nc_rs ? JSON.parse(sqlProject.nc_rs) : [],
-            contractBills: sqlProject.contract_bills ? JSON.parse(sqlProject.contract_bills) : [],
-            subcontractorBills: sqlProject.subcontractor_bills ? JSON.parse(sqlProject.subcontractor_bills) : [],
-            measurementSheets: sqlProject.measurement_sheets ? JSON.parse(sqlProject.measurement_sheets) : [],
-            staffLocations: sqlProject.staff_locations ? JSON.parse(sqlProject.staff_locations) : [],
-            environmentRegistry: sqlProject.environment_registry ? JSON.parse(sqlProject.environment_registry) : [],
-            lastSynced: sqlProject.last_synced,
-            spreadsheetId: sqlProject.spreadsheet_id,
-            settings: sqlProject.settings ? JSON.parse(sqlProject.settings) : {}
-          }));
-          
-          // Update state with SQLite projects
-          setProjects(convertedProjects);
-          
-          // Also save to localStorage to keep it in sync
-          localStorage.setItem('roadmaster-projects', JSON.stringify(convertedProjects));
-          
-          // Update cache
-          DataCache.set(getCacheKey('projects'), convertedProjects, { ttl: 10 * 60 * 1000 }); // 10 minutes
+        // Attempt to load from backend first
+        console.log('Attempting to fetch projects from backend...');
+        const backendProjects = await apiService.getProjects();
+        if (backendProjects && backendProjects.length > 0) {
+          console.log('Projects fetched from backend:', backendProjects);
+          fetchedProjects = backendProjects;
+          loadedFromBackend = true;
+        } else {
+          console.log('No projects from backend, falling back to local sources.');
         }
-      } catch (error) {
-        console.error('Error loading projects from SQLite:', error);
+      } catch (apiError) {
+        console.error('Error fetching projects from backend:', apiError);
+        console.log('Falling back to local sources due to backend error.');
+      }
+
+      if (!loadedFromBackend) {
+        try {
+          await sqliteService.initialize();
+          const sqliteProjects = await sqliteService.getAllProjects();
+          
+          if (sqliteProjects.length > 0) {
+            console.log('Projects loaded from SQLite:', sqliteProjects);
+            // Convert SQLite data back to Project objects
+            fetchedProjects = sqliteProjects.map(sqlProject => ({
+              id: sqlProject.id,
+              name: sqlProject.name,
+              code: sqlProject.code,
+              location: sqlProject.location,
+              contractor: sqlProject.contractor,
+              startDate: sqlProject.start_date,
+              endDate: sqlProject.end_date,
+              client: sqlProject.client,
+              engineer: sqlProject.engineer,
+              contractNo: sqlProject.contract_no,
+              boq: sqlProject.boq ? JSON.parse(sqlProject.boq) : [],
+              rfis: sqlProject.rfis ? JSON.parse(sqlProject.rfis) : [],
+              labTests: sqlProject.lab_tests ? JSON.parse(sqlProject.lab_tests) : [],
+              schedule: sqlProject.schedule ? JSON.parse(sqlProject.schedule) : [],
+              structures: sqlProject.structures ? JSON.parse(sqlProject.structures) : [],
+              agencies: sqlProject.agencies ? JSON.parse(sqlProject.agencies) : [],
+              agencyPayments: sqlProject.agency_payments ? JSON.parse(sqlProject.agency_payments) : [],
+              linearWorks: sqlProject.linear_works ? JSON.parse(sqlProject.linear_works) : [],
+              inventory: sqlProject.inventory ? JSON.parse(sqlProject.inventory) : [],
+              inventoryTransactions: sqlProject.inventory_transactions ? JSON.parse(sqlProject.inventory_transactions) : [],
+              vehicles: sqlProject.vehicles ? JSON.parse(sqlProject.vehicles) : [],
+              vehicleLogs: sqlProject.vehicle_logs ? JSON.parse(sqlProject.vehicle_logs) : [],
+              documents: sqlProject.documents ? JSON.parse(sqlProject.documents) : [],
+              sitePhotos: sqlProject.site_photos ? JSON.parse(sqlProject.site_photos) : [],
+              dailyReports: sqlProject.daily_reports ? JSON.parse(sqlProject.daily_reports) : [],
+              preConstruction: sqlProject.pre_construction ? JSON.parse(sqlProject.pre_construction) : [],
+              landParcels: sqlProject.land_parcels ? JSON.parse(sqlProject.land_parcels) : [],
+              mapOverlays: sqlProject.map_overlays ? JSON.parse(sqlProject.map_overlays) : [],
+              hindrances: sqlProject.hindrances ? JSON.parse(sqlProject.hindrances) : [],
+              ncrs: sqlProject.nc_rs ? JSON.parse(sqlProject.nc_rs) : [],
+              contractBills: sqlProject.contract_bills ? JSON.parse(sqlProject.contract_bills) : [],
+              subcontractorBills: sqlProject.subcontractor_bills ? JSON.parse(sqlProject.subcontractor_bills) : [],
+              measurementSheets: sqlProject.measurement_sheets ? JSON.parse(sqlProject.measurement_sheets) : [],
+              staffLocations: sqlProject.staff_locations ? JSON.parse(sqlProject.staff_locations) : [],
+              environmentRegistry: sqlProject.environment_registry ? JSON.parse(sqlProject.environment_registry) : [],
+              lastSynced: sqlProject.last_synced,
+              spreadsheetId: sqlProject.spreadsheet_id,
+              settings: sqlProject.settings ? JSON.parse(sqlProject.settings) : {}
+            }));
+          } else {
+            console.log('No projects from SQLite, checking localStorage.');
+            const savedProjects = localStorage.getItem('roadmaster-projects');
+            if (savedProjects) {
+              fetchedProjects = JSON.parse(savedProjects);
+              console.log('Projects loaded from localStorage.');
+            } else {
+              console.log('No projects found in localStorage.');
+            }
+          }
+        } catch (sqliteError) {
+          console.error('Error loading projects from SQLite:', sqliteError);
+          // Fallback to localStorage if SQLite fails
+          const savedProjects = localStorage.getItem('roadmaster-projects');
+          if (savedProjects) {
+            fetchedProjects = JSON.parse(savedProjects);
+            console.log('Projects loaded from localStorage after SQLite error.');
+          }
+        }
+      }
+
+      // Update state, localStorage, and cache with the most recent data
+      if (fetchedProjects.length > 0) {
+        setProjects(fetchedProjects);
+        localStorage.setItem('roadmaster-projects', JSON.stringify(fetchedProjects));
+        DataCache.set(getCacheKey('projects'), fetchedProjects, { ttl: 10 * 60 * 1000 });
+        // Also update SQLite if loaded from backend or localStorage (to ensure consistency)
+        if (loadedFromBackend || fetchedProjects.length > 0) {
+          try {
+            await sqliteService.initialize();
+            for (const project of fetchedProjects) {
+              const sqliteProjectData = {
+                id: project.id,
+                name: project.name || '',
+                code: project.code || null,
+                location: project.location || '',
+                contractor: project.contractor || '',
+                start_date: project.startDate || null,
+                end_date: project.endDate || null,
+                client: project.client || '',
+                engineer: project.engineer || null,
+                contract_no: project.contractNo || null,
+                boq: JSON.stringify(project.boq || []),
+                rfis: JSON.stringify(project.rfis || []),
+                lab_tests: JSON.stringify(project.labTests || []),
+                schedule: JSON.stringify(project.schedule || []),
+                structures: JSON.stringify(project.structures || []),
+                agencies: JSON.stringify(project.agencies || []),
+                agency_payments: JSON.stringify(project.agencyPayments || []),
+                linear_works: JSON.stringify(project.linearWorks || []),
+                inventory: JSON.stringify(project.inventory || []),
+                inventory_transactions: JSON.stringify(project.inventoryTransactions || []),
+                vehicles: JSON.stringify(project.vehicles || []),
+                vehicle_logs: JSON.stringify(project.vehicleLogs || []),
+                documents: JSON.stringify(project.documents || []),
+                site_photos: JSON.stringify(project.sitePhotos || []),
+                daily_reports: JSON.stringify(project.dailyReports || []),
+                pre_construction: JSON.stringify(project.preConstruction || []),
+                land_parcels: JSON.stringify(project.landParcels || []),
+                map_overlays: JSON.stringify(project.mapOverlays || []),
+                hindrances: JSON.stringify(project.hindrances || []),
+                ncrs: JSON.stringify(project.ncrs || []),
+                contract_bills: JSON.stringify(project.contractBills || []),
+                subcontractor_bills: JSON.stringify(project.subcontractorBills || []),
+                measurement_sheets: JSON.stringify(project.measurementSheets || []),
+                staff_locations: JSON.stringify(project.staffLocations || []),
+                environment_registry: JSON.stringify(project.environmentRegistry || []),
+                last_synced: project.lastSynced,
+                spreadsheet_id: project.spreadsheetId,
+                settings: JSON.stringify(project.settings || {})
+              };
+
+              const existingProjects = await sqliteService.select('projects', ['id'], 'id = ?', [project.id]);
+              if (existingProjects.length > 0) {
+                await sqliteService.update('projects', sqliteProjectData, 'id = ?', [project.id]);
+              } else {
+                await sqliteService.insert('projects', sqliteProjectData);
+              }
+            }
+          } catch (syncError) {
+            console.error('Error syncing projects to SQLite after initial load:', syncError);
+          }
+        }
       }
     };
     
-    loadProjectsFromSQLite();
+    loadProjects();
   }, []);
   
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() => {
@@ -714,10 +807,11 @@ const App: React.FC = () => {
 
   const onSaveProject = async (project: Partial<Project>) => {
     console.log('onSaveProject called with:', project);
-    setProjects(prev => {
-      // Create a complete project object with default values for missing fields
-      const baseProject: Project = {
-        id: project.id || `proj-${Date.now()}`,
+    try {
+      let backendProject: Project;
+      // Ensure all fields are initialized to prevent issues with backend or other modules
+      const completeProjectData: Project = {
+        id: project.id || `proj-${Date.now()}`, // Generate ID if new
         name: project.name || '',
         code: project.code || '',
         location: project.location || '',
@@ -725,15 +819,35 @@ const App: React.FC = () => {
         startDate: project.startDate || '',
         endDate: project.endDate || '',
         client: project.client || '',
+        engineer: project.engineer || '',
+        contractNo: project.contractNo || '',
+        contractPeriod: project.contractPeriod || '',
+        projectManager: project.projectManager || '',
+        supervisor: project.supervisor || '',
+        consultantName: project.consultantName || '',
+        clientName: project.clientName || '',
+        logo: project.logo || '',
+        weather: project.weather, // Weather can be undefined
+        lastSynced: project.lastSynced,
+        spreadsheetId: project.spreadsheetId,
+        settings: project.settings,
+        environmentRegistry: project.environmentRegistry || [],
+
+        // Arrays, ensure they are always arrays
         boq: project.boq || [],
         rfis: project.rfis || [],
         labTests: project.labTests || [],
         schedule: project.schedule || [],
+        structures: project.structures || [],
+        agencies: project.agencies || [],
+        agencyPayments: project.agencyPayments || [],
+        linearWorks: project.linearWorks || [],
         inventory: project.inventory || [],
         inventoryTransactions: project.inventoryTransactions || [],
         vehicles: project.vehicles || [],
         vehicleLogs: project.vehicleLogs || [],
         documents: project.documents || [],
+        sitePhotos: project.sitePhotos || [],
         dailyReports: project.dailyReports || [],
         preConstruction: project.preConstruction || [],
         landParcels: project.landParcels || [],
@@ -741,15 +855,9 @@ const App: React.FC = () => {
         hindrances: project.hindrances || [],
         ncrs: project.ncrs || [],
         contractBills: project.contractBills || [],
+        subcontractorBills: project.subcontractorBills || [],
         measurementSheets: project.measurementSheets || [],
         staffLocations: project.staffLocations || [],
-        // Initialize optional arrays if not provided
-        structures: project.structures || [],
-        agencies: project.agencies || [],
-        agencyPayments: project.agencyPayments || [],
-        linearWorks: project.linearWorks || [],
-        subcontractorBills: project.subcontractorBills || [],
-        sitePhotos: project.sitePhotos || [],
         purchaseOrders: project.purchaseOrders || [],
         agencyMaterials: project.agencyMaterials || [],
         agencyBills: project.agencyBills || [],
@@ -770,101 +878,88 @@ const App: React.FC = () => {
         accountingTransactions: project.accountingTransactions || [],
         personnel: project.personnel || [],
         fleet: project.fleet || [],
-        weather: project.weather,
-        lastSynced: project.lastSynced,
-        spreadsheetId: project.spreadsheetId,
-        settings: project.settings,
-        environmentRegistry: project.environmentRegistry,
-        projectManager: project.projectManager,
-        supervisor: project.supervisor,
-        consultantName: project.consultantName,
-        clientName: project.clientName,
-        logo: project.logo,
-        engineer: project.engineer,
-        contractNo: project.contractNo,
-        contractPeriod: project.contractPeriod
       };
       
       // Apply material migration to ensure unified material system is used
-      let completeProject: Project;
-      try {
-        completeProject = prepareProjectWithMaterials(baseProject);
-        console.log('prepareProjectWithMaterials succeeded:', completeProject);
-      } catch (error) {
-        console.error('prepareProjectWithMaterials failed:', error);
-        completeProject = baseProject; // Fallback to base project
-      }
-      
-      const updatedProjects = project.id 
-        ? prev.map(p => p.id === project.id ? completeProject : p)
-        : [...prev, completeProject];
-      
-      localStorage.setItem('roadmaster-projects', JSON.stringify(updatedProjects));
-      
-      // Update cache
-      DataCache.set(getCacheKey('projects'), updatedProjects, { ttl: 10 * 60 * 1000 }); // 10 minutes
-      
-      // Save to SQLite database as well
-      (async () => {
-        try {
-          await sqliteService.initialize();
-          const projectData = {
-            id: completeProject.id,
-            name: completeProject.name || '',
-            code: completeProject.code || null,
-            location: completeProject.location || '',
-            contractor: completeProject.contractor || '',
-            start_date: completeProject.startDate || null,
-            end_date: completeProject.endDate || null,
-            client: completeProject.client || '',
-            engineer: completeProject.engineer || null,
-            contract_no: completeProject.contractNo || null,
-            boq: JSON.stringify(completeProject.boq || []),
-            rfis: JSON.stringify(completeProject.rfis || []),
-            lab_tests: JSON.stringify(completeProject.labTests || []),
-            schedule: JSON.stringify(completeProject.schedule || []),
-            structures: JSON.stringify(completeProject.structures || []),
-            agencies: JSON.stringify(completeProject.agencies || []),
-            agency_payments: JSON.stringify(completeProject.agencyPayments || []),
-            linear_works: JSON.stringify(completeProject.linearWorks || []),
-            inventory: JSON.stringify(completeProject.inventory || []),
-            inventory_transactions: JSON.stringify(completeProject.inventoryTransactions || []),
-            vehicles: JSON.stringify(completeProject.vehicles || []),
-            vehicle_logs: JSON.stringify(completeProject.vehicleLogs || []),
-            documents: JSON.stringify(completeProject.documents || []),
-            site_photos: JSON.stringify(completeProject.sitePhotos || []),
-            daily_reports: JSON.stringify(completeProject.dailyReports || []),
-            pre_construction: JSON.stringify(completeProject.preConstruction || []),
-            land_parcels: JSON.stringify(completeProject.landParcels || []),
-            map_overlays: JSON.stringify(completeProject.mapOverlays || []),
-            hindrances: JSON.stringify(completeProject.hindrances || []),
-            nc_rs: JSON.stringify(completeProject.ncrs || []),
-            contract_bills: JSON.stringify(completeProject.contractBills || []),
-            subcontractor_bills: JSON.stringify(completeProject.subcontractorBills || []),
-            measurement_sheets: JSON.stringify(completeProject.measurementSheets || []),
-            staff_locations: JSON.stringify(completeProject.staffLocations || []),
-            environment_registry: JSON.stringify(completeProject.environmentRegistry || []),
-            last_synced: completeProject.lastSynced || null,
-            spreadsheet_id: completeProject.spreadsheetId || null,
-            settings: JSON.stringify(completeProject.settings || {})
-          };
+      const processedProject: Project = prepareProjectWithMaterials(completeProjectData);
 
-          // Check if project exists in SQLite
-          const existingProjects = await sqliteService.select('projects', ['id'], 'id = ?', [completeProject.id]);
-          if (existingProjects.length > 0) {
-            // Update existing project
-            await sqliteService.update('projects', projectData, 'id = ?', [completeProject.id]);
-          } else {
-            // Insert new project
-            await sqliteService.insert('projects', projectData);
+      if (project.id) {
+        backendProject = await apiService.updateProject(project.id, processedProject);
+      } else {
+        backendProject = await apiService.createProject(processedProject);
+      }
+
+      setProjects(prev => {
+        const updatedProjects = project.id 
+          ? prev.map(p => p.id === backendProject.id ? backendProject : p)
+          : [...prev, backendProject];
+        
+        localStorage.setItem('roadmaster-projects', JSON.stringify(updatedProjects));
+        DataCache.set(getCacheKey('projects'), updatedProjects, { ttl: 10 * 60 * 1000 }); // 10 minutes
+        
+        // Save to SQLite database as well
+        (async () => {
+          try {
+            await sqliteService.initialize();
+            const sqliteProjectData = {
+              id: backendProject.id,
+              name: backendProject.name || '',
+              code: backendProject.code || null,
+              location: backendProject.location || '',
+              contractor: backendProject.contractor || '',
+              start_date: backendProject.startDate || null,
+              end_date: backendProject.endDate || null,
+              client: backendProject.client || '',
+              engineer: backendProject.engineer || null,
+              contract_no: backendProject.contractNo || null,
+              boq: JSON.stringify(backendProject.boq || []),
+              rfis: JSON.stringify(backendProject.rfis || []),
+              lab_tests: JSON.stringify(backendProject.labTests || []),
+              schedule: JSON.stringify(backendProject.schedule || []),
+              structures: JSON.stringify(backendProject.structures || []),
+              agencies: JSON.stringify(backendProject.agencies || []),
+              agency_payments: JSON.stringify(backendProject.agencyPayments || []),
+              linear_works: JSON.stringify(backendProject.linearWorks || []),
+              inventory: JSON.stringify(backendProject.inventory || []),
+              inventory_transactions: JSON.stringify(backendProject.inventoryTransactions || []),
+              vehicles: JSON.stringify(backendProject.vehicles || []),
+              vehicle_logs: JSON.stringify(backendProject.vehicleLogs || []),
+              documents: JSON.stringify(backendProject.documents || []),
+              site_photos: JSON.stringify(backendProject.sitePhotos || []),
+              daily_reports: JSON.stringify(backendProject.dailyReports || []),
+              pre_construction: JSON.stringify(backendProject.preConstruction || []),
+              land_parcels: JSON.stringify(backendProject.landParcels || []),
+              map_overlays: JSON.stringify(backendProject.mapOverlays || []),
+              hindrances: JSON.stringify(backendProject.hindrances || []),
+              nc_rs: JSON.stringify(backendProject.ncrs || []),
+              contract_bills: JSON.stringify(backendProject.contractBills || []),
+              subcontractor_bills: JSON.stringify(backendProject.subcontractorBills || []),
+              measurement_sheets: JSON.stringify(backendProject.measurementSheets || []),
+              staff_locations: JSON.stringify(backendProject.staffLocations || []),
+              environment_registry: JSON.stringify(backendProject.environmentRegistry || []),
+              last_synced: backendProject.lastSynced,
+              spreadsheet_id: backendProject.spreadsheetId,
+              settings: JSON.stringify(backendProject.settings || {})
+            };
+
+            const existingProjects = await sqliteService.select('projects', ['id'], 'id = ?', [backendProject.id]);
+            if (existingProjects.length > 0) {
+              await sqliteService.update('projects', sqliteProjectData, 'id = ?', [backendProject.id]);
+            } else {
+              await sqliteService.insert('projects', sqliteProjectData);
+            }
+          } catch (error) {
+            console.error('Error saving project to SQLite:', error);
           }
-        } catch (error) {
-          console.error('Error saving project to SQLite:', error);
-        }
-      })();
-      
-      return updatedProjects;
-    });
+        })();
+        
+        return updatedProjects;
+      });
+    } catch (error) {
+      console.error('Failed to save project to backend:', error);
+      // Optionally show an error message to the user
+      throw error; // Re-throw to allow further error handling if needed
+    }
   };
 
   const handleSelectProject = (projectId: string) => {
@@ -879,27 +974,33 @@ const App: React.FC = () => {
   };
   
   const onDeleteProject = async (projectId: string) => {
-    setProjects(prev => {
-      const updatedProjects = prev.filter(p => p.id !== projectId);
-      
-      // Defer synchronous storage updates to prevent blocking the main thread during the click event
-      setTimeout(() => {
-        localStorage.setItem('roadmaster-projects', JSON.stringify(updatedProjects));
-        DataCache.set(getCacheKey('projects'), updatedProjects, { ttl: 10 * 60 * 1000 }); // 10 minutes
-      }, 0);
+    try {
+      await apiService.deleteProject(projectId);
+      setProjects(prev => {
+        const updatedProjects = prev.filter(p => p.id !== projectId);
+        
+        // Defer synchronous storage updates to prevent blocking the main thread during the click event
+        setTimeout(() => {
+          localStorage.setItem('roadmaster-projects', JSON.stringify(updatedProjects));
+          DataCache.set(getCacheKey('projects'), updatedProjects, { ttl: 10 * 60 * 1000 }); // 10 minutes
+        }, 0);
 
-      // Perform SQLite deletion asynchronously
-      (async () => {
-        try {
-          await sqliteService.initialize();
-          await sqliteService.delete('projects', 'id = ?', [projectId]);
-        } catch (error) {
-          console.error('Error deleting project from SQLite:', error);
-        }
-      })();
-      
-      return updatedProjects;
-    });
+        // Perform SQLite deletion asynchronously
+        (async () => {
+          try {
+            await sqliteService.initialize();
+            await sqliteService.delete('projects', 'id = ?', [projectId]);
+          } catch (error) {
+            console.error('Error deleting project from SQLite:', error);
+          }
+        })();
+        
+        return updatedProjects;
+      });
+    } catch (error) {
+      console.error('Failed to delete project from backend:', error);
+      throw error;
+    }
   };
 
   const handleManualSync = () => {

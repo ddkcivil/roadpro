@@ -10,7 +10,21 @@ export default async function (req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Project ID is required' });
   }
 
-  if (req.method === 'PUT') {
+  if (req.method === 'GET') {
+    try {
+      const { Project } = await connectToDatabase();
+      const project = await Project.findById(id);
+
+      if (!project) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+
+      res.status(200).json(project);
+    } catch (error: any) {
+      console.error('Failed to fetch project:', error);
+      res.status(500).json({ error: 'Failed to fetch project', details: error.message });
+    }
+  } else if (req.method === 'PUT') {
     try {
       const { Project } = await connectToDatabase();
       const projectData = req.body;
