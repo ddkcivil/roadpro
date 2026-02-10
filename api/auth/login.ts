@@ -1,45 +1,63 @@
 // api/auth/login.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { connectToDatabase } from '../_utils/dbConnect';
-import mongoose from 'mongoose'; // Import mongoose to use its types
+import { connectToDatabase } from '../_utils/mysqlConnect.js'; // Changed import path
+// No longer need mongoose
+import bcrypt from 'bcrypt';
 
-export default async function (req: VercelRequest, res: VercelResponse) {
+import { withErrorHandler } from '../_utils/errorHandler.js';
+import { UserAttributes, UserInstance } from '../_utils/mysqlConnect.js';
+
+export default withErrorHandler(async function (req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+    res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   try {
     const { User } = await connectToDatabase();
-    const { email } = req.body;
+    const { email, password } = req.body;
 
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
+    if (!email || !password) {
+      res.status(400).json({ error: 'Email and password are required' });
     }
-    
+
     // Find user by email
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = (await User.findOne({ 
+      where: { email: email.toLowerCase() },
+      attributes: ['id', 'name', 'email', 'phone', 'password', 'role', 'avatar', 'createdAt', 'updatedAt'] // Explicitly select all attributes, including password
+    })) as UserInstance | null;
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      res.status(401).json({ error: 'Invalid credentials' });
     }
-    
-    // Return user data (without password, as it's not stored in this schema)
-    const userData = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-      avatar: user.avatar,
-      createdAt: user.createdAt
-    };
-    
+
+    // Check password using bcrypt
+    if (!user) { // Sequelize instances have direct property access, ensuring user is not null
+      res.status(401).json({ error: 'Invalid credentials' });
+      return; // Added return to exit early if user is null
+    }
+
+    if (!user.password) { // Check if password exists on the user instance
+      res.status(401).json({ error: 'Invalid credentials' });
+      return; // Added return to exit early if password is not found
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Return user data (without password)
+    // Sequelize instances have a .toJSON() method or you can extract specific fields
+    const userData = user.toJSON();
+    delete userData.password;
+
     res.status(200).json({
       success: true,
       user: userData,
-      token: `token-${user.id}-${Date.now()}` // Simulated token
+      token: `token-${user.id}-${Date.now()}`
     });
   } catch (error: any) {
     console.error('Login failed:', error);
+    // Removed Mongoose-specific error check
     res.status(500).json({ error: 'Login failed', details: error.message });
   }
-}
+})

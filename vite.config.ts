@@ -22,6 +22,13 @@ export default defineConfig(({ mode }) => {
         interval: 1000,
       },
       cors: true,
+      proxy: {
+        '/api': {
+          target: 'http://localhost:3001',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, '/api'),
+        },
+      },
     },
     plugins: [react()],
     define: {

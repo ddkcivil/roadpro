@@ -110,6 +110,9 @@ const UserManagement = lazy(() => import('./components/common/UserManagement'));
 const UserRegistration = lazy(() => import('./components/common/UserRegistration'));
 
 const StaffManagementModule = lazy(() => import('./components/modules/StaffManagementModule'));
+const ResourceManagementHub = lazy(() => import('./components/modules/ResourceManagementHub'));
+const DocumentationHub = lazy(() => import('./components/modules/DocumentationHub'));
+const FinancialManagementHub = lazy(() => import('./components/modules/FinancialManagementHub'));
 const SettingsModule = lazy(() => import('./components/modules/SettingsModule'));
 const ConstructionModule = lazy(() => import('./components/modules/ConstructionModule'));
 const MapModule = lazy(() => import('./components/modules/MapModule'));
@@ -831,7 +834,7 @@ const App: React.FC = () => {
         lastSynced: project.lastSynced,
         spreadsheetId: project.spreadsheetId,
         settings: project.settings,
-        environmentRegistry: project.environmentRegistry || [],
+        environmentRegistry: project.environmentRegistry || { treesRemoved: 0, treesPlanted: 0, sprinklingLogs: [], treeLogs: [] },
 
         // Arrays, ensure they are always arrays
         boq: project.boq || [],
@@ -1077,6 +1080,9 @@ const App: React.FC = () => {
         { id: 'quality', label: 'Quality Hub', icon: Shield },
         { id: 'lab', label: 'Material Testing', icon: Scale },
         { id: 'staff-management', label: 'Staff Management', icon: Users },
+        { id: 'resources', label: 'Resources', icon: Package },
+        { id: 'documentation', label: 'Documentation', icon: FileText },
+        { id: 'financial', label: 'Financial', icon: Landmark },
         { id: 'environment', label: 'EMP Compliance', icon: Trees },
         { id: 'output-export', label: 'Exports & Reports', icon: Download },
         { id: 'data-analysis', label: 'Data Analysis', icon: BarChart3 }
@@ -1457,6 +1463,9 @@ const App: React.FC = () => {
                         {activeTab === 'user-management' && (currentUser as UserWithPermissions).permissions.includes(Permission.USER_READ) && <UserManagement />}
                         {activeTab === 'user-registration' && <UserRegistration />}
                         {activeTab === 'staff-management' && <StaffManagementModule />}
+                        {activeTab === 'resources' && <ResourceManagementHub project={currentProject} userRole={userRole} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'documentation' && <DocumentationHub project={currentProject} userRole={userRole} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'financial' && <FinancialManagementHub project={currentProject} userRole={userRole} settings={appSettings} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'subcontractors' && (currentUser as UserWithPermissions).permissions.includes(Permission.BOQ_READ) && <SubcontractorModule userRole={userRole} project={currentProject} settings={appSettings} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'subcontractor-billing' && (currentUser as UserWithPermissions).permissions.includes(Permission.FINANCE_READ) && <SubcontractorBillingModule userRole={userRole} project={currentProject} settings={appSettings} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'settings' && (currentUser as UserWithPermissions).permissions.includes(Permission.SETTINGS_UPDATE) && <SettingsModule settings={appSettings} onUpdate={setAppSettings} />}

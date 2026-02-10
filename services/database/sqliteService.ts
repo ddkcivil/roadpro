@@ -146,6 +146,16 @@ class SQLiteService {
       )
     `);
 
+    // Migration: Add ncrs column if it doesn't exist (for old local databases)
+    try {
+      this.db.run(`ALTER TABLE projects ADD COLUMN ncrs TEXT`);
+    } catch (e: any) {
+      // Ignore if column already exists
+      if (!e.message.includes('duplicate column name: ncrs')) {
+        console.warn('Error adding ncrs column to projects table:', e);
+      }
+    }
+
     this.db.run(`
       CREATE TABLE IF NOT EXISTS messages (
         id TEXT PRIMARY KEY,

@@ -1,13 +1,18 @@
 // api/users/index.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { connectToDatabase } from '../_utils/dbConnect';
-import mongoose from 'mongoose';
+import { connectToDatabase } from '../_utils/mysqlConnect.js'; // Changed import path
+// No longer need mongoose
+import bcrypt from 'bcrypt';
 
-export default async function (req: VercelRequest, res: VercelResponse) {
+import { withErrorHandler } from '../_utils/errorHandler.js'; // Adjust path as needed
+import { UserAttributes, UserCreationAttributes } from '../_utils/mysqlConnect.js';
+
+export default withErrorHandler(async function (req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') {
     try {
       const { User } = await connectToDatabase();
-      const users = await User.find({});
+      // Fetch all users, excluding the password field
+      const users = await User.findAll({ attributes: { exclude: ['password'] } }); // Sequelize: findAll
       res.status(200).json(users);
     } catch (error: any) {
       console.error('Failed to fetch users:', error);
@@ -16,29 +21,36 @@ export default async function (req: VercelRequest, res: VercelResponse) {
   } else if (req.method === 'POST') {
     try {
       const { User } = await connectToDatabase();
-      const { name, email, phone, role } = req.body;
+      const { name, email, phone, role, password } = req.body;
 
-      if (!name || !email) {
-        return res.status(400).json({ error: 'Name and email are required' });
+      if (!name || !email || !password) {
+        res.status(400).json({ error: 'Name, email and password are required' });
       }
-      
+
       // Check if user already exists
-      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      const existingUser = await User.findOne({ where: { email: email.toLowerCase() } }); // Sequelize findOne with where
       if (existingUser) {
-        return res.status(409).json({ error: 'User already exists' });
+        res.status(409).json({ error: 'User already exists' });
       }
-      
-      const user = new User({
-        id: `user-${Date.now()}`,
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create user using Sequelize's create method
+      const user = await User.create({
+        id: `user-${Date.now()}`, // Keep original ID generation logic or adjust as needed
         name,
         email: email.toLowerCase(),
-        phone,
+        phone: phone || undefined, // Ensure phone is string or undefined
         role: role || 'SITE_ENGINEER', // Default role if not provided
+        password: hashedPassword,
         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
-      });
-      
-      await user.save();
-      res.status(201).json(user);
+      } as any);
+
+      // Do not return password - use toJSON() and exclude
+      const userData = user.toJSON();
+      delete userData.password;
+      res.status(201).json(userData);
     } catch (error: any) {
       console.error('Failed to create user:', error);
       res.status(500).json({ error: 'Failed to create user', details: error.message });
@@ -46,4 +58,4 @@ export default async function (req: VercelRequest, res: VercelResponse) {
   } else {
     res.status(405).json({ error: 'Method Not Allowed' });
   }
-}
+})

@@ -1,22 +1,24 @@
 // api/health.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { connectToDatabase } from './_utils/dbConnect';
+import { connectToDatabase } from './_utils/mysqlConnect.js'; // Changed import path
+import { withErrorHandler } from './_utils/errorHandler.js';
 
-export default async function (req: VercelRequest, res: VercelResponse) {
+export default withErrorHandler(async function (req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+    res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   try {
-    const { conn } = await connectToDatabase();
-    const dbStatus = conn.connection.readyState === 1 ? 'connected' : 'disconnected';
+    const { sequelize } = await connectToDatabase(); // Get sequelize instance
+    await sequelize.authenticate(); // This will throw an error if not connected
+    
     res.status(200).json({ 
       status: 'ok', 
       timestamp: new Date().toISOString(),
-      database: dbStatus
+      database: 'connected (MySQL)'
     });
   } catch (error: any) {
     console.error('Health check failed:', error);
     res.status(500).json({ error: 'Health check failed', details: error.message });
   }
-}
+})

@@ -1,22 +1,24 @@
 // api/projects/[id]/index.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { connectToDatabase } from '../../_utils/dbConnect';
-import mongoose from 'mongoose';
+import { connectToDatabase } from '../../_utils/mysqlConnect.js'; // Changed import path
+// No longer need mongoose
 
-export default async function (req: VercelRequest, res: VercelResponse) {
+import { withErrorHandler } from '../../_utils/errorHandler.js'; // Adjust path as needed
+
+export default withErrorHandler(async function (req: VercelRequest, res: VercelResponse) {
   const { id } = req.query;
 
   if (!id || typeof id !== 'string') {
-    return res.status(400).json({ error: 'Project ID is required' });
+    res.status(400).json({ error: 'Project ID is required' });
   }
 
   if (req.method === 'GET') {
     try {
       const { Project } = await connectToDatabase();
-      const project = await Project.findById(id);
+      const project = await Project.findByPk(id as string); // Sequelize: findByPk
 
       if (!project) {
-        return res.status(404).json({ error: 'Project not found' });
+        res.status(404).json({ error: 'Project not found' });
       }
 
       res.status(200).json(project);
@@ -29,17 +31,20 @@ export default async function (req: VercelRequest, res: VercelResponse) {
       const { Project } = await connectToDatabase();
       const projectData = req.body;
       
-      const project = await Project.findByIdAndUpdate(
-        id,
-        { ...projectData, updatedAt: new Date() },
-        { new: true } // Return the updated document
+      // Sequelize: update method returns [affectedCount, affectedRows]
+      const [affectedCount] = await Project.update(
+        { ...projectData }, // Exclude ID from update object
+        { where: { id: id } }
       );
-      
-      if (!project) {
-        return res.status(404).json({ error: 'Project not found' });
+
+      if (affectedCount === 0) {
+        res.status(404).json({ error: 'Project not found or no changes made' });
       }
+
+      // Fetch the updated project to return it
+      const updatedProject = await Project.findByPk(id as string);
       
-      res.status(200).json(project);
+      res.status(200).json(updatedProject);
     } catch (error: any) {
       console.error('Failed to update project:', error);
       res.status(500).json({ error: 'Failed to update project', details: error.message });
@@ -47,10 +52,13 @@ export default async function (req: VercelRequest, res: VercelResponse) {
   } else if (req.method === 'DELETE') {
     try {
       const { Project } = await connectToDatabase();
-      const project = await Project.findByIdAndDelete(id);
+      // Sequelize: destroy method returns the number of deleted rows
+      const deletedRowCount = await Project.destroy({
+        where: { id: id as string }
+      });
       
-      if (!project) {
-        return res.status(404).json({ error: 'Project not found' });
+      if (deletedRowCount === 0) {
+        res.status(404).json({ error: 'Project not found' });
       }
       
       res.status(204).send(''); // 204 No Content for successful deletion
@@ -61,4 +69,4 @@ export default async function (req: VercelRequest, res: VercelResponse) {
   } else {
     res.status(405).json({ error: 'Method Not Allowed' });
   }
-}
+})

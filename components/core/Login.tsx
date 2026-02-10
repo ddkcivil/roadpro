@@ -68,15 +68,7 @@ const Login: React.FC<Props> = ({ onLogin }) => {
     }
     
     try {
-        // Try to authenticate with API first
-        let authResult;
-        try {
-          authResult = await apiService.loginUser(email, password);
-        } catch (apiError) {
-          // Fallback to local authentication
-          console.log('API login failed, trying local authentication');
-          authResult = await AuthService.authenticate(email, password);
-        }
+        const authResult = await apiService.loginUser(email, password);
         
         if (authResult.success || authResult.user) {
             let role = UserRole.PROJECT_MANAGER;
@@ -87,57 +79,6 @@ const Login: React.FC<Props> = ({ onLogin }) => {
             if (user) {
               name = user.name || name;
               role = user.role || role;
-              
-              // Save the authenticated user to localStorage
-              const users = LocalStorageUtils.getUsers();
-              const existingUserIndex = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
-              
-              const currentUser = {
-                id: user.id || `user-${Date.now()}`,
-                name: user.name || name,
-                email: email,
-                phone: user.phone || '',
-                role: user.role || role,
-                avatar: user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
-              };
-              
-              if (existingUserIndex >= 0) {
-                users[existingUserIndex] = currentUser;
-              } else {
-                users.push(currentUser);
-              }
-              
-              LocalStorageUtils.setUsers(users);
-              name = currentUser.name;
-              role = currentUser.role as UserRole;
-            } else {
-              // Fallback logic for role assignment
-              const emailLower = email.toLowerCase();
-              if (emailLower.includes('admin')) { role = UserRole.ADMIN; name = "Administrator"; }
-              else if (emailLower.includes('site')) { role = UserRole.SITE_ENGINEER; name = "Site Engineer"; }
-              else if (emailLower.includes('lab')) { role = UserRole.LAB_TECHNICIAN; name = "Lab Tech"; }
-              else if (emailLower.includes('super')) { role = UserRole.SUPERVISOR; name = "Supervisor"; }
-              
-              // Save to localStorage
-              const users = LocalStorageUtils.getUsers();
-              const existingUserIndex = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
-              
-              const currentUser = {
-                id: `user-${Date.now()}`,
-                name,
-                email,
-                phone: '',
-                role,
-                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
-              };
-              
-              if (existingUserIndex >= 0) {
-                users[existingUserIndex] = currentUser;
-              } else {
-                users.push(currentUser);
-              }
-              
-              LocalStorageUtils.setUsers(users);
             }
             
             // Create user with permissions and pass to onLogin
@@ -156,8 +97,8 @@ const Login: React.FC<Props> = ({ onLogin }) => {
         } else {
             setMessage({ type: 'error', text: authResult.message || 'Invalid email or password.' });
         }
-    } catch (error) {
-        setMessage({ type: 'error', text: 'An error occurred during authentication. Please try again.' });
+    } catch (error: any) {
+        setMessage({ type: 'error', text: error.message || 'An error occurred during authentication. Please try again.' });
     } finally {
         setLoading(false);
     }
@@ -177,44 +118,23 @@ const Login: React.FC<Props> = ({ onLogin }) => {
       
       setLoading(true);
       try {
-          // Check for existing user
-          const existingUsers = localStorage.getItem('roadmaster-users');
-          const users = existingUsers ? JSON.parse(existingUsers) : [];
-          const isDuplicate = users.some((u: any) => u.email.toLowerCase() === regEmail.toLowerCase());
-          
-          if (isDuplicate) {
-              setMessage({ type: 'error', text: 'A user with this email already exists.' });
-              setLoading(false);
-              return;
-          }
-          
-          // Create pending user entry
-          const pendingUser = {
-            id: `pending-${Date.now()}`,
+          // Call the new API endpoint for pending registration
+          await apiService.submitRegistration({
             name: regName,
             email: regEmail,
-            phone: '',  // Could be added as a field if needed
-            role: regRole,
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(regName)}&background=random`,
-            status: 'pending',
+            phone: '', // Phone is not collected in this form, so passing empty
             requestedRole: regRole,
-            createdAt: new Date().toISOString(),
-            requestedBy: 'self'
-          };
-          
-          // Store in pending users
-          const pendingUsersJson = localStorage.getItem('roadmaster-pending-users');
-          const pendingUsers = pendingUsersJson ? JSON.parse(pendingUsersJson) : [];
-          pendingUsers.push(pendingUser);
-          localStorage.setItem('roadmaster-pending-users', JSON.stringify(pendingUsers));
+            // Password is not directly stored in pending registration
+            // The backend for pending registration should not store password
+          });
           
           setLoading(false);
           setMessage({ type: 'success', text: 'Registration submitted! An administrator will review your request and approve your account.' });
           setView('LOGIN');
           setEmail(regEmail);
-      } catch (error) {
+      } catch (error: any) {
           setLoading(false);
-          setMessage({ type: 'error', text: 'Registration failed. Please try again.' });
+          setMessage({ type: 'error', text: error.response?.data?.error || 'Registration failed. Please try again.' });
       }
   };
 

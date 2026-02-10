@@ -1,13 +1,15 @@
 // api/projects/index.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { connectToDatabase } from '../_utils/dbConnect';
-import mongoose from 'mongoose';
+import { connectToDatabase } from '../_utils/mysqlConnect.js'; // Changed import path
+// No longer need mongoose
 
-export default async function (req: VercelRequest, res: VercelResponse) {
+import { withErrorHandler } from '../_utils/errorHandler.js';
+
+export default withErrorHandler(async function (req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') {
     try {
       const { Project } = await connectToDatabase();
-      const projects = await Project.find({});
+      const projects = await Project.findAll(); // Sequelize: findAll
       res.status(200).json(projects);
     } catch (error: any) {
       console.error('Failed to fetch projects:', error);
@@ -19,17 +21,15 @@ export default async function (req: VercelRequest, res: VercelResponse) {
       const projectData = req.body;
 
       if (!projectData.name) {
-        return res.status(400).json({ error: 'Project name is required' });
+        res.status(400).json({ error: 'Project name is required' });
       }
       
-      const project = new Project({
+      const project = await Project.create({ // Sequelize: create
         id: `proj-${Date.now()}`,
         ...projectData,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        // Sequelize manages createdAt and updatedAt automatically if timestamps: true
       });
       
-      await project.save();
       res.status(201).json(project);
     } catch (error: any) {
       console.error('Failed to create project:', error);
@@ -38,4 +38,4 @@ export default async function (req: VercelRequest, res: VercelResponse) {
   } else {
     res.status(405).json({ error: 'Method Not Allowed' });
   }
-}
+})

@@ -45,12 +45,98 @@ import {
   Download,
   Save,
   User,
-  Upload
+  Upload,
+  TrendingUp,
+  DollarSign,
+  GraduationCap,
+  Clipboard
 } from 'lucide-react';
 import { apiService } from '../../services/api/apiService';
 import { LocalStorageUtils } from '../../utils/data/localStorageUtils';
 
 // Types
+interface PerformanceRecord {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  period: string; // e.g., "Q1 2024"
+  kpiScores: {
+    productivity: number;
+    quality: number;
+    teamwork: number;
+    punctuality: number;
+    initiative: number;
+  };
+  overallRating: number;
+  comments: string;
+  reviewer: string;
+  reviewDate: string;
+}
+
+interface AttendanceRecord {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  date: string;
+  signInTime?: string;
+  signOutTime?: string;
+  status: 'Present' | 'Absent' | 'Late' | 'Half Day' | 'Leave';
+  hoursWorked?: number;
+  overtimeHours?: number;
+  remarks?: string;
+}
+
+interface TrainingRecord {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  courseName: string;
+  trainingType: 'Safety' | 'Technical' | 'Soft Skills' | 'Compliance' | 'Leadership';
+  provider: string;
+  startDate: string;
+  endDate: string;
+  duration: number; // in hours
+  cost: number;
+  status: 'Scheduled' | 'In Progress' | 'Completed' | 'Cancelled';
+  certificate?: string;
+  score?: number;
+  feedback?: string;
+  trainer?: string;
+}
+
+interface EvaluationForm {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  evaluator: string;
+  evaluationDate: string;
+  period: string;
+  overallRating: number;
+  strengths: string;
+  areasForImprovement: string;
+  goals: string;
+  recommendations: string;
+  nextReviewDate: string;
+  status: 'Draft' | 'Submitted' | 'Approved' | 'Archived';
+}
+
+interface SalaryRecord {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  basicSalary: number;
+  allowances: number;
+  deductions: number;
+  bonus: number;
+  overtimePay: number;
+  netSalary: number;
+  payPeriod: string; // e.g., "January 2024"
+  paymentDate: string;
+  status: 'Paid' | 'Pending' | 'Overdue';
+  paymentMethod: 'Bank Transfer' | 'Cash' | 'Cheque';
+  remarks?: string;
+}
+
 interface LeaveRequest {
   id: string;
   employeeId: string;
@@ -187,8 +273,18 @@ const StaffManagementModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [employees, setEmployees] = useState<EmployeeData[]>([]);
+  const [performanceRecords, setPerformanceRecords] = useState<PerformanceRecord[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [salaryRecords, setSalaryRecords] = useState<SalaryRecord[]>([]);
+  const [trainingRecords, setTrainingRecords] = useState<TrainingRecord[]>([]);
+  const [evaluationForms, setEvaluationForms] = useState<EvaluationForm[]>([]);
   const [filteredLeaveRequests, setFilteredLeaveRequests] = useState<LeaveRequest[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<EmployeeData[]>([]);
+  const [filteredPerformance, setFilteredPerformance] = useState<PerformanceRecord[]>([]);
+  const [filteredAttendance, setFilteredAttendance] = useState<AttendanceRecord[]>([]);
+  const [filteredSalaries, setFilteredSalaries] = useState<SalaryRecord[]>([]);
+  const [filteredTraining, setFilteredTraining] = useState<TrainingRecord[]>([]);
+  const [filteredEvaluations, setFilteredEvaluations] = useState<EvaluationForm[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
@@ -319,9 +415,40 @@ const StaffManagementModule: React.FC = () => {
         setFilteredLeaveRequests(requests);
 
         // Load employees
-                  const empData = localStorage.getItem('staff-employees');        const employeesData = empData ? JSON.parse(empData) : [];
+        const empData = localStorage.getItem('staff-employees');        
+        const employeesData = empData ? JSON.parse(empData) : [];
         setEmployees(employeesData);
         setFilteredEmployees(employeesData);
+
+        // Load performance records
+        const perfData = localStorage.getItem('staff-performance');
+        const perfRecords = perfData ? JSON.parse(perfData) : [];
+        setPerformanceRecords(perfRecords);
+        setFilteredPerformance(perfRecords);
+
+        // Load attendance records
+        const attData = localStorage.getItem('staff-attendance');
+        const attRecords = attData ? JSON.parse(attData) : [];
+        setAttendanceRecords(attRecords);
+        setFilteredAttendance(attRecords);
+
+        // Load salary records
+        const salData = localStorage.getItem('staff-salaries');
+        const salRecords = salData ? JSON.parse(salData) : [];
+        setSalaryRecords(salRecords);
+        setFilteredSalaries(salRecords);
+
+        // Load training records
+        const trainData = localStorage.getItem('staff-training');
+        const trainRecords = trainData ? JSON.parse(trainData) : [];
+        setTrainingRecords(trainRecords);
+        setFilteredTraining(trainRecords);
+
+        // Load evaluation forms
+        const evalData = localStorage.getItem('staff-evaluations');
+        const evalRecords = evalData ? JSON.parse(evalData) : [];
+        setEvaluationForms(evalRecords);
+        setFilteredEvaluations(evalRecords);
       } catch (error) {
         console.error('Error loading staff data:', error);
       } finally {
@@ -345,7 +472,7 @@ const StaffManagementModule: React.FC = () => {
         filtered = filtered.filter(request => request.status === statusFilter);
       }
       setFilteredLeaveRequests(filtered);
-    } else {
+    } else if (activeTab === 1) {
       let filtered = [...employees];
       if (searchTerm) {
         filtered = filtered.filter(emp => 
@@ -354,8 +481,65 @@ const StaffManagementModule: React.FC = () => {
         );
       }
       setFilteredEmployees(filtered);
+    } else if (activeTab === 2) {
+      let filtered = [...performanceRecords];
+      if (searchTerm) {
+        filtered = filtered.filter(record => 
+          record.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          record.period.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+      setFilteredPerformance(filtered);
+    } else if (activeTab === 3) {
+      let filtered = [...attendanceRecords];
+      if (searchTerm) {
+        filtered = filtered.filter(record => 
+          record.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          record.date.includes(searchTerm)
+        );
+      }
+      if (statusFilter !== 'All') {
+        filtered = filtered.filter(record => record.status === statusFilter);
+      }
+      setFilteredAttendance(filtered);
+    } else if (activeTab === 4) {
+      let filtered = [...salaryRecords];
+      if (searchTerm) {
+        filtered = filtered.filter(record => 
+          record.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          record.payPeriod.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+      if (statusFilter !== 'All') {
+        filtered = filtered.filter(record => record.status === statusFilter);
+      }
+      setFilteredSalaries(filtered);
+    } else if (activeTab === 5) {
+      let filtered = [...trainingRecords];
+      if (searchTerm) {
+        filtered = filtered.filter(record => 
+          record.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          record.courseName.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+      if (statusFilter !== 'All') {
+        filtered = filtered.filter(record => record.status === statusFilter);
+      }
+      setFilteredTraining(filtered);
+    } else if (activeTab === 6) {
+      let filtered = [...evaluationForms];
+      if (searchTerm) {
+        filtered = filtered.filter(form => 
+          form.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          form.evaluator.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+      if (statusFilter !== 'All') {
+        filtered = filtered.filter(form => form.status === statusFilter);
+      }
+      setFilteredEvaluations(filtered);
     }
-  }, [leaveRequests, employees, searchTerm, statusFilter, activeTab]);
+  }, [leaveRequests, employees, performanceRecords, attendanceRecords, salaryRecords, trainingRecords, evaluationForms, searchTerm, statusFilter, activeTab]);
 
   // Leave request handlers
   const handleSubmitLeaveRequest = async (e: React.FormEvent) => {
@@ -394,7 +578,7 @@ const StaffManagementModule: React.FC = () => {
       
       // Save to localStorage
       const updatedRequests = [...leaveRequests, leaveRequest];
-      LocalStorageUtils.setItem('staff-leave-requests', JSON.stringify(updatedRequests));
+      localStorage.setItem('staff-leave-requests', JSON.stringify(updatedRequests));
       setLeaveRequests(updatedRequests);
       
       // Try to save to API
@@ -1126,6 +1310,11 @@ const StaffManagementModule: React.FC = () => {
         <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tab label={`Leave Requests (${leaveRequests.length})`} icon={<Calendar size={16} />} iconPosition="start" />
           <Tab label={`Employees (${employees.length})`} icon={<Users size={16} />} iconPosition="start" />
+          <Tab label={`Performance (${performanceRecords.length})`} icon={<span>📊</span>} iconPosition="start" />
+          <Tab label={`Attendance (${attendanceRecords.length})`} icon={<Clock size={16} />} iconPosition="start" />
+          <Tab label={`Salary (${salaryRecords.length})`} icon={<span>💰</span>} iconPosition="start" />
+          <Tab label={`Training (${trainingRecords.length})`} icon={<span>🎓</span>} iconPosition="start" />
+          <Tab label={`Evaluations (${evaluationForms.length})`} icon={<span>📋</span>} iconPosition="start" />
         </Tabs>
 
         <Box p={3}>
@@ -1422,6 +1611,677 @@ const StaffManagementModule: React.FC = () => {
               {filteredEmployees.length === 0 && (
                 <Typography textAlign="center" color="text.secondary" py={4}>
                   No employees found
+                </Typography>
+              )}
+            </Box>
+          )}
+
+          {/* Performance Tab */}
+          {activeTab === 2 && (
+            <Box>
+              <Box display="flex" justifyContent="space-between" mb={3}>
+                <Typography variant="h6">Performance Records</Typography>
+                <Button variant="contained" startIcon={<Plus size={16} />}>Add Performance Review</Button>
+              </Box>
+              
+              <Grid container spacing={2} mb={3}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h4" color="primary" fontWeight="bold">
+                        {performanceRecords.length}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Reviews Conducted
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h4" color="success.main" fontWeight="bold">
+                        {performanceRecords.length > 0 ? (performanceRecords.reduce((sum, r) => sum + r.overallRating, 0) / performanceRecords.length).toFixed(1) : '0'}%
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Avg Rating
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+
+              <Paper variant="outlined" sx={{ borderRadius: 3 }}>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: 'slate.50' }}>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Employee</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Period</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Overall Rating</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Reviewer</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredPerformance.map(record => (
+                        <TableRow key={record.id} hover>
+                          <TableCell>
+                            <Stack direction="column" spacing={0.5}>
+                              <Typography variant="body2" fontWeight="bold">
+                                {record.employeeName}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                ID: {record.employeeId}
+                              </Typography>
+                            </Stack>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{record.period}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={`${record.overallRating}%`} 
+                              size="small" 
+                              color={record.overallRating >= 80 ? 'success' : record.overallRating >= 60 ? 'warning' : 'error'}
+                              variant="filled"
+                              sx={{ fontWeight: 'bold' }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{record.reviewer}</Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Button 
+                              variant="outlined" 
+                              size="small" 
+                              startIcon={<FileText size={16}/>}
+                            >
+                              View Details
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+              
+              {filteredPerformance.length === 0 && (
+                <Typography textAlign="center" color="text.secondary" py={4}>
+                  No performance records found
+                </Typography>
+              )}
+            </Box>
+          )}
+
+          {/* Attendance Tab */}
+          {activeTab === 3 && (
+            <Box>
+              <Box display="flex" justifyContent="space-between" mb={3}>
+                <Typography variant="h6">Attendance Records</Typography>
+                <Button variant="contained" startIcon={<Plus size={16} />}>Mark Attendance</Button>
+              </Box>
+              
+              <Grid container spacing={2} mb={3}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h4" color="primary" fontWeight="bold">
+                        {attendanceRecords.filter(a => a.status === 'Present').length}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Present Today
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h4" color="error.main" fontWeight="bold">
+                        {attendanceRecords.filter(a => a.status === 'Absent').length}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Absent Today
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h4" color="warning.main" fontWeight="bold">
+                        {attendanceRecords.filter(a => a.status === 'Late').length}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Late Arrivals
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h4" color="info.main" fontWeight="bold">
+                        {attendanceRecords.reduce((sum, a) => sum + (a.hoursWorked || 0), 0).toFixed(1)}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Hours
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+
+              <Paper variant="outlined" sx={{ borderRadius: 3 }}>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: 'slate.50' }}>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Employee</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Date</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Status</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Hours</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Overtime</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredAttendance.map(record => (
+                        <TableRow key={record.id} hover>
+                          <TableCell>
+                            <Stack direction="column" spacing={0.5}>
+                              <Typography variant="body2" fontWeight="bold">
+                                {record.employeeName}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                ID: {record.employeeId}
+                              </Typography>
+                            </Stack>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{new Date(record.date).toLocaleDateString()}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={record.status} 
+                              size="small" 
+                              color={
+                                record.status === 'Present' ? 'success' : 
+                                record.status === 'Absent' ? 'error' : 
+                                record.status === 'Late' ? 'warning' : 'default'
+                              }
+                              variant="filled"
+                              sx={{ fontWeight: 'bold' }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">
+                              {record.hoursWorked ? `${record.hoursWorked}h` : '-'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">
+                              {record.overtimeHours ? `${record.overtimeHours}h` : '-'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Button 
+                              variant="outlined" 
+                              size="small" 
+                              startIcon={<FileText size={16}/>}
+                            >
+                              View Details
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+              
+              {filteredAttendance.length === 0 && (
+                <Typography textAlign="center" color="text.secondary" py={4}>
+                  No attendance records found
+                </Typography>
+              )}
+            </Box>
+          )}
+
+          {/* Salary Tab */}
+          {activeTab === 4 && (
+            <Box>
+              <Box display="flex" justifyContent="space-between" mb={3}>
+                <Typography variant="h6">Salary Management</Typography>
+                <Button variant="contained" startIcon={<Plus size={16} />}>Process Salary</Button>
+              </Box>
+              
+              <Grid container spacing={2} mb={3}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h4" color="primary" fontWeight="bold">
+                        ₹{salaryRecords.reduce((sum, s) => sum + s.netSalary, 0).toLocaleString()}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Payroll
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h4" color="success.main" fontWeight="bold">
+                        {salaryRecords.filter(s => s.status === 'Paid').length}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Paid Salaries
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h4" color="warning.main" fontWeight="bold">
+                        {salaryRecords.filter(s => s.status === 'Pending').length}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Pending
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h4" color="error.main" fontWeight="bold">
+                        {salaryRecords.filter(s => s.status === 'Overdue').length}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Overdue
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+
+              <Paper variant="outlined" sx={{ borderRadius: 3 }}>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: 'slate.50' }}>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Employee</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Period</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Basic Salary</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Net Salary</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Status</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Payment Date</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredSalaries.map(record => (
+                        <TableRow key={record.id} hover>
+                          <TableCell>
+                            <Stack direction="column" spacing={0.5}>
+                              <Typography variant="body2" fontWeight="bold">
+                                {record.employeeName}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                ID: {record.employeeId}
+                              </Typography>
+                            </Stack>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{record.payPeriod}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">₹{record.basicSalary.toLocaleString()}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight="bold">₹{record.netSalary.toLocaleString()}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={record.status} 
+                              size="small" 
+                              color={
+                                record.status === 'Paid' ? 'success' : 
+                                record.status === 'Pending' ? 'warning' : 'error'
+                              }
+                              variant="filled"
+                              sx={{ fontWeight: 'bold' }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{new Date(record.paymentDate).toLocaleDateString()}</Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Stack direction="row" spacing={1}>
+                              <Button 
+                                variant="outlined" 
+                                size="small" 
+                                startIcon={<FileText size={16}/>}
+                              >
+                                Payslip
+                              </Button>
+                              {record.status === 'Pending' && (
+                                <Button 
+                                  variant="contained" 
+                                  size="small" 
+                                  color="success"
+                                >
+                                  Process
+                                </Button>
+                              )}
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+              
+              {filteredSalaries.length === 0 && (
+                <Typography textAlign="center" color="text.secondary" py={4}>
+                  No salary records found
+                </Typography>
+              )}
+            </Box>
+          )}
+
+          {/* Training Tab */}
+          {activeTab === 5 && (
+            <Box>
+              <Box display="flex" justifyContent="space-between" mb={3}>
+                <Typography variant="h6">Training Records</Typography>
+                <Button variant="contained" startIcon={<Plus size={16} />}>Schedule Training</Button>
+              </Box>
+              
+              <Grid container spacing={2} mb={3}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h4" color="primary" fontWeight="bold">
+                        {trainingRecords.length}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Trainings
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h4" color="success.main" fontWeight="bold">
+                        {trainingRecords.filter(t => t.status === 'Completed').length}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Completed
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h4" color="warning.main" fontWeight="bold">
+                        {trainingRecords.filter(t => t.status === 'In Progress').length}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        In Progress
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h4" color="info.main" fontWeight="bold">
+                        ₹{trainingRecords.reduce((sum, t) => sum + t.cost, 0).toLocaleString()}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Investment
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+
+              <Paper variant="outlined" sx={{ borderRadius: 3 }}>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: 'slate.50' }}>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Employee</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Course</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Type</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Duration</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Status</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Provider</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredTraining.map(record => (
+                        <TableRow key={record.id} hover>
+                          <TableCell>
+                            <Stack direction="column" spacing={0.5}>
+                              <Typography variant="body2" fontWeight="bold">
+                                {record.employeeName}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                ID: {record.employeeId}
+                              </Typography>
+                            </Stack>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{record.courseName}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={record.trainingType} 
+                              size="small" 
+                              variant="outlined"
+                              sx={{ fontWeight: 'bold' }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{record.duration} hrs</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={record.status} 
+                              size="small" 
+                              color={
+                                record.status === 'Completed' ? 'success' : 
+                                record.status === 'In Progress' ? 'warning' : 
+                                record.status === 'Scheduled' ? 'info' : 'default'
+                              }
+                              variant="filled"
+                              sx={{ fontWeight: 'bold' }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{record.provider}</Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Button 
+                              variant="outlined" 
+                              size="small" 
+                              startIcon={<FileText size={16}/>}
+                            >
+                              View Details
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+              
+              {filteredTraining.length === 0 && (
+                <Typography textAlign="center" color="text.secondary" py={4}>
+                  No training records found
+                </Typography>
+              )}
+            </Box>
+          )}
+
+          {/* Evaluations Tab */}
+          {activeTab === 6 && (
+            <Box>
+              <Box display="flex" justifyContent="space-between" mb={3}>
+                <Typography variant="h6">Employee Evaluations</Typography>
+                <Button variant="contained" startIcon={<Plus size={16} />}>New Evaluation</Button>
+              </Box>
+              
+              <Grid container spacing={2} mb={3}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h4" color="primary" fontWeight="bold">
+                        {evaluationForms.length}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Evaluations
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h4" color="success.main" fontWeight="bold">
+                        {evaluationForms.filter(e => e.status === 'Approved').length}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Approved
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h4" color="warning.main" fontWeight="bold">
+                        {evaluationForms.filter(e => e.status === 'Submitted').length}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Pending Review
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h4" color="info.main" fontWeight="bold">
+                        {evaluationForms.reduce((sum, e) => sum + e.overallRating, 0) / evaluationForms.length || 0}%
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Avg Rating
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+
+              <Paper variant="outlined" sx={{ borderRadius: 3 }}>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: 'slate.50' }}>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Employee</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Evaluator</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Period</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Rating</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Status</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Next Review</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredEvaluations.map(form => (
+                        <TableRow key={form.id} hover>
+                          <TableCell>
+                            <Stack direction="column" spacing={0.5}>
+                              <Typography variant="body2" fontWeight="bold">
+                                {form.employeeName}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                ID: {form.employeeId}
+                              </Typography>
+                            </Stack>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{form.evaluator}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{form.period}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={`${form.overallRating}%`} 
+                              size="small" 
+                              color={form.overallRating >= 80 ? 'success' : form.overallRating >= 60 ? 'warning' : 'error'}
+                              variant="filled"
+                              sx={{ fontWeight: 'bold' }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={form.status} 
+                              size="small" 
+                              color={
+                                form.status === 'Approved' ? 'success' : 
+                                form.status === 'Submitted' ? 'warning' : 'default'
+                              }
+                              variant="filled"
+                              sx={{ fontWeight: 'bold' }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{new Date(form.nextReviewDate).toLocaleDateString()}</Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Stack direction="row" spacing={1}>
+                              <Button 
+                                variant="outlined" 
+                                size="small" 
+                                startIcon={<FileText size={16}/>}
+                              >
+                                View Form
+                              </Button>
+                              {form.status === 'Submitted' && (
+                                <Button 
+                                  variant="contained" 
+                                  size="small" 
+                                  color="success"
+                                  startIcon={<CheckCircle size={16}/>}
+                                >
+                                  Approve
+                                </Button>
+                              )}
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+              
+              {filteredEvaluations.length === 0 && (
+                <Typography textAlign="center" color="text.secondary" py={4}>
+                  No evaluation forms found
                 </Typography>
               )}
             </Box>
