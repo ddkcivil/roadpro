@@ -143,21 +143,18 @@ const UserManagement: React.FC = () => {
     }
 
     try {
-      // In a real API, you'd have an updateUser endpoint
-      // For now, we'll just update local state
-      const updatedUsers = users.map(user => 
-        user.id === editingUser.id 
-          ? { 
-              ...user, 
-              name: editingUser.name,
-              email: editingUser.email,
-              phone: editingUser.phone,
-              role: editingUser.role,
-              avatar: editingUser.avatar
-            } 
-          : user
+      const updatedUser = await apiService.updateUser(editingUser.id, {
+        name: editingUser.name,
+        email: editingUser.email,
+        phone: editingUser.phone,
+        role: editingUser.role
+      });
+
+      // Update local state
+      const updatedUsers = users.map(user =>
+        user.id === editingUser.id ? updatedUser : user
       );
-      
+
       setUsers(updatedUsers);
       setIsEditModalOpen(false);
       setEditingUser(null);
@@ -171,8 +168,8 @@ const UserManagement: React.FC = () => {
   const removeUser = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
-        // In a real API, you'd have a deleteUser endpoint
-        // For now, we'll just remove from local state
+        await apiService.deleteUser(id);
+        // Update local state
         setUsers(prev => prev.filter(u => u.id !== id));
         alert('User deleted successfully');
       } catch (error: any) {

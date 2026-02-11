@@ -32,16 +32,54 @@ class ApiService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)
       });
-        
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to create user');
       }
-        
+
       const createdUser = await response.json();
       return createdUser;
     } catch (error: any) {
       console.error('Failed to create user:', error);
+      throw error;
+    }
+  }
+
+  async updateUser(id, userData) {
+    try {
+      const response = await fetch(`/api/users/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update user');
+      }
+
+      const updatedUser = await response.json();
+      return updatedUser;
+    } catch (error: any) {
+      console.error('Failed to update user:', error);
+      throw error;
+    }
+  }
+
+  async deleteUser(id) {
+    try {
+      const response = await fetch(`/api/users/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete user');
+      }
+    } catch (error: any) {
+      console.error('Failed to delete user:', error);
       throw error;
     }
   }
