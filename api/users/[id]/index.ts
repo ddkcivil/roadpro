@@ -12,32 +12,37 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       const { id } = req.query;
 
       if (!id || typeof id !== 'string') {
-        return res.status(400).json({ error: 'User ID is required' });
+        res.status(400).json({ error: 'User ID is required' });
+        return;
       }
 
       const { name, email, phone, role } = req.body;
 
       if (!name || !email || !role) {
-        return res.status(400).json({ error: 'Name, email, and role are required' });
+        res.status(400).json({ error: 'Name, email, and role are required' });
+        return;
       }
 
       // Basic email format validation
       if (!/^[\w\.-]+@[\w\.-]+\.[a-zA-Z]{2,}$/.test(email)) {
-        return res.status(400).json({ error: 'Please enter a valid email address.' });
+        res.status(400).json({ error: 'Please enter a valid email address.' });
+        return;
       }
 
       // Find user
       const user = await User.findById(id);
 
       if (!user) {
-        return res.status(404).json({ error: 'User not found' });
+        res.status(404).json({ error: 'User not found' });
+        return;
       }
 
       // Check for email uniqueness if email is being changed
       if (email.toLowerCase() !== user.email.toLowerCase()) {
         const existingUser = await User.findOne({ email: email.toLowerCase() });
         if (existingUser) {
-          return res.status(409).json({ error: 'A user with this email already exists.' });
+          res.status(409).json({ error: 'A user with this email already exists.' });
+          return;
         }
       }
 
@@ -62,14 +67,16 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       const { id } = req.query;
 
       if (!id || typeof id !== 'string') {
-        return res.status(400).json({ error: 'User ID is required' });
+        res.status(400).json({ error: 'User ID is required' });
+        return;
       }
 
       // Delete user
       const user = await User.findByIdAndDelete(id);
 
       if (!user) {
-        return res.status(404).json({ error: 'User not found' });
+        res.status(404).json({ error: 'User not found' });
+        return;
       }
 
       res.status(204).send(''); // 204 No Content for successful deletion

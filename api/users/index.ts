@@ -22,13 +22,15 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       const { name, email, phone, role, password } = req.body;
 
       if (!name || !email || !password) {
-        return res.status(400).json({ error: 'Name, email and password are required' });
+        res.status(400).json({ error: 'Name, email and password are required' });
+        return;
       }
 
       // Check if user already exists
       const existingUser = await User.findOne({ email: email.toLowerCase() });
       if (existingUser) {
-        return res.status(409).json({ error: 'User already exists' });
+        res.status(409).json({ error: 'User already exists' });
+        return;
       }
 
       // Hash password
