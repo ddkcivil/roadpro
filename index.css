@@ -92,64 +92,64 @@ code {
 /* Shadcn UI Theme */
 @layer base {
   :root {
-    --background: 0 0% 100%; /* --white */
-    --foreground: 222 47% 11%; /* --gray-900 */
+    --background: 20 10% 4%; /* Near Black */
+    --foreground: 30 20% 98%; /* Off White */
 
-    --card: 0 0% 100%; /* --white */
-    --card-foreground: 222 47% 11%; /* --gray-900 */
+    --card: 20 10% 6%; /* Slightly lighter black */
+    --card-foreground: 30 20% 98%;
 
-    --popover: 0 0% 100%; /* --white */
-    --popover-foreground: 222 47% 11%; /* --gray-900 */
+    --popover: 20 10% 5%;
+    --popover-foreground: 30 20% 98%;
 
-    --primary: 217 91% 53%; /* --primary */
-    --primary-foreground: 0 0% 100%; /* --white */
+    --primary: 217 91% 60%; /* Vibrant Blue */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 20% 95%; /* --gray-100 */
-    --secondary-foreground: 222 47% 11%; /* --gray-900 */
+    --secondary: 25 40% 30%; /* Deep Brown */
+    --secondary-foreground: 30 20% 98%;
 
-    --muted: 210 20% 95%; /* --gray-100 */
-    --muted-foreground: 218 17% 66%; /* --gray-500 */
+    --muted: 25 20% 15%; /* Muted Dark Brown */
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 210 20% 95%; /* --gray-100 */
-    --accent-foreground: 222 47% 11%; /* --gray-900 */
+    --accent: 217 91% 60%; /* Blue Accent */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%; /* --accent-red */
-    --destructive-foreground: 0 0% 100%; /* --white */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 210 22% 92%; /* --gray-200 */
-    --input: 210 22% 92%; /* --gray-200 */
-    --ring: 217 91% 53%; /* --primary */
+    --border: 25 30% 20%; /* Brownish Border */
+    --input: 25 30% 20%;
+    --ring: 217 91% 60%;
 
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222 47% 11%; /* --gray-900 */
-    --foreground: 0 0% 100%; /* --white */
+    --background: 20 10% 3%;
+    --foreground: 30 20% 98%;
 
-    --card: 215 32% 17%; /* --gray-800 */
-    --card-foreground: 0 0% 100%; /* --white */
+    --card: 20 10% 5%;
+    --card-foreground: 30 20% 98%;
 
-    --popover: 215 32% 17%; /* --gray-800 */
-    --popover-foreground: 0 0% 100%; /* --white */
+    --popover: 20 10% 4%;
+    --popover-foreground: 30 20% 98%;
 
-    --primary: 217 91% 53%; /* --primary */
-    --primary-foreground: 0 0% 100%; /* --white */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 214 27% 27%; /* --gray-700 */
-    --secondary-foreground: 0 0% 100%; /* --white */
+    --secondary: 25 40% 25%;
+    --secondary-foreground: 30 20% 98%;
 
-    --muted: 214 27% 27%; /* --gray-700 */
-    --muted-foreground: 216 14% 66%; /* --gray-400 */
+    --muted: 25 20% 12%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 214 27% 27%; /* --gray-700 */
-    --accent-foreground: 0 0% 100%; /* --white */
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%; /* --accent-red */
-    --destructive-foreground: 0 0% 100%; /* --white */
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 30 20% 98%;
 
-    --border: 215 22% 34%; /* --gray-600 */
-    --input: 215 22% 34%; /* --gray-600 */
-    --ring: 217 91% 53%; /* --primary */
+    --border: 25 30% 15%;
+    --input: 25 30% 15%;
+    --ring: 217 91% 60%;
   }
 }

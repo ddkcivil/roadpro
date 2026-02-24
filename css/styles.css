@@ -3,20 +3,21 @@
 
 :root {
   /* Primary Color Palette */
-  --brand-primary: #2563eb;
+  --brand-primary: #3b82f6; /* Blue */
   --brand-primary-dark: #1d4ed8;
-  --brand-primary-light: #3b82f6;
-  --brand-primary-glow: #60a5fa;
+  --brand-primary-light: #60a5fa;
+  --brand-primary-glow: #93c5fd;
   
-  /* Secondary Colors */
-  --brand-secondary: #0f172a;
-  --brand-secondary-dark: #020617;
-  --brand-secondary-light: #1e293b;
+  /* Secondary Colors (Black) */
+  --brand-secondary: #0a0a0a;
+  --brand-secondary-dark: #000000;
+  --brand-secondary-light: #1a1a1a;
   
-  /* Accent Colors */
+  /* Accent Colors (Brown) */
   --brand-accent-green: #10b981;
   --brand-accent-yellow: #f59e0b;
   --brand-accent-red: #ef4444;
+  --brand-accent-brown: #8b4513;
   --brand-accent-purple: #8b5cf6;
   
   /* Neutrals */
@@ -36,7 +37,7 @@
   --brand-status-completed: #22c55e;
   --brand-status-in-progress: #f59e0b;
   --brand-status-pending: #ef4444;
-  --brand-status-on-hold: #8b5cf6;
+  --brand-status-on-hold: #8b4513; /* Brown */
   
   /* Shadows & Effects */
   --brand-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
