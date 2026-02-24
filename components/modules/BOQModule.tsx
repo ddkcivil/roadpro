@@ -55,12 +55,24 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
     const [compactView, setCompactView] = useState(false);
     
     const [newVO, setNewVO] = useState<Partial<VariationOrder>>({
-        voNumber: `VO-${(project.variationOrders?.length || 0) + 1}`,
+        voNumber: `VO-${((project?.variationOrders || [])?.length || 0) + 1}`,
         title: '',
         date: new Date().toISOString().split('T')[0],
         items: [],
         reason: ''
     });
+
+    if (!project) {
+        return (
+            <div className="p-8 text-center">
+                <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>Project data not available. Please select a project first.</AlertDescription>
+                </Alert>
+            </div>
+        );
+    }
     
     const [tempVOItem, setTempVOItem] = useState<Partial<VariationItem>>({
         description: '', unit: '', quantityDelta: 0, rate: 0, isNewItem: false
@@ -70,7 +82,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
 
     const handleExportCSV = () => {
         const headers = ["Item No", "Description", "Unit", "Contract Qty", "Rate", "Completed Qty", "Total Value"];
-        const rows = project.boq.map(item => [
+        const rows = (project?.boq || []).map(item => [
             item.itemNo,
             `"${item.description.replace(/"/g, '"')}"`,
             item.unit,
