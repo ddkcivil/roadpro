@@ -1,14 +1,20 @@
+import tailwindAnimate from "tailwindcss-animate";
+
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
   darkMode: ["class"],
   content: [
-    './pages/**/*.{ts,tsx}',
-    './components/**/*.{ts,tsx}',
-    './app/**/*.{ts,tsx}',
-    './src/**/*.{ts,tsx}',
     "./index.html",
-    "./*.{js,ts,jsx,tsx}"
-	],
+    "./index.tsx",
+    "./App.tsx",
+    "./components/**/*.{js,ts,jsx,tsx}",
+    "./api/**/*.{js,ts,jsx,tsx}",
+    "./services/**/*.{js,ts,jsx,tsx}",
+    "./utils/**/*.{js,ts,jsx,tsx}",
+    "./contexts/**/*.{js,ts,jsx,tsx}",
+    "./types/**/*.{js,ts,jsx,tsx}",
+    "./types.ts"
+  ],
   theme: {
     container: {
       center: true,
@@ -19,21 +25,6 @@ module.exports = {
     },
     extend: {
       colors: {
-        'dark-blue': {
-          DEFAULT: '#1A2B3C',
-          light: '#2C4257',
-          dark: '#0A1B2C',
-        },
-        'black': {
-          DEFAULT: '#000000',
-          light: '#333333',
-          dark: '#000000',
-        },
-        'brown': {
-          DEFAULT: '#8B4513',
-          light: '#A0522D',
-          dark: '#6B370D',
-        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -69,22 +60,18 @@ module.exports = {
         },
       },
       borderRadius: {
-        lg: "var(--radius-lg)",
-        md: "var(--radius-md)",
-        sm: "var(--radius-sm)",
-        xl: "var(--radius-xl)",
-        "2xl": "var(--radius-2xl)",
-        "3xl": "var(--radius-3xl)",
-        full: "var(--radius-full)",
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
         "accordion-down": {
-          from: { height: 0 },
+          from: { height: "0" },
           to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
           from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: 0 },
+          to: { height: "0" },
         },
       },
       animation: {
@@ -93,5 +80,5 @@ module.exports = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
-}
+  plugins: [tailwindAnimate],
+};
