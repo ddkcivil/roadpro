@@ -824,6 +824,10 @@ export interface AppSettings {
   dateFormat?: string;
   backupEnabled?: boolean;
   backupFrequency?: string;
+  theme?: string; // Added for Appearance tab
+  compactMode?: boolean; // Added for Appearance tab
+  minPasswordLength?: number; // Added for Security tab
+  dashboardDefaultView?: string; // Added for Dashboard tab
   notifications: {
     enableEmail: boolean;
     enableInApp: boolean;

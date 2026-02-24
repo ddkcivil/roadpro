@@ -460,8 +460,8 @@ const SettingsModule: React.FC<Props> = ({ settings, onUpdate }) => {
                       <div>
                           <Label htmlFor="theme" className="mb-2 block">Theme</Label>
                           <Select
-                              value="light"
-                              onValueChange={(value) => console.log("Theme changed to:", value)} // Placeholder for actual state update
+                              value={formData.theme || "light"}
+                              onValueChange={(value) => setFormData({...formData, theme: value})}
                           >
                               <SelectTrigger id="theme">
                                   <SelectValue placeholder="Select theme" />
@@ -486,7 +486,11 @@ const SettingsModule: React.FC<Props> = ({ settings, onUpdate }) => {
                   <h6 className="text-lg font-bold mb-4 text-primary mt-6">Display Options</h6>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="flex items-center space-x-2">
-                          <Switch id="compact-mode" defaultChecked /> 
+                          <Switch 
+                              id="compact-mode"
+                              checked={formData.compactMode || false} 
+                              onCheckedChange={(checked) => setFormData({...formData, compactMode: checked})} 
+                          /> 
                           <Label htmlFor="compact-mode">Compact Mode</Label>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -536,7 +540,8 @@ const SettingsModule: React.FC<Props> = ({ settings, onUpdate }) => {
                           <Input 
                               id="min-password-length"
                               type="number"
-                              value={8} 
+                              value={formData.minPasswordLength || 8} 
+                              onChange={(e) => setFormData({...formData, minPasswordLength: parseInt(e.target.value) || 0})} 
                           />
                       </div>
                       <div className="flex items-center space-x-2">
@@ -685,8 +690,8 @@ const SettingsModule: React.FC<Props> = ({ settings, onUpdate }) => {
                       <div>
                           <Label htmlFor="default-view" className="mb-2 block">Default View</Label>
                           <Select
-                              value="grid"
-                              onValueChange={(value) => console.log("Default view changed to:", value)} // Placeholder for actual state update
+                              value={formData.dashboardDefaultView || "grid"}
+                              onValueChange={(value) => setFormData({...formData, dashboardDefaultView: value})}
                           >
                               <SelectTrigger id="default-view">
                                   <SelectValue placeholder="Select view" />

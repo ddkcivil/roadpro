@@ -180,28 +180,10 @@ const App: React.FC = () => {
   }, [themeMode]);
 
 
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    // Check if user was previously authenticated
-    const authState = localStorage.getItem('roadmaster-authenticated') === 'true';
-    console.log('Initial isAuthenticated state:', authState);
-    return authState;
-  });
-  const [userRole, setUserRole] = useState<UserRole>(() => {
-    const savedRole = localStorage.getItem('roadmaster-user-role');
-    const role = savedRole ? savedRole as UserRole : UserRole.PROJECT_MANAGER;
-    console.log('Initial userRole state:', role);
-    return role;
-  });
-  const [userName, setUserName] = useState(() => {
-    const name = localStorage.getItem('roadmaster-user-name') || 'Guest';
-    console.log('Initial userName state:', name);
-    return name;
-  });
-  const [currentUserId, setCurrentUserId] = useState<string>(() => {
-    const userId = localStorage.getItem('roadmaster-current-user-id') || 'u2';
-    console.log('Initial currentUserId state:', userId);
-    return userId;
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [userRole, setUserRole] = useState<UserRole>(UserRole.ADMIN);
+  const [userName, setUserName] = useState('Admin');
+  const [currentUserId, setCurrentUserId] = useState<string>('admin-001');
 
   // Effect to verify authentication state after component mounts
   useEffect(() => {
@@ -258,41 +240,7 @@ const App: React.FC = () => {
     return projectsData;
   });
   
-  // Load projects from backend, then SQLite, then localStorage on initial render
-  useEffect(() => {
-    const loadProjects = async () => {
-      let fetchedProjects: Project[] = [];
-      let loadedFromBackend = false;
 
-      try {
-        // Attempt to load from backend first
-        console.log('Attempting to fetch projects from backend...');
-        const backendProjects = await apiService.getProjects();
-        if (backendProjects && backendProjects.length > 0) {
-          console.log('Projects fetched from backend:', backendProjects);
-          fetchedProjects = backendProjects;
-          loadedFromBackend = true;
-        } else {
-          console.log('No projects from backend, falling back to local sources.');
-        }
-      } catch (apiError) {
-        console.error('Error fetching projects from backend:', apiError);
-        console.log('Falling back to local sources due to backend error.');
-      }
-
-
-
-      // Update state, localStorage, and cache with the most recent data
-      if (fetchedProjects.length > 0) {
-        setProjects(fetchedProjects);
-        localStorage.setItem('roadmaster-projects', JSON.stringify(fetchedProjects));
-        DataCache.set(getCacheKey('projects'), fetchedProjects, { ttl: 10 * 60 * 1000 });
-
-      }
-    };
-    
-    loadProjects();
-  }, []);
   
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() => {
     // Try to restore the last selected project from localStorage

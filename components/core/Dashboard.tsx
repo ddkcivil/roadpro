@@ -20,11 +20,12 @@ import {
   generateStructuresPDF,
   generateRFIPDF
 } from '../../utils/formatting/pdfUtils';
+import WeatherWidget from './WeatherWidget';
 import { 
   Clock, CheckCircle, TrendingUp, DollarSign, 
   Sun, Wind, Droplets,
   Layers, Sparkles, FileText,
-  FileDown, Settings, GripVertical, ChevronDown, ChevronUp, ShieldCheck
+  FileDown, Settings, GripVertical, ChevronDown, ChevronUp, ShieldCheck, AlertTriangle, Info, Check
 } from 'lucide-react';
 
 import { Button } from '~/components/ui/button';
@@ -98,7 +99,7 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
   const [activeChart, setActiveChart] = useState<'periodic' | 'scumulative'>('scumulative');
 
   const stats = useMemo(() => {
-    if (!project || !project.boq) return { earnedValue: 0, totalPlannedValue: 0, actualCost: 0, spi: 0, cpi: 0, physPercent: 0 };
+    if (!project || !project.boq) return { earnedValue: 0, totalPlannedValue: 0, actualCost: 0, spi: 0, cpi: 0, physPercent: 0, rfiOpen: 0, rfiClosed: 0, rfiOverdue: 0 };
     const totalPlannedValue = project.boq.reduce((acc, item) => acc + (item.quantity * item.rate), 0);
     const earnedValue = project.boq.reduce((acc, item) => acc + (item.completedQuantity * item.rate), 0);
     const actualCost = (project.subcontractorPayments || []).reduce((acc, p) => acc + p.amount, 0);
@@ -110,7 +111,10 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
     const actualProgress = totalPlannedValue > 0 ? (earnedValue / totalPlannedValue) : 0;
     const spi = expectedProgress > 0 ? actualProgress / expectedProgress : 1;
     const cpi = actualCost > 0 ? earnedValue / actualCost : 1;
-    return { earnedValue, totalPlannedValue, actualCost, spi, cpi, physPercent: actualProgress * 100 };
+    const rfiOpen = (project.rfis || []).filter(rfi => rfi.status === RFIStatus.OPEN).length;
+    const rfiClosed = (project.rfis || []).filter(rfi => rfi.status === RFIStatus.CLOSED).length;
+    const rfiOverdue = (project.rfis || []).filter(rfi => rfi.status === RFIStatus.OPEN && new Date(rfi.date) < new Date()).length;
+    return { earnedValue, totalPlannedValue, actualCost, spi, cpi, physPercent: actualProgress * 100, rfiOpen, rfiClosed, rfiOverdue };
   }, [project]);
 
   const sCurveData = useMemo(() => {
@@ -258,6 +262,7 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
             <StatCard title="Cost Perf. Index (CPI)" value={stats.cpi.toFixed(2)} icon={DollarSign} color="#10b981" trend="+0.8%" />
             <StatCard title="Total Earned Value" value={`${currency}${(stats.earnedValue / 1000000).toFixed(1)}M`} icon={TrendingUp} color="#6366f1" />
             <StatCard title="Physical Progress" value={`${stats.physPercent.toFixed(0)}%`} icon={CheckCircle} color="#8b5cf6" trend="+1.2%" />
+            
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
@@ -330,6 +335,41 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
                     </ResponsiveContainer>
                 </CardContent>
             </Card>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div className="lg:col-span-3">
+            <WeatherWidget />
+          </div>
+          <div className="lg:col-span-9">
+            <Card>
+              <CardHeader>
+                <CardTitle>RFI Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="flex items-center">
+                  <Info className="w-6 h-6 text-blue-500 mr-4" />
+                  <div>
+                    <p className="text-2xl font-bold">{stats.rfiOpen}</p>
+                    <p className="text-xs text-muted-foreground">Open</p>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <AlertTriangle className="w-6 h-6 text-yellow-500 mr-4" />
+                  <div>
+                    <p className="text-2xl font-bold">{stats.rfiOverdue}</p>
+                    <p className="text-xs text-muted-foreground">Overdue</p>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <Check className="w-6 h-6 text-green-500 mr-4" />
+                  <div>
+                    <p className="text-2xl font-bold">{stats.rfiClosed}</p>
+                    <p className="text-xs text-muted-foreground">Closed</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </TooltipProvider>
