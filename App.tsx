@@ -213,7 +213,8 @@ const App: React.FC = () => {
   const [hasSelectedProject, setHasSelectedProject] = useState(false);
   
   // Main app state
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   
@@ -686,55 +687,117 @@ const App: React.FC = () => {
       <NotificationProvider>
         <TooltipProvider>
           <Toaster />
-          <div className="flex min-h-screen bg-background text-foreground">
-            {/* Sidebar */}
+          <div className="flex min-h-screen bg-background text-foreground overflow-hidden">
+            {/* Mobile Sidebar (Sheet) */}
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="fixed top-4 left-4 z-50 lg:hidden">
-                  <MenuIcon className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
               <SheetContent side="left" className="w-64 p-0">
-                <SheetHeader className="p-4">
+                <SheetHeader className="p-4 border-b">
                   <SheetTitle className="flex items-center gap-2">
                     <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
                       <HardHat size={20} strokeWidth={2.5} />
                     </div>
                     RoadMaster<span className="text-indigo-600">.Pro</span>
                   </SheetTitle>
-                  <SheetDescription>Navigation</SheetDescription>
                 </SheetHeader>
                 <ScrollArea className="h-[calc(100vh-140px)]">
-                  <nav className="grid items-start gap-2 p-4 pt-0">
+                  <nav className="grid items-start gap-1 p-4">
                     {navGroups.map(group => (
-                      <div key={group.title}>
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mt-4 mb-2">{group.title}</h3>
+                      <div key={group.title} className="mb-4">
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2 px-2">{group.title}</h3>
                         {group.items.map(item => (
                           <Button
                             key={item.id}
                             variant={activeTab === item.id ? "secondary" : "ghost"}
-                            className="w-full justify-start gap-3 mb-1"
-                            onClick={() => startTransition(() => setActiveTab(item.id))}
+                            className={cn(
+                              "w-full justify-start gap-3 h-9 px-2",
+                              activeTab === item.id && "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                            )}
+                            onClick={() => {
+                              startTransition(() => setActiveTab(item.id));
+                              setSidebarOpen(false);
+                            }}
                           >
-                            <item.icon className="h-4 w-4" />
-                            {item.label}
+                            <item.icon className="h-4 w-4 shrink-0" />
+                            <span className="truncate">{item.label}</span>
                           </Button>
                         ))}
                       </div>
                     ))}
-                    <Separator className="my-2" />
-                    <Button
-                      variant={activeTab === 'settings' ? "secondary" : "ghost"}
-                      className="w-full justify-start gap-3 mb-1"
-                      onClick={() => startTransition(() => setActiveTab('settings'))}
-                    >
-                      <Settings className="h-4 w-4" />
-                      Settings
-                    </Button>
                   </nav>
                 </ScrollArea>
-                <div className="p-4 border-t">
-                  <Button variant="ghost" className="w-full justify-start gap-3 text-red-500" onClick={() => {
+              </SheetContent>
+            </Sheet>
+
+            {/* Desktop Sidebar (Persistent & Collapsible) */}
+            <aside 
+              className={cn(
+                "hidden lg:flex flex-col border-r bg-white transition-all duration-300 ease-in-out shrink-0 h-screen",
+                isSidebarCollapsed ? "w-16" : "w-64"
+              )}
+            >
+              <div className="h-14 flex items-center px-4 border-b shrink-0 overflow-hidden">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shrink-0">
+                    <HardHat size={16} strokeWidth={2.5} />
+                  </div>
+                  {!isSidebarCollapsed && (
+                    <span className="font-bold whitespace-nowrap">RoadMaster<span className="text-indigo-600">.Pro</span></span>
+                  )}
+                </div>
+              </div>
+
+              <ScrollArea className="flex-1">
+                <nav className="p-2 space-y-4">
+                  {navGroups.map(group => (
+                    <div key={group.title}>
+                      {!isSidebarCollapsed ? (
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2 px-2">{group.title}</h3>
+                      ) : (
+                        <Separator className="my-4" />
+                      )}
+                      <div className="space-y-1">
+                        {group.items.map(item => (
+                          <Tooltip key={item.id} delayDuration={0}>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={activeTab === item.id ? "secondary" : "ghost"}
+                                className={cn(
+                                  "w-full justify-start h-9 transition-all",
+                                  isSidebarCollapsed ? "px-0 justify-center" : "gap-3 px-2",
+                                  activeTab === item.id && "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                                )}
+                                onClick={() => startTransition(() => setActiveTab(item.id))}
+                              >
+                                <item.icon className="h-4 w-4 shrink-0" />
+                                {!isSidebarCollapsed && <span className="truncate">{item.label}</span>}
+                              </Button>
+                            </TooltipTrigger>
+                            {isSidebarCollapsed && (
+                              <TooltipContent side="right">
+                                {item.label}
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </nav>
+              </ScrollArea>
+
+              <div className="p-2 border-t mt-auto">
+                <Button 
+                  variant="ghost" 
+                  className={cn("w-full justify-start", isSidebarCollapsed ? "px-0 justify-center" : "gap-3")}
+                  onClick={() => startTransition(() => setActiveTab('settings'))}
+                >
+                  <Settings className="h-4 w-4 shrink-0" />
+                  {!isSidebarCollapsed && <span>Settings</span>}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className={cn("w-full justify-start text-red-500 mt-1", isSidebarCollapsed ? "px-0 justify-center" : "gap-3")}
+                  onClick={() => {
                     AuditService.logLogout(currentUser.id, currentUser.name, selectedProjectId || undefined, currentProject?.name);
                     setIsAuthenticated(false);
                     setUserRole(UserRole.PROJECT_MANAGER);
@@ -744,25 +807,44 @@ const App: React.FC = () => {
                     localStorage.removeItem('roadmaster-user-role');
                     localStorage.removeItem('roadmaster-user-name');
                     localStorage.removeItem('roadmaster-current-user-id');
-                  }}>
-                    <LogOut className="h-4 w-4" /> Logout
-                  </Button>
-                </div>
-              </SheetContent>
-            </Sheet>
+                  }}
+                >
+                  <LogOut className="h-4 w-4 shrink-0" />
+                  {!isSidebarCollapsed && <span>Logout</span>}
+                </Button>
+              </div>
+            </aside>
 
             {/* Main content area */}
-            <div id="main-content" className="flex flex-col flex-1 overflow-auto">
-              <header className="border-b bg-white p-2 flex justify-between items-center h-14 shrink-0">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-lg font-bold">{currentProject?.name || 'No Project Selected'}</h2>
-                  {currentProject?.code && <Badge>{currentProject.code}</Badge>}
-                  <Button variant="outline" size="sm" onClick={() => setSelectedProjectId(null)}>
-                    <LayoutGrid className="mr-2 h-4 w-4" /> Switch Project
+            <div id="main-content" className="flex flex-col flex-1 h-screen overflow-hidden">
+              <header className="border-b bg-white p-2 flex justify-between items-center h-14 shrink-0 z-10">
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="lg:hidden"
+                    onClick={() => setSidebarOpen(true)}
+                  >
+                    <MenuIcon className="h-5 w-5" />
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setIsProjectModalOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" /> New Project
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="hidden lg:flex"
+                    onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                  >
+                    {isSidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
                   </Button>
+                  
+                  <Separator orientation="vertical" className="h-6 mx-2 hidden lg:block" />
+                  
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-sm font-bold truncate max-w-[200px]">{currentProject?.name || 'No Project Selected'}</h2>
+                    {currentProject?.code && <Badge variant="secondary" className="hidden sm:inline-flex">{currentProject.code}</Badge>}
+                    <Button variant="outline" size="sm" className="h-8 hidden sm:flex" onClick={() => setSelectedProjectId(null)}>
+                      <LayoutGrid className="mr-2 h-3 w-3" /> Switch
+                    </Button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Tooltip>
