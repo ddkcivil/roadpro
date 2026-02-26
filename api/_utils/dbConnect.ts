@@ -47,8 +47,8 @@ export interface IProject extends Document {
   code?: string;
   location?: string;
   contractor?: string;
-  startDate?: Date;
-  endDate?: Date;
+  startDate?: any;
+  endDate?: any;
   contractPeriod?: string;
   projectManager?: string;
   supervisor?: string;
@@ -138,8 +138,8 @@ const projectSchema = new Schema<IProject>({
   code: String,
   location: String,
   contractor: String,
-  startDate: Date,
-  endDate: Date,
+  startDate: { type: Schema.Types.Mixed },
+  endDate: { type: Schema.Types.Mixed },
   contractPeriod: String,
   projectManager: String,
   supervisor: String,

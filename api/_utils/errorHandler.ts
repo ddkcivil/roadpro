@@ -15,7 +15,9 @@ export function withErrorHandler(handler: ApiHandler) {
         res.status(500).json({
           error: 'Internal Server Error',
           details: error.message || 'An unexpected error occurred.',
-          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined, // Include stack in dev
+          type: error.name,
+          code: error.code,
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined, 
         });
       }
     }
