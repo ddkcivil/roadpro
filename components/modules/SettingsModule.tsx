@@ -44,8 +44,8 @@ const SettingsModule: React.FC<Props> = ({ settings, onUpdate }) => {
             </Button>
         </div>
         
-        <Card className="rounded-xl overflow-hidden mb-6">
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)}>
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)}>
+          <Card className="rounded-xl overflow-hidden mb-6">
             <TabsList className="grid w-full grid-cols-8 h-auto rounded-none border-b p-0">
               <TabsTrigger value="general" className="rounded-none border-r data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none text-sm font-semibold h-12 flex items-center gap-2">
                 <Settings size={16}/> General
@@ -72,8 +72,7 @@ const SettingsModule: React.FC<Props> = ({ settings, onUpdate }) => {
                 <Activity size={16}/> Dashboard
               </TabsTrigger>
             </TabsList>
-          </Tabs>
-        </Card>
+          </Card>
 
           {/* TAB 0: General */}
           <TabsContent value="general">
@@ -710,6 +709,7 @@ const SettingsModule: React.FC<Props> = ({ settings, onUpdate }) => {
                   </div>                </CardContent>
               </Card>
           </TabsContent>
+        </Tabs>
     </div>
   );
 };

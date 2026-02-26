@@ -74,9 +74,21 @@ interface Props {
 
 const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
   const [activeTab, setActiveTab] = useState("documents");
+
+  if (!project) {
+    return (
+      <div className="p-8 text-center">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>Project data not available. Please select a project first.</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
   
   // === DOCUMENT MANAGEMENT STATE ===
-  const [documents, setDocuments] = useState<ProjectDocument[]>(project.documents || []);
+  const [documents, setDocuments] = useState<ProjectDocument[]>(project?.documents || []);
   const [searchTerm, setSearchTerm] = useState('');
   const [folderFilter, setFolderFilter] = useState('All');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);

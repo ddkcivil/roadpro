@@ -16,7 +16,6 @@ import {
   ChevronLeft,
   ChevronRight,
   CloudCog,
-  CloudOff,
   LayoutGrid,
   Eye,
   Shield,
@@ -40,9 +39,9 @@ import {
   Layers,
   Trees,
   Download,
-  Plus,
-  Landmark,
-  GripVertical,
+  AlertTriangle,
+  RefreshCw,
+  Database,
   Loader2
 } from 'lucide-react';
 import { UserRole, Project, AppSettings, Message, UserWithPermissions, Permission } from './types';
@@ -51,7 +50,6 @@ import { AuditService } from './services/analytics/auditService';
 import { DataCache, getCacheKey } from './utils/data/cacheUtils';
 import { LocalStorageUtils } from './utils/data/localStorageUtils';
 
-import { DataSyncService } from './services/database/dataSyncService';
 import { apiService } from './services/api/apiService';
 import { prepareProjectWithMaterials } from './utils/migration/materialMigrationUtils';
 import { addSkipLink } from './utils/accessibility/a11yUtils';
@@ -74,17 +72,14 @@ import ProjectsList from './components/core/ProjectsList';
 import { Button } from '~/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '~/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '~/components/ui/dropdown-menu';
 import { Toggle } from '~/components/ui/toggle';
 import { Separator } from '~/components/ui/separator';
 import { Badge } from '~/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
-import { Progress } from '~/components/ui/progress';
 import { Toaster, toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { cn } from '~/lib/utils';
 import { ScrollArea } from '~/components/ui/scroll-area';
-import { Dialog } from '~/components/ui/dialog';
+
 
 // Lazy-loaded components - keep as is
 const Dashboard = lazy(() => import('./components/core/Dashboard'));
@@ -250,21 +245,23 @@ const App: React.FC = () => {
   });
   
   // Fetch projects from actual database on mount
+  const fetchProjects = async () => {
+    setIsLoadingProjects(true);
+    setApiError(null);
+    try {
+      const fetchedProjects = await apiService.getProjects();
+      setProjects(fetchedProjects);
+      localStorage.setItem('roadmaster-projects', JSON.stringify(fetchedProjects));
+      DataCache.set(getCacheKey('projects'), fetchedProjects, { ttl: 10 * 60 * 1000 });
+    } catch (error: any) {
+      console.error('Failed to fetch projects from database:', error);
+      setApiError(error.message || 'Failed to connect to the database. Please check your connection and configuration.');
+    } finally {
+      setIsLoadingProjects(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchProjects = async () => {
-      setIsLoadingProjects(true);
-      try {
-        const fetchedProjects = await apiService.getProjects();
-        setProjects(fetchedProjects);
-        localStorage.setItem('roadmaster-projects', JSON.stringify(fetchedProjects));
-        DataCache.set(getCacheKey('projects'), fetchedProjects, { ttl: 10 * 60 * 1000 });
-      } catch (error) {
-        console.error('Failed to fetch projects from database:', error);
-      } finally {
-        setIsLoadingProjects(false);
-      }
-    };
-    
     if (isAuthenticated) {
       fetchProjects();
     }
@@ -314,6 +311,7 @@ const App: React.FC = () => {
   
   const [isSyncing, setIsSyncing] = useState(false);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   
 
 
@@ -572,7 +570,9 @@ const App: React.FC = () => {
       toast.error("Delete Failed", {
         description: `Server responded with: ${errorMsg}`,
       });
-      throw error;
+      // Do not re-throw here to avoid unhandled promise rejections in callers
+      // The UI already informs the user via toast; keep the function resolved.
+      return;
     }
   };
 
@@ -676,16 +676,49 @@ const App: React.FC = () => {
     
   // Render project selection screen if authenticated but no project selected
   if (isAuthenticated && (!selectedProjectId || !currentProject)) {
-    if (isLoadingProjects) {
-      return (
-        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
-          <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-          <p className="text-muted-foreground font-medium">Loading engineering projects...</p>
-        </div>
-      );
-    }
-
-    return (
+        if (isLoadingProjects) {
+          return (
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
+              <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+              <p className="text-muted-foreground font-medium">Loading engineering projects...</p>
+            </div>
+          );
+        }
+    
+        if (apiError) {
+          return (
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+              <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full border border-red-100">
+                <div className="w-20 h-20 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 mx-auto mb-6">
+                  <Database size={40} />
+                </div>
+                <h2 className="text-2xl font-black tracking-tight text-slate-900 mb-2">Connection Error</h2>
+                <p className="text-slate-600 mb-6 font-medium">
+                  We couldn't reach the project database. This usually happens when environment variables are missing or the database is offline.
+                </p>
+                <div className="bg-red-50 text-red-700 p-4 rounded-xl text-xs font-mono mb-8 break-words text-left border border-red-100">
+                  <strong>Error Details:</strong><br/>
+                  {apiError}
+                </div>
+                <div className="flex flex-col gap-3">
+                  <Button size="lg" className="w-full font-bold h-12" onClick={() => fetchProjects()}>
+                    <RefreshCw className="mr-2 h-4 w-4" /> Retry Connection
+                  </Button>
+                  <Button variant="outline" className="w-full font-bold h-12" onClick={() => {
+                    setIsAuthenticated(false);
+                    localStorage.removeItem('roadmaster-authenticated');
+                  }}>
+                    <LogOut className="mr-2 h-4 w-4" /> Sign Out
+                  </Button>
+                </div>
+                <p className="mt-6 text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
+                  Engineering OS • Connectivity Module
+                </p>
+              </div>
+            </div>
+          );
+        }
+          return (
       <I18nProvider>
         <NotificationProvider>
           <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col transition-colors duration-500">
@@ -957,7 +990,7 @@ const App: React.FC = () => {
                   <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
                     {!currentProject && !['about', 'contact', 'user-management', 'user-registration', 'settings'].includes(activeTab) ? (
                       <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                        <AlertTriangle className="h-12 w-12 mb-4 opacity-20" />
+                        <Database className="h-12 w-12 mb-4 opacity-20" />
                         <p className="text-lg font-medium">Project data synchronized. Please wait or re-select.</p>
                         <Button variant="outline" className="mt-4" onClick={() => setSelectedProjectId(null)}>Return to Portfolio</Button>
                       </div>

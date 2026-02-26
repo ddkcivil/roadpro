@@ -97,14 +97,14 @@ const UserManagement: React.FC = () => {
     const duplicate = users.some(u => 
       u.id !== editingUser.id && u.email.toLowerCase() === editingUser.email.toLowerCase()
     );
-    if (duplicate) { alert(`Duplicate: A user with email "${editingUser.email}" already exists.`); return; }
+      if (duplicate) { alert(`Duplicate: A user with email "${(editingUser.email ?? '').toLowerCase()}" already exists.`); return; }
 
     try {
       const updatedUser = await apiService.updateUser(editingUser.id, {
-        name: editingUser.name,
-        email: editingUser.email,
-        phone: editingUser.phone,
-        role: editingUser.role
+          name: (editingUser.name ?? '').toString(),
+          email: (editingUser.email ?? '').toString(),
+          phone: editingUser.phone ?? '',
+          role: editingUser.role
       });
 
       const updatedUsers = users.map(user =>
@@ -160,18 +160,18 @@ const UserManagement: React.FC = () => {
       const newUser = await apiService.approveRegistration(pendingUser.id);
       setUsers(prev => [...prev, newUser]);
       setPendingUsers(prev => prev.filter((u: any) => u.id !== pendingUser.id));
-      alert(`User ${pendingUser.name} has been approved and added to the system.`);
+      alert(`User ${pendingUser?.name ?? 'user'} has been approved and added to the system.`);
     } catch (error: any) {
       alert(error.message || 'Failed to approve user');
     }
   };
   
   const rejectUser = async (pendingUser: any) => {
-    if (window.confirm(`Are you sure you want to reject ${pendingUser.name}'s registration?`)) {
+    if (window.confirm(`Are you sure you want to reject ${pendingUser?.name ?? 'this user'}'s registration?`)) {
       try {
         await apiService.rejectRegistration(pendingUser.id);
         setPendingUsers(prev => prev.filter((u: any) => u.id !== pendingUser.id));
-        alert(`User ${pendingUser.name}'s registration has been rejected.`);
+        alert(`User ${pendingUser?.name ?? 'The user'}'s registration has been rejected.`);
       } catch (error: any) {
         alert(error.message || 'Failed to reject user');
       }
@@ -243,17 +243,17 @@ const UserManagement: React.FC = () => {
                                     <TableCell>
                                         <div className="flex items-center gap-2">
                                             <Avatar>
-                                                <AvatarImage src={user.avatar} />
-                                                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                                              <AvatarImage src={user.avatar} />
+                                              <AvatarFallback>{user?.name ? user.name.charAt(0) : 'U'}</AvatarFallback>
                                             </Avatar>
                                             <div>
-                                                <p className="font-semibold">{user.name}</p>
-                                                <p className="text-xs text-muted-foreground">Registered: {new Date(user.createdAt).toLocaleDateString()}</p>
+                                                <p className="font-semibold">{user.name ?? 'Unknown'}</p>
+                                                <p className="text-xs text-muted-foreground">Registered: {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</p>
                                             </div>
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge className={getUserRoleColor(user.requestedRole)}>{user.requestedRole}</Badge>
+                                      <Badge className={getUserRoleColor(user.requestedRole)}>{user.requestedRole ?? '-'}</Badge>
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-1">
@@ -298,10 +298,10 @@ const UserManagement: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <Avatar>
                             <AvatarImage src={user.avatar} />
-                            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                            <AvatarFallback>{user?.name ? user.name.charAt(0) : 'U'}</AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-semibold">{user.name}</p>
+                            <p className="font-semibold">{user.name ?? 'Unknown'}</p>
                             <Badge className={getUserRoleColor(user.role)}>{user.role}</Badge>
                           </div>
                         </div>
@@ -409,7 +409,7 @@ const UserManagement: React.FC = () => {
                     <div className="flex items-center gap-4">
                       <Avatar className="w-16 h-16">
                         <AvatarImage src={previewUrl || editingUser.avatar || undefined} />
-                        <AvatarFallback>{editingUser.name.charAt(0)}</AvatarFallback>
+                        <AvatarFallback>{editingUser?.name ? editingUser.name.charAt(0) : 'U'}</AvatarFallback>
                       </Avatar>
                       <div className="grid gap-1">
                         <Button variant="outline" size="sm" asChild>
@@ -429,11 +429,11 @@ const UserManagement: React.FC = () => {
 
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="edit-name" className="text-right">Full Name</Label>
-                      <Input id="edit-name" value={editingUser.name} onChange={e => setEditingUser({...editingUser, name: e.target.value})} className="col-span-3" />
+                      <Input id="edit-name" value={editingUser.name ?? ''} onChange={e => setEditingUser({...editingUser, name: e.target.value})} className="col-span-3" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="edit-email" className="text-right">Email</Label>
-                      <Input id="edit-email" type="email" value={editingUser.email} onChange={e => setEditingUser({...editingUser, email: e.target.value})} className="col-span-3" />
+                      <Input id="edit-email" type="email" value={editingUser.email ?? ''} onChange={e => setEditingUser({...editingUser, email: e.target.value})} className="col-span-3" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="edit-phone" className="text-right">Phone</Label>

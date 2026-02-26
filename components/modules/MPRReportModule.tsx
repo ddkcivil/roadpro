@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Select as ShadcnSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Table as ShadcnTable, TableBody as ShadcnTableBody, TableCell as ShadcnTableCell, TableHead as ShadcnTableHead, TableHeader as ShadcnTableHeader, TableRow as ShadcnTableRow } from '../ui/table';
-import { Tabs as ShadcnTabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Alert as ShadcnAlert, AlertDescription } from '../ui/alert';
-import { Badge } from '../ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Separator } from '../ui/separator';
+import { Button } from '~/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '~/components/ui/dialog';
+import { Input } from '~/components/ui/input';
+import { Label } from '~/components/ui/label';
+import { Select as ShadcnSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
+import { Table as ShadcnTable, TableBody as ShadcnTableBody, TableCell as ShadcnTableCell, TableHead as ShadcnTableHead, TableHeader as ShadcnTableHeader, TableRow as ShadcnTableRow } from '~/components/ui/table';
+import { Tabs as ShadcnTabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
+import { Alert as ShadcnAlert, AlertDescription } from '~/components/ui/alert';
+import { Badge } from '~/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
+import { Separator } from '~/components/ui/separator';
 
 import {
   FileText, Calendar, Users, HardHat, FileSpreadsheet, TrendingUp,

@@ -2,13 +2,13 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Bot, Send, Paperclip, Zap, Image as ImageIcon, Video, Loader2, Sparkles, FileText } from 'lucide-react';
 import { chatWithGemini, ChatMessage } from '../../services/ai/geminiService';
 import { Project } from '../../types';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Avatar, AvatarFallback } from '../ui/avatar';
-import { Badge } from '../ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { Switch } from '../ui/switch';
-import { Label } from '../ui/label';
+import { Button } from '~/components/ui/button';
+import { Input } from '~/components/ui/input';
+import { Avatar, AvatarFallback } from '~/components/ui/avatar';
+import { Badge } from '~/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
+import { Switch } from '~/components/ui/switch';
+import { Label } from '~/components/ui/label';
 
 interface Props {
   project: Project;
