@@ -43,6 +43,18 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [taskFilter, setTaskFilter] = useState<string>('all');
     const [tabIndex, setTabIndex] = useState("0"); // Use string for Shadcn Tabs value
+
+    if (!project) {
+        return (
+            <div className="p-8 text-center">
+                <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>Project data not available. Please select a project first.</AlertDescription>
+                </Alert>
+            </div>
+        );
+    }
     
     // Additional fields for RFI form
     const [inspectionTime, setInspectionTime] = useState('');
@@ -72,17 +84,17 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
     const [isChecklistDetailModalOpen, setIsChecklistDetailModalOpen] = useState(false);
 
     const statusCounts = {
-        [RFIStatus.OPEN]: project.rfis.filter(r => r.status === RFIStatus.OPEN).length,
-        [RFIStatus.APPROVED]: project.rfis.filter(r => r.status === RFIStatus.APPROVED).length,
-        [RFIStatus.REJECTED]: project.rfis.filter(r => r.status === RFIStatus.REJECTED).length,
-        [RFIStatus.CLOSED]: project.rfis.filter(r => r.status === RFIStatus.CLOSED).length,
+        [RFIStatus.OPEN]: (project?.rfis || []).filter(r => r.status === RFIStatus.OPEN).length,
+        [RFIStatus.APPROVED]: (project?.rfis || []).filter(r => r.status === RFIStatus.APPROVED).length,
+        [RFIStatus.REJECTED]: (project?.rfis || []).filter(r => r.status === RFIStatus.REJECTED).length,
+        [RFIStatus.CLOSED]: (project?.rfis || []).filter(r => r.status === RFIStatus.CLOSED).length,
     };
 
     const filteredRFIs = useMemo(() => {
-        return [...project.rfis]
+        return [...(project?.rfis || [])]
             .filter(r => taskFilter === 'all' || r.linkedTaskId === taskFilter)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [project.rfis, taskFilter]);
+    }, [project?.rfis, taskFilter]);
 
     // Checklist templates based on the requirements from the RFI document
     const checklistTemplates = [
@@ -1162,159 +1174,156 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                 </div>
             </div>
 
-            <div className="border-b mb-6">
-                <Tabs value={tabIndex} onValueChange={(value) => setTabIndex(value)}>
-                    <TabsList className="grid w-full grid-cols-2 h-auto rounded-none p-0">
-                        <TabsTrigger value="0" className="flex items-center gap-2">
-                          <ClipboardList size={16} /> Checklists
-                        </TabsTrigger>
-                        <TabsTrigger value="1" className="flex items-center gap-2">
-                          <FileText size={16} /> RFI Requests
-                        </TabsTrigger>
-                    </TabsList>
-                </Tabs>
-            </div>
+            <Tabs value={tabIndex} onValueChange={(value) => setTabIndex(value)}>
+                <TabsList className="grid w-full grid-cols-2 h-auto rounded-none p-0 mb-6">
+                    <TabsTrigger value="0" className="flex items-center gap-2 py-3 border-b-2 border-transparent data-[state=active]:border-primary rounded-none">
+                      <ClipboardList size={16} /> Checklists
+                    </TabsTrigger>
+                    <TabsTrigger value="1" className="flex items-center gap-2 py-3 border-b-2 border-transparent data-[state=active]:border-primary rounded-none">
+                      <FileText size={16} /> RFI Requests
+                    </TabsTrigger>
+                </TabsList>
 
-            {tabIndex === "0" && (
-                <div className="space-y-4"> {/* Replaced Box */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 mb-4"> {/* Replaced Grid container */}
-                        <div className="col-span-1"> {/* Replaced Grid item */}
-                            <StatCard title="Total" value={projectChecklists.length} icon={FileText} color="#4f46e5" />
+                <TabsContent value="0">
+                    <div className="space-y-4"> {/* Replaced Box */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 mb-4"> {/* Replaced Grid container */}
+                            <div className="col-span-1"> {/* Replaced Grid item */}
+                                <StatCard title="Total" value={projectChecklists.length} icon={FileText} color="#4f46e5" />
+                            </div>
+                            <div className="col-span-1"> {/* Replaced Grid item */}
+                                <StatCard title="Active" value={projectChecklists.filter(c => c.isActive).length} icon={CheckCircle} color="#10b981" />
+                            </div>
+                            <div className="col-span-1"> {/* Replaced Grid item */}
+                                <StatCard title="Quality" value={projectChecklists.filter(c => c.category === 'Quality').length} icon={ShieldCheck} color="#8b5cf6" />
+                            </div>
+                            <div className="col-span-1"> {/* Replaced Grid item */}
+                                <StatCard title="Safety" value={projectChecklists.filter(c => c.isActive).length} icon={Lock} color="#ef4444" />
+                            </div>
                         </div>
-                        <div className="col-span-1"> {/* Replaced Grid item */}
-                            <StatCard title="Active" value={projectChecklists.filter(c => c.isActive).length} icon={CheckCircle} color="#10b981" />
-                        </div>
-                        <div className="col-span-1"> {/* Replaced Grid item */}
-                            <StatCard title="Quality" value={projectChecklists.filter(c => c.category === 'Quality').length} icon={ShieldCheck} color="#8b5cf6" />
-                        </div>
-                        <div className="col-span-1"> {/* Replaced Grid item */}
-                            <StatCard title="Safety" value={projectChecklists.filter(c => c.isActive).length} icon={Lock} color="#ef4444" />
-                        </div>
-                    </div>
 
-                    <div className="border rounded-xl overflow-hidden bg-background"> {/* Replaced Paper */}
-                        <Table>
-                            <TableHead className="bg-muted"> {/* Replaced sx={{ bgcolor: 'action.hover' }} */}
-                                <TableRow>
-                                    <TableCell className="font-bold">Name</TableCell>
-                                    <TableCell className="font-bold">Category</TableCell>
-                                    <TableCell className="font-bold">Items Count</TableCell>
-                                    <TableCell className="font-bold">Status</TableCell>
-                                    <TableCell className="font-bold">Created</TableCell>
-                                    <TableCell align="right" className="font-bold">Actions</TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {projectChecklists.map((checklist, index) => (
-                                    <TableRow key={checklist.id} className="group hover:bg-muted"> {/* Replaced hover sx */}
-                                        <TableCell className="font-bold">{checklist.name}</TableCell> {/* Replaced Typography */}
-                                        <TableCell>
-                                            <Badge 
-                                                variant="outline"
-                                                className={cn(
-                                                    checklist.category === 'Quality' && 'border-primary text-primary',
-                                                    checklist.category === 'Safety' && 'border-orange-500 text-orange-500', // Assuming warning
-                                                    checklist.category === 'Environmental' && 'border-gray-500 text-gray-500' // Assuming default
-                                                )}
-                                            >
-                                                {checklist.category}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>{checklist.items.length}</TableCell>
-                                        <TableCell>
-                                            <Badge 
-                                                variant="outline"
-                                                className={cn(
-                                                    checklist.isActive ? 'border-green-500 text-green-500' : 'border-gray-500 text-gray-500'
-                                                )}
-                                            >
-                                                {checklist.isActive ? 'Active' : 'Inactive'}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>{new Date(checklist.createdAt).toLocaleDateString()}</TableCell>
-                                        <TableCell align="right">
-                                            <div className="flex space-x-0 justify-end opacity-0 group-hover:opacity-100 transition-opacity"> {/* Replaced Stack */}
-                                                <Button variant="ghost" size="icon" onClick={() => handleEditChecklist(checklist)}><Edit2 size={16}/></Button> {/* Replaced IconButton */}
-                                                <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDeleteChecklist(checklist.id)}><Trash2 size={16}/></Button> {/* Replaced IconButton */}
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                
-                                {checklistTemplates.map((template, index) => (
-                                    <TableRow key={`template-${template.id}`} className="group hover:bg-muted"> {/* Replaced hover sx */}
-                                        <TableCell className="font-bold">{template.name}</TableCell> {/* Replaced Typography */}
-                                        <TableCell>
-                                            <Badge 
-                                                variant="outline"
-                                                className={cn(
-                                                    template.category === 'Quality' && 'border-primary text-primary',
-                                                    template.category === 'Safety' && 'border-orange-500 text-orange-500',
-                                                    template.category === 'Environmental' && 'border-gray-500 text-gray-500'
-                                                )}
-                                            >
-                                                {template.category}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>N/A (Template)</TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className="border-blue-500 text-blue-500"> {/* Replaced color="info" */}
-                                                Template
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>-</TableCell>
-                                        <TableCell align="right">
-                                            <div className="flex space-x-0 justify-end opacity-0 group-hover:opacity-100 transition-opacity"> {/* Replaced Stack */}
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="icon" 
-                                                    onClick={() => {
-                                                        const newChecklist: Checklist = {
-                                                            id: `cl-${Date.now()}`,
-                                                            name: template.name,
-                                                            category: template.category,
-                                                            description: template.description,
-                                                            items: [], 
-                                                            createdAt: new Date().toISOString(),
-                                                            updatedAt: new Date().toISOString(),
-                                                            isActive: true,
-                                                            applicableTo: ['structure', 'task', 'site']
-                                                        };
-                                                        setChecklistFormData(newChecklist);
-                                                        setViewMode('CHECKLIST_UPDATE');
-                                                    }}
-                                                >
-                                                    <Plus size={16}/>
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                
-                                {projectChecklists.length === 0 && checklistTemplates.length === 0 && (
+                        <div className="border rounded-xl overflow-hidden bg-background"> {/* Replaced Paper */}
+                            <Table>
+                                <TableHead className="bg-muted"> {/* Replaced sx={{ bgcolor: 'action.hover' }} */}
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center py-10"> {/* Replaced align, colSpan, sx, Typography */}
-                                            <p className="text-sm text-muted-foreground">No checklists found.</p>
-                                        </TableCell>
+                                        <TableCell className="font-bold">Name</TableCell>
+                                        <TableCell className="font-bold">Category</TableCell>
+                                        <TableCell className="font-bold">Items Count</TableCell>
+                                        <TableCell className="font-bold">Status</TableCell>
+                                        <TableCell className="font-bold">Created</TableCell>
+                                        <TableCell align="right" className="font-bold">Actions</TableCell>
                                     </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
+                                </TableHead>
+                                <TableBody>
+                                    {projectChecklists.map((checklist, index) => (
+                                        <TableRow key={checklist.id} className="group hover:bg-muted"> {/* Replaced hover sx */}
+                                            <TableCell className="font-bold">{checklist.name}</TableCell> {/* Replaced Typography */}
+                                            <TableCell>
+                                                <Badge 
+                                                    variant="outline"
+                                                    className={cn(
+                                                        checklist.category === 'Quality' && 'border-primary text-primary',
+                                                        checklist.category === 'Safety' && 'border-orange-500 text-orange-500', // Assuming warning
+                                                        checklist.category === 'Environmental' && 'border-gray-500 text-gray-500' // Assuming default
+                                                    )}
+                                                >
+                                                    {checklist.category}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>{checklist.items.length}</TableCell>
+                                            <TableCell>
+                                                <Badge 
+                                                    variant="outline"
+                                                    className={cn(
+                                                        checklist.isActive ? 'border-green-500 text-green-500' : 'border-gray-500 text-gray-500'
+                                                    )}
+                                                >
+                                                    {checklist.isActive ? 'Active' : 'Inactive'}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>{new Date(checklist.createdAt).toLocaleDateString()}</TableCell>
+                                            <TableCell align="right">
+                                                <div className="flex space-x-0 justify-end opacity-0 group-hover:opacity-100 transition-opacity"> {/* Replaced Stack */}
+                                                    <Button variant="ghost" size="icon" onClick={() => handleEditChecklist(checklist)} aria-label="Edit Checklist"><Edit2 size={16}/></Button> {/* Replaced IconButton */}
+                                                    <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDeleteChecklist(checklist.id)} aria-label="Delete Checklist"><Trash2 size={16}/></Button> {/* Replaced IconButton */}
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                    
+                                    {checklistTemplates.map((template, index) => (
+                                        <TableRow key={`template-${template.id}`} className="group hover:bg-muted"> {/* Replaced hover sx */}
+                                            <TableCell className="font-bold">{template.name}</TableCell> {/* Replaced Typography */}
+                                            <TableCell>
+                                                <Badge 
+                                                    variant="outline"
+                                                    className={cn(
+                                                        template.category === 'Quality' && 'border-primary text-primary',
+                                                        template.category === 'Safety' && 'border-orange-500 text-orange-500',
+                                                        template.category === 'Environmental' && 'border-gray-500 text-gray-500'
+                                                    )}
+                                                >
+                                                    {template.category}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>N/A (Template)</TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline" className="border-blue-500 text-blue-500"> {/* Replaced color="info" */}
+                                                    Template
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>-</TableCell>
+                                            <TableCell align="right">
+                                                <div className="flex space-x-0 justify-end opacity-0 group-hover:opacity-100 transition-opacity"> {/* Replaced Stack */}
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon" 
+                                                        aria-label="Create from Template"
+                                                        onClick={() => {
+                                                            const newChecklist: Checklist = {
+                                                                id: `cl-${Date.now()}`,
+                                                                name: template.name,
+                                                                category: template.category,
+                                                                description: template.description,
+                                                                items: [], 
+                                                                createdAt: new Date().toISOString(),
+                                                                updatedAt: new Date().toISOString(),
+                                                                isActive: true,
+                                                                applicableTo: ['structure', 'task', 'site']
+                                                            };
+                                                            setChecklistFormData(newChecklist);
+                                                            setViewMode('CHECKLIST_UPDATE');
+                                                        }}
+                                                    >
+                                                        <Plus size={16}/>
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                    
+                                    {projectChecklists.length === 0 && checklistTemplates.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center py-10"> {/* Replaced align, colSpan, sx, Typography */}
+                                                <p className="text-sm text-muted-foreground">No checklists found.</p>
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        
+                        <div className="mt-3 flex justify-end"> {/* Replaced Box */}
+                            <Button 
+                                onClick={handleCreateChecklist}
+                                className="rounded-md shadow-md"
+                            >
+                                <Plus className="mr-2" />Create New Checklist
+                            </Button>
+                        </div>
                     </div>
-                    
-                    <div className="mt-3 flex justify-end"> {/* Replaced Box */}
-                        <Button 
-                            onClick={handleCreateChecklist}
-                            className="rounded-md shadow-md"
-                        >
-                            <Plus className="mr-2" />Create New Checklist
-                        </Button>
-                    </div>
-                </div>
-            )}
+                </TabsContent>
 
-            {tabIndex === "1" && (
-                <>
+                <TabsContent value="1">
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 mb-4"> {/* Replaced Grid container */}
                         <div className="col-span-1"> {/* Replaced Grid item */}
                             <StatCard title="Open" value={statusCounts[RFIStatus.OPEN]} icon={Clock} color="#4f46e5" />
@@ -1385,9 +1394,9 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                                             </TableCell>
                                             <TableCell align="right">
                                                 <div className="flex space-x-0 justify-end"> {/* Replaced Stack */}
-                                                    <Button variant="ghost" size="icon" onClick={() => { setSelectedRfiForDetail(rfi); setIsDetailModalOpen(true); }}><Eye size={16}/></Button> {/* Replaced IconButton */}
-                                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(rfi)}><Edit2 size={16}/></Button> {/* Replaced IconButton */}
-                                                    <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(rfi.id)}><Trash2 size={16}/></Button> {/* Replaced IconButton */}
+                                                    <Button variant="ghost" size="icon" onClick={() => { setSelectedRfiForDetail(rfi); setIsDetailModalOpen(true); }} aria-label="View RFI"><Eye size={16}/></Button> {/* Replaced IconButton */}
+                                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(rfi)} aria-label="Edit RFI"><Edit2 size={16}/></Button> {/* Replaced IconButton */}
+                                                    <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(rfi.id)} aria-label="Delete RFI"><Trash2 size={16}/></Button> {/* Replaced IconButton */}
                                                 </div>
                                             </TableCell>
                                         </TableRow>
@@ -1403,8 +1412,8 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                             </TableBody>
                         </Table>
                     </div>
-                </>
-            )}
+                </TabsContent>
+            </Tabs>
 
             <Dialog open={isDetailModalOpen} onOpenChange={() => setIsDetailModalOpen(false)}> {/* Replaced onClose, maxWidth, fullWidth, PaperProps */}
                 <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0"> {/* Replaced sx */}

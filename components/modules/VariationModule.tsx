@@ -36,14 +36,6 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
     const [selectedVoId, setSelectedVoId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     
-    const [voForm, setVoForm] = useState<Partial<VariationOrder>>({
-        voNumber: `VO-${((project?.variationOrders || [])?.length || 0) + 1}`,
-        title: '',
-        date: new Date().toISOString().split('T')[0],
-        reason: '',
-        items: []
-    });
-
     if (!project) {
         return (
             <div className="p-8 text-center">
@@ -55,6 +47,14 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
             </div>
         );
     }
+
+    const [voForm, setVoForm] = useState<Partial<VariationOrder>>({
+        voNumber: `VO-${((project?.variationOrders || [])?.length || 0) + 1}`,
+        title: '',
+        date: new Date().toISOString().split('T')[0],
+        reason: '',
+        items: []
+    });
 
     const [tempItem, setTempItem] = useState<Partial<VariationItem>>({
         description: '', unit: '', quantityDelta: 0, rate: 0, isNewItem: false

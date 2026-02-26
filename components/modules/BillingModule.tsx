@@ -40,17 +40,6 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
     const [printPreviewOpen, setPrintPreviewOpen] = useState(false);
     const [selectedSheetIds, setSelectedSheetIds] = useState(new Set<string>());
     const [selectedSubcontractorWorkIds, setSelectedSubcontractorWorkIds] = useState(new Set<string>());
-    
-    const [ipcForm, setIpcForm] = useState<Partial<ContractBill>>({
-        billNumber: '',
-        date: new Date().toISOString().split('T')[0],
-        dateOfMeasurement: new Date().toISOString().split('T')[0],
-        orderOfBill: ((project?.contractBills || [])?.length || 0) + 1,
-        items: [],
-        provisionalSum: 0,
-        cpaAmount: 0,
-        liquidatedDamages: 0
-    });
 
     if (!project) {
         return (
@@ -63,6 +52,17 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
             </div>
         );
     }
+    
+    const [ipcForm, setIpcForm] = useState<Partial<ContractBill>>({
+        billNumber: '',
+        date: new Date().toISOString().split('T')[0],
+        dateOfMeasurement: new Date().toISOString().split('T')[0],
+        orderOfBill: ((project?.contractBills || [])?.length || 0) + 1,
+        items: [],
+        provisionalSum: 0,
+        cpaAmount: 0,
+        liquidatedDamages: 0
+    });
     
     const [subcontractorBillForm, setSubcontractorBillForm] = useState<Partial<SubcontractorBill>>({
         billNumber: '',
@@ -365,63 +365,67 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                             <TabsTrigger value="main">Main Contracts ({bills.length})</TabsTrigger>
                             <TabsTrigger value="sub">Subcontractor Bills ({subcontractorBills.length})</TabsTrigger>
                         </TabsList>
+                        
+                        <div className="px-2">
+                            <TabsContent value="main">
+                                {[...bills].reverse().map(b => (
+                                    <Button 
+                                        variant="ghost" 
+                                        className={`w-full justify-start py-6 mb-2 ${selectedIpcId === b.id ? 'bg-accent text-accent-foreground' : ''}`}
+                                        onClick={() => setSelectedIpcId(b.id)} 
+                                        key={b.id}
+                                    >
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-10 h-10 rounded-full bg-secondary text-primary flex items-center justify-center">
+                                                <Receipt className="h-5 w-5"/>
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold">{b.billNumber}</p>
+                                                <p className="text-sm text-green-600 font-bold">{currency}{b.totalAmountPayable.toLocaleString()}</p>
+                                            </div>
+                                        </div>
+                                    </Button>
+                                ))}
+                                {bills.length === 0 && (
+                                    <div className="p-4 text-center text-muted-foreground">
+                                        <History className="mx-auto h-8 w-8 opacity-40 mb-2"/>
+                                        <p className="text-sm">No main contracts billed yet.</p>
+                                    </div>
+                                )}
+                            </TabsContent>
+
+                            <TabsContent value="sub">
+                                {[...subcontractorBills].reverse().map(b => {
+                                    const subcontractor = project.agencies?.find(a => a.id === b.subcontractorId);
+                                    return (
+                                        <Button 
+                                            variant="ghost" 
+                                            className={`w-full justify-start py-6 mb-2 ${selectedSubcontractorBillId === b.id ? 'bg-accent text-accent-foreground' : ''}`}
+                                            onClick={() => setSelectedSubcontractorBillId(b.id)} 
+                                            key={b.id}
+                                        >
+                                            <div className="flex items-center space-x-3">
+                                                <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
+                                                    <FileCheck className="h-5 w-5"/>
+                                                </div>
+                                                <div>
+                                                    <p className="font-semibold">{b.billNumber}</p>
+                                                    <p className="text-xs text-primary">{subcontractor?.name || 'Unknown'}</p>
+                                                    <p className="text-sm text-green-600 font-bold">{currency}{b.netAmount.toLocaleString()}</p>
+                                                </div>
+                                            </div>
+                                        </Button>
+                                    );
+                                })}
+                                {subcontractorBills.length === 0 && (
+                                    <div className="p-4 text-center text-muted-foreground">
+                                        <FileCheck className="mx-auto h-8 w-8 opacity-40 mb-2"/>
+                                        <p className="text-sm">No subcontractor bills created yet.</p>
+                                    </div>
+                                )}
+                            </TabsContent>
+                        </div>
                     </Tabs>
-                    <div className="px-2">
-                        {[...bills].reverse().map(b => (
-                            <Button 
-                                variant="ghost" 
-                                className={`w-full justify-start py-6 mb-2 ${selectedIpcId === b.id ? 'bg-accent text-accent-foreground' : ''}`}
-                                onClick={() => setSelectedIpcId(b.id)} 
-                                key={b.id}
-                            >
-                                <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-10 rounded-full bg-secondary text-primary flex items-center justify-center">
-                                        <Receipt className="h-5 w-5"/>
-                                    </div>
-                                    <div>
-                                        <p className="font-semibold">{b.billNumber}</p>
-                                        <p className="text-sm text-green-600 font-bold">{currency}{b.totalAmountPayable.toLocaleString()}</p>
-                                    </div>
-                                </div>
-                            </Button>
-                        ))}
-                        {bills.length === 0 && (
-                            <div className="p-4 text-center text-muted-foreground">
-                                <History className="mx-auto h-8 w-8 opacity-40 mb-2"/>
-                                <p className="text-sm">No main contracts billed yet.</p>
-                            </div>
-                        )}
-                        <Separator className="my-4" />
-                        <h3 className="text-sm font-bold text-muted-foreground uppercase px-2 mb-2">Subcontractor Bills</h3>
-                        {[...subcontractorBills].reverse().map(b => {
-                            const subcontractor = project.agencies?.find(a => a.id === b.subcontractorId);
-                            return (
-                                <Button 
-                                    variant="ghost" 
-                                    className={`w-full justify-start py-6 mb-2 ${selectedSubcontractorBillId === b.id ? 'bg-accent text-accent-foreground' : ''}`}
-                                    onClick={() => setSelectedSubcontractorBillId(b.id)} 
-                                    key={b.id}
-                                >
-                                    <div className="flex items-center space-x-3">
-                                        <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
-                                            <FileCheck className="h-5 w-5"/>
-                                        </div>
-                                        <div>
-                                            <p className="font-semibold">{b.billNumber}</p>
-                                            <p className="text-xs text-primary">{subcontractor?.name || 'Unknown'}</p>
-                                            <p className="text-sm text-green-600 font-bold">{currency}{b.netAmount.toLocaleString()}</p>
-                                        </div>
-                                    </div>
-                                </Button>
-                            );
-                        })}
-                        {subcontractorBills.length === 0 && (
-                            <div className="p-4 text-center text-muted-foreground">
-                                <FileCheck className="mx-auto h-8 w-8 opacity-40 mb-2"/>
-                                <p className="text-sm">No subcontractor bills created yet.</p>
-                            </div>
-                        )}
-                    </div>
                 </div>
             </Card>
 

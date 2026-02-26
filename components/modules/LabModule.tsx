@@ -74,6 +74,18 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isNcrModalOpen, setIsNcrModalOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+
+  if (!project) {
+    return (
+      <div className="p-8 text-center">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>Project data not available. Please select a project first.</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
   
   const [newTestCategory, setNewTestCategory] = useState<keyof typeof TEST_PROTOCOLS>('Soil');
   const [selectedType, setSelectedType] = useState<any>(null);
@@ -218,224 +230,217 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
         </Card>
       </div>
 
-      <Card>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 h-12">
-            <TabsTrigger value="test-entry">
-              <FlaskConical className="mr-2 h-4 w-4" /> Test Entry
-            </TabsTrigger>
-            <TabsTrigger value="historical-logs">
-              <History className="mr-2 h-4 w-4" /> Historical Logs
-            </TabsTrigger>
-            <TabsTrigger value="material-trends">
-              <TrendingUp className="mr-2 h-4 w-4" /> Material Trends
-            </TabsTrigger>
-          </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-3 h-12">
+          <TabsTrigger value="test-entry">
+            <FlaskConical className="mr-2 h-4 w-4" /> Test Entry
+          </TabsTrigger>
+          <TabsTrigger value="historical-logs">
+            <History className="mr-2 h-4 w-4" /> Historical Logs
+          </TabsTrigger>
+          <TabsTrigger value="material-trends">
+            <TrendingUp className="mr-2 h-4 w-4" /> Material Trends
+          </TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="test-entry" className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Accordion type="single" collapsible defaultValue="item-1" className="col-span-1">
-                <AccordionItem value="item-1">
-                  <AccordionTrigger className="bg-muted/50 px-4 py-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">Sample Context</AccordionTrigger>
-                  <AccordionContent className="p-4 grid gap-4">
-                    <Input label="Batch / Sample ID" placeholder="e.g. CONC/322/2024" value={testForm.sampleId} onChange={e => setTestForm({...testForm, sampleId: e.target.value})} />
-                    <Input label="Chainage / GPS Location" value={testForm.location} onChange={e => setTestForm({...testForm, location: e.target.value})} />
-                    <Select value={testForm.assetId} onValueChange={value => setTestForm({...testForm, assetId: value})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Target Asset" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">General / Alignment</SelectItem>
-                        {(project.structures || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem> )}
-                      </SelectContent>
-                    </Select>
-                    <Select value={testForm.technicianId} onValueChange={value => setTestForm({...testForm, technicianId: value})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Assigned Technician" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(() => {
-                            const savedUsers = localStorage.getItem('roadmaster-users');
-                            const users: User[] = savedUsers ? JSON.parse(savedUsers) : [];
-                            return users.map(u => <SelectItem key={u.id} value={u.id}>{u.name} ({u.role})</SelectItem> );
-                        })()}
-                      </SelectContent>
-                    </Select>
-                    <Input label="Testing Date" type="date" value={testForm.date} onChange={e => setTestForm({...testForm, date: e.target.value})} />
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            
-              <Accordion type="single" collapsible defaultValue="item-1" className="col-span-2">
-                <AccordionItem value="item-1">
-                  <AccordionTrigger className="bg-muted/50 px-4 py-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">Engineering Protocol</AccordionTrigger>
-                  <AccordionContent className="p-4 grid gap-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <Select value={newTestCategory} onValueChange={value => { setNewTestCategory(value as keyof typeof TEST_PROTOCOLS); setSelectedType(null); }}>
+        <TabsContent value="test-entry" className="pt-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Accordion type="single" collapsible defaultValue="item-1" className="col-span-1">
+                  <AccordionItem value="item-1">
+                    <AccordionTrigger className="bg-muted/50 px-4 py-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">Sample Context</AccordionTrigger>
+                    <AccordionContent className="p-4 grid gap-4">
+                      <Input label="Batch / Sample ID" placeholder="e.g. CONC/322/2024" value={testForm.sampleId} onChange={e => setTestForm({...testForm, sampleId: e.target.value})} />
+                      <Input label="Chainage / GPS Location" value={testForm.location} onChange={e => setTestForm({...testForm, location: e.target.value})} />
+                      <Select value={testForm.assetId} onValueChange={value => setTestForm({...testForm, assetId: value})}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Material Class" />
+                          <SelectValue placeholder="Target Asset" />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.keys(TEST_PROTOCOLS).map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem> )}
+                          <SelectItem value="">General / Alignment</SelectItem>
+                          {(project.structures || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem> )}
                         </SelectContent>
                       </Select>
-                      <Select value={selectedType?.name || ''} onValueChange={value => setSelectedType(TEST_PROTOCOLS[newTestCategory].find((t:any) => t.name === value))}>
+                      <Select value={testForm.technicianId} onValueChange={value => setTestForm({...testForm, technicianId: value})}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Test Standard" />
+                          <SelectValue placeholder="Assigned Technician" />
                         </SelectTrigger>
                         <SelectContent>
-                          {(TEST_PROTOCOLS[newTestCategory] as any[]).map(t => <SelectItem key={t.name} value={t.name}>{t.name}</SelectItem> )}
+                          {(() => {
+                              const savedUsers = localStorage.getItem('roadmaster-users');
+                              const users: User[] = savedUsers ? JSON.parse(savedUsers) : [];
+                              return users.map(u => <SelectItem key={u.id} value={u.id}>{u.name} ({u.role})</SelectItem> );
+                          })()}
                         </SelectContent>
                       </Select>
-                    </div>
-                
-                    {selectedType ? (
-                      <div className="grid gap-4">
-                        <Alert>
-                          <ShieldCheck className="h-4 w-4" />
-                          <AlertTitle>Verification Limit</AlertTitle>
-                          <AlertDescription>
-                            For <strong>{selectedType.name}</strong>, the limit is <strong>{selectedType.inverse ? 'Maximum' : 'Minimum'} {selectedType.limit}{selectedType.unit}</strong>.
-                          </AlertDescription>
-                        </Alert>
-                        <div className="grid grid-cols-2 gap-4">
-                          {selectedType.parameters.map((param: string) => (
-                            <Input 
-                              key={param}
-                              label={param}
-                              type="number"
-                              value={testForm.testData[param] || ''}
-                              onChange={e => setTestForm({...testForm, testData: {...testForm.testData, [param]: Number(e.target.value)}})}
-                              suffix={selectedType.unit}
-                            />
-                          ))}
+                      <Input label="Testing Date" type="date" value={testForm.date} onChange={e => setTestForm({...testForm, date: e.target.value})} />
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              
+                <Accordion type="single" collapsible defaultValue="item-1" className="col-span-2">
+                  <AccordionItem value="item-1">
+                    <AccordionTrigger className="bg-muted/50 px-4 py-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">Engineering Protocol</AccordionTrigger>
+                    <AccordionContent className="p-4 grid gap-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <Select value={newTestCategory} onValueChange={value => { setNewTestCategory(value as keyof typeof TEST_PROTOCOLS); setSelectedType(null); }}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Material Class" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.keys(TEST_PROTOCOLS).map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem> )}
+                          </SelectContent>
+                        </Select>
+                        <Select value={selectedType?.name || ''} onValueChange={value => setSelectedType(TEST_PROTOCOLS[newTestCategory].find((t:any) => t.name === value))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Test Standard" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(TEST_PROTOCOLS[newTestCategory] as any[]).map(t => <SelectItem key={t.name} value={t.name}>{t.name}</SelectItem> )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                  
+                      {selectedType ? (
+                        <div className="grid gap-4">
+                          <Alert>
+                            <ShieldCheck className="h-4 w-4" />
+                            <AlertTitle>Verification Limit</AlertTitle>
+                            <AlertDescription>
+                              For <strong>{selectedType.name}</strong>, the limit is <strong>{selectedType.inverse ? 'Maximum' : 'Minimum'} {selectedType.limit}{selectedType.unit}</strong>.
+                            </AlertDescription>
+                          </Alert>
+                          <div className="grid grid-cols-2 gap-4">
+                            {selectedType.parameters.map((param: string) => (
+                              <Input 
+                                key={param}
+                                label={param}
+                                type="number"
+                                value={testForm.testData[param] || ''}
+                                onChange={e => setTestForm({...testForm, testData: {...testForm.testData, [param]: Number(e.target.value)}})}
+                                suffix={selectedType.unit}
+                              />
+                            ))}
+                          </div>
+                          <Button 
+                            size="lg" 
+                            onClick={handleSaveTest} 
+                            disabled={!testForm.sampleId || Object.keys(testForm.testData).length === 0}
+                            className="w-full"
+                          >
+                            <CheckCircle2 className="mr-2 h-4 w-4" /> Certify & Record Result
+                          </Button>
                         </div>
-                        <Button 
-                          size="lg" 
-                          onClick={handleSaveTest} 
-                          disabled={!testForm.sampleId || Object.keys(testForm.testData).length === 0}
-                          className="w-full"
-                        >
-                          <CheckCircle2 className="mr-2 h-4 w-4" /> Certify & Record Result
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Microscope className="mx-auto h-16 w-16 opacity-20 mb-3" />
-                        <p className="font-medium">Select a material and test standard to input field observations.</p>
-                      </div>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="historical-logs" className="p-4">
-            <div className="flex justify-between mb-4 items-center">
-              <div className="relative w-96">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search by ID, location or test type..." 
-                  value={searchTerm} 
-                  onChange={e => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Microscope className="mx-auto h-16 w-16 opacity-20 mb-3" />
+                          <p className="font-medium">Select a material and test standard to input field observations.</p>
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </div>
-              <Button variant="outline">
-                <Filter className="mr-2 h-4 w-4" /> Filter Results
-              </Button>
-            </div>
-            
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Sample / Technical Ref</TableHead>
-                    <TableHead>Test Classification</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Value</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTests.length > 0 ? filteredTests.map(test => (
-                    <TableRow key={test.id}>
-                      <TableCell>
-                        <p className="font-extrabold text-primary font-mono">{test.sampleId}</p>
-                        <p className="text-xs text-muted-foreground">{test.date}</p>
-                      </TableCell>
-                      <TableCell>
-                        <p className="font-bold">{test.testName}</p>
-                        <Badge variant="outline" className="h-4 text-xs font-black uppercase mt-1">{test.category}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-sm">
-                          <MapPin className="h-3 w-3" /> {test.location}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <p className="font-extrabold font-mono">{test.calculatedValue}</p>
-                        <p className="text-xs text-muted-foreground">Req: {test.standardLimit}</p>
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={test.result === 'Pass' ? 'default' : 'destructive'} 
-                          className="font-extrabold text-xs w-20 justify-center"
-                        >
-                          {test.result.toUpperCase()}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {test.result === 'Fail' && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="outline" size="icon" onClick={() => handleInitiateNcr(test)}>
-                                    <AlertTriangle className="h-4 w-4 text-red-600" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Initiate NCR</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                          <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon"><Printer className="h-4 w-4" /></Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )) : (
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="historical-logs" className="pt-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex justify-between mb-4 items-center">
+                <div className="relative w-96">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search by ID, location or test type..." 
+                    value={searchTerm} 
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Button variant="outline">
+                  <Filter className="mr-2 h-4 w-4" /> Filter Results
+                </Button>
+              </div>
+              
+              <div className="rounded-md border overflow-hidden">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
-                        <Beaker className="mx-auto h-12 w-12 text-slate-200 mb-2" />
-                        No test records matching your query.
-                      </TableCell>
+                      <TableHead>Sample / Technical Ref</TableHead>
+                      <TableHead>Test Classification</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Value</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="material-trends" className="p-4">
-            <div className="flex justify-between mb-4 items-center">
-              <div className="relative w-96">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search trends..." 
-                  value={searchTerm} 
-                  onChange={e => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTests.length > 0 ? filteredTests.map(test => (
+                      <TableRow key={test.id}>
+                        <TableCell>
+                          <p className="font-extrabold text-primary font-mono">{test.sampleId}</p>
+                          <p className="text-xs text-muted-foreground">{test.date}</p>
+                        </TableCell>
+                        <TableCell>
+                          <p className="font-bold">{test.testName}</p>
+                          <Badge variant="outline" className="h-4 text-xs font-black uppercase mt-1">{test.category}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1 text-sm">
+                            <MapPin className="h-3 w-3" /> {test.location}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <p className="font-extrabold font-mono">{test.calculatedValue}</p>
+                          <p className="text-xs text-muted-foreground">Req: {test.standardLimit}</p>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={test.result === 'Pass' ? 'default' : 'destructive'} 
+                            className="font-extrabold text-xs w-20 justify-center"
+                          >
+                            {test.result.toUpperCase()}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            {test.result === 'Fail' && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="outline" size="icon" onClick={() => handleInitiateNcr(test)}>
+                                      <AlertTriangle className="h-4 w-4 text-red-600" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Initiate NCR</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon"><Printer className="h-4 w-4" /></Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )) : (
+                      <TableRow>
+                        <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
+                          <Beaker className="mx-auto h-12 w-12 text-slate-200 mb-2" />
+                          No test records matching your query.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
               </div>
-              <Button variant="outline">
-                <Filter className="mr-2 h-4 w-4" /> Filter Trends
-              </Button>
-            </div>
-            
-            <Card className="min-h-[400px] flex items-center justify-center">
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="material-trends" className="pt-4">
+          <Card className="min-h-[400px] flex items-center justify-center">
+            <CardContent>
               <div className="text-center text-muted-foreground">
                 <TrendingUp className="mx-auto h-16 w-16 text-slate-200 mb-4" />
                 <h3 className="text-lg font-bold">Material Performance Analytics</h3>
@@ -443,10 +448,10 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                   Aggregated trends for concrete strength and soil compaction will appear here as more data points are logged.
                 </p>
               </div>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* NCR Dialog */}
       <Dialog open={isNcrModalOpen} onOpenChange={setIsNcrModalOpen}>
