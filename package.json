@@ -12,7 +12,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "vite clean",
-    "build-prod": "npm run build && echo 'Build complete. Ready for deployment to dharmadkunwar.com.np'"
+    "build-prod": "npm run build && echo 'Build complete. Ready for deployment to dharmadkunwar.com.np'",
+    "seed:admin": "node seed-admin.cjs"
   },
   "dependencies": {
     "@google/generative-ai": "0.21.0",
