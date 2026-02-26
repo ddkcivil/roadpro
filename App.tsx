@@ -513,17 +513,17 @@ const App: React.FC = () => {
         backendProject = await apiService.createProject(processedProject);
       }
 
-      setProjects(prev => {
-        const updatedProjects = project.id 
-          ? prev.map(p => p.id === backendProject.id ? backendProject : p)
-          : [...prev, backendProject];
-        
-        localStorage.setItem('roadmaster-projects', JSON.stringify(updatedProjects));
-        DataCache.set(getCacheKey('projects'), updatedProjects, { ttl: 10 * 60 * 1000 }); // 10 minutes
-        
-
-        
-        return updatedProjects;
+      startTransition(() => {
+        setProjects(prev => {
+          const updatedProjects = project.id 
+            ? prev.map(p => p.id === backendProject.id ? backendProject : p)
+            : [...prev, backendProject];
+          
+          localStorage.setItem('roadmaster-projects', JSON.stringify(updatedProjects));
+          DataCache.set(getCacheKey('projects'), updatedProjects, { ttl: 10 * 60 * 1000 }); // 10 minutes
+          
+          return updatedProjects;
+        });
       });
     } catch (error: any) {
       console.error('[ERROR] Failed to save project to backend:', error);
@@ -697,7 +697,7 @@ const App: React.FC = () => {
                 <h1 className="text-lg font-bold text-foreground">RoadMaster<span className="text-primary">.Pro</span></h1>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" onClick={() => setThemeMode(themeMode === 'light' ? 'dark' : 'light')}>
+                <Button variant="ghost" size="icon" onClick={() => startTransition(() => setThemeMode(themeMode === 'light' ? 'dark' : 'light'))}>
                   <Sun className="h-5 w-5" />
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => {
@@ -895,7 +895,7 @@ const App: React.FC = () => {
                     variant="ghost" 
                     size="icon" 
                     className="hidden lg:flex"
-                    onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                    onClick={() => startTransition(() => setIsSidebarCollapsed(!isSidebarCollapsed))}
                   >
                     {isSidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
                   </Button>
@@ -922,13 +922,13 @@ const App: React.FC = () => {
                   <Toggle
                     size="sm"
                     pressed={themeMode === 'dark'} // Control the pressed state based on themeMode
-                    onPressedChange={() => setThemeMode(prevMode => (prevMode === 'light' ? 'dark' : 'light'))}
+                    onPressedChange={() => startTransition(() => setThemeMode(prevMode => (prevMode === 'light' ? 'dark' : 'light')))}
                   >
                     <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                     <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                   </Toggle>
                   <NotificationsBadge />
-                  <Button variant="ghost" size="icon" onClick={() => setIsAIModalOpen(true)}>
+                  <Button variant="ghost" size="icon" onClick={() => startTransition(() => setIsAIModalOpen(true))}>
                     <Bot className="h-5 w-5" />
                   </Button>
                   <Avatar>
@@ -949,7 +949,7 @@ const App: React.FC = () => {
                       </div>
                     ) : (
                       <>
-                        {activeTab === 'dashboard' && <Dashboard project={currentProject!} settings={appSettings} onUpdateProject={onSaveProject} onUpdateSettings={setAppSettings} />}
+                        {activeTab === 'dashboard' && <Dashboard project={currentProject!} settings={appSettings} onUpdateProject={onSaveProject} onUpdateSettings={(s) => startTransition(() => setAppSettings(s))} />}
                         {activeTab === 'about' && <AboutPage />}
                         {activeTab === 'contact' && <ContactPage />}
                         {activeTab === 'user-management' && <UserManagement />}
