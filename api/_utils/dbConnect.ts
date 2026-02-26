@@ -202,15 +202,24 @@ const projectSchema = new Schema<IProject>({
 }, { timestamps: true });
 
 // Create models
-const User: Model<IUser> = mongoose.model<IUser>('User', userSchema);
-const PendingRegistration: Model<IPendingRegistration> = mongoose.model<IPendingRegistration>('PendingRegistration', pendingRegistrationSchema);
-const Project: Model<IProject> = mongoose.model<IProject>('Project', projectSchema);
+const User = mongoose.models.User || mongoose.model<IUser>('User', userSchema);
+const PendingRegistration = mongoose.models.PendingRegistration || mongoose.model<IPendingRegistration>('PendingRegistration', pendingRegistrationSchema);
+const Project = mongoose.models.Project || mongoose.model<IProject>('Project', projectSchema);
+
+let cachedConnection: any = null;
 
 export async function connectToDatabase() {
+  if (cachedConnection) {
+    return { User, PendingRegistration, Project, mongoose };
+  }
+
   try {
-    await mongoose.connect(mongoUri);
+    await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 5000, // Timeout after 5 seconds
+    });
     console.log('MongoDB connection has been established successfully.');
-  return { User, PendingRegistration, Project, mongoose };
+    cachedConnection = true;
+    return { User, PendingRegistration, Project, mongoose };
   } catch (error) {
     console.error('Unable to connect to MongoDB:', error);
     throw error;

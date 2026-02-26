@@ -1,3 +1,3 @@
-import { localStorageApiService } from './localStorageApiService';
+import { realApiService } from './realApiService';
 
-export const apiService = localStorageApiService;
+export const apiService = realApiService;

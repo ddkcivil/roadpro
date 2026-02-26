@@ -180,10 +180,18 @@ const App: React.FC = () => {
   }, [themeMode]);
 
 
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const [userRole, setUserRole] = useState<UserRole>(UserRole.ADMIN);
-  const [userName, setUserName] = useState('Admin');
-  const [currentUserId, setCurrentUserId] = useState<string>('admin-001');
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('roadmaster-authenticated') === 'true';
+  });
+  const [userRole, setUserRole] = useState<UserRole>(() => {
+    return (localStorage.getItem('roadmaster-user-role') as UserRole) || UserRole.SITE_ENGINEER;
+  });
+  const [userName, setUserName] = useState(() => {
+    return localStorage.getItem('roadmaster-user-name') || '';
+  });
+  const [currentUserId, setCurrentUserId] = useState<string>(() => {
+    return localStorage.getItem('roadmaster-current-user-id') || '';
+  });
 
   // Effect to verify authentication state after component mounts
   useEffect(() => {
@@ -240,6 +248,24 @@ const App: React.FC = () => {
     
     return projectsData;
   });
+  
+  // Fetch projects from actual database on mount
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const fetchedProjects = await apiService.getProjects();
+        setProjects(fetchedProjects);
+        localStorage.setItem('roadmaster-projects', JSON.stringify(fetchedProjects));
+        DataCache.set(getCacheKey('projects'), fetchedProjects, { ttl: 10 * 60 * 1000 });
+      } catch (error) {
+        console.error('Failed to fetch projects from database:', error);
+      }
+    };
+    
+    if (isAuthenticated) {
+      fetchProjects();
+    }
+  }, [isAuthenticated]);
   
 
   

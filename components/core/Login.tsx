@@ -78,40 +78,6 @@ const Login: React.FC<Props> = ({ onLogin }) => {
             setMessage({ type: 'destructive', text: authResult.message || 'Invalid email or password.' });
         }
     } catch (error: any) {
-        console.log('API login failed, checking fallback authentication...', error.message);
-        
-        // Check for common fallback credentials
-        if ((email === 'admin' && password === 'admin') || 
-            (email === 'projectmanager' && password === 'projectmanager') ||
-            (email === 'user' && password === 'user')) {
-            
-            let role = UserRole.PROJECT_MANAGER;
-            let name = 'Project Manager';
-            
-            if (email === 'admin') {
-                role = UserRole.ADMIN;
-                name = 'Admin';
-            } else if (email === 'projectmanager') {
-                name = 'Project Manager';
-            } else if (email === 'user') {
-                role = UserRole.SITE_ENGINEER;
-                name = 'User';
-            }
-            
-            const userWithPermissions = PermissionsService.createUserWithPermissions({ 
-                id: `user-${Date.now()}`, 
-                name, 
-                email, 
-                phone: '', 
-                role 
-            });
-            
-            AuditService.logLogin(userWithPermissions.id, userWithPermissions.name);
-            onLogin(role, name);
-            setLoading(false);
-            return;
-        }
-        
         setMessage({ type: 'destructive', text: error.message || 'An error occurred during authentication. Please try again.' });
     } finally {
         setLoading(false);

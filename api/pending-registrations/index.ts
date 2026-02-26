@@ -1,8 +1,8 @@
 // api/pending-registrations/index.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { connectToDatabase } from '../_utils/dbConnect.ts';
-import { generateUniqueId } from '../_utils/uuidUtils.ts';
-import { withErrorHandler } from '../_utils/errorHandler.ts';
+import { connectToDatabase } from '../_utils/dbConnect.js';
+import { generateUniqueId } from '../_utils/uuidUtils.js';
+import { withErrorHandler } from '../_utils/errorHandler.js';
 
 export default withErrorHandler(async function (req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') {

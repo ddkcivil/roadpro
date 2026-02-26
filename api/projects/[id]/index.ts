@@ -1,9 +1,8 @@
 // api/projects/[id]/index.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-import { connectToDatabase } from '../../_utils/dbConnect.ts';
-
-import { withErrorHandler } from '../../_utils/errorHandler.js'; // Adjust path as needed
+import { connectToDatabase } from '../../_utils/dbConnect.js';
+import { withErrorHandler } from '../../_utils/errorHandler.js';
 
 export default withErrorHandler(async function (req: VercelRequest, res: VercelResponse) {
   const { id } = req.query;
