@@ -73,9 +73,9 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
   return (
     <div className="h-[calc(100vh-140px)] flex gap-3">
       <Card className="w-[300px] rounded-3xl flex flex-col overflow-hidden border">
-        <div className="p-6 border-b bg-slate-50">
+        <div className="p-6 border-b bg-muted">
           <h2 className="text-lg font-black">MPR Generator</h2>
-          <p className="text-xs text-slate-500 mb-4">
+          <p className="text-xs text-muted-foreground mb-4">
             Monthly Progress Report
           </p>
 
@@ -102,12 +102,12 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
           <h3 className="text-sm font-bold mb-4">PROJECT STATS</h3>
 
           <div className="grid grid-cols-2 gap-3">
-            <Card className="p-3 text-center bg-slate-50">
-              <p className="text-xs text-slate-500">Planned</p>
+            <Card className="p-3 text-center bg-muted">
+              <p className="text-xs text-muted-foreground">Planned</p>
               <p className="text-lg font-bold">{(physicalProgress.planned * 100).toFixed(1)}%</p>
             </Card>
-            <Card className="p-3 text-center bg-slate-50">
-              <p className="text-xs text-slate-500">Actual</p>
+            <Card className="p-3 text-center bg-muted">
+              <p className="text-xs text-muted-foreground">Actual</p>
               <p className="text-lg font-bold text-green-600">{(physicalProgress.actual * 100).toFixed(1)}%</p>
             </Card>
           </div>
@@ -160,27 +160,27 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
               <Card className="rounded-3xl">
                 <CardContent className="p-6">
                   <h2 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <FileSpreadsheet size={20} className="text-indigo-600" /> Financial Overview
+                    <FileSpreadsheet size={20} className="text-primary" /> Financial Overview
                   </h2>
 
                   <div className="grid grid-cols-3 gap-4 mb-4">
-                    <Card className="p-4 text-center bg-slate-50">
-                      <p className="text-xs text-slate-500">Original</p>
+                    <Card className="p-4 text-center bg-muted">
+                      <p className="text-xs text-muted-foreground">Original</p>
                       <p className="text-lg font-bold">{formatCurrency(financialSummary.original, settings)}</p>
                     </Card>
-                    <Card className="p-4 text-center bg-slate-50">
-                      <p className="text-xs text-slate-500">Variation</p>
+                    <Card className="p-4 text-center bg-muted">
+                      <p className="text-xs text-muted-foreground">Variation</p>
                       <p className="text-lg font-bold">{formatCurrency(financialSummary.variation, settings)}</p>
                     </Card>
-                    <Card className="p-4 text-center bg-slate-50">
-                      <p className="text-xs text-slate-500">Revised</p>
+                    <Card className="p-4 text-center bg-muted">
+                      <p className="text-xs text-muted-foreground">Revised</p>
                       <p className="text-lg font-bold">{formatCurrency(financialSummary.revised, settings)}</p>
                     </Card>
                   </div>
 
                   <div className="mt-4">
-                    <p className="text-xs text-slate-500 mb-2">Progress Value</p>
-                    <Card className="p-4 bg-slate-50">
+                    <p className="text-xs text-muted-foreground mb-2">Progress Value</p>
+                    <Card className="p-4 bg-muted">
                       <p className="text-2xl font-black text-green-600">
                         {formatCurrency(financialSummary.progressValue, settings)}
                       </p>
@@ -192,16 +192,16 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
               <Card className="rounded-3xl">
                 <CardContent className="p-6">
                   <h2 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <TrendingUp size={20} className="text-indigo-600" /> Physical Progress
+                    <TrendingUp size={20} className="text-primary" /> Physical Progress
                   </h2>
 
                   <div className="flex items-center gap-4 mb-4">
                     <div className="flex-1">
-                      <p className="text-xs text-slate-500">Planned vs Actual</p>
+                      <p className="text-xs text-muted-foreground">Planned vs Actual</p>
                       <div className="flex items-center gap-2 mt-2">
                         <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-indigo-600 w-[${physicalProgress.planned * 100}%]"
+                            className="h-full bg-primary w-[${physicalProgress.planned * 100}%]"
                           />
                         </div>
                         <p className="text-xs">{(physicalProgress.planned * 100).toFixed(1)}%</p>
@@ -210,7 +210,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                   </div>
 
                   <div className="mt-4">
-                    <p className="text-xs text-slate-500 mb-2">Key Metrics</p>
+                    <p className="text-xs text-muted-foreground mb-2">Key Metrics</p>
                     <div className="grid grid-cols-2 gap-2">
                       <Card className="p-3 text-center">
                         <p className="text-lg font-bold text-green-600">+12%</p>
@@ -228,23 +228,23 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
               <Card className="rounded-3xl">
                 <CardContent className="p-6">
                   <h2 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <Calendar size={20} className="text-indigo-600" /> Contract & Timeline
+                    <Calendar size={20} className="text-primary" /> Contract & Timeline
                   </h2>
 
                   <div className="grid grid-cols-2 gap-4 mb-4">
-                    <Card className="p-4 bg-slate-50">
-                      <p className="text-xs text-slate-500">Contract Duration</p>
+                    <Card className="p-4 bg-muted">
+                      <p className="text-xs text-muted-foreground">Contract Duration</p>
                       <p className="text-lg font-black">{project.contractPeriod || 'TBD'}</p>
                     </Card>
-                    <Card className="p-4 bg-slate-50">
-                      <p className="text-xs text-slate-500">Elapsed Time</p>
+                    <Card className="p-4 bg-muted">
+                      <p className="text-xs text-muted-foreground">Elapsed Time</p>
                       <p className="text-lg font-black">{(project.schedule.length > 0 ? project.schedule.filter(s => s.status === 'Completed').length / project.schedule.length * 100 : 0).toFixed(1)}%</p>
                     </Card>
                   </div>
 
                   <div className="mt-4">
-                    <p className="text-xs text-slate-500 mb-2">Milestones</p>
-                    <Card className="p-4 bg-slate-50">
+                    <p className="text-xs text-muted-foreground mb-2">Milestones</p>
+                    <Card className="p-4 bg-muted">
                       <p className="text-sm">{project.milestones?.length || 0} Total, {project.milestones?.filter(m => m.status === 'Completed').length || 0} Completed</p>
                     </Card>
                   </div>
@@ -254,21 +254,21 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
               <Card className="rounded-3xl">
                 <CardContent className="p-6">
                   <h2 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <Users size={20} className="text-indigo-600" /> Key Personnel
+                    <Users size={20} className="text-primary" /> Key Personnel
                   </h2>
 
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-bold">Project Manager</span>
-                      <span className="text-xs text-slate-500">{project.projectManager || 'TBD'}</span>
+                      <span className="text-xs text-muted-foreground">{project.projectManager || 'TBD'}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-bold">Engineer</span>
-                      <span className="text-xs text-slate-500">{project.engineer || 'TBD'}</span>
+                      <span className="text-xs text-muted-foreground">{project.engineer || 'TBD'}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-bold">Supervisor</span>
-                      <span className="text-xs text-slate-500">{project.supervisor || 'TBD'}</span>
+                      <span className="text-xs text-muted-foreground">{project.supervisor || 'TBD'}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -277,7 +277,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
               <Card className="rounded-3xl col-span-full">
                 <CardContent className="p-6">
                   <h2 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <BookOpen size={20} className="text-indigo-600" /> Project Summary
+                    <BookOpen size={20} className="text-primary" /> Project Summary
                   </h2>
 
                   <p className="text-sm mb-4">
@@ -302,29 +302,29 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
               <Card className="rounded-3xl">
                 <CardContent className="p-6">
                   <h2 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <FileSignature size={20} className="text-indigo-600" /> Endorsement Sheet
+                    <FileSignature size={20} className="text-primary" /> Endorsement Sheet
                   </h2>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Card className="p-4 bg-slate-50">
-                      <p className="text-xs text-slate-500">Project Manager</p>
+                    <Card className="p-4 bg-muted">
+                      <p className="text-xs text-muted-foreground">Project Manager</p>
                       <p className="text-sm font-bold">{project.projectManager || 'TBD'}</p>
-                      <p className="text-xs text-slate-500">Signature: ________________ Date: {new Date().toLocaleDateString()}</p>
+                      <p className="text-xs text-muted-foreground">Signature: ________________ Date: {new Date().toLocaleDateString()}</p>
                     </Card>
-                    <Card className="p-4 bg-slate-50">
-                      <p className="text-xs text-slate-500">Supervision Consultant</p>
+                    <Card className="p-4 bg-muted">
+                      <p className="text-xs text-muted-foreground">Supervision Consultant</p>
                       <p className="text-sm font-bold">{project.consultantName || 'BDA-BN-UDAYA JV'}</p>
-                      <p className="text-xs text-slate-500">Signature: ________________ Date: {new Date().toLocaleDateString()}</p>
+                      <p className="text-xs text-muted-foreground">Signature: ________________ Date: {new Date().toLocaleDateString()}</p>
                     </Card>
-                    <Card className="p-4 bg-slate-50">
-                      <p className="text-xs text-slate-500">Project Implementation Unit</p>
+                    <Card className="p-4 bg-muted">
+                      <p className="text-xs text-muted-foreground">Project Implementation Unit</p>
                       <p className="text-sm font-bold">{project.clientName || 'PIU'}</p>
-                      <p className="text-xs text-slate-500">Signature: ________________ Date: {new Date().toLocaleDateString()}</p>
+                      <p className="text-xs text-muted-foreground">Signature: ________________ Date: {new Date().toLocaleDateString()}</p>
                     </Card>
-                    <Card className="p-4 bg-slate-50">
-                      <p className="text-xs text-slate-500">Funding Agency Representative</p>
+                    <Card className="p-4 bg-muted">
+                      <p className="text-xs text-muted-foreground">Funding Agency Representative</p>
                       <p className="text-sm font-bold">Asian Development Bank</p>
-                      <p className="text-xs text-slate-500">Signature: ________________ Date: {new Date().toLocaleDateString()}</p>
+                      <p className="text-xs text-muted-foreground">Signature: ________________ Date: {new Date().toLocaleDateString()}</p>
                     </Card>
                   </div>
                 </CardContent>
@@ -337,7 +337,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
               <Card className="rounded-3xl">
                 <CardContent className="p-6">
                   <h2 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <MessageSquare size={20} className="text-indigo-600" /> Issue Register
+                    <MessageSquare size={20} className="text-primary" /> Issue Register
                   </h2>
 
                   <ShadcnTable>
@@ -399,7 +399,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
               <Card className="rounded-3xl">
                 <CardContent className="p-6">
                   <h2 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <Camera size={20} className="text-indigo-600" /> Site Photographs
+                    <Camera size={20} className="text-primary" /> Site Photographs
                   </h2>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -418,7 +418,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                           <p className="text-xs mt-2 truncate">
                             {photo.caption || `Site photo ${idx + 1}`}
                           </p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-muted-foreground">
                             {report.date || 'Unknown date'}
                           </p>
                         </Card>
@@ -489,7 +489,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                       {project.boq.slice(0, 12).map((item, index) => (
                         <div key={index} className="flex-1 flex flex-col items-center">
                           <div
-                            className={`w-full rounded ${item.completedQuantity === item.quantity ? 'bg-green-500' : 'bg-indigo-500'}`}
+                            className={`w-full rounded ${item.completedQuantity === item.quantity ? 'bg-green-500' : 'bg-primary'}`}
                             style={{ height: `${(item.completedQuantity / item.quantity) * 100}%` }}
                             title={`${item.description}: ${(item.completedQuantity / item.quantity) * 100}%`}
                           />
@@ -505,7 +505,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                 <Card className="rounded-3xl">
                   <CardContent className="p-6">
                     <h2 className="text-lg font-black mb-4 flex items-center gap-2">
-                      <Calendar size={20} className="text-indigo-600" /> Pre-Construction Activities
+                      <Calendar size={20} className="text-primary" /> Pre-Construction Activities
                     </h2>
 
                     <ShadcnTable>
@@ -547,22 +547,22 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                   <h2 className="text-lg font-black mb-4">Financial Progress</h2>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <Card className="p-4 text-center bg-slate-50">
-                      <p className="text-xs text-slate-500">Budget Allocated</p>
+                    <Card className="p-4 text-center bg-muted">
+                      <p className="text-xs text-muted-foreground">Budget Allocated</p>
                       <p className="text-xl font-black">{formatCurrency(financialSummary.revised, settings)}</p>
                     </Card>
-                    <Card className="p-4 text-center bg-slate-50">
-                      <p className="text-xs text-slate-500">Expended</p>
+                    <Card className="p-4 text-center bg-muted">
+                      <p className="text-xs text-muted-foreground">Expended</p>
                       <p className="text-xl font-black text-green-600">{formatCurrency(financialSummary.progressValue, settings)}</p>
                     </Card>
-                    <Card className="p-4 text-center bg-slate-50">
-                      <p className="text-xs text-slate-500">Balance</p>
+                    <Card className="p-4 text-center bg-muted">
+                      <p className="text-xs text-muted-foreground">Balance</p>
                       <p className="text-xl font-black text-yellow-600">
                         {formatCurrency(financialSummary.revised - financialSummary.progressValue, settings)}
                       </p>
                     </Card>
-                    <Card className="p-4 text-center bg-slate-50">
-                      <p className="text-xs text-slate-500">Utilization</p>
+                    <Card className="p-4 text-center bg-muted">
+                      <p className="text-xs text-muted-foreground">Utilization</p>
                       <p className="text-xl font-black">
                         {((financialSummary.progressValue / financialSummary.revised) * 100).toFixed(1)}%
                       </p>
@@ -591,7 +591,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
               <Card className="rounded-3xl lg:col-span-2">
                 <CardContent className="p-6">
                   <h2 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <Receipt size={20} className="text-indigo-600" /> Cost Variance Analysis
+                    <Receipt size={20} className="text-primary" /> Cost Variance Analysis
                   </h2>
 
                   <ShadcnTable>
@@ -643,7 +643,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
               <Card className="rounded-3xl">
                 <CardContent className="p-6">
                   <h2 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <Users size={20} className="text-indigo-600" /> Personnel Deployment
+                    <Users size={20} className="text-primary" /> Personnel Deployment
                   </h2>
 
                   <ShadcnTable>
@@ -688,7 +688,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
               <Card className="rounded-3xl">
                 <CardContent className="p-6">
                   <h2 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <HardHat size={20} className="text-indigo-600" /> Equipment Deployment
+                    <HardHat size={20} className="text-primary" /> Equipment Deployment
                   </h2>
 
                   <ShadcnTable>
@@ -717,7 +717,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
               <Card className="rounded-3xl lg:col-span-2">
                 <CardContent className="p-6">
                   <h2 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <ImageIcon size={20} className="text-indigo-600" /> Material Status
+                    <ImageIcon size={20} className="text-primary" /> Material Status
                   </h2>
 
                   <ShadcnTable>
@@ -758,18 +758,18 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
               <Card className="rounded-3xl">
                 <CardContent className="p-6">
                   <h2 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <Shield size={20} className="text-indigo-600" /> Safety Status
+                    <Shield size={20} className="text-primary" /> Safety Status
                   </h2>
 
                   <div className="grid grid-cols-2 gap-4 mb-4">
-                    <Card className="p-4 text-center bg-slate-50">
-                      <p className="text-xs text-slate-500">Active NCRs</p>
+                    <Card className="p-4 text-center bg-muted">
+                      <p className="text-xs text-muted-foreground">Active NCRs</p>
                       <p className="text-3xl font-black text-red-600">
                         {project.ncrs.filter(n => n.status !== 'Closed').length}
                       </p>
                     </Card>
-                    <Card className="p-4 text-center bg-slate-50">
-                      <p className="text-xs text-slate-500">Open RFIs</p>
+                    <Card className="p-4 text-center bg-muted">
+                      <p className="text-xs text-muted-foreground">Open RFIs</p>
                       <p className="text-3xl font-black text-yellow-600">
                         {project.rfis.filter(r => r.status !== RFIStatus.CLOSED).length}
                       </p>
@@ -777,7 +777,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                   </div>
 
                   <div className="mt-4">
-                    <p className="text-xs text-slate-500 mb-2">Recent Safety Incidents</p>
+                    <p className="text-xs text-muted-foreground mb-2">Recent Safety Incidents</p>
                     {project.ncrs.slice(0, 3).map((ncr, index) => (
                       <ShadcnAlert key={index} className="mb-2">
                         <AlertTriangle className="h-4 w-4" />
@@ -793,7 +793,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
               <Card className="rounded-3xl">
                 <CardContent className="p-6">
                   <h2 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <Trees size={20} className="text-indigo-600" /> Environmental Status
+                    <Trees size={20} className="text-primary" /> Environmental Status
                   </h2>
 
                   <div className="space-y-4">
@@ -818,17 +818,17 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
               <Card className="rounded-3xl">
                 <CardContent className="p-6">
                   <h2 className="text-lg font-black mb-4 flex items-center gap-2">
-                    <MapPin size={20} className="text-indigo-600" /> Weather & Location
+                    <MapPin size={20} className="text-primary" /> Weather & Location
                   </h2>
 
                   {getWeatherData() ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <Card className="p-4 text-center bg-slate-50">
-                        <p className="text-xs text-slate-500">Temperature</p>
+                      <Card className="p-4 text-center bg-muted">
+                        <p className="text-xs text-muted-foreground">Temperature</p>
                         <p className="text-3xl font-black">{getWeatherData()?.temp}°C</p>
                       </Card>
-                      <Card className="p-4 text-center bg-slate-50">
-                        <p className="text-xs text-slate-500">Condition</p>
+                      <Card className="p-4 text-center bg-muted">
+                        <p className="text-xs text-muted-foreground">Condition</p>
                         <p className="text-3xl font-black">{getWeatherData()?.condition}</p>
                       </Card>
                     </div>
@@ -842,7 +842,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                   )}
 
                   <div className="mt-4">
-                    <p className="text-xs text-slate-500 mb-2">Impact on Schedule</p>
+                    <p className="text-xs text-muted-foreground mb-2">Impact on Schedule</p>
                     <p className="text-sm">
                       {getWeatherData()?.impactOnSchedule === 'None'
                         ? 'No impact on construction activities'
@@ -903,7 +903,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                <div className="w-2 h-2 bg-primary rounded-full"></div>
                 <div>
                   <p className="text-sm font-medium">Endorsement Sheet</p>
                   <p className="text-xs text-muted-foreground">Signatures from stakeholders</p>

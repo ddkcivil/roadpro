@@ -251,7 +251,7 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between p-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-lg bg-indigo-600 text-white flex items-center justify-center">
+                                    <div className="w-12 h-12 rounded-lg bg-primary text-white flex items-center justify-center">
                                         <FileDiff className="h-6 w-6"/>
                                     </div>
                                     <div>
@@ -367,7 +367,7 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                 <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
                     <DialogHeader className="border-b pb-4">
                         <DialogTitle className="flex items-center text-xl font-bold">
-                            <Calculator className="mr-2 h-6 w-6 text-indigo-600"/>
+                            <Calculator className="mr-2 h-6 w-6 text-primary"/>
                             Draft Variation Order Worksheet
                         </DialogTitle>
                     </DialogHeader>
@@ -478,13 +478,13 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                                         <div className="flex justify-between items-center">
                                             <div>
                                                 <CardTitle className="flex items-center text-lg font-bold">
-                                                    <Receipt className="mr-2 h-5 w-5 text-indigo-600"/> Impact Ledger
+                                                    <Receipt className="mr-2 h-5 w-5 text-primary"/> Impact Ledger
                                                 </CardTitle>
                                                 <p className="text-sm text-muted-foreground">Current staged changes</p>
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-xs font-bold text-muted-foreground uppercase">TOTAL NET VALUE</p>
-                                                <p className="text-3xl font-bold text-indigo-700">
+                                                <p className="text-3xl font-bold text-primary">
                                                     {formatCurrency(voForm.items?.reduce((acc, i) => acc + (i.quantityDelta * i.rate), 0) || 0, settings)}
                                                 </p>
                                             </div>

@@ -171,9 +171,9 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Card className="border-l-4 border-l-indigo-600">
+        <Card className="border-l-4 border-l-primary">
           <CardContent className="flex items-center space-x-4 p-4">
-            <Avatar className="h-12 w-12 bg-indigo-100 text-indigo-600">
+            <Avatar className="h-12 w-12 bg-secondary text-primary">
               <Activity className="h-6 w-6" />
             </Avatar>
             <div>
@@ -363,7 +363,7 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                   {filteredTests.length > 0 ? filteredTests.map(test => (
                     <TableRow key={test.id}>
                       <TableCell>
-                        <p className="font-extrabold text-indigo-600 font-mono">{test.sampleId}</p>
+                        <p className="font-extrabold text-primary font-mono">{test.sampleId}</p>
                         <p className="text-xs text-muted-foreground">{test.date}</p>
                       </TableCell>
                       <TableCell>

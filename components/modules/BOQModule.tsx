@@ -256,8 +256,8 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
         <div className="animate-in fade-in duration-500 p-4">
             <div className="flex justify-between mb-4 items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Bill of Quantities (Master)</h1>
-                    <p className="text-sm text-slate-500">Contractual schedule of rates and quantities</p>
+                    <h1 className="text-2xl font-bold text-foreground">Bill of Quantities (Master)</h1>
+                    <p className="text-sm text-muted-foreground">Contractual schedule of rates and quantities</p>
                 </div>
                 <div className="flex gap-2 items-center">
                     <TooltipProvider>
@@ -310,16 +310,16 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
             </div>
             
             {/* Detailed Contract Value Breakdown */}
-            <Card className="mb-4 bg-slate-50 border-slate-200">
+            <Card className="mb-4 bg-muted border-slate-200">
                 <CardHeader className="flex flex-row justify-between items-center pb-2">
-                    <CardTitle className={cn("text-lg font-bold text-indigo-700", compactView && "text-base")}>Contract Value Breakdown</CardTitle>
+                    <CardTitle className={cn("text-lg font-bold text-primary", compactView && "text-base")}>Contract Value Breakdown</CardTitle>
                     <Badge variant={compactView ? "secondary" : "default"}>{compactView ? "COMPACT" : "FULL"}</Badge>
                 </CardHeader>
                 <CardContent>
                     <div className={cn("grid gap-4", compactView ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-4")}>
                         <div className="text-center p-2 rounded-lg bg-white border border-slate-200">
                             <p className="text-sm text-muted-foreground">Amount With PS</p>
-                            <p className={cn("font-bold text-indigo-700", compactView ? "text-base" : "text-lg")}>
+                            <p className={cn("font-bold text-primary", compactView ? "text-base" : "text-lg")}>
                                 {currencySymbol}{financialSummary.amountWithPS.toLocaleString()}
                             </p>
                         </div>
@@ -335,7 +335,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                                 {currencySymbol}{financialSummary.vatAmount.toLocaleString()}
                             </p>
                         </div>
-                        <div className="text-center p-2 rounded-lg bg-indigo-700 text-white">
+                        <div className="text-center p-2 rounded-lg bg-primary text-white">
                             <p className="text-sm opacity-80">Total Contract Value</p>
                             <p className={cn("font-bold", compactView ? "text-base" : "text-lg")}>
                                 {currencySymbol}{financialSummary.totalContractValue.toLocaleString()}
@@ -363,7 +363,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                                 <CardContent className="p-4">
                                     <div className="flex justify-between mb-2">
                                         <div>
-                                            <p className="text-xs font-bold text-indigo-600">{vo.voNumber}</p>
+                                            <p className="text-xs font-bold text-primary">{vo.voNumber}</p>
                                             <p className="text-lg font-bold">{vo.title}</p>
                                         </div>
                                         <Badge variant={vo.status === 'Approved' ? 'default' : 'secondary'}>{vo.status}</Badge>
@@ -372,7 +372,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                                     <Separator className="my-2" />
                                     <div className="flex justify-between items-center">
                                         <p className="text-xs font-bold text-muted-foreground">{vo.items.length} Affected Items</p>
-                                        <p className="text-lg font-black text-indigo-700">
+                                        <p className="text-lg font-black text-primary">
                                             {currencySymbol}{vo.totalImpact.toLocaleString()}
                                         </p>
                                     </div>
@@ -393,7 +393,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                 <DialogContent className="sm:max-w-xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <Receipt className="text-indigo-600" /> Initialize Variation Order
+                            <Receipt className="text-primary" /> Initialize Variation Order
                         </DialogTitle>
                         <DialogDescription>
                             Define the details for a new variation order.
@@ -455,7 +455,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                                             <p className="font-semibold">{item.description}</p>
                                             <p className="text-sm text-muted-foreground">{item.quantityDelta} {item.unit} @ {currencySymbol}{item.rate}</p>
                                         </div>
-                                        <p className="font-bold text-indigo-700">
+                                        <p className="font-bold text-primary">
                                             {currencySymbol}{(item.quantityDelta * item.rate).toLocaleString()}
                                         </p>
                                     </div>

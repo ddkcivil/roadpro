@@ -252,7 +252,7 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =>
                                 ${selectedId === v.id ? 'bg-indigo-50/20 border-primary' : 'bg-white border-border'}`}
                         >
                             <div className="p-3 flex items-center gap-3">
-                                <Avatar className="bg-slate-100 text-slate-600">
+                                <Avatar className="bg-muted text-muted-foreground">
                                     <AvatarFallback><Truck size={20}/></AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1">
@@ -328,7 +328,7 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =>
                                     </div>
 
                                     <div className="mt-8">
-                                        <p className="text-sm font-bold mb-4 flex items-center gap-1"><ShieldCheck size={18} className="text-indigo-600"/> HEALTH STATUS</p>
+                                        <p className="text-sm font-bold mb-4 flex items-center gap-1"><ShieldCheck size={18} className="text-primary"/> HEALTH STATUS</p>
                                         <Separator className="my-4" />
                                         <div className="mb-4">
                                           <div className="flex items-center justify-between mb-1">
@@ -355,7 +355,7 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =>
                             {activeDetailTab === '1' && (
                                 <div>
                                     <Table>
-                                        <TableHeader className="bg-slate-50">
+                                        <TableHeader className="bg-muted">
                                             <TableRow>
                                                 <TableHead className="font-bold">Date</TableHead>
                                                 <TableHead className="font-bold">Activity / Task</TableHead>

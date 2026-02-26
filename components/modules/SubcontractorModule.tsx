@@ -710,7 +710,7 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, userRo
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="font-bold flex items-center gap-1.5">
-              <Briefcase className="text-indigo-600" /> {isEditModalOpen ? 'Edit Contractor' : 'Add New Contractor'}
+              <Briefcase className="text-primary" /> {isEditModalOpen ? 'Edit Contractor' : 'Add New Contractor'}
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">

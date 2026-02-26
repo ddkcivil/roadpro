@@ -267,7 +267,7 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
                   <CardTitle>Subcontractor Payments</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-indigo-600">
+                  <p className="text-3xl font-bold text-primary">
                     {formatCurrency(financialStats.totalSubBilled, settings)}
                   </p>
                   <p className="text-sm text-muted-foreground">Total Subcontractor Payments</p>

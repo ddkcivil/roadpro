@@ -627,7 +627,7 @@ const App: React.FC = () => {
           <div className="min-h-screen bg-slate-50 flex flex-col">
             <header className="border-b bg-background p-4 flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
+                <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
                   <HardHat size={20} strokeWidth={2.5} />
                 </div>
                 <h1 className="text-lg font-bold text-foreground">RoadMaster<span className="text-primary">.Pro</span></h1>
@@ -693,10 +693,10 @@ const App: React.FC = () => {
               <SheetContent side="left" className="w-64 p-0">
                 <SheetHeader className="p-4 border-b">
                   <SheetTitle className="flex items-center gap-2">
-                    <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
+                    <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
                       <HardHat size={20} strokeWidth={2.5} />
                     </div>
-                    RoadMaster<span className="text-indigo-600">.Pro</span>
+                    RoadMaster<span className="text-primary">.Pro</span>
                   </SheetTitle>
                 </SheetHeader>
                 <ScrollArea className="h-[calc(100vh-140px)]">
@@ -710,7 +710,7 @@ const App: React.FC = () => {
                             variant={activeTab === item.id ? "secondary" : "ghost"}
                             className={cn(
                               "w-full justify-start gap-3 h-9 px-2",
-                              activeTab === item.id && "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                              activeTab === item.id && "bg-secondary text-primary hover:bg-secondary/80"
                             )}
                             onClick={() => {
                               startTransition(() => setActiveTab(item.id));
@@ -737,11 +737,11 @@ const App: React.FC = () => {
             >
               <div className="h-14 flex items-center px-4 border-b shrink-0 overflow-hidden">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shrink-0">
+                  <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white shrink-0">
                     <HardHat size={16} strokeWidth={2.5} />
                   </div>
                   {!isSidebarCollapsed && (
-                    <span className="font-bold whitespace-nowrap">RoadMaster<span className="text-indigo-600">.Pro</span></span>
+                    <span className="font-bold whitespace-nowrap">RoadMaster<span className="text-primary">.Pro</span></span>
                   )}
                 </div>
               </div>
@@ -764,7 +764,7 @@ const App: React.FC = () => {
                                 className={cn(
                                   "w-full justify-start h-9 transition-all",
                                   isSidebarCollapsed ? "px-0 justify-center" : "gap-3 px-2",
-                                  activeTab === item.id && "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                                  activeTab === item.id && "bg-secondary text-primary hover:bg-secondary/80"
                                 )}
                                 onClick={() => startTransition(() => setActiveTab(item.id))}
                               >

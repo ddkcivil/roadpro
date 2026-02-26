@@ -27,14 +27,14 @@ const AboutPage: React.FC = () => {
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-4">
-          <div className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-2xl flex items-center justify-center text-white">
+          <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary rounded-2xl flex items-center justify-center text-white">
             <HardHat size={28} />
           </div>
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              About RoadMaster<span className="text-indigo-600">.Pro</span>
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+              About RoadMaster<span className="text-primary">.Pro</span>
             </h1>
-            <p className="text-lg text-slate-600 mt-1">Infrastructure Management System</p>
+            <p className="text-lg text-muted-foreground mt-1">Infrastructure Management System</p>
           </div>
         </div>
         <p className="text-muted-foreground max-w-3xl">
@@ -96,7 +96,7 @@ const AboutPage: React.FC = () => {
             <CardContent className="p-6">
               <h2 className="text-xl font-bold mb-4">Company Info</h2>
               <div className="flex items-center gap-3 mb-6">
-                <Avatar className="h-16 w-16 bg-gradient-to-br from-indigo-600 to-indigo-700 text-white">
+                <Avatar className="h-16 w-16 bg-gradient-to-br from-primary to-primary text-white">
                   <HardHat size={32} />
                 </Avatar>
                 <div>
@@ -114,7 +114,7 @@ const AboutPage: React.FC = () => {
               
               <h3 className="text-lg font-bold mb-2">Headquarters</h3>
               <div className="flex items-center gap-2 mb-6">
-                <MapPin className="h-4 w-4 text-indigo-600" />
+                <MapPin className="h-4 w-4 text-primary" />
                 <p className="text-muted-foreground">Global Platform</p>
               </div>
               

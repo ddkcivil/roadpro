@@ -2269,7 +2269,7 @@ const StaffManagementModule: React.FC = () => {
       {/* New Leave Request Modal */}
       <Dialog open={isLeaveModalOpen} onClose={() => setIsLeaveModalOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <FileText className="text-indigo-600" /> Submit Leave Request
+          <FileText className="text-primary" /> Submit Leave Request
         </DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleSubmitLeaveRequest} sx={{ mt: 2 }}>

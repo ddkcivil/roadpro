@@ -468,7 +468,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
             case 'approved': return <CheckCircle2 size={14} className="text-emerald-500" />;
             case 'rejected': return <XCircle size={14} className="text-rose-500" />;
             case 'inspected': return <FileSearch size={14} className="text-amber-500" />;
-            case 'open': return <Clock size={14} className="text-indigo-500" />;
+            case 'open': return <Clock size={14} className="text-primary" />;
             default: return <Circle size={14} className="text-slate-400" />;
         }
     };
@@ -633,7 +633,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                 <div className="col-span-1 md:col-span-1"> {/* Replaced Grid item */}
                     <Label htmlFor="rfi-location">Location (Chainage + Side)</Label>
                     <div className="relative">
-                        <MapPin size={18} className={cn("absolute left-3 top-1/2 -translate-y-1/2", locationError ? "text-rose-500" : "text-indigo-500")} />
+                        <MapPin size={18} className={cn("absolute left-3 top-1/2 -translate-y-1/2", locationError ? "text-rose-500" : "text-primary")} />
                         <Input
                             id="rfi-location"
                             placeholder="e.g. 12+400 RHS"
@@ -652,7 +652,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                 <div className="col-span-1 md:col-span-1"> {/* Replaced Grid item */}
                     <Label htmlFor="request-number">Request Number</Label>
                     <div className="relative">
-                        <FileText size={18} className="text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <FileText size={18} className="text-primary absolute left-3 top-1/2 -translate-y-1/2" />
                         <Input
                             id="request-number"
                             placeholder="e.g. RFI-001"
@@ -666,7 +666,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                 <div className="col-span-1 md:col-span-1"> {/* Replaced Grid item */}
                     <Label htmlFor="inspection-type">Inspection Type</Label>
                     <div className="relative">
-                        <FileText size={18} className="text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <FileText size={18} className="text-primary absolute left-3 top-1/2 -translate-y-1/2" />
                         <Input
                             id="inspection-type"
                             placeholder="e.g. Box Culvert, Earthwork, etc."
@@ -818,7 +818,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                 <div className="col-span-1 md:col-span-1"> {/* Replaced Grid item */}
                     <Label htmlFor="are-iow-signature">ARE/IOW Signature</Label>
                     <div className="relative">
-                        <UserIcon size={18} className="text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <UserIcon size={18} className="text-primary absolute left-3 top-1/2 -translate-y-1/2" />
                         <Input
                             id="are-iow-signature"
                             placeholder="Enter signature details"
@@ -831,7 +831,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                 <div className="col-span-1 md:col-span-1"> {/* Replaced Grid item */}
                     <Label htmlFor="me-slt-signature">ME/SLT Signature</Label>
                     <div className="relative">
-                        <UserIcon size={18} className="text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <UserIcon size={18} className="text-primary absolute left-3 top-1/2 -translate-y-1/2" />
                         <Input
                             id="me-slt-signature"
                             placeholder="Enter signature details"
@@ -845,7 +845,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                 <div className="col-span-1 md:col-span-1"> {/* Replaced Grid item */}
                     <Label htmlFor="iow-signature">IOW Signature</Label>
                     <div className="relative">
-                        <UserIcon size={18} className="text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <UserIcon size={18} className="text-primary absolute left-3 top-1/2 -translate-y-1/2" />
                         <Input
                             id="iow-signature"
                             placeholder="Enter signature details"
@@ -858,7 +858,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                 <div className="col-span-1 md:col-span-1"> {/* Replaced Grid item */}
                     <Label htmlFor="re-signature">RE Signature</Label>
                     <div className="relative">
-                        <UserIcon size={18} className="text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <UserIcon size={18} className="text-primary absolute left-3 top-1/2 -translate-y-1/2" />
                         <Input
                             id="re-signature"
                             placeholder="Enter signature details"
@@ -872,7 +872,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                 <div className="col-span-1 md:col-span-1"> {/* Replaced Grid item */}
                     <Label htmlFor="submitted-by">Submitted By</Label>
                     <div className="relative">
-                        <UserIcon size={18} className="text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <UserIcon size={18} className="text-primary absolute left-3 top-1/2 -translate-y-1/2" />
                         <Input
                             id="submitted-by"
                             placeholder="Name of person submitting the RFI"
@@ -885,7 +885,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                 <div className="col-span-1 md:col-span-1"> {/* Replaced Grid item */}
                     <Label htmlFor="received-by">Received By</Label>
                     <div className="relative">
-                        <UserIcon size={18} className="text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <UserIcon size={18} className="text-primary absolute left-3 top-1/2 -translate-y-1/2" />
                         <Input
                             id="received-by"
                             placeholder="Name of person receiving the RFI"
@@ -904,7 +904,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                         onValueChange={value => setFormData({...formData, linkedTaskId: value})}
                     >
                         <SelectTrigger id="linked-task" className="pl-9">
-                            <LinkIcon size={18} className="text-indigo-600 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <LinkIcon size={18} className="text-primary absolute left-3 top-1/2 -translate-y-1/2" />
                             <SelectValue placeholder="Bind this inspection to an activity..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -931,7 +931,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                         onValueChange={value => setFormData({...formData, linkedChecklistIds: value ? [value] : []})}
                     >
                         <SelectTrigger id="linked-checklists" className="pl-9">
-                            <ClipboardList size={18} className="text-indigo-600 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <ClipboardList size={18} className="text-primary absolute left-3 top-1/2 -translate-y-1/2" />
                             <SelectValue placeholder="Select associated checklists..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -953,7 +953,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                 <div className="col-span-1 md:col-span-1"> {/* Replaced Grid item */}
                     <Label htmlFor="working-drawings">Working Drawings Attachment</Label>
                     <div className="relative">
-                        <FileSearch size={18} className="text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <FileSearch size={18} className="text-primary absolute left-3 top-1/2 -translate-y-1/2" />
                         <Input
                             id="working-drawings"
                             placeholder="Upload or reference working drawings"

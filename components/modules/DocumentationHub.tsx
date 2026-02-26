@@ -286,8 +286,8 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate 
     <div className="p-4 h-[calc(100vh-140px)] overflow-y-auto">
       <div className="flex justify-between mb-4 items-center">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Documentation Hub</h1>
-          <p className="text-sm text-slate-500">Unified document, photo, and reporting management</p>
+          <h1 className="text-2xl font-bold text-foreground">Documentation Hub</h1>
+          <p className="text-sm text-muted-foreground">Unified document, photo, and reporting management</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setIsUploadModalOpen(true)}>
@@ -378,7 +378,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate 
               <CardContent className="p-0">
                 <ScrollArea className="h-[400px] w-full rounded-md border">
                   <Table>
-                    <TableHeader className="bg-slate-50">
+                    <TableHeader className="bg-muted">
                       <TableRow>
                         <TableHead>Document</TableHead>
                         <TableHead>Folder</TableHead>
@@ -528,7 +528,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate 
               <CardContent className="p-0">
                 <ScrollArea className="h-[400px] w-full rounded-md border">
                   <Table>
-                    <TableHeader className="bg-slate-50">
+                    <TableHeader className="bg-muted">
                       <TableRow>
                         <TableHead>Date</TableHead>
                         <TableHead>Weather</TableHead>

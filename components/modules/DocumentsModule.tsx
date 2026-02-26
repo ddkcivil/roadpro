@@ -440,7 +440,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
               className="w-full justify-start mb-1"
               onClick={() => setActiveFolder(folder)}
             >
-              <Folder className={cn("mr-2 h-4 w-4", activeFolder === folder ? "text-indigo-600" : "text-slate-400")} /> {folder}
+              <Folder className={cn("mr-2 h-4 w-4", activeFolder === folder ? "text-primary" : "text-slate-400")} /> {folder}
             </Button>
           ))}
         </ScrollArea>
@@ -466,7 +466,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
         <Card className="flex-1 overflow-hidden">
           <ScrollArea className="h-full w-full rounded-md border">
             <Table>
-              <TableHeader className="bg-slate-50">
+              <TableHeader className="bg-muted">
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Reference / Subject</TableHead>

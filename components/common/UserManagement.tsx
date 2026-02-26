@@ -194,7 +194,7 @@ const UserManagement: React.FC = () => {
     <div className="p-4 h-[calc(100vh-140px)] overflow-y-auto">
       {loading && (
         <div className="flex justify-center items-center h-48">
-          <p className="text-lg text-slate-600">Loading user data...</p>
+          <p className="text-lg text-muted-foreground">Loading user data...</p>
         </div>
       )}
       
@@ -202,8 +202,8 @@ const UserManagement: React.FC = () => {
         <>
           <div className="flex justify-between mb-4 items-center">
             <div>
-              <h1 className="text-2xl font-bold text-slate-800">User Management</h1>
-              <p className="text-sm text-slate-500">Manage system access and roles</p>
+              <h1 className="text-2xl font-bold text-foreground">User Management</h1>
+              <p className="text-sm text-muted-foreground">Manage system access and roles</p>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setIsModalOpen(true)}>
@@ -284,7 +284,7 @@ const UserManagement: React.FC = () => {
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-slate-50">
+                  <TableRow className="bg-muted">
                     <TableHead className="font-bold text-sm">User</TableHead>
                     <TableHead className="font-bold text-sm">Email</TableHead>
                     <TableHead className="font-bold text-sm">Phone</TableHead>
@@ -335,7 +335,7 @@ const UserManagement: React.FC = () => {
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <UserPlus className="text-indigo-600" /> Add New User
+                  <UserPlus className="text-primary" /> Add New User
                 </DialogTitle>
                 <DialogDescription>Fill in the details for the new user.</DialogDescription>
               </DialogHeader>
@@ -399,7 +399,7 @@ const UserManagement: React.FC = () => {
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <Edit3 className="text-indigo-600" /> Edit User
+                  <Edit3 className="text-primary" /> Edit User
                 </DialogTitle>
                 <DialogDescription>Update user details.</DialogDescription>
               </DialogHeader>

@@ -93,8 +93,8 @@ const UserRegistration: React.FC = () => {
         <Card className="p-6 text-center max-w-lg w-full rounded-2xl">
           <UserPlus className="mx-auto text-green-500 mb-4 h-16 w-16" />
           <h2 className="text-2xl font-bold mb-2">Registration Submitted</h2>
-          <p className="text-slate-600 mb-4">Your account registration has been submitted successfully.</p>
-          <p className="text-sm text-slate-500 mb-4">
+          <p className="text-muted-foreground mb-4">Your account registration has been submitted successfully.</p>
+          <p className="text-sm text-muted-foreground mb-4">
             An administrator will review your request and approve your account.
             You will receive an email notification once your account is approved.
           </p>
@@ -109,8 +109,8 @@ const UserRegistration: React.FC = () => {
   return (
     <div className="p-4 overflow-y-auto min-h-[calc(100vh-140px)]">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Create Account</h1>
-        <p className="text-sm text-slate-500">Register for a new RoadMaster Pro account</p>
+        <h1 className="text-2xl font-bold text-foreground">Create Account</h1>
+        <p className="text-sm text-muted-foreground">Register for a new RoadMaster Pro account</p>
       </div>
 
       <Card className="p-6 rounded-2xl max-w-2xl mx-auto">

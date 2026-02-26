@@ -243,9 +243,9 @@ const SettingsModule: React.FC<Props> = ({ settings, onUpdate }) => {
                               </AlertDescription>
                           </Alert>
                       
-                          <div className="p-4 bg-slate-50 rounded-md border border-gray-200">
+                          <div className="p-4 bg-muted rounded-md border border-gray-200">
                               <p className="text-sm font-bold mb-2 flex items-center gap-1">
-                                  <Info size={16} className="text-indigo-600"/> Synchronized Data Maps
+                                  <Info size={16} className="text-primary"/> Synchronized Data Maps
                               </p>
                               <p className="text-xs text-gray-500">
                                   When enabled, the system will automatically look for the following tabs in your Google Sheet:

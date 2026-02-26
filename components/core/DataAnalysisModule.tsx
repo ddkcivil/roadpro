@@ -111,8 +111,8 @@ const DataAnalysisModule: React.FC = () => {
     <div className="p-4 h-[calc(100vh-140px)] overflow-y-auto">
       <div className="flex justify-between mb-4 items-center">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Data Analysis & Reporting</h1>
-          <p className="text-sm text-slate-500">Offline analytics powered by SQLite</p>
+          <h1 className="text-2xl font-bold text-foreground">Data Analysis & Reporting</h1>
+          <p className="text-sm text-muted-foreground">Offline analytics powered by SQLite</p>
         </div>
       </div>
 

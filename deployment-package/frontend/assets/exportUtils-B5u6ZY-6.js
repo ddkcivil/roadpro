@@ -1,1 +1,0 @@
-import{g as c}from"./currencyUtils-RmnVW5tT.js";const a=(o,r)=>{if(o==null){const m=(r==null?void 0:r.currency)||"USD";return`${c(m)}0`}const y=(r==null?void 0:r.currency)||"USD";return`${c(y)}${o.toLocaleString("en-US",{maximumFractionDigits:0})}`};export{a as f};

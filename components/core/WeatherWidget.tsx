@@ -6,7 +6,7 @@ const WeatherIcon = ({ condition }: { condition: string }) => {
     case 'Clear':
       return <Sun className="w-8 h-8 text-yellow-500" />;
     case 'Clouds':
-      return <Cloud className="w-8 h-8 text-slate-500" />;
+      return <Cloud className="w-8 h-8 text-muted-foreground" />;
     case 'Rain':
       return <CloudRain className="w-8 h-8 text-blue-500" />;
     case 'Snow':
@@ -48,7 +48,7 @@ const WeatherWidget = () => {
   if (loading) {
     return (
       <div className="p-4 rounded-lg bg-white shadow-sm flex items-center justify-center h-full">
-        <p className="text-slate-500">Loading weather...</p>
+        <p className="text-muted-foreground">Loading weather...</p>
       </div>
     );
   }
@@ -71,18 +71,18 @@ const WeatherWidget = () => {
     <div className="p-4 rounded-lg bg-white shadow-sm">
       <div className="flex justify-between items-start">
         <div>
-          <p className="text-sm text-slate-500">Current Weather</p>
+          <p className="text-sm text-muted-foreground">Current Weather</p>
           <p className="text-2xl font-bold">{weather.temperature}°C</p>
         </div>
         <WeatherIcon condition={condition} />
       </div>
       <div className="mt-4 flex justify-between text-sm">
         <div className="flex items-center gap-2">
-          <Wind className="w-4 h-4 text-slate-500" />
+          <Wind className="w-4 h-4 text-muted-foreground" />
           <span>{weather.windspeed} km/h</span>
         </div>
         <div className="flex items-center gap-2">
-          <Droplets className="w-4 h-4 text-slate-500" />
+          <Droplets className="w-4 h-4 text-muted-foreground" />
           {/* Humidity is not available in this API's free tier, so we'll mock it */}
           <span>72%</span>
         </div>

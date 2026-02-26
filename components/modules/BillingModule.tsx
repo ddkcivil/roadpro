@@ -363,7 +363,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                 key={b.id}
                             >
                                 <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                                    <div className="w-10 h-10 rounded-full bg-secondary text-primary flex items-center justify-center">
                                         <Receipt className="h-5 w-5"/>
                                     </div>
                                     <div>
@@ -420,7 +420,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                             <CardContent className="flex justify-between items-center p-4">
                                 <div className="flex items-center space-x-4">
                                     <div className={`w-14 h-14 rounded-xl flex items-center justify-center 
-                                                    ${viewingSubcontractorBill ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600'}`}>
+                                                    ${viewingSubcontractorBill ? 'bg-amber-100 text-amber-600' : 'bg-secondary text-primary'}`}>
                                         {viewingSubcontractorBill ? <FileCheck className="h-7 w-7" /> : <ReceiptIcon className="h-7 w-7" />}
                                     </div>
                                     <div>
@@ -515,7 +515,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                 <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
                     <DialogHeader className="border-b pb-4">
                         <DialogTitle className="flex items-center text-xl font-bold">
-                            <FileSpreadsheet className="mr-2 h-6 w-6 text-indigo-600" />
+                            <FileSpreadsheet className="mr-2 h-6 w-6 text-primary" />
                             Prepare New IPC (Certificate No. {ipcForm.orderOfBill})
                         </DialogTitle>
                     </DialogHeader>
@@ -546,7 +546,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                                     <TableCell>
                                                         <Checkbox checked={selectedSheetIds.has(sheet.id)} />
                                                     </TableCell>
-                                                    <TableCell className="font-bold text-indigo-700">{sheet.sheetNumber}</TableCell>
+                                                    <TableCell className="font-bold text-primary">{sheet.sheetNumber}</TableCell>
                                                     <TableCell>{sheet.title || 'N/A'}</TableCell>
                                                     <TableCell>{sheet.date}</TableCell>
                                                     <TableCell>{(sheet.entries || []).length} items</TableCell>
@@ -575,7 +575,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                     <h3 className="text-lg font-bold text-primary">Review & Adjust Work Quantities</h3>
                                     <div className="flex items-center space-x-2">
                                         <p className="text-sm font-bold">IPC TOTAL:</p>
-                                        <p className="text-xl font-bold text-indigo-700">{currency}{currentIpcSummary.billAmountGross.toLocaleString()}</p>
+                                        <p className="text-xl font-bold text-primary">{currency}{currentIpcSummary.billAmountGross.toLocaleString()}</p>
                                     </div>
                                 </div>
 
@@ -587,7 +587,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                                 <TableHead>Description</TableHead>
                                                 <TableHead>Unit</TableHead>
                                                 <TableHead className="text-right">Rate</TableHead>
-                                                <TableHead className="text-right bg-slate-100">Previous</TableHead>
+                                                <TableHead className="text-right bg-muted">Previous</TableHead>
                                                 <TableHead className="text-right bg-indigo-50/20">Current Qty</TableHead>
                                                 <TableHead className="text-right">Upto-Date</TableHead>
                                                 <TableHead className="text-right">Amount</TableHead>
@@ -600,13 +600,13 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                                     <TableCell className="text-xs">{item.description.slice(0, 60)}...</TableCell>
                                                     <TableCell>{item.unit}</TableCell>
                                                     <TableCell className="text-right">{item.rate.toLocaleString()}</TableCell>
-                                                    <TableCell className="text-right bg-slate-50/30">{item.previousQuantity.toLocaleString()}</TableCell>
+                                                    <TableCell className="text-right bg-muted/30">{item.previousQuantity.toLocaleString()}</TableCell>
                                                     <TableCell className="text-right bg-indigo-50/30">
                                                         <Input 
                                                             type="number"
                                                             value={item.currentQuantity}
                                                             onChange={(e) => handleItemQtyChange(item.boqItemId, Number(e.target.value))}
-                                                            className="w-[90px] text-right text-indigo-700 font-bold"
+                                                            className="w-[90px] text-right text-primary font-bold"
                                                         />
                                                     </TableCell>
                                                     <TableCell className="text-right">
@@ -651,7 +651,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                                 <p className="opacity-80">Retention (5%):</p>
                                                 <p className="font-bold">-{currency}{currentIpcSummary.retentionAmount.toLocaleString()}</p>
                                             </div>
-                                            <Separator className="bg-indigo-700" />
+                                            <Separator className="bg-primary" />
                                             <div className="flex justify-between pt-1">
                                                 <p className="text-lg font-bold">NET PAYABLE:</p>
                                                 <p className="text-lg font-bold text-green-300">{currency}{currentIpcSummary.totalAmountPayable.toLocaleString()}</p>
@@ -892,7 +892,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                             Interim Payment Certificate - Print Layout
                         </DialogTitle>
                     </DialogHeader>
-                    <div className="flex-1 overflow-y-auto p-6 bg-slate-100">
+                    <div className="flex-1 overflow-y-auto p-6 bg-muted">
                         <div className="bg-white p-8 mx-auto min-h-[297mm] shadow-lg">
                             <p className="text-center text-2xl font-bold mb-4">DEPARTMENT OF ROADS</p>
                             <p className="text-center text-lg uppercase mb-6">Interim Payment Certificate (IPC)</p>

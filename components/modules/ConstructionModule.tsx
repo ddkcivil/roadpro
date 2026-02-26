@@ -384,7 +384,7 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
     <div className="animate-in fade-in duration-500 p-4">
       <div className="flex justify-between mb-6 items-center">
           <div>
-              <h1 className="text-2xl font-bold text-slate-800">Structural Assets Registry</h1>
+              <h1 className="text-2xl font-bold text-foreground">Structural Assets Registry</h1>
               <p className="text-sm text-muted-foreground">Inventory of culverts, bridges, and retaining walls</p>
           </div>
           <div className="flex gap-2">

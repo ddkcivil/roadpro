@@ -347,7 +347,7 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
       <Dialog open={isBillModalOpen} onOpenChange={handleCancel}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="text-indigo-600" size={20} />
+            <DollarSign className="text-primary" size={20} />
             {isEditing ? 'Edit Bill' : 'Create New Bill'}
           </DialogTitle>
         </DialogHeader>

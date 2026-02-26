@@ -82,8 +82,8 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
   if (!project) {
     return (
       <div className="p-4 text-center">
-        <h3 className="text-lg font-semibold text-slate-600">No project selected</h3>
-        <p className="text-sm text-slate-500">Please select a project to view the dashboard.</p>
+        <h3 className="text-lg font-semibold text-muted-foreground">No project selected</h3>
+        <p className="text-sm text-muted-foreground">Please select a project to view the dashboard.</p>
       </div>
     );
   }
@@ -207,8 +207,8 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <p className="text-sm font-bold text-indigo-600 tracking-widest uppercase">PROJECT DASHBOARD</p>
-            <h1 className="text-3xl font-black bg-gradient-to-r from-indigo-600 to-purple-500 bg-clip-text text-transparent">
+            <p className="text-sm font-bold text-primary tracking-widest uppercase">PROJECT DASHBOARD</p>
+            <h1 className="text-3xl font-black bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
               Operations Center
             </h1>
           </div>
@@ -231,7 +231,7 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   {settings.dashboardWidgets?.sort((a, b) => a.position - b.position).map((widget) => (
-                    <div key={widget.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-slate-100 transition-colors">
+                    <div key={widget.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted transition-colors">
                       <GripVertical className="h-5 w-5 text-slate-400 cursor-grab" />
                       <Checkbox
                         id={`widget-${widget.id}`}
@@ -258,17 +258,17 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
         </div>
 
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard title="Schedule Perf. Index (SPI)" value={stats.spi.toFixed(2)} icon={Clock} color="#4f46e5" trend="+2.4%" />
+            <StatCard title="Schedule Perf. Index (SPI)" value={stats.spi.toFixed(2)} icon={Clock} color="var(--brand-primary)" trend="+2.4%" />
             <StatCard title="Cost Perf. Index (CPI)" value={stats.cpi.toFixed(2)} icon={DollarSign} color="#10b981" trend="+0.8%" />
-            <StatCard title="Total Earned Value" value={`${currency}${(stats.earnedValue / 1000000).toFixed(1)}M`} icon={TrendingUp} color="#6366f1" />
-            <StatCard title="Physical Progress" value={`${stats.physPercent.toFixed(0)}%`} icon={CheckCircle} color="#8b5cf6" trend="+1.2%" />
+            <StatCard title="Total Earned Value" value={`${currency}${(stats.earnedValue / 1000000).toFixed(1)}M`} icon={TrendingUp} color="var(--brand-primary-light)" />
+            <StatCard title="Physical Progress" value={`${stats.physPercent.toFixed(0)}%`} icon={CheckCircle} color="var(--brand-accent-brown)" trend="+1.2%" />
             
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             <Card className="lg:col-span-8">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="flex items-center gap-2 text-base font-bold"><TrendingUp size={16} className="text-indigo-600"/>Financial Analytics</CardTitle>
+                    <CardTitle className="flex items-center gap-2 text-base font-bold"><TrendingUp size={16} className="text-primary"/>Financial Analytics</CardTitle>
                     <ToggleGroup type="single" size="sm" value={activeChart} onValueChange={(value: 'periodic' | 'scumulative') => value && setActiveChart(value)}>
                         <ToggleGroupItem value="periodic" aria-label="Toggle periodic">Periodic</ToggleGroupItem>
                         <ToggleGroupItem value="scumulative" aria-label="Toggle S-Curve">S-Curve</ToggleGroupItem>
@@ -281,20 +281,20 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
                                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
                                 <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false}/>
                                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${currency}${value/1000}k`}/>
-                                <RechartsTooltip contentStyle={{ borderRadius: 'var(--radius)', border: '1px solid hsl(var(--border))' }}/>
+                                <RechartsTooltip contentStyle={{ borderRadius: 'var(--radius)', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--card-foreground))' }}/>
                                 <Legend />
-                                <Line type="monotone" dataKey="Cumulative Planned" stroke="#a5b4fc" strokeWidth={2} dot={false}/>
-                                <Line type="monotone" dataKey="Cumulative Earned" stroke="#4f46e5" strokeWidth={2} dot={false}/>
+                                <Line type="monotone" dataKey="Cumulative Planned" stroke="var(--brand-primary-light)" strokeWidth={2} dot={false}/>
+                                <Line type="monotone" dataKey="Cumulative Earned" stroke="var(--brand-primary)" strokeWidth={2} dot={false}/>
                             </LineChart>
                         ) : (
                             <BarChart data={financialChartData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
                                 <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false}/>
                                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${currency}${value/1000}k`}/>
-                                <RechartsTooltip contentStyle={{ borderRadius: 'var(--radius)', border: '1px solid hsl(var(--border))' }}/>
+                                <RechartsTooltip contentStyle={{ borderRadius: 'var(--radius)', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--card-foreground))' }}/>
                                 <Legend />
-                                <Bar dataKey="Planned Value" fill="#a5b4fc" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="Earned Value" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="Planned Value" fill="var(--brand-primary-light)" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="Earned Value" fill="var(--brand-primary)" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         )}
                     </ResponsiveContainer>
@@ -303,7 +303,7 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
 
             <Card className="lg:col-span-4">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base font-bold"><Layers size={16} className="text-amber-500"/>BOQ Completion</CardTitle>
+                    <CardTitle className="flex items-center gap-2 text-base font-bold"><Layers size={16} className="text-primary"/>BOQ Completion</CardTitle>
                 </CardHeader>
                 <CardContent className="h-64 flex items-center justify-center">
                     <ResponsiveContainer width="100%" height="100%">
@@ -322,7 +322,7 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
                                 >
                                     {boqCategoryData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={
-                                            ['#f59e0b', '#ef4444', '#10b981', '#8b5cf6'][index % 4]
+                                            ['var(--brand-primary)', 'var(--brand-accent-brown)', '#10b981', '#8b5cf6'][index % 4]
                                         } />
                                     ))}
                                 </Pie>
@@ -330,7 +330,7 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
                                 <Legend />
                             </PieChart>
                         ) : (
-                            <p className="text-center text-slate-500">No BOQ category data available to display chart.</p>
+                            <p className="text-center text-muted-foreground">No BOQ category data available to display chart.</p>
                         )}
                     </ResponsiveContainer>
                 </CardContent>

@@ -105,9 +105,9 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
         <div className="animate-in fade-in duration-500 p-4">
             <div className="flex justify-between mb-4 items-center">
                 <div>
-                    <p className="text-xs font-bold text-indigo-600 tracking-widest uppercase">REPORTS & ANALYTICS</p>
-                    <h1 className="text-2xl font-black text-slate-800">Reports & Analytics Hub</h1>
-                    <p className="text-sm text-slate-500">Centralized reporting, analytics, and export functionality</p>
+                    <p className="text-xs font-bold text-primary tracking-widest uppercase">REPORTS & ANALYTICS</p>
+                    <h1 className="text-2xl font-black text-foreground">Reports & Analytics Hub</h1>
+                    <p className="text-sm text-muted-foreground">Centralized reporting, analytics, and export functionality</p>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline">
@@ -178,9 +178,9 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
                                 <CardContent className="p-4">
                                     <div className="flex justify-between items-center mb-1">
                                         <p className="text-xs font-bold text-muted-foreground">COMPLETION %</p>
-                                        <TrendingUp className="h-4 w-4 text-indigo-600" />
+                                        <TrendingUp className="h-4 w-4 text-primary" />
                                     </div>
-                                    <p className="text-2xl font-bold text-indigo-600">
+                                    <p className="text-2xl font-bold text-primary">
                                         {reportStats.totalBoqItems > 0 ? Math.round((reportStats.completedBoq / reportStats.totalBoqItems) * 100) : 0}%
                                     </p>
                                 </CardContent>
@@ -201,7 +201,7 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
                             <CardContent className="p-0">
                                 <ScrollArea className="h-[400px] w-full">
                                     <Table>
-                                        <TableHeader className="bg-slate-50">
+                                        <TableHeader className="bg-muted">
                                             <TableRow>
                                                 <TableHead>Item No</TableHead>
                                                 <TableHead>Description</TableHead>
@@ -278,9 +278,9 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
                                 <CardContent className="p-4">
                                     <div className="flex justify-between items-center mb-1">
                                         <p className="text-xs font-bold text-muted-foreground">PROGRESS %</p>
-                                        <TrendingUp className="h-4 w-4 text-indigo-600" />
+                                        <TrendingUp className="h-4 w-4 text-primary" />
                                     </div>
-                                    <p className="text-2xl font-bold text-indigo-600">
+                                    <p className="text-2xl font-bold text-primary">
                                         {reportStats.totalScheduleTasks > 0 ? Math.round((reportStats.completedTasks / reportStats.totalScheduleTasks) * 100) : 0}%
                                     </p>
                                 </CardContent>
@@ -301,7 +301,7 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
                             <CardContent className="p-0">
                                 <ScrollArea className="h-[400px] w-full">
                                     <Table>
-                                        <TableHeader className="bg-slate-50">
+                                        <TableHeader className="bg-muted">
                                             <TableRow>
                                                 <TableHead>Task Name</TableHead>
                                                 <TableHead>Start Date</TableHead>
@@ -377,9 +377,9 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
                                 <CardContent className="p-4">
                                     <div className="flex justify-between items-center mb-1">
                                         <p className="text-xs font-bold text-muted-foreground">PASS RATE</p>
-                                        <TrendingUp className="h-4 w-4 text-indigo-600" />
+                                        <TrendingUp className="h-4 w-4 text-primary" />
                                     </div>
-                                    <p className="text-2xl font-bold text-indigo-600">
+                                    <p className="text-2xl font-bold text-primary">
                                         {reportStats.totalTests > 0 ? Math.round((reportStats.passedTests / reportStats.totalTests) * 100) : 0}%
                                     </p>
                                 </CardContent>
@@ -400,7 +400,7 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
                             <CardContent className="p-0">
                                 <ScrollArea className="h-[400px] w-full">
                                     <Table>
-                                        <TableHeader className="bg-slate-50">
+                                        <TableHeader className="bg-muted">
                                             <TableRow>
                                                 <TableHead>Sample ID</TableHead>
                                                 <TableHead>Test Name</TableHead>
@@ -476,9 +476,9 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
                                 <CardContent className="p-4">
                                     <div className="flex justify-between items-center mb-1">
                                         <p className="text-xs font-bold text-muted-foreground">RESOLUTION %</p>
-                                        <TrendingUp className="h-4 w-4 text-indigo-600" />
+                                        <TrendingUp className="h-4 w-4 text-primary" />
                                     </div>
-                                    <p className="text-2xl font-bold text-indigo-600">
+                                    <p className="text-2xl font-bold text-primary">
                                         {reportStats.totalRfis > 0 ? Math.round((reportStats.resolvedRfis / reportStats.totalRfis) * 100) : 0}%
                                     </p>
                                 </CardContent>
@@ -499,7 +499,7 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
                             <CardContent className="p-0">
                                 <ScrollArea className="h-[400px] w-full">
                                     <Table>
-                                        <TableHeader className="bg-slate-50">
+                                        <TableHeader className="bg-muted">
                                             <TableRow>
                                                 <TableHead>RFI No</TableHead>
                                                 <TableHead>Title</TableHead>
@@ -577,9 +577,9 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
                                 <CardContent className="p-4">
                                     <div className="flex justify-between items-center mb-1">
                                         <p className="text-xs font-bold text-muted-foreground">PROGRESS %</p>
-                                        <TrendingUp className="h-4 w-4 text-indigo-600" />
+                                        <TrendingUp className="h-4 w-4 text-primary" />
                                     </div>
-                                    <p className="text-2xl font-bold text-indigo-600">
+                                    <p className="text-2xl font-bold text-primary">
                                         {reportStats.totalStructures > 0 ? Math.round((reportStats.completedStructures / reportStats.totalStructures) * 100) : 0}%
                                     </p>
                                 </CardContent>
@@ -600,7 +600,7 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
                             <CardContent className="p-0">
                                 <ScrollArea className="h-[400px] w-full">
                                     <Table>
-                                        <TableHeader className="bg-slate-50">
+                                        <TableHeader className="bg-muted">
                                             <TableRow>
                                                 <TableHead>Structure ID</TableHead>
                                                 <TableHead>Name</TableHead>
@@ -650,7 +650,7 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Card>
                                 <CardHeader className="flex flex-row items-center space-x-2 pb-2">
-                                    <FileText className="text-indigo-600 h-6 w-6" />
+                                    <FileText className="text-primary h-6 w-6" />
                                     <CardTitle>BOQ & Financial Reports</CardTitle>
                                 </CardHeader>
                                 <CardContent>

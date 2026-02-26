@@ -183,7 +183,7 @@ const BOQManager: React.FC<BOQManagerProps> = ({
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-slate-50">
+              <TableRow className="bg-muted">
                 <TableHead className="font-bold">Item No</TableHead>
                 <TableHead className="font-bold">Description</TableHead>
                 <TableHead className="font-bold">Unit</TableHead>

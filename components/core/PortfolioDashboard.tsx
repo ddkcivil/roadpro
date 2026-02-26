@@ -129,7 +129,7 @@ const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onS
 
     if (!start) return { 
       label: 'Draft', 
-      color: 'bg-slate-100 text-slate-600 border-slate-200', 
+      color: 'bg-muted text-muted-foreground border-slate-200', 
       dot: 'bg-slate-400',
       icon: <FileText size={12} className="mr-1" />
     };
@@ -173,8 +173,8 @@ const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onS
     <div className="space-y-6 p-4">
       {/* Portfolio Overview */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-800 mb-2">Portfolio Dashboard</h1>
-        <p className="text-sm text-slate-500 mb-4">Strategic overview of {totalProjects} infrastructure assets</p>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Portfolio Dashboard</h1>
+        <p className="text-sm text-muted-foreground mb-4">Strategic overview of {totalProjects} infrastructure assets</p>
       </div>
 
       {/* Portfolio Metrics */}
@@ -182,15 +182,15 @@ const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onS
         <Card className="h-full">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Avatar className="h-12 w-12 bg-indigo-600 text-white">
+              <Avatar className="h-12 w-12 bg-primary text-white">
                 <BarChart3 className="h-6 w-6" />
               </Avatar>
               <div>
-                <h2 className="text-2xl font-bold text-slate-800">{totalProjects}</h2>
-                <p className="text-sm text-slate-500">Total Projects</p>
+                <h2 className="text-2xl font-bold text-foreground">{totalProjects}</h2>
+                <p className="text-sm text-muted-foreground">Total Projects</p>
               </div>
             </div>
-            <Progress value={100} className="h-1.5 [&::-webkit-progress-bar]:bg-slate-200 [&::-webkit-progress-value]:bg-indigo-600" />
+            <Progress value={100} className="h-1.5 [&::-webkit-progress-bar]:bg-slate-200 [&::-webkit-progress-value]:bg-primary" />
           </CardContent>
         </Card>
         
@@ -201,8 +201,8 @@ const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onS
                 <Activity className="h-6 w-6" />
               </Avatar>
               <div>
-                <h2 className="text-2xl font-bold text-slate-800">{activeProjects}</h2>
-                <p className="text-sm text-slate-500">Active Projects</p>
+                <h2 className="text-2xl font-bold text-foreground">{activeProjects}</h2>
+                <p className="text-sm text-muted-foreground">Active Projects</p>
               </div>
             </div>
             <Progress value={Math.round((activeProjects / totalProjects) * 100) || 0} className="h-1.5 [&::-webkit-progress-bar]:bg-slate-200 [&::-webkit-progress-value]:bg-emerald-600" />
@@ -216,8 +216,8 @@ const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onS
                 <Clock className="h-6 w-6" />
               </Avatar>
               <div>
-                <h2 className="text-2xl font-bold text-slate-800">{upcomingProjects}</h2>
-                <p className="text-sm text-slate-500">Upcoming Projects</p>
+                <h2 className="text-2xl font-bold text-foreground">{upcomingProjects}</h2>
+                <p className="text-sm text-muted-foreground">Upcoming Projects</p>
               </div>
             </div>
             <Progress value={Math.round((upcomingProjects / totalProjects) * 100) || 0} className="h-1.5 [&::-webkit-progress-bar]:bg-slate-200 [&::-webkit-progress-value]:bg-amber-600" />
@@ -231,8 +231,8 @@ const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onS
                 <TrendingUp className="h-6 w-6" />
               </Avatar>
               <div>
-                <h2 className="text-2xl font-bold text-slate-800">{formatCurrency(totalPortfolioValue, settings)}</h2>
-                <p className="text-sm text-slate-500">Portfolio Value</p>
+                <h2 className="text-2xl font-bold text-foreground">{formatCurrency(totalPortfolioValue, settings)}</h2>
+                <p className="text-sm text-muted-foreground">Portfolio Value</p>
               </div>
             </div>
             <Progress value={100} className="h-1.5 [&::-webkit-progress-bar]:bg-slate-200 [&::-webkit-progress-value]:bg-sky-600" />
@@ -258,9 +258,9 @@ const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onS
               <div>
                 <div className="flex justify-between mb-1">
                   <p className="text-sm font-semibold">Time Progress</p>
-                  <p className="text-sm font-semibold text-indigo-600">{avgTimeProgress}%</p>
+                  <p className="text-sm font-semibold text-primary">{avgTimeProgress}%</p>
                 </div>
-                <Progress value={avgTimeProgress} className="h-2 [&::-webkit-progress-bar]:bg-slate-200 [&::-webkit-progress-value]:bg-indigo-600" />
+                <Progress value={avgTimeProgress} className="h-2 [&::-webkit-progress-bar]:bg-slate-200 [&::-webkit-progress-value]:bg-primary" />
               </div>
             </div>
           </CardContent>
@@ -337,7 +337,7 @@ const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onS
               <CardContent className="p-4">
                 <div className="flex justify-between mb-2 items-start">
                   <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleSelectProject(project.id)}>
-                    <Avatar className="h-14 w-14 rounded-lg bg-indigo-100 text-indigo-700 font-bold">
+                    <Avatar className="h-14 w-14 rounded-lg bg-secondary text-primary font-bold">
                       <AvatarImage src={project.logo} />
                       <AvatarFallback>{project.name.charAt(0)}</AvatarFallback>
                     </Avatar>
@@ -382,12 +382,12 @@ const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onS
                   <div>
                     <div className="flex justify-between mb-1">
                       <p className="text-xs font-semibold text-muted-foreground">Timeline</p>
-                      <p className="text-xs font-semibold text-indigo-600">{timeProgress}%</p>
+                      <p className="text-xs font-semibold text-primary">{timeProgress}%</p>
                     </div>
                     <Progress 
                       value={timeProgress} 
                       className="h-2 [&::-webkit-progress-bar]:bg-slate-200"
-                      indicatorClassName={cn(timeProgress > physProgress ? 'bg-destructive' : 'bg-indigo-600')}
+                      indicatorClassName={cn(timeProgress > physProgress ? 'bg-destructive' : 'bg-primary')}
                     />
                   </div>
                 </div>
@@ -400,8 +400,8 @@ const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onS
       {filteredProjects.length === 0 && (
         <Card className="text-center p-8 border-dashed">
           <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-          <h2 className="text-xl font-bold text-slate-800">No Projects Found</h2>
-          <p className="text-sm text-slate-500 mt-1">No projects match your search criteria.</p>
+          <h2 className="text-xl font-bold text-foreground">No Projects Found</h2>
+          <p className="text-sm text-muted-foreground mt-1">No projects match your search criteria.</p>
         </Card>
       )}
     </div>

@@ -165,19 +165,19 @@ const Login: React.FC<Props> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-2 relative overflow-hidden">
-      <div className="absolute top-[10%] left-[15%] w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-3xl" />
+    <div className="min-h-screen bg-muted flex items-center justify-center p-2 relative overflow-hidden">
+      <div className="absolute top-[10%] left-[15%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
       <div className="absolute bottom-[10%] right-[15%] w-[400px] h-[400px] bg-purple-500/5 rounded-full blur-3xl" />
 
       <div className="relative z-10 w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm border border-slate-100">
-            <Fingerprint size={28} className="text-indigo-600" strokeWidth={1.5} />
+            <Fingerprint size={28} className="text-primary" strokeWidth={1.5} />
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-            RoadMaster <span className="text-indigo-600">Pro</span>
+          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
+            RoadMaster <span className="text-primary">Pro</span>
           </h1>
-          <p className="text-slate-500 mt-1 font-medium">
+          <p className="text-muted-foreground mt-1 font-medium">
             Infrastructure Management System
           </p>
         </div>
@@ -194,8 +194,8 @@ const Login: React.FC<Props> = ({ onLogin }) => {
               <form onSubmit={handleLogin}>
                 <div className="grid gap-4">
                   <div className="grid gap-2">
-                    <h2 className="text-xl font-bold text-slate-800">Sign In</h2>
-                    <p className="text-sm text-slate-500">Enter your professional credentials</p>
+                    <h2 className="text-xl font-bold text-foreground">Sign In</h2>
+                    <p className="text-sm text-muted-foreground">Enter your professional credentials</p>
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="email">Email</Label>
@@ -207,7 +207,7 @@ const Login: React.FC<Props> = ({ onLogin }) => {
                   <div className="grid gap-2">
                     <div className="flex items-center">
                       <Label htmlFor="password">Password</Label>
-                      <button type="button" onClick={() => setView('RESET')} className="ml-auto inline-block text-sm font-medium text-indigo-600 hover:text-indigo-500 underline-offset-4 hover:underline">
+                      <button type="button" onClick={() => setView('RESET')} className="ml-auto inline-block text-sm font-medium text-primary hover:text-primary underline-offset-4 hover:underline">
                         Forgot Password?
                       </button>
                     </div>
@@ -222,7 +222,7 @@ const Login: React.FC<Props> = ({ onLogin }) => {
                   </Button>
                   <p className="px-8 text-center text-sm text-muted-foreground">
                     Need access?{' '}
-                    <button type="button" onClick={() => setView('REGISTER')} className="font-semibold text-indigo-600 hover:text-indigo-500 underline-offset-4 hover:underline">
+                    <button type="button" onClick={() => setView('REGISTER')} className="font-semibold text-primary hover:text-primary underline-offset-4 hover:underline">
                       Create Account
                     </button>
                   </p>
@@ -234,8 +234,8 @@ const Login: React.FC<Props> = ({ onLogin }) => {
               <form onSubmit={handleRegister}>
                 <div className="grid gap-4">
                   <div className="grid gap-2">
-                    <h2 className="text-xl font-bold text-slate-800">Create Account</h2>
-                    <p className="text-sm text-slate-500">Join the project management workforce</p>
+                    <h2 className="text-xl font-bold text-foreground">Create Account</h2>
+                    <p className="text-sm text-muted-foreground">Join the project management workforce</p>
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="reg-name">Full Name</Label>
@@ -296,8 +296,8 @@ const Login: React.FC<Props> = ({ onLogin }) => {
               <form onSubmit={handleReset}>
                 <div className="grid gap-4">
                   <div className="grid gap-2">
-                    <h2 className="text-xl font-bold text-slate-800">Account Recovery</h2>
-                    <p className="text-sm text-slate-500">Enter your email to receive a recovery link</p>
+                    <h2 className="text-xl font-bold text-foreground">Account Recovery</h2>
+                    <p className="text-sm text-muted-foreground">Enter your email to receive a recovery link</p>
                   </div>
                    <div className="grid gap-2">
                     <Label htmlFor="reset-email">Email</Label>
@@ -320,7 +320,7 @@ const Login: React.FC<Props> = ({ onLogin }) => {
           </CardContent>
         </Card>
 
-        <p className="mt-6 text-center text-xs text-slate-500 font-medium">
+        <p className="mt-6 text-center text-xs text-muted-foreground font-medium">
           &copy; {new Date().getFullYear()} RoadMaster OS. Advanced Infrastructure Solutions.
         </p>
       </div>

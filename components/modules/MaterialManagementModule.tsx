@@ -554,7 +554,7 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
             <Dialog open={isMaterialModalOpen} onOpenChange={setIsMaterialModalOpen}>
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <Package className="text-indigo-600" size={20} />
+                        <Package className="text-primary" size={20} />
                         {editingMaterialId ? 'Edit Material' : 'Add New Material'}
                     </DialogTitle>
                 </DialogHeader>
@@ -675,7 +675,7 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
             <Dialog open={isRateModalOpen} onOpenChange={setIsRateModalOpen}>
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <Calculator className="text-indigo-600" size={20} />
+                        <Calculator className="text-primary" size={20} />
                         Manage Supplier Rates
                     </DialogTitle>
                 </DialogHeader>

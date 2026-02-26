@@ -44,7 +44,7 @@ const ScheduleModule: React.FC<Props> = ({ project, userRole, onProjectUpdate })
   // Hardcoding colors or mapping to Tailwind equivalents as Material-UI theme is removed
   const themeColors = {
       primary: {
-          main: '#4f46e5', // indigo-600
+          main: '#4f46e5', // primary
           dark: '#3730a3', // indigo-800
       },
       error: {

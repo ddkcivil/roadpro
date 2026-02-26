@@ -234,7 +234,7 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole 
                             </div>
                             {photo.isAnalyzed && (
                                 <div className="mt-3 p-2 bg-indigo-50 rounded border border-indigo-100">
-                                    <div className="flex items-center gap-1 text-xs text-indigo-700 font-semibold">
+                                    <div className="flex items-center gap-1 text-xs text-primary font-semibold">
                                         <Sparkles className="w-3 h-3" />
                                         AI Analyzed
                                     </div>
@@ -253,7 +253,7 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole 
                     </DialogHeader>
                     <div className="space-y-4">
                         <div
-                            className="h-48 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors overflow-hidden"
+                            className="h-48 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer bg-muted hover:bg-muted transition-colors overflow-hidden"
                             onClick={() => fileInputRef.current?.click()}
                         >
                             {tempPreview ? (

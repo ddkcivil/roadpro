@@ -631,9 +631,9 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
     <div className="animate-in fade-in duration-500 p-4">
       <div className="flex justify-between mb-4 items-center">
         <div>
-          <p className="text-xs font-bold text-indigo-600 tracking-widest uppercase">AGENCY MANAGEMENT</p>
-          <h1 className="text-2xl font-black text-slate-800">Agency & Vendor Hub</h1>
-          <p className="text-sm text-slate-500">Manage agencies, subcontractors, and vendor relationships</p>
+          <p className="text-xs font-bold text-primary tracking-widest uppercase">AGENCY MANAGEMENT</p>
+          <h1 className="text-2xl font-black text-foreground">Agency & Vendor Hub</h1>
+          <p className="text-sm text-muted-foreground">Manage agencies, subcontractors, and vendor relationships</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={handleAddAgency}>

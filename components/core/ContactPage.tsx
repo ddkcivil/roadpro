@@ -48,7 +48,7 @@ const ContactPage: React.FC = () => {
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="mb-12">
         <div className="flex items-center gap-4 mb-4">
-          <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-xl flex items-center justify-center text-white">
+          <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary rounded-xl flex items-center justify-center text-white">
             <HardHat size={28} />
           </div>
           <div>

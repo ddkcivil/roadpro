@@ -181,7 +181,7 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate, userRole
         <Dialog open={isLogModalOpen} onOpenChange={setIsLogModalOpen}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle className="flex items-center"><Ruler className="mr-2 text-indigo-600" /> Log Progress</DialogTitle>
+                    <DialogTitle className="flex items-center"><Ruler className="mr-2 text-primary" /> Log Progress</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">

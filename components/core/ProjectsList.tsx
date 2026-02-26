@@ -56,8 +56,8 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
   if (projects.length === 0) {
     return (
       <Card className="text-center p-8 border-dashed">
-        <h2 className="text-2xl font-bold text-slate-800">Welcome to RoadMaster Pro</h2>
-        <p className="text-sm text-slate-500 mt-1 mb-4">
+        <h2 className="text-2xl font-bold text-foreground">Welcome to RoadMaster Pro</h2>
+        <p className="text-sm text-muted-foreground mt-1 mb-4">
           It looks like you don't have any projects yet. <br/> Get started by creating your first project.
         </p>
         <Button size="lg" onClick={handleOpenNew}>
@@ -71,8 +71,8 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
     <div className="space-y-6 p-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Project Portfolio</h1>
-          <p className="text-sm text-slate-500">Strategic oversight of {projects.length} infrastructure assets</p>
+          <h1 className="text-2xl font-bold text-foreground">Project Portfolio</h1>
+          <p className="text-sm text-muted-foreground">Strategic oversight of {projects.length} infrastructure assets</p>
         </div>
         <div className="flex gap-2 items-center">
             <ToggleGroup type="single" value={viewMode} onValueChange={(value: 'LIST' | 'GRID') => value && setViewMode(value)} className="rounded-lg border">
@@ -115,7 +115,7 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
             <div className="overflow-x-auto">
                 <Table>
                 <TableHeader>
-                    <TableRow className="bg-slate-50">
+                    <TableRow className="bg-muted">
                         <TableHead className="font-bold">Project Identity</TableHead>
                         <TableHead className="font-bold">Employer / Contractor</TableHead>
                         <TableHead className="font-bold">Contractual Timeline</TableHead>
@@ -130,15 +130,15 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
                         const status = getProjectStatus(project.startDate, project.endDate);
                         
                         return (
-                            <TableRow key={project.id} className="hover:bg-slate-50 transition-colors group">
+                            <TableRow key={project.id} className="hover:bg-muted transition-colors group">
                                 <TableCell className="cursor-pointer" onClick={() => onSelectProject(project.id)}>
                                     <div className="flex items-center gap-2">
-                                        <Avatar className="h-11 w-11 rounded-md bg-indigo-100 text-indigo-700 font-bold">
+                                        <Avatar className="h-11 w-11 rounded-md bg-secondary text-primary font-bold">
                                             <AvatarImage src={project.logo} />
                                             <AvatarFallback>{project.name.charAt(0)}</AvatarFallback>
                                         </Avatar>
                                         <div>
-                                            <p className="font-bold text-slate-900">{project.name}</p>
+                                            <p className="font-bold text-foreground">{project.name}</p>
                                             <div className="flex items-center gap-1 mt-0.5">
                                                 <Badge className={cn("text-xs", status.color)}>{status.icon} {status.label}</Badge>
                                                 <Badge variant="secondary" className="text-xs font-mono">{project.code}</Badge>
@@ -158,12 +158,12 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
                                         </div>
                                         <div className="flex justify-between mb-0.5">
                                             <p className="text-xs font-bold text-muted-foreground">TIME BURN</p>
-                                            <p className="text-xs font-bold text-indigo-600">{timeProgress}%</p>
+                                            <p className="text-xs font-bold text-primary">{timeProgress}%</p>
                                         </div>
                                         <Progress 
                                             value={timeProgress} 
                                             className="h-1.5 [&::-webkit-progress-bar]:bg-slate-200"
-                                            indicatorClassName={cn(timeProgress > physProgress ? 'bg-destructive' : 'bg-indigo-600')}
+                                            indicatorClassName={cn(timeProgress > physProgress ? 'bg-destructive' : 'bg-primary')}
                                         />
                                     </div>
                                 </TableCell>
@@ -229,7 +229,7 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
          )}
          
          {viewMode === 'GRID' && filteredProjects.length > 0 && (
-            <div className="p-4 bg-slate-50">
+            <div className="p-4 bg-muted">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredProjects.map(project => {
                         const physProgress = calculateProgress(project.boq);
@@ -244,7 +244,7 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
                                         <Avatar 
                                             src={project.logo} 
                                             variant="rounded" 
-                                            className="h-14 w-14 rounded-lg bg-indigo-100 text-indigo-700 font-bold"
+                                            className="h-14 w-14 rounded-lg bg-secondary text-primary font-bold"
                                         >
                                             <AvatarImage src={project.logo} />
                                             <AvatarFallback>{project.name.charAt(0)}</AvatarFallback>
@@ -264,7 +264,7 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
                                         <div>
                                             <div className="flex justify-between mb-1 items-center">
                                                 <p className="text-xs font-bold text-muted-foreground flex items-center gap-1"><Timer className="h-4 w-4" /> CONTRACTUAL TIMELINE</p>
-                                                <p className="text-xs font-bold text-indigo-600">{duration}</p>
+                                                <p className="text-xs font-bold text-primary">{duration}</p>
                                             </div>
                                             <div className="flex justify-between text-xs mb-0.5">
                                                 <p className="font-bold">{project.startDate}</p>
@@ -273,7 +273,7 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
                                             <Progress 
                                                 value={timeProgress} 
                                                 className="h-1.5 [&::-webkit-progress-bar]:bg-slate-200"
-                                                indicatorClassName={cn(timeProgress > physProgress ? 'bg-destructive' : 'bg-indigo-600')}
+                                                indicatorClassName={cn(timeProgress > physProgress ? 'bg-destructive' : 'bg-primary')}
                                             />
                                             <p className="text-xs text-muted-foreground text-center mt-1">
                                                 {timeProgress}% SCHEDULE ELAPSED
@@ -322,7 +322,7 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
 
          <Card className="text-center p-4">
             <p className="text-sm text-muted-foreground">Aggregated Portfolio Data • Synchronized WGS84 Registry</p>
-            <p className="text-sm font-bold text-indigo-600 mt-1">{filteredProjects.length} Projects Loaded</p>
+            <p className="text-sm font-bold text-primary mt-1">{filteredProjects.length} Projects Loaded</p>
           </Card>
       </Card>
     </div>

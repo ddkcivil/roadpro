@@ -104,8 +104,8 @@ const QualityHub: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => 
     <div className="animate-in fade-in duration-500 p-4">
       <div className="flex justify-between mb-4 items-center">
         <div>
-          <p className="text-xs font-bold text-indigo-600 tracking-widest uppercase">QUALITY ASSURANCE</p>
-          <h1 className="text-2xl font-black text-slate-800">Quality Hub & Compliance Center</h1>
+          <p className="text-xs font-bold text-primary tracking-widest uppercase">QUALITY ASSURANCE</p>
+          <h1 className="text-2xl font-black text-foreground">Quality Hub & Compliance Center</h1>
         </div>
         <div className="flex gap-2">
           <Button variant="outline">
@@ -121,7 +121,7 @@ const QualityHub: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
-            <Avatar className="h-12 w-12 bg-indigo-100 text-indigo-700">
+            <Avatar className="h-12 w-12 bg-secondary text-primary">
               <Scale className="h-6 w-6" />
             </Avatar>
             <div>
@@ -258,7 +258,7 @@ const QualityHub: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => 
               {/* Recent Lab Tests */}
               <Collapsible open={expandedSection === 'lab-tests'} onOpenChange={() => setExpandedSection(prev => prev === 'lab-tests' ? null : 'lab-tests')}>
                 <CollapsibleTrigger asChild>
-                  <Card className="relative hover:bg-slate-50">
+                  <Card className="relative hover:bg-muted">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <div className="flex items-center gap-2">
                         <Scale className="text-blue-600 h-5 w-5" />
@@ -304,7 +304,7 @@ const QualityHub: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => 
               {/* Non-Conformance Reports */}
               <Collapsible open={expandedSection === 'ncrs'} onOpenChange={() => setExpandedSection(prev => prev === 'ncrs' ? null : 'ncrs')}>
                 <CollapsibleTrigger asChild>
-                  <Card className="relative hover:bg-slate-50">
+                  <Card className="relative hover:bg-muted">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <div className="flex items-center gap-2">
                         <AlertTriangle className="text-destructive h-5 w-5" />
@@ -356,7 +356,7 @@ const QualityHub: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => 
               {/* Requests for Information */}
               <Collapsible open={expandedSection === 'rfis'} onOpenChange={() => setExpandedSection(prev => prev === 'rfis' ? null : 'rfis')}>
                 <CollapsibleTrigger asChild>
-                  <Card className="relative hover:bg-slate-50">
+                  <Card className="relative hover:bg-muted">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <div className="flex items-center gap-2">
                         <FileText className="text-purple-600 h-5 w-5" />
@@ -446,7 +446,7 @@ const QualityHub: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => 
               <CardContent className="p-0">
                 <ScrollArea className="h-[calc(100vh-400px)] w-full rounded-md border">
                   <Table>
-                    <TableHeader className="bg-slate-50">
+                    <TableHeader className="bg-muted">
                       <TableRow>
                         <TableHead>Sample ID</TableHead>
                         <TableHead>Test Type</TableHead>
@@ -461,7 +461,7 @@ const QualityHub: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => 
                       {filteredLabTests.length > 0 ? filteredLabTests.map(test => (
                         <TableRow key={test.id}>
                           <TableCell>
-                            <p className="font-bold font-mono text-indigo-700">{test.sampleId}</p>
+                            <p className="font-bold font-mono text-primary">{test.sampleId}</p>
                             <p className="text-xs text-muted-foreground">{test.date}</p>
                           </TableCell>
                           <TableCell>
@@ -521,7 +521,7 @@ const QualityHub: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => 
               <CardContent className="p-0">
                 <ScrollArea className="h-[calc(100vh-400px)] w-full rounded-md border">
                   <Table>
-                    <TableHeader className="bg-slate-50">
+                    <TableHeader className="bg-muted">
                       <TableRow>
                         <TableHead>NCR #</TableHead>
                         <TableHead>Description</TableHead>
@@ -594,7 +594,7 @@ const QualityHub: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => 
               <CardContent className="p-0">
                 <ScrollArea className="h-[calc(100vh-400px)] w-full rounded-md border">
                   <Table>
-                    <TableHeader className="bg-slate-50">
+                    <TableHeader className="bg-muted">
                       <TableRow>
                         <TableHead>RFI #</TableHead>
                         <TableHead>Description</TableHead>

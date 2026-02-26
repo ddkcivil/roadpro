@@ -96,9 +96,9 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
         <div className="animate-in fade-in duration-500 p-4">
             <div className="flex justify-between mb-4 items-center">
                 <div>
-                    <p className="text-xs font-bold text-indigo-600 tracking-widest uppercase">FINANCIALS & COMMERCIAL</p>
-                    <h1 className="text-2xl font-black text-slate-800">Financials & Commercial Hub</h1>
-                    <p className="text-sm text-slate-500">Centralized management for bills, payments, and commercial transactions</p>
+                    <p className="text-xs font-bold text-primary tracking-widest uppercase">FINANCIALS & COMMERCIAL</p>
+                    <h1 className="text-2xl font-black text-foreground">Financials & Commercial Hub</h1>
+                    <p className="text-sm text-muted-foreground">Centralized management for bills, payments, and commercial transactions</p>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline">
@@ -159,13 +159,13 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                                     <p className="text-xl font-black text-amber-600">{financialStats.pendingBills}</p>
                                 </CardContent>
                             </Card>
-                            <Card className="border-l-4 border-indigo-600">
+                            <Card className="border-l-4 border-primary">
                                 <CardContent className="p-4">
                                     <div className="flex justify-between mb-1">
                                         <p className="text-xs font-bold text-muted-foreground">APPROVED</p>
-                                        <CheckCircle className="h-4 w-4 text-indigo-600" />
+                                        <CheckCircle className="h-4 w-4 text-primary" />
                                     </div>
-                                    <p className="text-xl font-black text-indigo-600">{financialStats.approvedBills}</p>
+                                    <p className="text-xl font-black text-primary">{financialStats.approvedBills}</p>
                                 </CardContent>
                             </Card>
                             <Card className="border-l-4 border-purple-600">
@@ -183,7 +183,7 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                             <CardContent className="p-0">
                                 <Table>
                                     <TableHeader>
-                                        <TableRow className="bg-slate-50">
+                                        <TableRow className="bg-muted">
                                             <TableHead className="font-bold">Bill Number</TableHead>
                                             <TableHead className="font-bold">Period</TableHead>
                                             <TableHead className="text-right font-bold">Gross Amount</TableHead>
@@ -270,13 +270,13 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                                     <p className="text-xl font-black text-amber-600">{financialStats.pendingBills}</p>
                                 </CardContent>
                             </Card>
-                            <Card className="border-l-4 border-indigo-600">
+                            <Card className="border-l-4 border-primary">
                                 <CardContent className="p-4">
                                     <div className="flex justify-between mb-1">
                                         <p className="text-xs font-bold text-muted-foreground">APPROVED</p>
-                                        <CheckCircle className="h-4 w-4 text-indigo-600" />
+                                        <CheckCircle className="h-4 w-4 text-primary" />
                                     </div>
-                                    <p className="text-xl font-black text-indigo-600">{financialStats.approvedBills}</p>
+                                    <p className="text-xl font-black text-primary">{financialStats.approvedBills}</p>
                                 </CardContent>
                             </Card>
                             <Card className="border-l-4 border-purple-600">
@@ -294,7 +294,7 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                             <CardContent className="p-0">
                                 <Table>
                                     <TableHeader>
-                                        <TableRow className="bg-slate-50">
+                                        <TableRow className="bg-muted">
                                             <TableHead className="font-bold">Bill Number</TableHead>
                                             <TableHead className="font-bold">Subcontractor</TableHead>
                                             <TableHead className="font-bold">Period</TableHead>
@@ -383,13 +383,13 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                                     <p className="text-xl font-black text-amber-600">{project.agencies?.length || 0}</p>
                                 </CardContent>
                             </Card>
-                            <Card className="border-l-4 border-indigo-600">
+                            <Card className="border-l-4 border-primary">
                                 <CardContent className="p-4">
                                     <div className="flex justify-between mb-1">
                                         <p className="text-xs font-bold text-muted-foreground">PAYMENT TYPES</p>
-                                        <CreditCard className="h-4 w-4 text-indigo-600" />
+                                        <CreditCard className="h-4 w-4 text-primary" />
                                     </div>
-                                    <p className="text-xl font-black text-indigo-600">{[...new Set(agencyPayments.map(p => p.type))].length}</p>
+                                    <p className="text-xl font-black text-primary">{[...new Set(agencyPayments.map(p => p.type))].length}</p>
                                 </CardContent>
                             </Card>
                             <Card className="border-l-4 border-purple-600">
@@ -411,7 +411,7 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                             <CardContent className="p-0">
                                 <Table>
                                     <TableHeader>
-                                        <TableRow className="bg-slate-50">
+                                        <TableRow className="bg-muted">
                                             <TableHead className="font-bold">Reference</TableHead>
                                             <TableHead className="font-bold">Agency</TableHead>
                                             <TableHead className="font-bold">Type</TableHead>
@@ -499,7 +499,7 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                                             <p>Outstanding Payables: <span className="font-semibold">{formatCurrency(subcontractorBills.filter(b => b.status !== 'Paid').reduce((sum, b) => sum + b.netAmount, 0))}</span></p>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <CreditCard className="h-4 w-4 text-indigo-600" />
+                                            <CreditCard className="h-4 w-4 text-primary" />
                                             <p>Pending Agency Payments: <span className="font-semibold">{formatCurrency(agencyPayments.length)}</span></p>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -529,7 +529,7 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                 <DialogContent className="sm:max-w-xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <Receipt className="text-indigo-600" /> {editingBill ? 'Edit Bill' : 'Add New Bill'}
+                            <Receipt className="text-primary" /> {editingBill ? 'Edit Bill' : 'Add New Bill'}
                         </DialogTitle>
                         <DialogDescription>
                             {editingBill ? 'Edit the details of the bill.' : 'Fill in the details for the new bill.'}
