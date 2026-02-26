@@ -101,6 +101,12 @@ class RealApiService {
     });
   }
 
+  async rejectRegistration(id: string): Promise<void> {
+    return this.fetchApi<void>(`/pending-registrations/${id}/reject`, {
+      method: 'POST',
+    });
+  }
+
   // --- Health Check ---
   async healthCheck(): Promise<{ status: string; message: string }> {
     return this.fetchApi<{ status: string; message: string }>('/health');

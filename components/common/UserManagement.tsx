@@ -264,10 +264,10 @@ const UserManagement: React.FC = () => {
                                     <TableCell>{user.phone || '-'}</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
-                                            <Button variant="outline" size="sm" onClick={() => approveUser()}>
+                                            <Button variant="outline" size="sm" onClick={() => approveUser(user)}>
                                                 <Shield className="mr-1 h-4 w-4" /> Approve
                                             </Button>
-                                            <Button variant="destructive" size="sm" onClick={() => rejectUser()}>
+                                            <Button variant="destructive" size="sm" onClick={() => rejectUser(user)}>
                                                 <X className="mr-1 h-4 w-4" /> Reject
                                             </Button>
                                         </div>
