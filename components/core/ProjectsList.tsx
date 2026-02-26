@@ -171,8 +171,8 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
                                 <TableCell className="cursor-pointer" onClick={() => onSelectProject(project.id)}>
                                     <div className="flex items-center gap-2">
                                         <Avatar className="h-11 w-11 rounded-md bg-secondary text-primary font-bold">
-                                            <AvatarImage src={project.logo} />
-                                            <AvatarFallback>{project.name.charAt(0)}</AvatarFallback>
+                                            <AvatarImage src={project.logo} alt={`${project.name} logo`} />
+                                            <AvatarFallback aria-label={project.name}>{project.name.charAt(0)}</AvatarFallback>
                                         </Avatar>
                                         <div>
                                             <p className="font-bold text-foreground">{project.name}</p>
@@ -218,7 +218,7 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
                                         <TooltipProvider>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
-                                                    <Button variant="ghost" size="icon" onClick={() => onSelectProject(project.id)}>
+                                                    <Button variant="ghost" size="icon" onClick={() => onSelectProject(project.id)} aria-label="View Control Panel">
                                                         <ArrowRight />
                                                     </Button>
                                                 </TooltipTrigger>
@@ -230,7 +230,7 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
                                                 <TooltipProvider>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                            <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(project)}>
+                                                            <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(project)} aria-label="Edit Project">
                                                                 <Edit className="h-4 w-4" />
                                                             </Button>
                                                         </TooltipTrigger>
@@ -240,7 +240,7 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
                                                 <TooltipProvider>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteProject(project.id)}>
+                                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteProject(project.id)} aria-label="Delete Project">
                                                                 <Trash2 className="h-4 w-4 text-destructive" />
                                                             </Button>
                                                         </TooltipTrigger>
