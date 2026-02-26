@@ -341,9 +341,23 @@ const App: React.FC = () => {
   
   const currentProject = useMemo(() => {
     const project = projects.find(p => p.id === selectedProjectId);
-    return project ? prepareProjectWithMaterials(project) : project;
+    console.log('[DEBUG] currentProject memo:', { 
+      selectedProjectId, 
+      found: !!project, 
+      projectsCount: projects.length 
+    });
+    return project ? prepareProjectWithMaterials(project) : undefined;
   }, [projects, selectedProjectId]);
-  
+
+  useEffect(() => {
+    console.log('[DEBUG] State Change:', {
+      isAuthenticated,
+      selectedProjectId,
+      hasCurrentProject: !!currentProject,
+      activeTab
+    });
+  }, [isAuthenticated, selectedProjectId, currentProject, activeTab]);
+
   const currentUser = useMemo(() => {
     // Get users from localStorage, fallback to empty array
     const savedUsers = localStorage.getItem('roadmaster-users');
@@ -916,45 +930,55 @@ const App: React.FC = () => {
               <main className="flex-1 p-4 overflow-auto bg-slate-50">
                 <ErrorBoundary>
                   <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
-                    {activeTab === 'dashboard' && <Dashboard project={currentProject!} settings={appSettings} onUpdateProject={onSaveProject} onUpdateSettings={setAppSettings} />}
-                    {activeTab === 'about' && <AboutPage />}
-                    {activeTab === 'contact' && <ContactPage />}
-                    {activeTab === 'user-management' && <UserManagement />}
-                    {activeTab === 'user-registration' && <UserRegistration />}
-                    {activeTab === 'boq' && <BOQModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'billing' && <BillingModule project={currentProject!} settings={appSettings} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'variations' && <VariationModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'financials' && <FinancialManagementHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'ocr-extraction' && <ChandraOCRAnalyzer project={currentProject!} onProjectUpdate={onSaveProject} />}
-                    
-                    {activeTab === 'agencies' && <AgencyModule project={currentProject!} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'subcontractors' && <SubcontractorModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'subcontractor-billing' && <SubcontractorBillingModule project={currentProject!} settings={appSettings} onProjectUpdate={onSaveProject} />}
-                    
-                    {activeTab === 'schedule' && <ScheduleModule project={currentProject!} settings={appSettings} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'construction' && <ConstructionModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
-                    {activeTab === 'linear-works' && <LinearWorksModule project={currentProject!} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'site-photos' && <SitePhotosModule project={currentProject!} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'daily-reports' && <DailyReportModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'pre-construction' && <PreConstructionModule project={currentProject!} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'reports-analytics' && <ReportsAnalyticsHub project={currentProject!} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'mpr-report' && <MPRReportModule project={currentProject!} onProjectUpdate={onSaveProject} />}
-                    
-                    {activeTab === 'rfis' && <RFIModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'materials-hub' && <MaterialManagementModule project={currentProject!} settings={appSettings} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'assets' && <AssetsModule project={currentProject!} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'resources' && <ResourceManager project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
-                    {activeTab === 'fleet' && <FleetModule project={currentProject!} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'resource-matrix' && <ResourceMatrixModule project={currentProject!} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'quality' && <QualityHub project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'lab' && <LabModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'environment' && <EnvironmentModule project={currentProject!} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'output-export' && <MPRReportModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'data-analysis' && <DataAnalysisModule project={currentProject!} />}
-                    {activeTab === 'messages' && <MessagesModule project={currentProject!} onProjectUpdate={onSaveProject} currentUser={currentUser} />}
-                    {activeTab === 'documents' && <DocumentationHub project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
-                    
-                    {activeTab === 'settings' && <SettingsModule settings={appSettings} onUpdate={setAppSettings} />}
+                    {!currentProject && !['about', 'contact', 'user-management', 'user-registration', 'settings'].includes(activeTab) ? (
+                      <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                        <AlertTriangle className="h-12 w-12 mb-4 opacity-20" />
+                        <p className="text-lg font-medium">Project data synchronized. Please wait or re-select.</p>
+                        <Button variant="outline" className="mt-4" onClick={() => setSelectedProjectId(null)}>Return to Portfolio</Button>
+                      </div>
+                    ) : (
+                      <>
+                        {activeTab === 'dashboard' && <Dashboard project={currentProject!} settings={appSettings} onUpdateProject={onSaveProject} onUpdateSettings={setAppSettings} />}
+                        {activeTab === 'about' && <AboutPage />}
+                        {activeTab === 'contact' && <ContactPage />}
+                        {activeTab === 'user-management' && <UserManagement />}
+                        {activeTab === 'user-registration' && <UserRegistration />}
+                        {activeTab === 'boq' && <BOQModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'billing' && <BillingModule project={currentProject!} settings={appSettings} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'variations' && <VariationModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'financials' && <FinancialManagementHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'ocr-extraction' && <ChandraOCRAnalyzer project={currentProject!} onProjectUpdate={onSaveProject} />}
+                        
+                        {activeTab === 'agencies' && <AgencyModule project={currentProject!} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'subcontractors' && <SubcontractorModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'subcontractor-billing' && <SubcontractorBillingModule project={currentProject!} settings={appSettings} onProjectUpdate={onSaveProject} />}
+                        
+                        {activeTab === 'schedule' && <ScheduleModule project={currentProject!} settings={appSettings} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'construction' && <ConstructionModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
+                        {activeTab === 'linear-works' && <LinearWorksModule project={currentProject!} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'site-photos' && <SitePhotosModule project={currentProject!} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'daily-reports' && <DailyReportModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'pre-construction' && <PreConstructionModule project={currentProject!} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'reports-analytics' && <ReportsAnalyticsHub project={currentProject!} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'mpr-report' && <MPRReportModule project={currentProject!} onProjectUpdate={onSaveProject} />}
+                        
+                        {activeTab === 'rfis' && <RFIModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'materials-hub' && <MaterialManagementModule project={currentProject!} settings={appSettings} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'assets' && <AssetsModule project={currentProject!} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'resources' && <ResourceManager project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
+                        {activeTab === 'fleet' && <FleetModule project={currentProject!} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'resource-matrix' && <ResourceMatrixModule project={currentProject!} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'quality' && <QualityHub project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'lab' && <LabModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'environment' && <EnvironmentModule project={currentProject!} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'output-export' && <MPRReportModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'data-analysis' && <DataAnalysisModule project={currentProject!} />}
+                        {activeTab === 'messages' && <MessagesModule project={currentProject!} onProjectUpdate={onSaveProject} currentUser={currentUser} />}
+                        {activeTab === 'documents' && <DocumentationHub project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
+                        
+                        {activeTab === 'settings' && <SettingsModule settings={appSettings} onUpdate={setAppSettings} />}
+                      </>
+                    )}
                   </Suspense>
                 </ErrorBoundary>
               </main>
