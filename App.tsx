@@ -252,6 +252,7 @@ const App: React.FC = () => {
   // Fetch projects from actual database on mount
   useEffect(() => {
     const fetchProjects = async () => {
+      setIsLoadingProjects(true);
       try {
         const fetchedProjects = await apiService.getProjects();
         setProjects(fetchedProjects);
@@ -259,6 +260,8 @@ const App: React.FC = () => {
         DataCache.set(getCacheKey('projects'), fetchedProjects, { ttl: 10 * 60 * 1000 });
       } catch (error) {
         console.error('Failed to fetch projects from database:', error);
+      } finally {
+        setIsLoadingProjects(false);
       }
     };
     
@@ -310,6 +313,7 @@ const App: React.FC = () => {
   });
   
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
   
 
 
@@ -646,7 +650,16 @@ const App: React.FC = () => {
   }
     
   // Render project selection screen if authenticated but no project selected
-  if (isAuthenticated && !selectedProjectId) {
+  if (isAuthenticated && (!selectedProjectId || !currentProject)) {
+    if (isLoadingProjects) {
+      return (
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+          <p className="text-muted-foreground font-medium">Loading engineering projects...</p>
+        </div>
+      );
+    }
+
     return (
       <I18nProvider>
         <NotificationProvider>
