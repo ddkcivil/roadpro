@@ -135,10 +135,7 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
       });
     }
     // Fallback data
-    return [
-      { name: 'Jan', 'Cumulative Planned': 4000, 'Cumulative Earned': 2400 },
-      { name: 'Feb', 'Cumulative Planned': 7000, 'Cumulative Earned': 3798 },
-    ];
+    return [];
   }, [project]);
 
   const financialChartData = useMemo(() => {
@@ -159,10 +156,7 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
       }));
     }
     // Fallback data
-    return [
-      { name: 'Jan', 'Planned Value': 4000, 'Earned Value': 2400 },
-      { name: 'Feb', 'Planned Value': 3000, 'Earned Value': 1398 },
-    ];
+    return [];
   }, [project]);
 
   const boqCategoryData = useMemo(() => {
@@ -207,19 +201,19 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <p className="text-[10px] font-black text-primary tracking-[0.3em] uppercase mb-1 opacity-80">ENGINEERING OVERVIEW</p>
-            <h1 className="text-3xl font-black bg-gradient-to-r from-primary via-blue-400 to-amber-600 bg-clip-text text-transparent">
+            <p className="text-xs font-semibold text-primary tracking-widest uppercase mb-1">PROJECT DASHBOARD</p>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
               Operations Center
             </h1>
           </div>
           <div className="flex shrink-0 flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Button variant="destructive" onClick={() => generateProjectSummaryPDF(project)} className="w-full sm:w-auto">
+            <Button variant="outline" onClick={() => generateProjectSummaryPDF(project)} className="w-full sm:w-auto text-destructive hover:bg-destructive/10">
               <FileDown className="mr-2 h-4 w-4" />
               Generate PDF
             </Button>
             <Dialog open={showWidgetSettings} onOpenChange={setShowWidgetSettings}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="w-full sm:w-auto">
+                <Button variant="ghost" className="w-full sm:w-auto">
                   <Settings className="mr-2 h-4 w-4" />
                   Customize
                 </Button>
@@ -232,7 +226,7 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
                 <div className="grid gap-4 py-4">
                   {settings.dashboardWidgets?.sort((a, b) => a.position - b.position).map((widget) => (
                     <div key={widget.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted transition-colors">
-                      <GripVertical className="h-5 w-5 text-slate-400 cursor-grab" />
+                      <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
                       <Checkbox
                         id={`widget-${widget.id}`}
                         checked={widget.visible}
@@ -258,17 +252,17 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
         </div>
 
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard title="Schedule Perf. Index (SPI)" value={stats.spi.toFixed(2)} icon={Clock} color="var(--brand-primary)" trend="+2.4%" />
-            <StatCard title="Cost Perf. Index (CPI)" value={stats.cpi.toFixed(2)} icon={DollarSign} color="var(--brand-primary-light)" trend="+0.8%" />
-            <StatCard title="Total Earned Value" value={`${currency}${(stats.earnedValue / 1000000).toFixed(1)}M`} icon={TrendingUp} color="var(--brand-primary)" />
-            <StatCard title="Physical Progress" value={`${stats.physPercent.toFixed(0)}%`} icon={CheckCircle} color="var(--brand-accent-brown)" trend="+1.2%" />
+            <StatCard title="Schedule Perf. Index (SPI)" value={stats.spi.toFixed(2)} icon={Clock} color="hsl(var(--primary))" trend="+2.4%" />
+            <StatCard title="Cost Perf. Index (CPI)" value={stats.cpi.toFixed(2)} icon={DollarSign} color="hsl(var(--primary))" trend="+0.8%" />
+            <StatCard title="Total Earned Value" value={`${currency}${(stats.earnedValue / 1000000).toFixed(1)}M`} icon={TrendingUp} color="hsl(var(--primary))" />
+            <StatCard title="Physical Progress" value={`${stats.physPercent.toFixed(0)}%`} icon={CheckCircle} color="hsl(var(--primary))" trend="+1.2%" />
             
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             <Card className="lg:col-span-8">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="flex items-center gap-2 text-base font-bold"><TrendingUp size={16} className="text-primary"/>Financial Analytics</CardTitle>
+                    <CardTitle className="flex items-center gap-2 text-base font-bold text-foreground"><TrendingUp size={16} className="text-primary"/>Financial Analytics</CardTitle>
                     <ToggleGroup type="single" size="sm" value={activeChart} onValueChange={(value: 'periodic' | 'scumulative') => value && setActiveChart(value)}>
                         <ToggleGroupItem value="periodic" aria-label="Toggle periodic">Periodic</ToggleGroupItem>
                         <ToggleGroupItem value="scumulative" aria-label="Toggle S-Curve">S-Curve</ToggleGroupItem>
@@ -278,23 +272,23 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
                     <ResponsiveContainer width="100%" height="100%">
                         {activeChart === 'scumulative' ? (
                             <LineChart data={sCurveData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
+                                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                                 <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false}/>
                                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${currency}${value/1000}k`}/>
                                 <RechartsTooltip contentStyle={{ borderRadius: 'var(--radius)', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--card-foreground))' }}/>
                                 <Legend />
-                                <Line type="monotone" dataKey="Cumulative Planned" stroke="var(--brand-primary-light)" strokeWidth={2} dot={false}/>
-                                <Line type="monotone" dataKey="Cumulative Earned" stroke="var(--brand-primary)" strokeWidth={2} dot={false}/>
+                                <Line type="monotone" dataKey="Cumulative Planned" stroke="hsl(var(--muted-foreground))" strokeWidth={2} dot={false}/>
+                                <Line type="monotone" dataKey="Cumulative Earned" stroke="hsl(var(--primary))" strokeWidth={2} dot={false}/>
                             </LineChart>
                         ) : (
                             <BarChart data={financialChartData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
+                                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                                 <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false}/>
                                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${currency}${value/1000}k`}/>
                                 <RechartsTooltip contentStyle={{ borderRadius: 'var(--radius)', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--card-foreground))' }}/>
                                 <Legend />
-                                <Bar dataKey="Planned Value" fill="var(--brand-primary-light)" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="Earned Value" fill="var(--brand-primary)" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="Planned Value" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="Earned Value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         )}
                     </ResponsiveContainer>
@@ -303,7 +297,7 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
 
             <Card className="lg:col-span-4">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base font-bold"><Layers size={16} className="text-primary"/>BOQ Completion</CardTitle>
+                    <CardTitle className="flex items-center gap-2 text-base font-bold text-foreground"><Layers size={16} className="text-primary"/>BOQ Completion</CardTitle>
                 </CardHeader>
                 <CardContent className="h-64 flex items-center justify-center">
                     <ResponsiveContainer width="100%" height="100%">
