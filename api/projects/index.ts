@@ -17,15 +17,19 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
   } else if (req.method === 'POST') {
     try {
       const { Project } = await connectToDatabase();
-      const projectData = req.body;
+      const projectData = { ...req.body };
 
-      if (!projectData.name) {
-        res.status(400).json({ error: 'Project name is required' });
+      if (!projectData.name || !projectData.client) {
+        return res.status(400).json({ error: 'Project name and client are required' });
       }
 
-      const project = new Project({ // Mongoose: new and save
-        id: `proj-${Date.now()}`,
-        ...projectData
+      // Ensure we don't save with an existing ID if provided in body for some reason
+      delete projectData._id;
+      delete projectData.__v;
+
+      const project = new Project({
+        ...projectData,
+        id: projectData.id || `proj-${Date.now()}` // Generate ID if not provided
       });
       await project.save();
 

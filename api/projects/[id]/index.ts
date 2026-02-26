@@ -30,6 +30,10 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       const { Project } = await connectToDatabase();
       const projectData = { ...req.body };
       
+      if (!projectData.name || !projectData.client) {
+        return res.status(400).json({ error: 'Project name and client are required for updates' });
+      }
+      
       // MongoDB does not allow updating the immutable _id field
       delete projectData._id;
       delete projectData.__v;

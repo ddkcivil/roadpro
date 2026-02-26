@@ -525,10 +525,15 @@ const App: React.FC = () => {
         
         return updatedProjects;
       });
-    } catch (error) {
-      console.error('Failed to save project to backend:', error);
-      // Optionally show an error message to the user
-      throw error; // Re-throw to allow further error handling if needed
+    } catch (error: any) {
+      console.error('[ERROR] Failed to save project to backend:', error);
+      
+      const errorMsg = error.response?.data?.details || error.message || 'Unknown server error';
+      toast.error("Save Failed", {
+        description: `Server responded with: ${errorMsg}`,
+      });
+      
+      throw error; 
     }
   };
 
