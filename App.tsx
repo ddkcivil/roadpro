@@ -924,7 +924,7 @@ const App: React.FC = () => {
                     {activeTab === 'boq' && <BOQModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
                     {activeTab === 'billing' && <BillingModule project={currentProject!} settings={appSettings} onProjectUpdate={onSaveProject} />}
                     {activeTab === 'variations' && <VariationModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                    {activeTab === 'financials' && <FinancialsCommercialHub project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
+                    {activeTab === 'financials' && <FinancialManagementHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={onSaveProject} />}
                     {activeTab === 'ocr-extraction' && <ChandraOCRAnalyzer project={currentProject!} onProjectUpdate={onSaveProject} />}
                     
                     {activeTab === 'agencies' && <AgencyModule project={currentProject!} onProjectUpdate={onSaveProject} />}
@@ -949,9 +949,10 @@ const App: React.FC = () => {
                     {activeTab === 'quality' && <QualityHub project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
                     {activeTab === 'lab' && <LabModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
                     {activeTab === 'environment' && <EnvironmentModule project={currentProject!} onProjectUpdate={onSaveProject} />}
+                    {activeTab === 'output-export' && <MPRReportModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
                     {activeTab === 'data-analysis' && <DataAnalysisModule project={currentProject!} />}
                     {activeTab === 'messages' && <MessagesModule project={currentProject!} onProjectUpdate={onSaveProject} currentUser={currentUser} />}
-                    {activeTab === 'documents' && <DocumentsModule project={currentProject!} onProjectUpdate={onSaveProject} />}
+                    {activeTab === 'documents' && <DocumentationHub project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
                     
                     {activeTab === 'settings' && <SettingsModule settings={appSettings} onUpdate={setAppSettings} />}
                   </Suspense>

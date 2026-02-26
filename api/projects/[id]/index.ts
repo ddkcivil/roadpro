@@ -14,10 +14,10 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
   if (req.method === 'GET') {
     try {
       const { Project } = await connectToDatabase();
-      const project = await Project.findById(id as string);
+      const project = await Project.findOne({ id: id as string });
 
       if (!project) {
-        res.status(404).json({ error: 'Project not found' });
+        return res.status(404).json({ error: 'Project not found' });
       }
 
       res.status(200).json(project);
@@ -30,14 +30,14 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       const { Project } = await connectToDatabase();
       const projectData = req.body;
       
-      const updatedProject = await Project.findByIdAndUpdate(
-        id as string,
+      const updatedProject = await Project.findOneAndUpdate(
+        { id: id as string },
         { ...projectData },
         { new: true } // Return the modified document rather than the original
       );
 
       if (!updatedProject) {
-        res.status(404).json({ error: 'Project not found' });
+        return res.status(404).json({ error: 'Project not found' });
       }
       
       res.status(200).json(updatedProject);
@@ -48,10 +48,10 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
   } else if (req.method === 'DELETE') {
     try {
       const { Project } = await connectToDatabase();
-      const deletedProject = await Project.findByIdAndDelete(id as string);
+      const deletedProject = await Project.findOneAndDelete({ id: id as string });
       
       if (!deletedProject) {
-        res.status(404).json({ error: 'Project not found' });
+        return res.status(404).json({ error: 'Project not found' });
       }
       
       res.status(204).send(''); // 204 No Content for successful deletion
