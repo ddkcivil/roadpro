@@ -207,8 +207,8 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <p className="text-sm font-bold text-primary tracking-widest uppercase">PROJECT DASHBOARD</p>
-            <h1 className="text-3xl font-black bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
+            <p className="text-[10px] font-black text-primary tracking-[0.3em] uppercase mb-1 opacity-80">ENGINEERING OVERVIEW</p>
+            <h1 className="text-3xl font-black bg-gradient-to-r from-primary via-blue-400 to-amber-600 bg-clip-text text-transparent">
               Operations Center
             </h1>
           </div>
@@ -259,8 +259,8 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
 
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard title="Schedule Perf. Index (SPI)" value={stats.spi.toFixed(2)} icon={Clock} color="var(--brand-primary)" trend="+2.4%" />
-            <StatCard title="Cost Perf. Index (CPI)" value={stats.cpi.toFixed(2)} icon={DollarSign} color="#10b981" trend="+0.8%" />
-            <StatCard title="Total Earned Value" value={`${currency}${(stats.earnedValue / 1000000).toFixed(1)}M`} icon={TrendingUp} color="var(--brand-primary-light)" />
+            <StatCard title="Cost Perf. Index (CPI)" value={stats.cpi.toFixed(2)} icon={DollarSign} color="var(--brand-primary-light)" trend="+0.8%" />
+            <StatCard title="Total Earned Value" value={`${currency}${(stats.earnedValue / 1000000).toFixed(1)}M`} icon={TrendingUp} color="var(--brand-primary)" />
             <StatCard title="Physical Progress" value={`${stats.physPercent.toFixed(0)}%`} icon={CheckCircle} color="var(--brand-accent-brown)" trend="+1.2%" />
             
         </div>
@@ -322,7 +322,7 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
                                 >
                                     {boqCategoryData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={
-                                            ['var(--brand-primary)', 'var(--brand-accent-brown)', '#10b981', '#8b5cf6'][index % 4]
+                                            ['var(--brand-primary)', 'var(--brand-accent-brown)', 'var(--brand-primary-light)', 'var(--brand-secondary-light)'][index % 4]
                                         } />
                                     ))}
                                 </Pie>
