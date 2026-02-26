@@ -45,12 +45,24 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
         billNumber: '',
         date: new Date().toISOString().split('T')[0],
         dateOfMeasurement: new Date().toISOString().split('T')[0],
-        orderOfBill: (project.contractBills?.length || 0) + 1,
+        orderOfBill: ((project?.contractBills || [])?.length || 0) + 1,
         items: [],
         provisionalSum: 0,
         cpaAmount: 0,
         liquidatedDamages: 0
     });
+
+    if (!project) {
+        return (
+            <div className="p-8 text-center">
+                <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>Project data not available. Please select a project first.</AlertDescription>
+                </Alert>
+            </div>
+        );
+    }
     
     const [subcontractorBillForm, setSubcontractorBillForm] = useState<Partial<SubcontractorBill>>({
         billNumber: '',
@@ -64,9 +76,9 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
     });
 
     const currency = formatCurrency(0, settings).substring(0, formatCurrency(0, settings).indexOf('0'));
-    const bills = project.contractBills || [];
-    const subcontractorBills = project.subcontractorBills || [];
-    const approvedSheets = (project.measurementSheets || []).filter(s => s.status === 'Approved');
+    const bills = project?.contractBills || [];
+    const subcontractorBills = project?.subcontractorBills || [];
+    const approvedSheets = (project?.measurementSheets || [])?.filter(s => s.status === 'Approved');
 
     const calculateIPCDetails = (form: Partial<ContractBill>) => {
         const gross = (form.items || []).reduce((acc, item) => acc + (item.currentAmount || 0), 0);

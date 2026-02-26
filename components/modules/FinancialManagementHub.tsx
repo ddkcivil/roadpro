@@ -56,6 +56,18 @@ interface Props {
 const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectUpdate, userRole }) => {
   const [activeTab, setActiveTab] = useState("overview");
   
+  if (!project) {
+    return (
+      <div className="p-8 text-center">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>Project data not available. Please select a project first.</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   // === CONTRACT BILLING STATE ===
   const [selectedIpcId, setSelectedIpcId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -63,7 +75,7 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
     billNumber: '',
     date: new Date().toISOString().split('T')[0],
     dateOfMeasurement: new Date().toISOString().split('T')[0],
-    orderOfBill: (project.contractBills?.length || 0) + 1,
+    orderOfBill: ((project?.contractBills || [])?.length || 0) + 1,
     items: [],
     provisionalSum: 0,
     cpaAmount: 0,
@@ -95,7 +107,7 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
   const [voSearchTerm, setVoSearchTerm] = useState('');
   const [isVoModalOpen, setIsVoModalOpen] = useState(false);
   const [voForm, setVoForm] = useState<Partial<VariationOrder>>({
-    voNumber: `VO-${(project.variationOrders?.length || 0) + 1}`,
+    voNumber: `VO-${((project?.variationOrders || [])?.length || 0) + 1}`,
     title: '',
     date: new Date().toISOString().split('T')[0],
     reason: '',
@@ -103,11 +115,11 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
   });
   
   // === DATA SOURCES ===
-  const contractBills = project.contractBills || [];
-  const subcontractorBills = project.subcontractorBills || [];
-  const rfis = project.rfis || [];
-  const variationOrders = project.variationOrders || [];
-  const subcontractors = project.agencies?.filter(a => a.type === 'subcontractor') || [];
+  const contractBills = project?.contractBills || [];
+  const subcontractorBills = project?.subcontractorBills || [];
+  const rfis = project?.rfis || [];
+  const variationOrders = project?.variationOrders || [];
+  const subcontractors = (project?.agencies || [])?.filter(a => a.type === 'subcontractor') || [];
   
   // === FINANCIAL CALCULATIONS ===
   const financialStats = useMemo(() => {

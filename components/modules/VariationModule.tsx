@@ -37,27 +37,39 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
     const [searchTerm, setSearchTerm] = useState('');
     
     const [voForm, setVoForm] = useState<Partial<VariationOrder>>({
-        voNumber: `VO-${(project.variationOrders?.length || 0) + 1}`,
+        voNumber: `VO-${((project?.variationOrders || [])?.length || 0) + 1}`,
         title: '',
         date: new Date().toISOString().split('T')[0],
         reason: '',
         items: []
     });
 
+    if (!project) {
+        return (
+            <div className="p-8 text-center">
+                <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>Project data not available. Please select a project first.</AlertDescription>
+                </Alert>
+            </div>
+        );
+    }
+
     const [tempItem, setTempItem] = useState<Partial<VariationItem>>({
         description: '', unit: '', quantityDelta: 0, rate: 0, isNewItem: false
     });
 
     const currency = formatCurrency(0, settings).substring(0, formatCurrency(0, settings).indexOf('0'));
-    const variationOrders = project.variationOrders || [];
+    const variationOrders = project?.variationOrders || [];
     
     const financialSummary = useMemo(() => {
-        const boqItems = project.boq || [];
+        const boqItems = project?.boq || [];
         const original = boqItems.reduce((acc, item) => acc + (item.quantity * item.rate), 0);
         const variation = boqItems.reduce((acc, item) => acc + ((item.variationQuantity || 0) * item.rate), 0);
         const revised = original + variation;
         return { original, variation, revised, percent: original > 0 ? (variation / original) * 100 : 0 };
-    }, [project.boq]);
+    }, [project?.boq]);
 
     const viewingVO = useMemo(() => variationOrders.find(v => v.id === selectedVoId), [selectedVoId, variationOrders]);
 
@@ -115,7 +127,7 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
     };
 
     const updateVOStatus = (voId: string, newStatus: VariationOrder['status']) => {
-        let updatedBOQ = [...project.boq];
+        let updatedBOQ = [...(project?.boq || [])];
         const updatedVOs = variationOrders.map(v => {
             if (v.id === voId) {
                 if (newStatus === 'Approved') {
