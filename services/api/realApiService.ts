@@ -13,7 +13,10 @@ class RealApiService {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `API request failed with status ${response.status}`);
+      const error: any = new Error(errorData.error || `API request failed with status ${response.status}`);
+      error.response = { data: errorData };
+      error.status = response.status;
+      throw error;
     }
 
     return response.json();
