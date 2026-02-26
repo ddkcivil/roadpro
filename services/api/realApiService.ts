@@ -60,6 +60,19 @@ class RealApiService {
     });
   }
 
+  async updateUser(id: string, userData: Partial<User>): Promise<User> {
+    return this.fetchApi<User>(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    return this.fetchApi<void>(`/users/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   async loginUser(email: string, password: string): Promise<{ success: boolean; user?: User; message?: string }> {
     return this.fetchApi<{ success: boolean; user?: User; message?: string }>('/auth/login', {
       method: 'POST',
