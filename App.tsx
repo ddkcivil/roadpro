@@ -688,19 +688,28 @@ const App: React.FC = () => {
     return (
       <I18nProvider>
         <NotificationProvider>
-          <div className="min-h-screen bg-slate-50 flex flex-col">
-            <header className="border-b bg-background p-4 flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
-                  <HardHat size={20} strokeWidth={2.5} />
+          <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col transition-colors duration-500">
+            <header className="sticky top-0 z-50 glass border-b p-4 flex justify-between items-center shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20 rotate-3 hover:rotate-0 transition-transform">
+                  <HardHat size={22} strokeWidth={2.5} />
                 </div>
-                <h1 className="text-lg font-bold text-foreground">RoadMaster<span className="text-primary">.Pro</span></h1>
+                <div>
+                  <h1 className="text-xl font-black tracking-tighter text-foreground leading-none">RoadMaster<span className="text-primary">.Pro</span></h1>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">Engineering OS</p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" onClick={() => startTransition(() => setThemeMode(themeMode === 'light' ? 'dark' : 'light'))}>
-                  <Sun className="h-5 w-5" />
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => {
+              <div className="flex items-center gap-3">
+                <Toggle
+                  size="sm"
+                  className="rounded-full w-10 h-10 p-0"
+                  pressed={themeMode === 'dark'}
+                  onPressedChange={() => startTransition(() => setThemeMode(prevMode => (prevMode === 'light' ? 'dark' : 'light')))}
+                >
+                  <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                  <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                </Toggle>
+                <Button variant="outline" size="sm" className="rounded-full px-4 font-bold border-2" onClick={() => {
                   AuditService.logLogout(currentUser.id, currentUser.name, selectedProjectId || undefined, currentProject?.name);
                   setIsAuthenticated(false);
                   setUserRole(UserRole.PROJECT_MANAGER);
@@ -715,20 +724,25 @@ const App: React.FC = () => {
                 </Button>
               </div>
             </header>
-            <main className="flex-1 p-6 overflow-auto">
-              <h2 className="text-2xl font-bold mb-4">Welcome, {userName}</h2>
-              <p className="text-md text-slate-600 mb-6">Select an engineering project to begin</p>
-              <ProjectsList
-                projects={projects}
-                userRole={userRole}
-                onSelectProject={handleSelectProject}
-                onSaveProject={onSaveProject}
-                onDeleteProject={onDeleteProject}
-                onOpenModal={(project) => {
-                  setEditProject(project);
-                  setIsProjectModalOpen(true);
-                }}
-              />
+            <main className="flex-1 p-6 md:p-12 overflow-auto max-w-7xl mx-auto w-full">
+              <div className="mb-10 text-center md:text-left">
+                <h2 className="text-4xl font-black tracking-tight mb-2">Welcome, {userName}</h2>
+                <p className="text-lg text-muted-foreground font-medium">Select an active engineering project to access the control center</p>
+              </div>
+              
+              <div className="glass-card rounded-3xl p-1 md:p-2">
+                <ProjectsList
+                  projects={projects}
+                  userRole={userRole}
+                  onSelectProject={handleSelectProject}
+                  onSaveProject={onSaveProject}
+                  onDeleteProject={onDeleteProject}
+                  onOpenModal={(project) => {
+                    setEditProject(project);
+                    setIsProjectModalOpen(true);
+                  }}
+                />
+              </div>
             </main>
           </div>
           <ProjectModal
