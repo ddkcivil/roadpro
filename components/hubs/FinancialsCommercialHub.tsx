@@ -43,27 +43,33 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
     const [editingBill, setEditingBill] = useState<Partial<ContractBill | SubcontractorBill> | null>(null);
     const [editingBillType, setEditingBillType] = useState<'contract' | 'subcontractor' | null>(null);
 
+    if (!project) {
+        return (
+            <div className="p-8 text-center">
+                <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>Project data not available. Please select a project first.</AlertDescription>
+                </Alert>
+            </div>
+        );
+    }
+
     // Placeholder data - will be replaced with actual project data and calculations
-    const contractBills: ContractBill[] = [
-        { id: 'cb1', billNumber: 'CB-001', date: '2023-01-15', periodFrom: '2023-01-01', periodTo: '2023-01-31', grossAmount: 100000, netAmount: 90000, retentionPercent: 10, status: 'Paid', description: 'Initial payment' },
-    ];
-    const subcontractorBills: SubcontractorBill[] = [
-        { id: 'sb1', billNumber: 'SCB-001', date: '2023-01-20', periodFrom: '2023-01-01', periodTo: '2023-01-31', subcontractorId: 'sub1', grossAmount: 50000, netAmount: 45000, retentionPercent: 10, status: 'Submitted', description: 'Subcontractor work' },
-    ];
-    const agencyPayments: AgencyPayment[] = [
-        { id: 'ap1', reference: 'PAY-001', amount: 10000, date: '2023-02-01', agencyId: 'sub1', type: 'Advance', description: 'Advance payment', status: 'Confirmed' },
-    ];
+    const contractBills: ContractBill[] = project?.contractBills || [];
+    const subcontractorBills: SubcontractorBill[] = project?.subcontractorBills || [];
+    const agencyPayments: AgencyPayment[] = project?.agencyPayments || [];
 
     const financialStats = useMemo(() => {
         return {
-            totalContractBills: 100000,
-            totalSubcontractorBills: 50000,
-            totalAgencyPayments: 10000,
-            pendingBills: 1,
-            approvedBills: 0,
-            paidBills: 1
+            totalContractBills: contractBills.reduce((sum, b) => sum + (b.netAmount || 0), 0),
+            totalSubcontractorBills: subcontractorBills.reduce((sum, b) => sum + (b.netAmount || 0), 0),
+            totalAgencyPayments: agencyPayments.reduce((sum, b) => sum + (b.amount || 0), 0),
+            pendingBills: [...contractBills, ...subcontractorBills].filter(b => b.status === 'Submitted').length,
+            approvedBills: [...contractBills, ...subcontractorBills].filter(b => b.status === 'Approved').length,
+            paidBills: [...contractBills, ...subcontractorBills].filter(b => b.status === 'Paid').length
         };
-    }, []);
+    }, [contractBills, subcontractorBills, agencyPayments]);
 
     const filteredContractBills = contractBills.filter(bill => bill.billNumber.includes(searchTerm));
     const filteredSubcontractorBills = subcontractorBills.filter(bill => bill.billNumber.includes(searchTerm));
@@ -84,9 +90,9 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
     
     const getBillStatusBadge = (status: string) => {
         switch (status) {
-            case 'Paid': return <Badge variant="success">Paid</Badge>;
-            case 'Approved': return <Badge variant="default">Approved</Badge>;
-            case 'Submitted': return <Badge variant="warning">Submitted</Badge>;
+            case 'Paid': return <Badge variant="default" className="bg-green-100 text-green-700">Paid</Badge>;
+            case 'Approved': return <Badge variant="default" className="bg-blue-100 text-blue-700">Approved</Badge>;
+            case 'Submitted': return <Badge variant="secondary">Submitted</Badge>;
             case 'Draft': return <Badge variant="outline">Draft</Badge>;
             default: return <Badge variant="secondary">{status}</Badge>;
         }
@@ -110,77 +116,79 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                 </div>
             </div>
 
-            <Card className="mb-4">
-                <Tabs defaultValue="contract-bills" onValueChange={setActiveTab}>
-                    <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="contract-bills">
-                            <Receipt className="mr-2 h-4 w-4" /> Contract Bills
-                        </TabsTrigger>
-                        <TabsTrigger value="subcontractor-bills">
-                            <Users className="mr-2 h-4 w-4" /> Subcontractor Bills
-                        </TabsTrigger>
-                        <TabsTrigger value="agency-payments">
-                            <CreditCard className="mr-2 h-4 w-4" /> Agency Payments
-                        </TabsTrigger>
-                        <TabsTrigger value="financial-overview">
-                            <PieChart className="mr-2 h-4 w-4" /> Financial Overview
-                        </TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="contract-bills" className="p-4">
-                        <div className="flex justify-between mb-4 items-center">
-                            <Input
-                                placeholder="Search contract bills..."
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                                className="w-[400px]"
-                                icon={<Search className="h-4 w-4 text-muted-foreground" />}
-                            />
-                            <Button variant="outline">
-                                <Filter className="mr-2 h-4 w-4" /> Filter Bills
-                            </Button>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                            {/* Stat Cards */}
-                            <Card className="border-l-4 border-emerald-500">
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between mb-1">
-                                        <p className="text-xs font-bold text-muted-foreground">TOTAL BILLED</p>
-                                        <DollarSign className="h-4 w-4 text-emerald-600" />
-                                    </div>
-                                    <p className="text-xl font-black text-emerald-600">{formatCurrency(financialStats.totalContractBills)}</p>
-                                </CardContent>
-                            </Card>
-                            <Card className="border-l-4 border-amber-500">
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between mb-1">
-                                        <p className="text-xs font-bold text-muted-foreground">PENDING</p>
-                                        <AlertTriangle className="h-4 w-4 text-amber-600" />
-                                    </div>
-                                    <p className="text-xl font-black text-amber-600">{financialStats.pendingBills}</p>
-                                </CardContent>
-                            </Card>
-                            <Card className="border-l-4 border-primary">
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between mb-1">
-                                        <p className="text-xs font-bold text-muted-foreground">APPROVED</p>
-                                        <CheckCircle className="h-4 w-4 text-primary" />
-                                    </div>
-                                    <p className="text-xl font-black text-primary">{financialStats.approvedBills}</p>
-                                </CardContent>
-                            </Card>
-                            <Card className="border-l-4 border-purple-600">
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between mb-1">
-                                        <p className="text-xs font-bold text-muted-foreground">PAID</p>
-                                        <TrendingUp className="h-4 w-4 text-purple-600" />
-                                    </div>
-                                    <p className="text-xl font-black text-purple-600">{financialStats.paidBills}</p>
-                                </CardContent>
-                            </Card>
-                        </div>
+            <Tabs defaultValue="contract-bills" onValueChange={setActiveTab} className="space-y-4">
+                <TabsList className="grid w-full grid-cols-4 h-12">
+                    <TabsTrigger value="contract-bills">
+                        <Receipt className="mr-2 h-4 w-4" /> Contract Bills
+                    </TabsTrigger>
+                    <TabsTrigger value="subcontractor-bills">
+                        <Users className="mr-2 h-4 w-4" /> Subcontractor Bills
+                    </TabsTrigger>
+                    <TabsTrigger value="agency-payments">
+                        <CreditCard className="mr-2 h-4 w-4" /> Agency Payments
+                    </TabsTrigger>
+                    <TabsTrigger value="financial-overview">
+                        <PieChart className="mr-2 h-4 w-4" /> Financial Overview
+                    </TabsTrigger>
+                </TabsList>
+                <TabsContent value="contract-bills">
+                    <Card>
+                        <CardContent className="pt-6">
+                            <div className="flex justify-between mb-4 items-center">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search contract bills..."
+                                        value={searchTerm}
+                                        onChange={e => setSearchTerm(e.target.value)}
+                                        className="w-[400px] pl-10"
+                                    />
+                                </div>
+                                <Button variant="outline">
+                                    <Filter className="mr-2 h-4 w-4" /> Filter Bills
+                                </Button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                                {/* Stat Cards */}
+                                <Card className="border-l-4 border-emerald-500">
+                                    <CardContent className="p-4">
+                                        <div className="flex justify-between mb-1">
+                                            <p className="text-xs font-bold text-muted-foreground">TOTAL BILLED</p>
+                                            <DollarSign className="h-4 w-4 text-emerald-600" />
+                                        </div>
+                                        <p className="text-xl font-black text-emerald-600">{formatCurrency(financialStats.totalContractBills)}</p>
+                                    </CardContent>
+                                </Card>
+                                <Card className="border-l-4 border-amber-500">
+                                    <CardContent className="p-4">
+                                        <div className="flex justify-between mb-1">
+                                            <p className="text-xs font-bold text-muted-foreground">PENDING</p>
+                                            <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                        </div>
+                                        <p className="text-xl font-black text-amber-600">{financialStats.pendingBills}</p>
+                                    </CardContent>
+                                </Card>
+                                <Card className="border-l-4 border-primary">
+                                    <CardContent className="p-4">
+                                        <div className="flex justify-between mb-1">
+                                            <p className="text-xs font-bold text-muted-foreground">APPROVED</p>
+                                            <CheckCircle className="h-4 w-4 text-primary" />
+                                        </div>
+                                        <p className="text-xl font-black text-primary">{financialStats.approvedBills}</p>
+                                    </CardContent>
+                                </Card>
+                                <Card className="border-l-4 border-purple-600">
+                                    <CardContent className="p-4">
+                                        <div className="flex justify-between mb-1">
+                                            <p className="text-xs font-bold text-muted-foreground">PAID</p>
+                                            <TrendingUp className="h-4 w-4 text-purple-600" />
+                                        </div>
+                                        <p className="text-xl font-black text-purple-600">{financialStats.paidBills}</p>
+                                    </CardContent>
+                                </Card>
+                            </div>
 
-                        <Card>
-                            <CardContent className="p-0">
+                            <div className="rounded-md border overflow-hidden">
                                 <Table>
                                     <TableHeader>
                                         <TableRow className="bg-muted">
@@ -205,22 +213,24 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                                                 <TableCell className="text-right">{getBillStatusBadge(bill.status)}</TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end gap-1">
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button variant="ghost" size="icon" onClick={() => handleEditBill(bill, 'contract')}>
-                                                                    <Edit className="h-4 w-4" />
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>Edit</TooltipContent>
-                                                        </Tooltip>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteBill(bill.id, 'contract')}>
-                                                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>Delete</TooltipContent>
-                                                        </Tooltip>
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button variant="ghost" size="icon" onClick={() => handleEditBill(bill, 'contract')}>
+                                                                        <Edit className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Edit</TooltipContent>
+                                                            </Tooltip>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteBill(bill.id, 'contract')}>
+                                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Delete</TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
@@ -228,70 +238,74 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                                     </TableBody>
                                 </Table>
                                 {filteredContractBills.length === 0 && (
-                                    <div className="py-8 text-center border-t border-dashed">
-                                        <Receipt className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                                    <div className="py-12 text-center">
+                                        <Receipt className="h-12 w-12 text-muted-foreground opacity-20 mx-auto mb-2" />
                                         <p className="text-muted-foreground">No contract bills registered.</p>
                                     </div>
                                 )}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
-                    <TabsContent value="subcontractor-bills" className="p-4">
-                        <div className="flex justify-between mb-4 items-center">
-                            <Input
-                                placeholder="Search subcontractor bills..."
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                                className="w-[400px]"
-                                icon={<Search className="h-4 w-4 text-muted-foreground" />}
-                            />
-                            <Button variant="outline">
-                                <Filter className="mr-2 h-4 w-4" /> Filter Bills
-                            </Button>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                            {/* Stat Cards */}
-                            <Card className="border-l-4 border-emerald-500">
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between mb-1">
-                                        <p className="text-xs font-bold text-muted-foreground">TOTAL BILLED</p>
-                                        <DollarSign className="h-4 w-4 text-emerald-600" />
-                                    </div>
-                                    <p className="text-xl font-black text-emerald-600">{formatCurrency(financialStats.totalSubcontractorBills)}</p>
-                                </CardContent>
-                            </Card>
-                            <Card className="border-l-4 border-amber-500">
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between mb-1">
-                                        <p className="text-xs font-bold text-muted-foreground">PENDING</p>
-                                        <AlertTriangle className="h-4 w-4 text-amber-600" />
-                                    </div>
-                                    <p className="text-xl font-black text-amber-600">{financialStats.pendingBills}</p>
-                                </CardContent>
-                            </Card>
-                            <Card className="border-l-4 border-primary">
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between mb-1">
-                                        <p className="text-xs font-bold text-muted-foreground">APPROVED</p>
-                                        <CheckCircle className="h-4 w-4 text-primary" />
-                                    </div>
-                                    <p className="text-xl font-black text-primary">{financialStats.approvedBills}</p>
-                                </CardContent>
-                            </Card>
-                            <Card className="border-l-4 border-purple-600">
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between mb-1">
-                                        <p className="text-xs font-bold text-muted-foreground">PAID</p>
-                                        <TrendingUp className="h-4 w-4 text-purple-600" />
-                                    </div>
-                                    <p className="text-xl font-black text-purple-600">{financialStats.paidBills}</p>
-                                </CardContent>
-                            </Card>
-                        </div>
+                <TabsContent value="subcontractor-bills">
+                    <Card>
+                        <CardContent className="pt-6">
+                            <div className="flex justify-between mb-4 items-center">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search subcontractor bills..."
+                                        value={searchTerm}
+                                        onChange={e => setSearchTerm(e.target.value)}
+                                        className="w-[400px] pl-10"
+                                    />
+                                </div>
+                                <Button variant="outline">
+                                    <Filter className="mr-2 h-4 w-4" /> Filter Bills
+                                </Button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                                {/* Stat Cards */}
+                                <Card className="border-l-4 border-emerald-500">
+                                    <CardContent className="p-4">
+                                        <div className="flex justify-between mb-1">
+                                            <p className="text-xs font-bold text-muted-foreground">TOTAL BILLED</p>
+                                            <DollarSign className="h-4 w-4 text-emerald-600" />
+                                        </div>
+                                        <p className="text-xl font-black text-emerald-600">{formatCurrency(financialStats.totalSubcontractorBills)}</p>
+                                    </CardContent>
+                                </Card>
+                                <Card className="border-l-4 border-amber-500">
+                                    <CardContent className="p-4">
+                                        <div className="flex justify-between mb-1">
+                                            <p className="text-xs font-bold text-muted-foreground">PENDING</p>
+                                            <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                        </div>
+                                        <p className="text-xl font-black text-amber-600">{financialStats.pendingBills}</p>
+                                    </CardContent>
+                                </Card>
+                                <Card className="border-l-4 border-primary">
+                                    <CardContent className="p-4">
+                                        <div className="flex justify-between mb-1">
+                                            <p className="text-xs font-bold text-muted-foreground">APPROVED</p>
+                                            <CheckCircle className="h-4 w-4 text-primary" />
+                                        </div>
+                                        <p className="text-xl font-black text-primary">{financialStats.approvedBills}</p>
+                                    </CardContent>
+                                </Card>
+                                <Card className="border-l-4 border-purple-600">
+                                    <CardContent className="p-4">
+                                        <div className="flex justify-between mb-1">
+                                            <p className="text-xs font-bold text-muted-foreground">PAID</p>
+                                            <TrendingUp className="h-4 w-4 text-purple-600" />
+                                        </div>
+                                        <p className="text-xl font-black text-purple-600">{financialStats.paidBills}</p>
+                                    </CardContent>
+                                </Card>
+                            </div>
 
-                        <Card>
-                            <CardContent className="p-0">
+                            <div className="rounded-md border overflow-hidden">
                                 <Table>
                                     <TableHeader>
                                         <TableRow className="bg-muted">
@@ -311,29 +325,31 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                                                     <p className="text-xs text-muted-foreground">{bill.date}</p>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <p>{project.agencies?.find(a => a.id === bill.subcontractorId)?.name || 'Unknown'}</p>
+                                                    <p>{project?.agencies?.find(a => a.id === bill.subcontractorId)?.name || 'Unknown'}</p>
                                                 </TableCell>
                                                 <TableCell>{bill.periodFrom} to {bill.periodTo}</TableCell>
                                                 <TableCell className="text-right font-bold">{formatCurrency(bill.netAmount)}</TableCell>
                                                 <TableCell className="text-right">{getBillStatusBadge(bill.status)}</TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end gap-1">
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button variant="ghost" size="icon" onClick={() => handleEditBill(bill, 'subcontractor')}>
-                                                                    <Edit className="h-4 w-4" />
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>Edit</TooltipContent>
-                                                        </Tooltip>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteBill(bill.id, 'subcontractor')}>
-                                                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>Delete</TooltipContent>
-                                                        </Tooltip>
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button variant="ghost" size="icon" onClick={() => handleEditBill(bill, 'subcontractor')}>
+                                                                        <Edit className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Edit</TooltipContent>
+                                                            </Tooltip>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteBill(bill.id, 'subcontractor')}>
+                                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Delete</TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
@@ -341,74 +357,78 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                                     </TableBody>
                                 </Table>
                                 {filteredSubcontractorBills.length === 0 && (
-                                    <div className="py-8 text-center border-t border-dashed">
-                                        <Users className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                                    <div className="py-12 text-center">
+                                        <Users className="h-12 w-12 text-muted-foreground opacity-20 mx-auto mb-2" />
                                         <p className="text-muted-foreground">No subcontractor bills registered.</p>
                                     </div>
                                 )}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
-                    <TabsContent value="agency-payments" className="p-4">
-                        <div className="flex justify-between mb-4 items-center">
-                            <Input
-                                placeholder="Search agency payments..."
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                                className="w-[400px]"
-                                icon={<Search className="h-4 w-4 text-muted-foreground" />}
-                            />
-                            <Button variant="outline">
-                                <Filter className="mr-2 h-4 w-4" /> Filter Payments
-                            </Button>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                            {/* Stat Cards */}
-                            <Card className="border-l-4 border-emerald-500">
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between mb-1">
-                                        <p className="text-xs font-bold text-muted-foreground">TOTAL PAID</p>
-                                        <DollarSign className="h-4 w-4 text-emerald-600" />
-                                    </div>
-                                    <p className="text-xl font-black text-emerald-600">{formatCurrency(financialStats.totalAgencyPayments)}</p>
-                                </CardContent>
-                            </Card>
-                            <Card className="border-l-4 border-amber-500">
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between mb-1">
-                                        <p className="text-xs font-bold text-muted-foreground">AGENCIES</p>
-                                        <Users className="h-4 w-4 text-amber-600" />
-                                    </div>
-                                    <p className="text-xl font-black text-amber-600">{project.agencies?.length || 0}</p>
-                                </CardContent>
-                            </Card>
-                            <Card className="border-l-4 border-primary">
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between mb-1">
-                                        <p className="text-xs font-bold text-muted-foreground">PAYMENT TYPES</p>
-                                        <CreditCard className="h-4 w-4 text-primary" />
-                                    </div>
-                                    <p className="text-xl font-black text-primary">{[...new Set(agencyPayments.map(p => p.type))].length}</p>
-                                </CardContent>
-                            </Card>
-                            <Card className="border-l-4 border-purple-600">
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between mb-1">
-                                        <p className="text-xs font-bold text-muted-foreground">AVG. PAYMENT</p>
-                                        <TrendingUp className="h-4 w-4 text-purple-600" />
-                                    </div>
-                                    <p className="text-xl font-black text-purple-600">
-                                        {agencyPayments.length > 0 
-                                            ? formatCurrency(agencyPayments.reduce((sum, p) => sum + p.amount, 0) / agencyPayments.length) 
-                                            : '$0'}
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        </div>
+                <TabsContent value="agency-payments">
+                    <Card>
+                        <CardContent className="pt-6">
+                            <div className="flex justify-between mb-4 items-center">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search agency payments..."
+                                        value={searchTerm}
+                                        onChange={e => setSearchTerm(e.target.value)}
+                                        className="w-[400px] pl-10"
+                                    />
+                                </div>
+                                <Button variant="outline">
+                                    <Filter className="mr-2 h-4 w-4" /> Filter Payments
+                                </Button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                                {/* Stat Cards */}
+                                <Card className="border-l-4 border-emerald-500">
+                                    <CardContent className="p-4">
+                                        <div className="flex justify-between mb-1">
+                                            <p className="text-xs font-bold text-muted-foreground">TOTAL PAID</p>
+                                            <DollarSign className="h-4 w-4 text-emerald-600" />
+                                        </div>
+                                        <p className="text-xl font-black text-emerald-600">{formatCurrency(financialStats.totalAgencyPayments)}</p>
+                                    </CardContent>
+                                </Card>
+                                <Card className="border-l-4 border-amber-500">
+                                    <CardContent className="p-4">
+                                        <div className="flex justify-between mb-1">
+                                            <p className="text-xs font-bold text-muted-foreground">AGENCIES</p>
+                                            <Users className="h-4 w-4 text-amber-600" />
+                                        </div>
+                                        <p className="text-xl font-black text-amber-600">{project?.agencies?.length || 0}</p>
+                                    </CardContent>
+                                </Card>
+                                <Card className="border-l-4 border-primary">
+                                    <CardContent className="p-4">
+                                        <div className="flex justify-between mb-1">
+                                            <p className="text-xs font-bold text-muted-foreground">PAYMENT TYPES</p>
+                                            <CreditCard className="h-4 w-4 text-primary" />
+                                        </div>
+                                        <p className="text-xl font-black text-primary">{[...new Set(agencyPayments.map(p => p.type))].length}</p>
+                                    </CardContent>
+                                </Card>
+                                <Card className="border-l-4 border-purple-600">
+                                    <CardContent className="p-4">
+                                        <div className="flex justify-between mb-1">
+                                            <p className="text-xs font-bold text-muted-foreground">AVG. PAYMENT</p>
+                                            <TrendingUp className="h-4 w-4 text-purple-600" />
+                                        </div>
+                                        <p className="text-xl font-black text-purple-600">
+                                            {agencyPayments.length > 0 
+                                                ? formatCurrency(agencyPayments.reduce((sum, p) => sum + p.amount, 0) / agencyPayments.length) 
+                                                : formatCurrency(0)}
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                            </div>
 
-                        <Card>
-                            <CardContent className="p-0">
+                            <div className="rounded-md border overflow-hidden">
                                 <Table>
                                     <TableHeader>
                                         <TableRow className="bg-muted">
@@ -428,7 +448,7 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                                                     <p className="text-xs text-muted-foreground">{payment.description}</p>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <p>{project.agencies?.find(a => a.id === payment.agencyId)?.name || 'Unknown'}</p>
+                                                    <p>{project?.agencies?.find(a => a.id === payment.agencyId)?.name || 'Unknown'}</p>
                                                 </TableCell>
                                                 <TableCell>{payment.type}</TableCell>
                                                 <TableCell>{payment.date}</TableCell>
@@ -439,90 +459,90 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                                     </TableBody>
                                 </Table>
                                 {filteredAgencyPayments.length === 0 && (
-                                    <div className="py-8 text-center border-t border-dashed">
-                                        <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                                    <div className="py-12 text-center">
+                                        <CreditCard className="h-12 w-12 text-muted-foreground opacity-20 mx-auto mb-2" />
                                         <p className="text-muted-foreground">No agency payments registered.</p>
                                     </div>
                                 )}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
-                    <TabsContent value="financial-overview" className="p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Revenue & Expenditure</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex justify-between mb-2">
-                                        <div>
-                                            <p className="text-sm text-muted-foreground">Total Revenue</p>
-                                            <p className="text-2xl font-black text-emerald-600">{formatCurrency(financialStats.totalContractBills)}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-muted-foreground">Total Expenses</p>
-                                            <p className="text-2xl font-black text-destructive">{formatCurrency(financialStats.totalSubcontractorBills + financialStats.totalAgencyPayments)}</p>
-                                        </div>
-                                    </div>
-                                    <Separator className="my-4" />
-                                    <div className="flex justify-between">
-                                        <div>
-                                            <p className="text-sm text-muted-foreground">Net Position</p>
-                                            <p className={cn("text-2xl font-black", financialStats.totalContractBills >= (financialStats.totalSubcontractorBills + financialStats.totalAgencyPayments) ? 'text-emerald-600' : 'text-destructive')}>
-                                                {formatCurrency(financialStats.totalContractBills - (financialStats.totalSubcontractorBills + financialStats.totalAgencyPayments))}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-muted-foreground">Margin</p>
-                                            <p className={cn("text-2xl font-black", financialStats.totalContractBills >= (financialStats.totalSubcontractorBills + financialStats.totalAgencyPayments) ? 'text-emerald-600' : 'text-destructive')}>
-                                                {financialStats.totalContractBills > 0 
-                                                    ? `${(((financialStats.totalContractBills - (financialStats.totalSubcontractorBills + financialStats.totalAgencyPayments)) / financialStats.totalContractBills) * 100).toFixed(1)}%` 
-                                                    : '0%'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Cash Flow Status</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="grid gap-2">
-                                        <div className="flex items-center gap-2">
-                                            <Receipt className="h-4 w-4 text-emerald-600" />
-                                            <p>Outstanding Receivables: <span className="font-semibold">{formatCurrency(contractBills.filter(b => b.status !== 'Paid').reduce((sum, b) => sum + b.netAmount, 0))}</span></p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Users className="h-4 w-4 text-amber-600" />
-                                            <p>Outstanding Payables: <span className="font-semibold">{formatCurrency(subcontractorBills.filter(b => b.status !== 'Paid').reduce((sum, b) => sum + b.netAmount, 0))}</span></p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <CreditCard className="h-4 w-4 text-primary" />
-                                            <p>Pending Agency Payments: <span className="font-semibold">{formatCurrency(agencyPayments.length)}</span></p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <DollarSign className="h-4 w-4 text-purple-600" />
-                                            <p>Available Budget: <span className="font-semibold">{formatCurrency(1000000 - financialStats.totalContractBills)}</span></p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
+                <TabsContent value="financial-overview">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <Card>
-                            <CardContent className="p-4">
-                                <Alert>
-                                    <FileText className="h-4 w-4" />
-                                    <AlertDescription>
-                                        This financial hub consolidates all commercial transactions for the project. Track contract bills, subcontractor payments, and agency expenses in one place.
-                                    </AlertDescription>
-                                </Alert>
+                            <CardHeader>
+                                <CardTitle>Revenue & Expenditure</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex justify-between mb-2">
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Total Revenue</p>
+                                        <p className="text-2xl font-black text-emerald-600">{formatCurrency(financialStats.totalContractBills)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Total Expenses</p>
+                                        <p className="text-2xl font-black text-destructive">{formatCurrency(financialStats.totalSubcontractorBills + financialStats.totalAgencyPayments)}</p>
+                                    </div>
+                                </div>
+                                <Separator className="my-4" />
+                                <div className="flex justify-between">
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Net Position</p>
+                                        <p className={cn("text-2xl font-black", financialStats.totalContractBills >= (financialStats.totalSubcontractorBills + financialStats.totalAgencyPayments) ? 'text-emerald-600' : 'text-destructive')}>
+                                            {formatCurrency(financialStats.totalContractBills - (financialStats.totalSubcontractorBills + financialStats.totalAgencyPayments))}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Margin</p>
+                                        <p className={cn("text-2xl font-black", financialStats.totalContractBills >= (financialStats.totalSubcontractorBills + financialStats.totalAgencyPayments) ? 'text-emerald-600' : 'text-destructive')}>
+                                            {financialStats.totalContractBills > 0 
+                                                ? `${(((financialStats.totalContractBills - (financialStats.totalSubcontractorBills + financialStats.totalAgencyPayments)) / financialStats.totalContractBills) * 100).toFixed(1)}%` 
+                                                : '0%'}
+                                        </p>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
-                    </TabsContent>
-                </Tabs>
-            </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Cash Flow Status</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <Receipt className="h-4 w-4 text-emerald-600" />
+                                        <p>Outstanding Receivables: <span className="font-semibold">{formatCurrency(contractBills.filter(b => b.status !== 'Paid').reduce((sum, b) => sum + b.netAmount, 0))}</span></p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Users className="h-4 w-4 text-amber-600" />
+                                        <p>Outstanding Payables: <span className="font-semibold">{formatCurrency(subcontractorBills.filter(b => b.status !== 'Paid').reduce((sum, b) => sum + b.netAmount, 0))}</span></p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <CreditCard className="h-4 w-4 text-primary" />
+                                        <p>Pending Agency Payments: <span className="font-semibold">{agencyPayments.length}</span></p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <DollarSign className="h-4 w-4 text-purple-600" />
+                                        <p>Available Budget: <span className="font-semibold">{formatCurrency(1000000 - financialStats.totalContractBills)}</span></p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                    <Card>
+                        <CardContent className="p-4">
+                            <Alert>
+                                <FileText className="h-4 w-4" />
+                                <AlertDescription>
+                                    This financial hub consolidates all commercial transactions for the project. Track contract bills, subcontractor payments, and agency expenses in one place.
+                                </AlertDescription>
+                            </Alert>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
 
             {/* BILL MODAL */}
             <Dialog open={isBillModalOpen} onOpenChange={setIsBillModalOpen}>
@@ -564,7 +584,7 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                                         <SelectValue placeholder="Select subcontractor" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {project.agencies?.filter(a => a.type === 'subcontractor').map(agency => (
+                                        {project?.agencies?.filter(a => a.type === 'subcontractor').map(agency => (
                                             <SelectItem key={agency.id} value={agency.id}>{agency.name}</SelectItem>
                                         ))}
                                     </SelectContent>
