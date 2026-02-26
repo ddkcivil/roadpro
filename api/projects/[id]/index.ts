@@ -28,12 +28,16 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
   } else if (req.method === 'PUT') {
     try {
       const { Project } = await connectToDatabase();
-      const projectData = req.body;
+      const projectData = { ...req.body };
+      
+      // MongoDB does not allow updating the immutable _id field
+      delete projectData._id;
+      delete projectData.__v;
       
       const updatedProject = await Project.findOneAndUpdate(
         { id: id as string },
-        { ...projectData },
-        { new: true } // Return the modified document rather than the original
+        { $set: projectData },
+        { new: true, runValidators: true }
       );
 
       if (!updatedProject) {
@@ -42,8 +46,12 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       
       res.status(200).json(updatedProject);
     } catch (error: any) {
-      console.error('Failed to update project:', error);
-      res.status(500).json({ error: 'Failed to update project', details: error.message });
+      console.error('Failed to update project. Error:', error);
+      res.status(500).json({ 
+        error: 'Failed to update project', 
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   } else if (req.method === 'DELETE') {
     try {
