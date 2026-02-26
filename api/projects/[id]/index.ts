@@ -8,7 +8,7 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
   const { id } = req.query;
 
   if (!id || typeof id !== 'string') {
-    res.status(400).json({ error: 'Project ID is required' });
+    return res.status(400).json({ error: 'Project ID is required' });
   }
 
   if (req.method === 'GET') {
@@ -60,16 +60,20 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
   } else if (req.method === 'DELETE') {
     try {
       const { Project } = await connectToDatabase();
+      console.log(`[DEBUG] Attempting to delete project with custom id: ${id}`);
+      
       const deletedProject = await Project.findOneAndDelete({ id: id as string });
       
       if (!deletedProject) {
+        console.log(`[DEBUG] Project not found for deletion: ${id}`);
         return res.status(404).json({ error: 'Project not found' });
       }
       
-      res.status(204).send(''); // 204 No Content for successful deletion
+      console.log(`[DEBUG] Successfully deleted project: ${id}`);
+      return res.status(204).end(); // Use .end() for 204 No Content
     } catch (error: any) {
-      console.error('Failed to delete project:', error);
-      res.status(500).json({ error: 'Failed to delete project', details: error.message });
+      console.error('Failed to delete project. Error:', error);
+      return res.status(500).json({ error: 'Failed to delete project', details: error.message });
     }
   } else {
     res.status(405).json({ error: 'Method Not Allowed' });

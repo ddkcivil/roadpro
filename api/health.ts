@@ -42,4 +42,4 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
     });
   }
 })
-})
+

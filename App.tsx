@@ -554,18 +554,24 @@ const App: React.FC = () => {
       setProjects(prev => {
         const updatedProjects = prev.filter(p => p.id !== projectId);
         
-        // Defer synchronous storage updates to prevent blocking the main thread during the click event
+        // Defer synchronous storage updates
         setTimeout(() => {
           localStorage.setItem('roadmaster-projects', JSON.stringify(updatedProjects));
-          DataCache.set(getCacheKey('projects'), updatedProjects, { ttl: 10 * 60 * 1000 }); // 10 minutes
+          DataCache.set(getCacheKey('projects'), updatedProjects, { ttl: 10 * 60 * 1000 });
         }, 0);
 
-
-        
         return updatedProjects;
       });
-    } catch (error) {
-      console.error('Failed to delete project from backend:', error);
+      
+      toast.success("Project Deleted", {
+        description: "The project has been permanently removed from the database.",
+      });
+    } catch (error: any) {
+      console.error('[ERROR] Failed to delete project from backend:', error);
+      const errorMsg = error.response?.data?.details || error.message || 'Unknown server error';
+      toast.error("Delete Failed", {
+        description: `Server responded with: ${errorMsg}`,
+      });
       throw error;
     }
   };
