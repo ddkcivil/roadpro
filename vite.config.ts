@@ -39,8 +39,6 @@ export default defineConfig(({ mode }) => {
         '~': path.resolve(__dirname, '.'),
         'react': path.resolve(__dirname, './node_modules/react'),
         'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
-        '@emotion/react': path.resolve(__dirname, './node_modules/@emotion/react'),
-        '@emotion/styled': path.resolve(__dirname, './node_modules/@emotion/styled'),
       }
     },
     optimizeDeps: {

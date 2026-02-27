@@ -23,7 +23,7 @@ import {
     Clock, Lock, CheckCircle2, XCircle, FileSearch, CalendarPlus, 
     Link as LinkIcon, ExternalLink, Calendar, MapPin, BarChart2,
     MessageSquare, User as UserIcon, Circle, Filter, CheckCircle, Trash2,
-    ClipboardList
+    ClipboardList, AlertTriangle
 } from 'lucide-react';
 import StatCard from '../core/StatCard';
 import { cn } from '~/lib/utils'; // Assuming cn utility is available for conditional classes

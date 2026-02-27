@@ -756,7 +756,12 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                       {previewDoc.tags?.map(t => (
                         <Badge key={t} variant="secondary" className="h-5 text-xs flex items-center">
                           {t}
-                          <button onClick={() => handleRemoveTag(previewDoc.id, t)} className="ml-1 focus:outline-none">
+                          <button 
+                            onClick={() => handleRemoveTag(previewDoc.id, t)} 
+                            className="ml-1 focus:outline-none"
+                            title="Remove tag"
+                            aria-label={`Remove tag ${t}`}
+                          >
                             <X className="h-3 w-3" />
                           </button>
                         </Badge>

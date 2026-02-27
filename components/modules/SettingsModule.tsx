@@ -350,6 +350,8 @@ const SettingsModule: React.FC<Props> = ({ settings, onUpdate }) => {
                               id="report-footer"
                               className="flex h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                               defaultValue="This report is generated automatically. Please verify critical data on site."
+                              placeholder="Enter disclaimer text for reports..."
+                              title="Report Footer Disclaimer"
                           ></textarea>
                           <div className="flex items-center space-x-2 mt-4">
                               <Switch id="include-signature-block" defaultChecked />

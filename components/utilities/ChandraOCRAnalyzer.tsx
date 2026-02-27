@@ -7,6 +7,7 @@ import { Badge } from '~/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Separator } from '~/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
+import { cn } from '~/lib/utils';
 import {
   Upload,
   FileText,
@@ -221,538 +222,449 @@ const ChandraOCRAnalyzer: React.FC = () => {
   };
 
   return (
-    <Box className="space-y-6">
-      <Box>
-        <Typography variant="h4" fontWeight="bold" color="text.primary" mb={1}>
+    <div className="space-y-6">
+      <div>
+        <h4 className="text-2xl font-bold text-foreground mb-1">
           Chandra OCR Analyzer
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
+        </h4>
+        <p className="text-sm text-muted-foreground">
           Advanced document analysis and data extraction using Chandra OCR technology
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       {/* Key Features */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <Card variant="outlined" sx={{ borderRadius: 4, height: '100%', bgcolor: 'primary.lighter' }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" gap={2} mb={2}>
-                <Zap size={32} className="text-primary.main" />
-                <Typography variant="h6" fontWeight="bold">Smart Extraction</Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary">
-                Extract structured data from documents with advanced pattern recognition and NLP techniques.
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card variant="outlined" sx={{ borderRadius: 4, height: '100%', bgcolor: 'success.lighter' }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" gap={2} mb={2}>
-                <Search size={32} className="text-success.main" />
-                <Typography variant="h6" fontWeight="bold">Deep Analysis</Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary">
-                Analyze document content to identify key entities, relationships, and patterns automatically.
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card variant="outlined" sx={{ borderRadius: 4, height: '100%', bgcolor: 'info.lighter' }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" gap={2} mb={2}>
-                <BarChart3 size={32} className="text-info.main" />
-                <Typography variant="h6" fontWeight="bold">Insights</Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary">
-                Generate actionable insights and reports from extracted data for better decision making.
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="h-full">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Zap size={32} className="text-primary" />
+              <h6 className="text-lg font-bold">Smart Extraction</h6>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Extract structured data from documents with advanced pattern recognition and NLP techniques.
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="h-full">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Search size={32} className="text-green-600" />
+              <h6 className="text-lg font-bold">Deep Analysis</h6>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Analyze document content to identify key entities, relationships, and patterns automatically.
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="h-full">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 size={32} className="text-blue-600" />
+              <h6 className="text-lg font-bold">Insights</h6>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Generate actionable insights and reports from extracted data for better decision making.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Upload Area */}
-      <Card variant="outlined" sx={{ borderRadius: 4 }}>
-        <CardContent>
+      <Card>
+        <CardContent className="p-6">
           <input
             type="file"
-            id="ocr-file-upload-input" // Added id for accessibility
+            id="ocr-file-upload-input"
             ref={fileInputRef}
             onChange={handleFileUpload}
             accept="image/*,.pdf"
             className="hidden"
           />
           <label htmlFor="ocr-file-upload-input" className="sr-only">Upload Document for Chandra OCR</label>
-          
+
           {/* Extraction Mode Selector */}
-          <Box display="flex" gap={2} mb={3}>
+          <div className="flex gap-2 mb-6">
             <Button
-              variant={extractionMode === 'full' ? 'contained' : 'outlined'}
-              size="small"
+              variant={extractionMode === 'full' ? 'default' : 'outline'}
+              size="sm"
               onClick={() => setExtractionMode('full')}
-              sx={{ borderRadius: 25, textTransform: 'none', fontWeight: 'medium' }}
+              className="rounded-full font-medium"
             >
               Full Analysis
             </Button>
             <Button
-              variant={extractionMode === 'boq' ? 'contained' : 'outlined'}
-              size="small"
+              variant={extractionMode === 'boq' ? 'default' : 'outline'}
+              size="sm"
               onClick={() => setExtractionMode('boq')}
-              sx={{ borderRadius: 25, textTransform: 'none', fontWeight: 'medium' }}
+              className="rounded-full font-medium"
             >
               BOQ Extraction
             </Button>
             <Button
-              variant={extractionMode === 'finance' ? 'contained' : 'outlined'}
-              size="small"
+              variant={extractionMode === 'finance' ? 'default' : 'outline'}
+              size="sm"
               onClick={() => setExtractionMode('finance')}
-              sx={{ borderRadius: 25, textTransform: 'none', fontWeight: 'medium' }}
+              className="rounded-full font-medium"
             >
               Financial Data
             </Button>
-          </Box>
-          
-          <Box
+          </div>
+
+          <div
             onDragOver={handleDragOver}
             onDrop={handleDrop}
             onClick={triggerFileInput}
-            sx={{
-              border: '2px dashed',
-              borderColor: 'divider',
-              borderRadius: 4,
-              p: 6,
-              textAlign: 'center',
-              cursor: 'pointer',
-              bgcolor: 'action.hover',
-              transition: 'all 0.2s',
-              '&:hover': {
-                borderColor: 'primary.main',
-                bgcolor: 'primary.lighter'
-              }
-            }}
+            className="border-2 border-dashed border-border rounded-lg p-12 text-center cursor-pointer bg-muted/50 hover:border-primary hover:bg-primary/5 transition-colors"
           >
-            <FileText size={48} className="mx-auto mb-4 text-slate-400" />
-            <Typography variant="h6" fontWeight="bold" color="text.primary" mb={1}>
+            <FileText size={48} className="mx-auto mb-4 text-muted-foreground" />
+            <h6 className="text-lg font-bold mb-2">
               Upload Document for Chandra OCR
-            </Typography>
-            <Typography variant="body2" color="text.secondary" mb={3}>
+            </h6>
+            <p className="text-sm text-muted-foreground mb-4">
               Drag & drop your image or PDF file here, or click to browse
-            </Typography>
-            <Typography variant="caption" color="text.disabled">
+            </p>
+            <p className="text-xs text-muted-foreground">
               Supports JPG, PNG, GIF, BMP, TIFF, PDF formats
-            </Typography>
-          </Box>
+            </p>
+          </div>
         </CardContent>
       </Card>
 
       {/* Progress Indicator */}
       {isProcessing && (
-        <Card variant="outlined" sx={{ borderRadius: 4 }}>
-          <CardContent>
-            <Typography variant="h6" fontWeight="bold" mb={2} display="flex" alignItems="center" gap={1}>
+        <Card className="border-border rounded-xl">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-4">
               <Eye size={20} />
-              Processing Document with Chandra OCR
-            </Typography>
-            <LinearProgress 
-              variant="determinate" 
+              <h6 className="text-lg font-bold">Processing Document with Chandra OCR</h6>
+            </div>
+            <Progress 
               value={progress} 
-              sx={{ height: 8, borderRadius: 4, mb: 2 }} 
+              className="h-2 mb-2" 
             />
-            <Typography variant="body2" color="text.secondary">
+            <p className="text-sm text-muted-foreground">
               {progress < 30 ? 'Initializing OCR engine...' : 
                progress < 60 ? 'Analyzing document structure...' : 
                progress < 90 ? 'Extracting text and data...' : 
                'Generating insights and analysis...'}
-            </Typography>
+            </p>
           </CardContent>
         </Card>
       )}
 
       {/* Error Message */}
       {error && (
-        <Alert severity="error" sx={{ borderRadius: 4 }}>
-          <Typography variant="body1" fontWeight="bold">Processing Error</Typography>
-          <Typography variant="body2">{error}</Typography>
+        <Alert variant="destructive" className="rounded-xl">
+          <div className="flex flex-col gap-1">
+            <h6 className="font-bold">Processing Error</h6>
+            <AlertDescription>{error}</AlertDescription>
+          </div>
         </Alert>
       )}
 
       {/* Results with Side-by-Side Preview */}
       {result && analysisReport && (
-        <Grid container spacing={3}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Document Preview Column */}
-          <Grid item xs={12} md={6}>
-            <Card variant="outlined" sx={{ borderRadius: 4, height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" fontWeight="bold" mb={2} display="flex" alignItems="center" gap={1}>
+          <div className="h-full">
+            <Card className="border-border rounded-xl h-full">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 mb-4">
                   <Eye size={20} />
-                  Document Preview
-                </Typography>
-                <Box 
-                  sx={{ 
-                    border: '1px solid', 
-                    borderColor: 'divider', 
-                    borderRadius: 2, 
-                    p: 1, 
-                    bgcolor: 'background.paper',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    minHeight: 400
-                  }}
+                  <h6 className="text-lg font-bold">Document Preview</h6>
+                </div>
+                <div 
+                  className="border border-border rounded-lg p-1 bg-background h-full flex items-center justify-center min-h-[400px]"
                 >
                   {previewUrl && (
-                    <Box 
-                      component="img" 
+                    <img 
                       src={previewUrl} 
                       alt="Document Preview" 
-                      sx={{ 
-                        maxWidth: '100%', 
-                        maxHeight: '500px',
-                        objectFit: 'contain',
-                        borderRadius: 1
-                      }}
+                      className="max-w-full max-h-[500px] object-contain rounded"
                     />
                   )}
-                </Box>
+                </div>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
           
           {/* OCR Results Column */}
-          <Grid item xs={12} md={6}>
-            <Box className="space-y-4">
-              <Card variant="outlined" sx={{ borderRadius: 4 }}>
-                <CardContent>
-                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                    <Typography variant="h6" fontWeight="bold" display="flex" alignItems="center" gap={1}>
-                      <CheckCircle size={20} color="#10b981" />
-                      Extraction Successful
-                    </Typography>
-                    <Chip 
-                      label={`Confidence: ${result.confidence}%`} 
-                      size="small" 
-                      sx={{ 
-                        bgcolor: result.confidence > 85 ? 'success.light' : result.confidence > 70 ? 'warning.light' : 'error.light',
-                        color: result.confidence > 85 ? 'success.dark' : result.confidence > 70 ? 'warning.dark' : 'error.dark',
-                        fontWeight: 'bold'
-                      }} 
-                    />
-                  </Box>
-                  
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    Extracted from: {fileName} • Type: {documentType}
-                  </Typography>
-                  
-                  {/* Document Analysis Summary */}
-                  <Box mt={2} p={2} bgcolor="info.lighter" borderRadius={2}>
-                    <Typography variant="subtitle2" fontWeight="bold" color="text.primary" mb={1}>
-                      Document Analysis Summary
-                    </Typography>
-                    <Stack spacing={1}>
-                      <Box display="flex" justifyContent="space-between">
-                        <Typography variant="body2" color="text.secondary">BOQ Items:</Typography>
-                        <Typography variant="body2" fontWeight="medium">{result.structuredData.boqItems?.length || 0}</Typography>
-                      </Box>
-                      <Box display="flex" justifyContent="space-between">
-                        <Typography variant="body2" color="text.secondary">Financial Amounts:</Typography>
-                        <Typography variant="body2" fontWeight="medium">{result.structuredData.amounts?.length || 0}</Typography>
-                      </Box>
-                      <Box display="flex" justifyContent="space-between">
-                        <Typography variant="body2" color="text.secondary">Dates Found:</Typography>
-                        <Typography variant="body2" fontWeight="medium">{result.structuredData.dates?.length || 0}</Typography>
-                      </Box>
-                      <Box display="flex" justifyContent="space-between">
-                        <Typography variant="body2" color="text.secondary">Project Codes:</Typography>
-                        <Typography variant="body2" fontWeight="medium">{result.structuredData.codes?.length || 0}</Typography>
-                      </Box>
-                      <Box display="flex" justifyContent="space-between">
-                        <Typography variant="body2" color="text.secondary">Contractors:</Typography>
-                        <Typography variant="body2" fontWeight="medium">{result.structuredData.contractors?.length || 0}</Typography>
-                      </Box>
-                    </Stack>
-                  </Box>
-                </CardContent>
-              </Card>
-
-              {/* Analysis Tabs */}
-              <Card variant="outlined" sx={{ borderRadius: 4 }}>
-                <CardContent>
-                  <Tabs 
-                    value={activeTab} 
-                    onChange={handleTabChange}
-                    variant="scrollable"
-                    scrollButtons="auto"
+          <div className="space-y-4">
+            <Card className="border-border rounded-xl">
+              <CardContent className="pt-6">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={20} className="text-emerald-500" />
+                    <h6 className="text-lg font-bold">Extraction Successful</h6>
+                  </div>
+                  <Badge 
+                    className={cn(
+                      "font-bold",
+                      result.confidence > 85 ? "bg-emerald-100 text-emerald-700" : 
+                      result.confidence > 70 ? "bg-amber-100 text-amber-700" : 
+                      "bg-red-100 text-red-700"
+                    )}
                   >
-                    <Tab label="Insights" />
-                    <Tab label="Structured Data" />
-                    <Tab label="Raw Text" />
-                    <Tab label="Export" />
-                  </Tabs>
+                    Confidence: {result.confidence}%
+                  </Badge>
+                </div>
+                
+                <p className="text-sm text-muted-foreground mb-4">
+                  Extracted from: {fileName} • Type: {documentType}
+                </p>
+                
+                {/* Document Analysis Summary */}
+                <div className="mt-4 p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/20">
+                  <h6 className="text-sm font-bold mb-3">Document Analysis Summary</h6>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">BOQ Items:</span>
+                      <span className="font-medium">{result.structuredData.boqItems?.length || 0}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Financial Amounts:</span>
+                      <span className="font-medium">{result.structuredData.amounts?.length || 0}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Dates Found:</span>
+                      <span className="font-medium">{result.structuredData.dates?.length || 0}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Project Codes:</span>
+                      <span className="font-medium">{result.structuredData.codes?.length || 0}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Contractors:</span>
+                      <span className="font-medium">{result.structuredData.contractors?.length || 0}</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Analysis Tabs */}
+            <Card className="border-border rounded-xl">
+              <CardContent className="pt-6">
+                <Tabs value={activeTab.toString()} onValueChange={(v) => setActiveTab(parseInt(v))}>
+                  <TabsList className="w-full justify-start overflow-x-auto mb-4">
+                    <TabsTrigger value="0">Insights</TabsTrigger>
+                    <TabsTrigger value="1">Structured Data</TabsTrigger>
+                    <TabsTrigger value="2">Raw Text</TabsTrigger>
+                    <TabsTrigger value="3">Export</TabsTrigger>
+                  </TabsList>
                   
-                  <Box mt={2}>
-                    {activeTab === 0 && (
-                      <Box>
-                        <Typography variant="h6" fontWeight="bold" mb={2}>
-                          Document Insights
-                        </Typography>
+                  <div className="mt-4">
+                    <TabsContent value="0">
+                      <div className="space-y-4">
+                        <h6 className="text-lg font-bold">Document Insights</h6>
                         
-                        <Card variant="outlined" sx={{ borderRadius: 2, mb: 2 }}>
-                          <CardContent>
-                            <Typography variant="subtitle2" fontWeight="bold" color="text.primary" mb={1}>
-                              Quality Metrics
-                            </Typography>
-                            <Stack spacing={1}>
-                              <Box display="flex" justifyContent="space-between">
-                                <Typography variant="body2" color="text.secondary">Text Clarity:</Typography>
-                                <Typography variant="body2" fontWeight="medium">{analysisReport.qualityMetrics.textClarity}%</Typography>
-                              </Box>
-                              <LinearProgress 
-                                variant="determinate" 
-                                value={analysisReport.qualityMetrics.textClarity} 
-                                sx={{ height: 6, borderRadius: 3 }} 
-                              />
-                            </Stack>
-                            <Stack spacing={1} mt={1}>
-                              <Box display="flex" justifyContent="space-between">
-                                <Typography variant="body2" color="text.secondary">Completeness:</Typography>
-                                <Typography variant="body2" fontWeight="medium">{analysisReport.qualityMetrics.completeness}%</Typography>
-                              </Box>
-                              <LinearProgress 
-                                variant="determinate" 
-                                value={analysisReport.qualityMetrics.completeness} 
-                                sx={{ height: 6, borderRadius: 3 }} 
-                              />
-                            </Stack>
-                            <Stack spacing={1} mt={1}>
-                              <Box display="flex" justifyContent="space-between">
-                                <Typography variant="body2" color="text.secondary">Accuracy:</Typography>
-                                <Typography variant="body2" fontWeight="medium">{analysisReport.qualityMetrics.accuracy}%</Typography>
-                              </Box>
-                              <LinearProgress 
-                                variant="determinate" 
-                                value={analysisReport.qualityMetrics.accuracy} 
-                                sx={{ height: 6, borderRadius: 3 }} 
-                              />
-                            </Stack>
+                        <Card className="border-border rounded-lg">
+                          <CardContent className="pt-6 space-y-4">
+                            <h6 className="text-sm font-bold">Quality Metrics</h6>
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Text Clarity:</span>
+                                <span className="font-medium">{analysisReport.qualityMetrics.textClarity}%</span>
+                              </div>
+                              <Progress value={analysisReport.qualityMetrics.textClarity} className="h-1.5" />
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Completeness:</span>
+                                <span className="font-medium">{analysisReport.qualityMetrics.completeness}%</span>
+                              </div>
+                              <Progress value={analysisReport.qualityMetrics.completeness} className="h-1.5" />
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Accuracy:</span>
+                                <span className="font-medium">{analysisReport.qualityMetrics.accuracy}%</span>
+                              </div>
+                              <Progress value={analysisReport.qualityMetrics.accuracy} className="h-1.5" />
+                            </div>
                           </CardContent>
                         </Card>
                         
-                        <Card variant="outlined" sx={{ borderRadius: 2, mb: 2 }}>
-                          <CardContent>
-                            <Typography variant="subtitle2" fontWeight="bold" color="text.primary" mb={1}>
-                              Key Entities
-                            </Typography>
-                            <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+                        <Card className="border-border rounded-lg">
+                          <CardContent className="pt-6">
+                            <h6 className="text-sm font-bold mb-3">Key Entities</h6>
+                            <div className="flex flex-wrap gap-2">
                               {analysisReport.insights.keyEntities.map((entity, idx) => (
-                                <Chip key={idx} label={entity} size="small" variant="outlined" color="primary" />
+                                <Badge key={idx} variant="outline" className="text-primary border-primary/20">
+                                  {entity}
+                                </Badge>
                               ))}
                               {analysisReport.insights.keyEntities.length === 0 && (
-                                <Typography variant="body2" color="text.secondary">No key entities detected</Typography>
+                                <p className="text-sm text-muted-foreground">No key entities detected</p>
                               )}
-                            </Stack>
+                            </div>
                           </CardContent>
                         </Card>
                         
-                        <Card variant="outlined" sx={{ borderRadius: 2, mb: 2 }}>
-                          <CardContent>
-                            <Typography variant="subtitle2" fontWeight="bold" color="text.primary" mb={1}>
-                              Financial Summary
-                            </Typography>
-                            <Stack spacing={1}>
-                              <Box display="flex" justifyContent="space-between">
-                                <Typography variant="body2" color="text.secondary">Total Amount:</Typography>
-                                <Typography variant="body2" fontWeight="medium">{formatCurrency(analysisReport.insights.financialSummary.totalAmount)}</Typography>
-                              </Box>
-                              <Box display="flex" justifyContent="space-between">
-                                <Typography variant="body2" color="text.secondary">Average Amount:</Typography>
-                                <Typography variant="body2" fontWeight="medium">{formatCurrency(analysisReport.insights.financialSummary.averageAmount)}</Typography>
-                              </Box>
-                              <Box display="flex" justifyContent="space-between">
-                                <Typography variant="body2" color="text.secondary">Currency Types:</Typography>
-                                <Typography variant="body2" fontWeight="medium">{analysisReport.insights.financialSummary.currencyTypes.join(', ')}</Typography>
-                              </Box>
-                            </Stack>
+                        <Card className="border-border rounded-lg">
+                          <CardContent className="pt-6">
+                            <h6 className="text-sm font-bold mb-3">Financial Summary</h6>
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Total Amount:</span>
+                                <span className="font-medium">{formatCurrency(analysisReport.insights.financialSummary.totalAmount)}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Average Amount:</span>
+                                <span className="font-medium">{formatCurrency(analysisReport.insights.financialSummary.averageAmount)}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Currency Types:</span>
+                                <span className="font-medium">{analysisReport.insights.financialSummary.currencyTypes.join(', ')}</span>
+                              </div>
+                            </div>
                           </CardContent>
                         </Card>
-                      </Box>
-                    )}
+                      </div>
+                    </TabsContent>
                     
-                    {activeTab === 1 && (
-                      <Box>
-                        <Typography variant="h6" fontWeight="bold" mb={2}>
-                          Structured Data Extraction
-                        </Typography>
+                    <TabsContent value="1">
+                      <div className="space-y-6">
+                        <h6 className="text-lg font-bold">Structured Data Extraction</h6>
                         
-                        <Stack spacing={2}>
+                        <div className="space-y-6">
                           {(extractionMode === 'full' || extractionMode === 'boq') && result.structuredData.boqItems && result.structuredData.boqItems.length > 0 && (
-                            <Box>
-                              <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" mb={1}>
-                                Bill of Quantities (BOQ):
-                              </Typography>
-                              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
-                                <Stack spacing={1}>
+                            <div>
+                              <h6 className="text-sm font-bold text-muted-foreground mb-2">Bill of Quantities (BOQ):</h6>
+                              <div className="border border-border rounded-lg p-4 bg-muted/30">
+                                <div className="space-y-3">
                                   {result.structuredData.boqItems.map((item: any, idx: number) => (
-                                    <Box key={idx} display="flex" justifyContent="space-between" alignItems="center">
-                                      <Box flex={1}>
-                                        <Typography variant="body2" fontWeight="medium">{item.description}</Typography>
-                                        <Typography variant="caption" color="text.secondary">{item.unit}</Typography>
-                                      </Box>
-                                      <Box textAlign="right">
-                                        <Typography variant="body2" fontWeight="bold">{item.quantity}</Typography>
-                                        <Typography variant="caption" color="text.secondary">Qty</Typography>
-                                      </Box>
-                                    </Box>
+                                    <div key={idx} className="flex justify-between items-center border-b border-border/50 pb-2 last:border-0 last:pb-0">
+                                      <div className="flex-1">
+                                        <p className="text-sm font-medium">{item.description}</p>
+                                        <p className="text-xs text-muted-foreground">{item.unit}</p>
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="text-sm font-bold">{item.quantity}</p>
+                                        <p className="text-xs text-muted-foreground">Qty</p>
+                                      </div>
+                                    </div>
                                   ))}
-                                </Stack>
-                              </Paper>
-                            </Box>
+                                </div>
+                              </div>
+                            </div>
                           )}
                           
                           {(extractionMode === 'full' || extractionMode === 'finance') && result.structuredData.amounts && result.structuredData.amounts.length > 0 && (
-                            <Box>
-                              <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" mb={1}>
-                                Financial Amounts:
-                              </Typography>
-                              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
-                                <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+                            <div>
+                              <h6 className="text-sm font-bold text-muted-foreground mb-2">Financial Amounts:</h6>
+                              <div className="border border-border rounded-lg p-4 bg-muted/30">
+                                <div className="flex flex-wrap gap-2">
                                   {result.structuredData.amounts.map((amount: number, idx: number) => (
-                                    <Chip key={idx} label={`${formatCurrency(amount)}`} size="small" />
+                                    <Badge key={idx} variant="secondary">{formatCurrency(amount)}</Badge>
                                   ))}
-                                </Stack>
-                              </Paper>
-                            </Box>
+                                </div>
+                              </div>
+                            </div>
                           )}
                           
                           {extractionMode === 'full' && result.structuredData.dates && result.structuredData.dates.length > 0 && (
-                            <Box>
-                              <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" mb={1}>
-                                Dates Found:
-                              </Typography>
-                              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
-                                <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+                            <div>
+                              <h6 className="text-sm font-bold text-muted-foreground mb-2">Dates Found:</h6>
+                              <div className="border border-border rounded-lg p-4 bg-muted/30">
+                                <div className="flex flex-wrap gap-2">
                                   {result.structuredData.dates.map((date: string, idx: number) => (
-                                    <Chip key={idx} label={date} size="small" />
+                                    <Badge key={idx} variant="secondary">{date}</Badge>
                                   ))}
-                                </Stack>
-                              </Paper>
-                            </Box>
+                                </div>
+                              </div>
+                            </div>
                           )}
                           
                           {extractionMode === 'full' && result.structuredData.codes && result.structuredData.codes.length > 0 && (
-                            <Box>
-                              <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" mb={1}>
-                                Project Codes:
-                              </Typography>
-                              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
-                                <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+                            <div>
+                              <h6 className="text-sm font-bold text-muted-foreground mb-2">Project Codes:</h6>
+                              <div className="border border-border rounded-lg p-4 bg-muted/30">
+                                <div className="flex flex-wrap gap-2">
                                   {result.structuredData.codes.map((code: string, idx: number) => (
-                                    <Chip key={idx} label={code} size="small" />
+                                    <Badge key={idx} variant="secondary">{code}</Badge>
                                   ))}
-                                </Stack>
-                              </Paper>
-                            </Box>
+                                </div>
+                              </div>
+                            </div>
                           )}
                           
                           {extractionMode === 'full' && result.structuredData.contractors && result.structuredData.contractors.length > 0 && (
-                            <Box>
-                              <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" mb={1}>
-                                Contractors/Suppliers:
-                              </Typography>
-                              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
-                                <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+                            <div>
+                              <h6 className="text-sm font-bold text-muted-foreground mb-2">Contractors/Suppliers:</h6>
+                              <div className="border border-border rounded-lg p-4 bg-muted/30">
+                                <div className="flex flex-wrap gap-2">
                                   {result.structuredData.contractors.map((contractor: string, idx: number) => (
-                                    <Chip key={idx} label={contractor} size="small" variant="outlined" color="primary" />
+                                    <Badge key={idx} variant="outline" className="text-primary border-primary/20">{contractor}</Badge>
                                   ))}
-                                </Stack>
-                              </Paper>
-                            </Box>
+                                </div>
+                              </div>
+                            </div>
                           )}
                           
                           {extractionMode === 'full' && result.structuredData.invoices && result.structuredData.invoices.length > 0 && (
-                            <Box>
-                              <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" mb={1}>
-                                Invoice Numbers:
-                              </Typography>
-                              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
-                                <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+                            <div>
+                              <h6 className="text-sm font-bold text-muted-foreground mb-2">Invoice Numbers:</h6>
+                              <div className="border border-border rounded-lg p-4 bg-muted/30">
+                                <div className="flex flex-wrap gap-2">
                                   {result.structuredData.invoices.map((invoice: string, idx: number) => (
-                                    <Chip key={idx} label={invoice} size="small" variant="outlined" color="secondary" />
+                                    <Badge key={idx} variant="outline" className="text-blue-600 border-blue-200 bg-blue-50 dark:bg-blue-900/20">{invoice}</Badge>
                                   ))}
-                                </Stack>
-                              </Paper>
-                            </Box>
+                                </div>
+                              </div>
+                            </div>
                           )}
                           
                           {extractionMode === 'full' && result.structuredData.emails && result.structuredData.emails.length > 0 && (
-                            <Box>
-                              <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" mb={1}>
-                                Email Addresses:
-                              </Typography>
-                              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
-                                <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+                            <div>
+                              <h6 className="text-sm font-bold text-muted-foreground mb-2">Email Addresses:</h6>
+                              <div className="border border-border rounded-lg p-4 bg-muted/30">
+                                <div className="flex flex-wrap gap-2">
                                   {result.structuredData.emails.map((email: string, idx: number) => (
-                                    <Chip key={idx} label={email} size="small" />
+                                    <Badge key={idx} variant="secondary">{email}</Badge>
                                   ))}
-                                </Stack>
-                              </Paper>
-                            </Box>
+                                </div>
+                              </div>
+                            </div>
                           )}
                           
                           {extractionMode === 'full' && result.structuredData.phones && result.structuredData.phones.length > 0 && (
-                            <Box>
-                              <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" mb={1}>
-                                Phone Numbers:
-                              </Typography>
-                              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
-                                <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+                            <div>
+                              <h6 className="text-sm font-bold text-muted-foreground mb-2">Phone Numbers:</h6>
+                              <div className="border border-border rounded-lg p-4 bg-muted/30">
+                                <div className="flex flex-wrap gap-2">
                                   {result.structuredData.phones.map((phone: string, idx: number) => (
-                                    <Chip key={idx} label={phone} size="small" />
+                                    <Badge key={idx} variant="secondary">{phone}</Badge>
                                   ))}
-                                </Stack>
-                              </Paper>
-                            </Box>
+                                </div>
+                              </div>
+                            </div>
                           )}
-                        </Stack>
-                      </Box>
-                    )}
+                        </div>
+                      </div>
+                    </TabsContent>
                     
-                    {activeTab === 2 && (
-                      <Box>
-                        <Typography variant="h6" fontWeight="bold" mb={2} display="flex" alignItems="center" gap={1}>
+                    <TabsContent value="2">
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
                           <FileText size={20} />
-                          Extracted Text
-                        </Typography>
-                        <Paper 
-                          variant="outlined" 
-                          sx={{ 
-                            p: 2, 
-                            maxHeight: 300, 
-                            overflow: 'auto', 
-                            bgcolor: 'background.default',
-                            fontFamily: 'monospace',
-                            fontSize: '0.875rem',
-                            whiteSpace: 'pre-wrap',
-                            lineHeight: 1.6
-                          }}
+                          <h6 className="text-lg font-bold">Extracted Text</h6>
+                        </div>
+                        <div 
+                          className="border border-border rounded-lg p-4 max-h-[300px] overflow-auto bg-muted/30 font-mono text-sm whitespace-pre-wrap leading-relaxed"
                         >
                           {result.rawText || 'No text extracted'}
-                        </Paper>
-                      </Box>
-                    )}
+                        </div>
+                      </div>
+                    </TabsContent>
                     
-                    {activeTab === 3 && (
-                      <Box>
-                        <Typography variant="h6" fontWeight="bold" mb={2}>
-                          Export Options
-                        </Typography>
-                        <Stack direction="row" spacing={2} flexWrap="wrap" gap={1}>
+                    <TabsContent value="3">
+                      <div className="space-y-4">
+                        <h6 className="text-lg font-bold">Export Options</h6>
+                        <div className="flex flex-wrap gap-3">
                           <Button 
-                            variant="contained" 
-                            startIcon={<Download size={16} />}
+                            variant="default" 
+                            className="gap-2"
                             onClick={() => {
                               // Export full extraction result as JSON
                               const dataStr = JSON.stringify(result, null, 2);
@@ -766,11 +678,12 @@ const ChandraOCRAnalyzer: React.FC = () => {
                               linkElement.click();
                             }}
                           >
+                            <Download size={16} />
                             Export as JSON
                           </Button>
                           <Button 
-                            variant="outlined" 
-                            startIcon={<Download size={16} />}
+                            variant="outline" 
+                            className="gap-2"
                             onClick={() => {
                               // Export as CSV
                               let csvContent = 'data:text/csv;charset=utf-8,';
@@ -812,11 +725,12 @@ const ChandraOCRAnalyzer: React.FC = () => {
                               linkElement.click();
                             }}
                           >
+                            <Download size={16} />
                             Export as CSV
                           </Button>
                           <Button 
-                            variant="outlined" 
-                            startIcon={<Download size={16} />}
+                            variant="outline" 
+                            className="gap-2"
                             onClick={() => {
                               // Export BOQ data specifically
                               if (result?.structuredData?.boqItems && result.structuredData.boqItems.length > 0) {
@@ -840,19 +754,20 @@ const ChandraOCRAnalyzer: React.FC = () => {
                               }
                             }}
                           >
+                            <Download size={16} />
                             Export BOQ Only
                           </Button>
-                        </Stack>
-                      </Box>
-                    )}
-                  </Box>
-                </CardContent>
-              </Card>
-            </Box>
-          </Grid>
-        </Grid>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </div>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

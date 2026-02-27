@@ -755,13 +755,14 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, userRo
               />
               
               <Label htmlFor="address">Address</Label>
-              <Input
+              <textarea 
                 id="address" 
+                title="Address"
+                placeholder="Enter subcontractor's full address"
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 value={newSubcontractor.address} 
                 onChange={e => setNewSubcontractor({...newSubcontractor, address: e.target.value})} 
-              >
-                <textarea className="flex h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"></textarea>
-              </Input>
+              />
               
               <Label htmlFor="contract-value">Contract Value</Label>
               <div className="relative">
@@ -922,13 +923,14 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, userRo
               </Select>
               
               <Label htmlFor="description">Description</Label>
-              <Input
+              <textarea 
                 id="description" 
+                title="Description"
+                placeholder="Enter payment description"
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 value={paymentForm.description} 
                 onChange={e => setPaymentForm({...paymentForm, description: e.target.value})} 
-              >
-                <textarea className="flex h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"></textarea>
-              </Input>
+              />
             </div>
           </div>
           <DialogFooter className="bg-gray-50 p-2 flex justify-end gap-2 rounded-b-lg">

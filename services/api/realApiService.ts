@@ -107,6 +107,25 @@ class RealApiService {
     });
   }
 
+  // --- Leave Request Management ---
+  async getLeaveRequests(): Promise<any[]> {
+    return this.fetchApi<any[]>('/leave-requests');
+  }
+
+  async createLeaveRequest(leaveRequest: any): Promise<any> {
+    return this.fetchApi<any>('/leave-requests', {
+      method: 'POST',
+      body: JSON.stringify(leaveRequest),
+    });
+  }
+
+  async updateLeaveRequest(id: string, updates: any): Promise<any> {
+    return this.fetchApi<any>(`/leave-requests/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  }
+
   // --- Health Check ---
   async healthCheck(): Promise<{ status: string; message: string }> {
     return this.fetchApi<{ status: string; message: string }>('/health');
