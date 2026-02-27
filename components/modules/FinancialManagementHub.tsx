@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Project, UserRole, AppSettings, ContractBill, SubcontractorBill, RFI, VariationOrder } from '../../types';
+import { Project, UserRole, AppSettings, ContractBill, VariationOrder } from '../../types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
 import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
 
@@ -8,7 +8,7 @@ import {
     ArrowRight, ArrowLeft, Landmark, FileCheck, TrendingUp, Edit3,
     AlertTriangle, CheckCircle2, FileSpreadsheet, FileDiff, Search,
     Clock, User, DollarSign, FileText, CheckCircle, Send, Calendar,
-    Eye, Edit2, ShieldCheck, MessageSquare
+    Eye, Edit2, ShieldCheck
 } from 'lucide-react';
 
 import { Button } from '~/components/ui/button';
@@ -82,27 +82,8 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
     liquidatedDamages: 0
   });
   
-  // === SUBCONTRACTOR BILLING STATE ===
-  const [isSubBillModalOpen, setIsSubBillModalOpen] = useState(false);
-  const [subBillForm, setSubBillForm] = useState<Partial<SubcontractorBill>>({
-    billNumber: '',
-    subcontractorId: '',
-    description: '',
-    netAmount: 0,
-    grossAmount: 0,
-    date: new Date().toISOString().split('T')[0],
-    periodFrom: '',
-    periodTo: '',
-    status: 'Draft',
-    retentionPercent: 0,
-    items: []
-  });
-  
-  // === RFI MANAGEMENT STATE ===
-  const [rfiSearchTerm, setRfiSearchTerm] = useState('');
-  const [selectedRfi, setSelectedRfi] = useState<RFI | null>(null);
-  const [rfiTaskFilter, setRfiTaskFilter] = useState<string>('all');
-  
+
+
   // === VARIATION ORDERS STATE ===
   const [voSearchTerm, setVoSearchTerm] = useState('');
   const [isVoModalOpen, setIsVoModalOpen] = useState(false);
@@ -117,7 +98,6 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
   // === DATA SOURCES ===
   const contractBills = project?.contractBills || [];
   const subcontractorBills = project?.subcontractorBills || [];
-  const rfis = project?.rfis || [];
   const variationOrders = project?.variationOrders || [];
   const subcontractors = (project?.agencies || [])?.filter(a => a.type === 'subcontractor') || [];
   
@@ -142,13 +122,6 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
     };
   }, [project.boq, contractBills, subcontractorBills]);
   
-  const rfiStats = useMemo(() => ({
-    total: rfis.length,
-    pending: rfis.filter(r => r.status === 'Pending').length,
-    approved: rfis.filter(r => r.status === 'Approved').length,
-    rejected: rfis.filter(r => r.status === 'Rejected').length
-  }), [rfis]);
-  
   const voStats = useMemo(() => ({
     total: variationOrders.length,
     approved: variationOrders.filter(vo => vo.status === 'Approved').length,
@@ -157,16 +130,6 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
   }), [variationOrders]);
 
   // === FILTERED DATA ===
-  const filteredRfis = useMemo(() => {
-    return rfis.filter(rfi => {
-      const matchesSearch = rfi.title.toLowerCase().includes(rfiSearchTerm.toLowerCase()) ||
-                           rfi.description?.toLowerCase().includes(rfiSearchTerm.toLowerCase());
-      // Placeholder for actual task filtering
-      const matchesTask = rfiTaskFilter === 'all' || rfi.taskId === rfiTaskFilter; 
-      return matchesSearch && matchesTask;
-    });
-  }, [rfis, rfiSearchTerm, rfiTaskFilter]);
-  
   const filteredVos = useMemo(() => {
     return variationOrders.filter(vo => 
       vo.title.toLowerCase().includes(voSearchTerm.toLowerCase()) ||
@@ -178,11 +141,7 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
   const handleCreateContractBill = () => {
     setIsCreateModalOpen(true);
   };
-  
-  const handleCreateSubBill = () => {
-    setIsSubBillModalOpen(true);
-  };
-  
+
   const handleCreateVo = () => {
     setIsVoModalOpen(true);
   };
@@ -192,14 +151,11 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
       <div className="flex justify-between mb-6 items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Financial Management Hub</h1>
-          <p className="text-sm text-gray-500">Unified billing, RFI, and variation order management</p>
+          <p className="text-sm text-gray-500">Unified billing and variation order management</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleCreateContractBill}>
             <Receipt className="mr-2 h-4 w-4" /> New Contract Bill
-          </Button>
-          <Button variant="outline" onClick={handleCreateSubBill}>
-            <DollarSign className="mr-2 h-4 w-4" /> New Sub Bill
           </Button>
           <Button onClick={handleCreateVo}>
             <FileDiff className="mr-2 h-4 w-4" /> New Variation
@@ -209,18 +165,12 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
 
       <Card>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5 h-12">
+          <TabsList className="grid w-full grid-cols-3 h-12">
             <TabsTrigger value="overview">
               <TrendingUp className="mr-2 h-4 w-4" /> Overview
             </TabsTrigger>
             <TabsTrigger value="contract-bills">
               <Receipt className="mr-2 h-4 w-4" /> Contract Bills ({contractBills.length})
-            </TabsTrigger>
-            <TabsTrigger value="sub-bills">
-              <Landmark className="mr-2 h-4 w-4" /> Sub Bills ({subcontractorBills.length})
-            </TabsTrigger>
-            <TabsTrigger value="rfis">
-              <MessageSquare className="mr-2 h-4 w-4" /> RFIs ({rfis.length})
             </TabsTrigger>
             <TabsTrigger value="variations">
               <FileDiff className="mr-2 h-4 w-4" /> Variations ({variationOrders.length})
@@ -329,198 +279,9 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
             </Card>
           </TabsContent>
 
-          <TabsContent value="sub-bills" className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <Card>
-                <CardContent>
-                  <h3 className="text-sm font-semibold text-muted-foreground">Total Bills</h3>
-                  <p className="text-2xl font-bold text-primary">{subcontractorBills.length}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent>
-                  <h3 className="text-sm font-semibold text-muted-foreground">Paid</h3>
-                  <p className="text-2xl font-bold text-green-600">
-                    {subcontractorBills.filter(b => b.status === 'Paid').length}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent>
-                  <h3 className="text-sm font-semibold text-muted-foreground">Pending</h3>
-                  <p className="text-2xl font-bold text-amber-500">
-                    {subcontractorBills.filter(b => b.status === 'Pending').length}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent>
-                  <h3 className="text-sm font-semibold text-muted-foreground">Total Value</h3>
-                  <p className="text-2xl font-bold text-blue-600">
-                    {formatCurrency(
-                      subcontractorBills.reduce((sum, b) => sum + (b.netAmount || 0), 0), 
-                      settings
-                    )}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
 
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Subcontractor</TableHead>
-                    <TableHead>Bill Number</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Period</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {subcontractorBills.length > 0 ? subcontractorBills.map(bill => {
-                    const subcontractor = subcontractors.find(s => s.id === bill.subcontractorId);
-                    return (
-                      <TableRow key={bill.id}>
-                        <TableCell className="font-medium">{subcontractor?.name || 'Unknown'}</TableCell>
-                        <TableCell>{bill.billNumber}</TableCell>
-                        <TableCell className="font-bold">{formatCurrency(bill.netAmount || 0, settings)}</TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={
-                              bill.status === 'Paid' ? 'default' : 
-                              bill.status === 'Pending' ? 'secondary' : 'outline'
-                            }
-                            className={
-                                bill.status === 'Paid' ? 'bg-green-100 text-green-700' : 
-                                bill.status === 'Pending' ? 'bg-amber-100 text-amber-700' : ''
-                            }
-                          >
-                            {bill.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {new Date(bill.periodFrom).toLocaleDateString()} - {new Date(bill.periodTo).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="icon"><Printer className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  }) : (
-                    <TableRow>
-                      <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
-                        No subcontractor bills found.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </Card>
-          </TabsContent>
 
-          <TabsContent value="rfis" className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <Card>
-                <CardContent>
-                  <h3 className="text-sm font-semibold text-muted-foreground">Total RFIs</h3>
-                  <p className="text-2xl font-bold text-primary">{rfiStats.total}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent>
-                  <h3 className="text-sm font-semibold text-muted-foreground">Pending</h3>
-                  <p className="text-2xl font-bold text-amber-500">{rfiStats.pending}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent>
-                  <h3 className="text-sm font-semibold text-muted-foreground">Approved</h3>
-                  <p className="text-2xl font-bold text-green-600">{rfiStats.approved}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent>
-                  <h3 className="text-sm font-semibold text-muted-foreground">Rejected</h3>
-                  <p className="text-2xl font-bold text-red-600">{rfiStats.rejected}</p>
-                </CardContent>
-              </Card>
-            </div>
 
-            <Card className="mb-6">
-              <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="relative w-full sm:w-auto flex-grow">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Search RFIs..." 
-                    value={rfiSearchTerm}
-                    onChange={(e) => setRfiSearchTerm(e.target.value)}
-                    className="pl-10 w-full"
-                  />
-                </div>
-                <div className="w-full sm:w-auto">
-                  <Select value={rfiTaskFilter} onValueChange={setRfiTaskFilter}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="All Tasks" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Tasks</SelectItem>
-                      {/* Add actual tasks here */}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>RFI Number</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRfis.length > 0 ? filteredRfis.map(rfi => (
-                    <TableRow key={rfi.id}>
-                      <TableCell className="font-medium">RFI-{rfi.id?.slice(0, 6)}</TableCell>
-                      <TableCell>{rfi.title}</TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={
-                            rfi.status === 'Approved' ? 'default' : 
-                            rfi.status === 'Pending' ? 'secondary' : 'destructive'
-                          }
-                          className={
-                            rfi.status === 'Approved' ? 'bg-green-100 text-green-700' : 
-                            rfi.status === 'Pending' ? 'bg-amber-100 text-amber-700' : ''
-                          }
-                        >
-                          {rfi.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{new Date(rfi.date).toLocaleDateString()}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon"><Edit2 className="h-4 w-4" /></Button>
-                      </TableCell>
-                    </TableRow>
-                  )) : (
-                    <TableRow>
-                      <TableCell colSpan={5} className="h-48 text-center text-muted-foreground">
-                        No RFIs found.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </Card>
-          </TabsContent>
 
           <TabsContent value="variations" className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

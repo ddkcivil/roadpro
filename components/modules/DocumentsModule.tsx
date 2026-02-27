@@ -293,6 +293,20 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
   const [uploadTargetFolder, setUploadTargetFolder] = useState('General');
 
   const canDelete = userRole === UserRole.ADMIN || userRole === UserRole.PROJECT_MANAGER;
+
+  const handleDownloadDocument = (doc: ProjectDocument) => {
+    if (!doc.fileUrl) {
+      alert('Document file is not available for download.');
+      return;
+    }
+
+    const link = document.createElement('a');
+    link.href = getFileUrl(doc);
+    link.download = doc.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
   
   const handleDeleteDoc = (id: string) => {
       if (!canDelete) {
@@ -507,17 +521,17 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
+                          <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
                             <span className="sr-only">Open menu</span>
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleDownloadDocument(doc)}>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDownloadDocument(doc); }}>
                             <ArrowDownLeft className="mr-2 h-4 w-4" /> Download
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDeleteDoc(doc.id)}>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteDoc(doc.id); }}>
                             <Trash2 className="mr-2 h-4 w-4" /> Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>

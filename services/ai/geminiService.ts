@@ -25,7 +25,7 @@ export const analyzeSitePhoto = async (photoBase64: string, category: string): P
     const ai = getAIClient();
     if (!ai) return "AI Service Unavailable. Please check your configuration.";
 
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
     const prompt = `You are a construction site auditor.
     Analyze this site photo from a road project. The photo is categorized as "${category}".
@@ -70,7 +70,7 @@ export const analyzeProjectStatus = async (
   const ai = getAIClient();
   if (!ai) return "AI Service Unavailable: Missing API Key.";
 
-  const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const model = ai.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
   // Validate inputs
   if (!boq || !rfis || !schedule) {
@@ -126,19 +126,19 @@ export const chatWithGemini = async (
   const ai = getAIClient();
   if (!ai) return "AI Service Unavailable. Please ensure VITE_GEMINI_API_KEY is set in your environment.";
 
-  // Default to gemini-1.5-flash for all requests to ensure maximum compatibility and speed
-  let modelName = 'gemini-1.5-flash';
+  // Default to gemini-1.5-pro for all requests to ensure maximum compatibility and speed
+  let modelName = 'gemini-1.5-pro';
 
   const model = ai.getGenerativeModel({ model: modelName });
 
   const systemInstruction = `You are RoadMaster AI, a helpful construction management assistant.
-  
+
   APPLICATION CONTEXT:
   - You are part of RoadMaster Pro, a comprehensive construction project management application
   - You assist with BOQ ledger, scheduling, inspections (RFIs), variations, billing, and project documentation
   - You integrate with Google Sheets for live synchronization
   - You support field teams with daily reporting, site photos, and progress tracking
-    
+
   PROJECT CONTEXT:
   - Project: ${projectContext.name} (${projectContext.code})
   - Location: ${projectContext.location}
@@ -147,7 +147,7 @@ export const chatWithGemini = async (
   - Start Date: ${projectContext.startDate}
   - End Date: ${projectContext.endDate}
   - Contract Number: ${projectContext.contractNo || 'N/A'}
-  
+
   PROJECT DATA AVAILABLE:
   - BOQ Items Count: ${(projectContext.boq || []).length}
   - RFI Count: ${(projectContext.rfis || []).length}
@@ -160,7 +160,7 @@ export const chatWithGemini = async (
   - Daily Reports Count: ${(projectContext.dailyReports || []).length}
   - Variation Orders Count: ${(projectContext.variationOrders || []).length}
   - Contract Bills Count: ${(projectContext.contractBills || []).length}
-    
+
   YOUR CAPABILITIES:
   1. Answer detailed questions about project schedule, BOQ items, costs, progress, and status
   2. Analyze uploaded documents (PDFs, Images) such as RFIs, Invoices, Drawings, and Reports
@@ -170,7 +170,7 @@ export const chatWithGemini = async (
   6. Generate formal construction correspondence and documentation
   7. Interpret technical drawings and specifications
   8. Identify potential issues and suggest mitigation strategies
-    
+
   RESPONSE GUIDELINES:
   - Provide specific, actionable insights based on the project data
   - Reference specific BOQ items, RFI numbers, or schedule tasks when relevant
@@ -178,7 +178,7 @@ export const chatWithGemini = async (
   - When analyzing progress, relate to chainages, quantities, and completion percentages
   - For cost-related queries, use the currency specified in the project settings: ${getCurrencySymbol(projectContext.settings?.currency)}
   - Maintain FIDIC-style professional communication standards
-  
+
   SPECIFIC INSTRUCTIONS FOR DOCUMENT ANALYSIS:
   - If the user asks to analyze an RFI (Request for Inspection) document:
     Please extract the following details and present them in a Markdown Table:
@@ -189,12 +189,12 @@ export const chatWithGemini = async (
     | Date of Inspection | ... |
     | Work Description | (Brief summary of work) |
     | Inspection Status | (Open/Approved/Rejected) |
-  
+
     Then, list any "Key Observations" or engineering remarks found in the document below the table.
-  
+
   - If the user uploads an Invoice or Bill:
     Extract Bill No, Vendor, Date, and Total Amount.
-  
+
   - For Site Photos/Videos:
     Describe progress, identify machinery, or spot safety hazards.`;
 
@@ -252,8 +252,8 @@ PROJECT SUMMARY:
 export const draftLetter = async (topic: string, recipient: string, useSearch: boolean = false): Promise<string> => {
   const ai = getAIClient();
   if (!ai) return "AI Service Unavailable.";
-  
-  const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+  const model = ai.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
   const prompt = `
     Draft a formal construction project correspondence letter.
@@ -275,8 +275,8 @@ export const draftLetter = async (topic: string, recipient: string, useSearch: b
 
     let text = result.response.text() || "Could not generate draft.";
 
-    if (result.response.candidates?.[0]?.groundingMetadata?.groundingChuncks) {
-       const links = result.response.candidates[0].groundingMetadata.groundingChuncks
+    if (result.response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+       const links = result.response.candidates[0].groundingMetadata.groundingChunks
          .map((c: any) => c.web?.uri)
          .filter((uri: string) => uri)
          .map((uri: string) => `- ${uri}`)

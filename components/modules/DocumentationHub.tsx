@@ -5,6 +5,11 @@ import { analyzeSitePhoto } from '../../services/ai/geminiService';
 import { offlineManager } from '../../utils/data/offlineUtils';
 import { fetchWeather } from '../../services/analytics/weatherService';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
+
+// Dynamically load PDF components when needed
+let Document: any;
+let Page: any;
+let pdfjs: any;
 import { 
     FileText, Upload, Search, Filter, Camera, Trash2, 
     Calendar, MapPin, X, Plus, Folder, MoreVertical, ExternalLink,
@@ -110,7 +115,13 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate 
   const [weather, setWeather] = useState('Sunny');
   const [isFetchingWeather, setIsFetchingWeather] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  
+
+  // === DOCUMENT PREVIEW STATE ===
+  const [previewDoc, setPreviewDoc] = useState<ProjectDocument | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [numPages, setNumPages] = useState<number | null>(null);
+  const [scale, setScale] = useState(1.0);
+
   // === MPR REPORTS STATE ===
   const [mprMonth, setMprMonth] = useState<string>(new Date().toISOString().slice(0, 7));
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
@@ -121,6 +132,24 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate 
 
   // === EFFECTS ===
   useEffect(() => {
+    // Load PDF components dynamically
+    const loadPdfComponents = async () => {
+      try {
+        const pdfModule = await import('react-pdf');
+        Document = pdfModule.Document;
+        Page = pdfModule.Page;
+        pdfjs = pdfModule.pdfjs;
+        if (pdfjs && pdfjs.GlobalWorkerOptions) {
+          pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
+        }
+      } catch (error) {
+        console.warn('Failed to load PDF components:', error);
+        Document = () => <div className="text-center p-4 text-muted-foreground">PDF viewer unavailable</div>;
+        Page = () => <div className="text-center p-4 text-muted-foreground">PDF page unavailable</div>;
+      }
+    };
+    loadPdfComponents();
+
     // Update online status
     const handleOnlineStatusChange = () => setIsOnline(navigator.onLine);
     window.addEventListener('online', handleOnlineStatusChange);
@@ -415,17 +444,17 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate 
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <ExternalLink className="h-4 w-4" />
+                                  <Button variant="ghost" size="icon" onClick={() => { setPreviewDoc(doc); setCurrentPage(1); setNumPages(null); setScale(1.0); }}>
+                                    <Eye className="h-4 w-4" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>View Document</TooltipContent>
+                                <TooltipContent>Preview Document</TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon">
+                                  <Button variant="ghost" size="icon" onClick={() => handleDeleteDocument(doc.id)}>
                                     <Trash2 className="h-4 w-4 text-destructive" />
                                   </Button>
                                 </TooltipTrigger>
@@ -531,7 +560,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate 
                 <h2 className="text-lg font-bold">Daily Site Reports</h2>
                 <p className="text-sm text-muted-foreground">Track daily activities, resources, and progress.</p>
               </div>
-              <Button>
+              <Button onClick={() => alert('New daily report functionality not yet implemented.')}>
                 <Plus className="mr-2 h-4 w-4" /> New Report
               </Button>
             </div>
@@ -569,8 +598,12 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate 
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">{report.remarks?.substring(0, 50) || '...'}</TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon"><Printer className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => alert('View report functionality not yet implemented.')}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => alert('Print report functionality not yet implemented.')}>
+                              <Printer className="h-4 w-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       )) : (
@@ -594,7 +627,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate 
                 <h2 className="text-lg font-bold">Monthly Progress Reports</h2>
                 <p className="text-sm text-muted-foreground">Generate comprehensive monthly reports.</p>
               </div>
-              <Button>
+              <Button onClick={handleExportMPR}>
                 <Plus className="mr-2 h-4 w-4" /> Generate MPR
               </Button>
             </div>
@@ -675,8 +708,97 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate 
             </div>
           )}
           <DialogFooter>
+            <Button variant="destructive" onClick={() => { handleDeletePhoto(previewPhoto.id); setIsPhotoModalOpen(false); }}>
+              <Trash2 className="mr-2 h-4 w-4" /> Delete Photo
+            </Button>
             <Button onClick={() => setIsPhotoModalOpen(false)}>Close</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Document Preview Modal */}
+      <Dialog open={!!previewDoc} onOpenChange={() => setPreviewDoc(null)}>
+        <DialogContent className="max-w-[calc(100vw-6rem)] h-[calc(100vh-6rem)] flex flex-col p-0">
+          <DialogHeader className="flex flex-row items-center justify-between px-6 py-4 border-b">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              <DialogTitle className="text-lg font-bold">{previewDoc?.name}</DialogTitle>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => handleDownloadDocument(previewDoc!)}>
+                <ExternalLink className="mr-2 h-4 w-4" /> Download
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setPreviewDoc(null)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 flex items-center justify-center p-4">
+            {previewDoc?.fileUrl ? (
+              <div className="w-full h-full flex flex-col">
+                {(previewDoc.type === 'application/pdf' || previewDoc.fileUrl.toLowerCase().endsWith('.pdf')) ? (
+                  <div className="flex-1 flex items-center justify-center">
+                    <Document
+                      file={previewDoc.fileUrl}
+                      loading={<div className="text-center text-muted-foreground">Loading PDF...</div>}
+                      error={
+                        <div className="flex flex-col items-center justify-center p-4 text-destructive">
+                          <FileText className="h-12 w-12 mb-2" />
+                          <p>Failed to load PDF</p>
+                          <p className="text-sm text-muted-foreground mt-1 text-center">
+                            This document may have an expired link. Please re-upload the file.
+                          </p>
+                        </div>
+                      }
+                      onLoadSuccess={({ numPages }: { numPages: number }) => setNumPages(numPages)}
+                    >
+                      <Page pageNumber={currentPage} scale={scale} renderTextLayer={false} renderAnnotationLayer={false} />
+                    </Document>
+                  </div>
+                ) : (previewDoc.type?.includes('image') || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => previewDoc.fileUrl.toLowerCase().endsWith(ext))) ? (
+                  <img
+                    src={previewDoc.fileUrl}
+                    alt="Document Preview"
+                    className="max-w-full max-h-full object-contain rounded-lg"
+                  />
+                ) : (
+                  <div className="text-center p-4 text-muted-foreground">
+                    <FileText className="mx-auto h-12 w-12 mb-2" />
+                    <p>Preview not available for this file type</p>
+                    <p className="text-sm">{previewDoc.name}</p>
+                    <Button variant="outline" size="sm" className="mt-4" onClick={() => handleDownloadDocument(previewDoc!)}>
+                      <ExternalLink className="mr-2 h-4 w-4" /> Download File
+                    </Button>
+                  </div>
+                )}
+                {(previewDoc.type === 'application/pdf' || previewDoc.fileUrl.toLowerCase().endsWith('.pdf')) && numPages && numPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 p-2 bg-background/50 border-t">
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage <= 1}>
+                      Prev
+                    </Button>
+                    <span className="text-sm text-muted-foreground">Page {currentPage} of {numPages}</span>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(numPages, prev + 1))} disabled={currentPage >= numPages}>
+                      Next
+                    </Button>
+                    <Separator orientation="vertical" className="h-6 mx-2" />
+                    <Button variant="outline" size="sm" onClick={() => setScale(prev => Math.max(0.5, prev - 0.2))}>
+                      -
+                    </Button>
+                    <span className="text-sm text-muted-foreground">{Math.round(scale * 100)}%</span>
+                    <Button variant="outline" size="sm" onClick={() => setScale(prev => Math.min(2, prev + 0.2))}>
+                      +
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center p-4 text-muted-foreground">
+                <FileText className="mx-auto h-12 w-12 mb-2" />
+                <p>No preview available</p>
+                <p className="text-sm">{previewDoc?.name}</p>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

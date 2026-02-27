@@ -1,7 +1,7 @@
 // api/_utils/errorHandler.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-type ApiHandler = (req: VercelRequest, res: VercelResponse) => Promise<void> | void;
+type ApiHandler = (req: VercelRequest, res: VercelResponse) => Promise<any> | any;
 
 export function withErrorHandler(handler: ApiHandler) {
   return async (req: VercelRequest, res: VercelResponse) => {

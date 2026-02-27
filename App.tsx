@@ -576,7 +576,7 @@ const App: React.FC = () => {
     startTransition(() => setSelectedProjectId(projectId));
   };
   
-  const handleClearProject = () => {
+  const handleClearProject = () =>{
     startTransition(() => {
       setSelectedProjectId(null);
       // setHasSelectedProject(false); // This state is no longer needed after refactor.
@@ -652,6 +652,7 @@ const App: React.FC = () => {
         items.push({ id: 'user-management', label: 'User Management', icon: UserCheck });
       }
       items.push({ id: 'user-registration', label: 'Create Account', icon: Shield }); // This is 'Create Account'
+      items.push({ id: 'staff-management', label: 'Staff Management', icon: Users });
     }
     
     return items;
@@ -685,13 +686,11 @@ const App: React.FC = () => {
         { id: 'rfis', label: 'Inspections', icon: ClipboardCheck },
         { id: 'materials-hub', label: 'Materials & Resources', icon: Package },
         { id: 'assets', label: 'Assets & Equipment', icon: PackageSearch },
-        { id: 'resources', label: 'Resource Management', icon: Users },
-        { id: 'fleet', label: 'Telemetry', icon: Truck },
         { id: 'resource-matrix', label: 'Resource Matrix', icon: Layers },
+        { id: 'fleet', label: 'Telemetry', icon: Truck },
         { id: 'quality', label: 'Quality Hub', icon: Shield },
         { id: 'lab', label: 'Material Testing', icon: Scale },
         { id: 'environment', label: 'EMP Compliance', icon: Trees },
-        { id: 'output-export', label: 'Exports & Reports', icon: Download },
         { id: 'data-analysis', label: 'Data Analysis', icon: BarChart3 }
     ]},
     { title: 'Information', items: [
@@ -1060,13 +1059,11 @@ const App: React.FC = () => {
                         {activeTab === 'rfis' && <RFIModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'materials-hub' && <MaterialManagementModule project={currentProject!} settings={appSettings} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'assets' && <AssetsModule project={currentProject!} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'resources' && <ResourceManager project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
                         {activeTab === 'fleet' && <FleetModule project={currentProject!} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'resource-matrix' && <ResourceMatrixModule project={currentProject!} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'quality' && <QualityHub project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'lab' && <LabModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'environment' && <EnvironmentModule project={currentProject!} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'output-export' && <MPRReportModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'data-analysis' && <DataAnalysisModule project={currentProject!} />}
                         {activeTab === 'messages' && (
                           <MessagesModule 
@@ -1082,6 +1079,7 @@ const App: React.FC = () => {
                         {activeTab === 'documents' && <DocumentationHub project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
                         
                         {activeTab === 'settings' && <SettingsModule settings={appSettings} onUpdate={setAppSettings} />}
+                        {activeTab === 'staff-management' && <StaffManagementModule />}
                       </>
                     )}
                   </Suspense>

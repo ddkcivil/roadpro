@@ -218,7 +218,7 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
                                         <TooltipProvider>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
-                                                    <Button variant="ghost" size="icon" onClick={() => onSelectProject(project.id)} aria-label="View Control Panel">
+                                                    <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onSelectProject(project.id); }} aria-label="View Control Panel">
                                                         <ArrowRight />
                                                     </Button>
                                                 </TooltipTrigger>
@@ -230,7 +230,7 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
                                                 <TooltipProvider>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                            <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(project)} aria-label="Edit Project">
+                                                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleOpenEdit(project); }} aria-label="Edit Project">
                                                                 <Edit className="h-4 w-4" />
                                                             </Button>
                                                         </TooltipTrigger>
@@ -240,7 +240,7 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
                                                 <TooltipProvider>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteProject(project.id)} aria-label="Delete Project">
+                                                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleDeleteProject(project.id); }} aria-label="Delete Project">
                                                                 <Trash2 className="h-4 w-4 text-destructive" />
                                                             </Button>
                                                         </TooltipTrigger>

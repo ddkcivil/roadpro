@@ -1,24 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { Project, UserRole, InventoryItem, PurchaseOrder, Material, Vehicle } from '../../types';
-import { getAutofillSuggestions, checkForDuplicates } from '../../utils/data/autofillUtils';
-import { formatCurrency } from '../../utils/formatting/exportUtils';
+import { Project, UserRole, InventoryItem, PurchaseOrder, Material } from '../../types';
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card, CardContent } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
-import { Label } from '~/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '~/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Badge } from '~/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
-import { Separator } from '~/components/ui/separator';
 import {
-    Package, AlertTriangle, CheckCircle2, TrendingDown, Plus,
-    ArrowUpRight, ShoppingCart, History, PackageSearch, Filter,
-    FileText, Truck, CreditCard, ChevronRight, Calculator,
-    PlusCircle, Trash2, Save, X, Printer, Edit, Car, Fuel, Gauge,
-    Wrench, QrCode, TrendingUp, Warehouse, BarChart3, Search
+    Package, CheckCircle2, Plus, ShoppingCart, FileText, Trash2, Edit, Warehouse, Search
 } from 'lucide-react';
 
 interface Props {
@@ -69,26 +59,12 @@ const ResourceManagementHub: React.FC<Props> = ({ project, onProjectUpdate, user
     items: []
   });
 
-  // === ASSET/FLEET STATE ===
-  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
-  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
-  const [selectedAsset, setSelectedAsset] = useState<Vehicle | null>(null);
-  const [assetForm, setAssetForm] = useState<Partial<Vehicle>>({
-    plateNumber: '',
-    type: '',
-    status: 'Active',
-    driver: '',
-    agencyId: '',
-    chainage: '',
-    gpsLocation: undefined
-  });
-  const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
+
 
   // === DATA SOURCES ===
   const inventory = project.inventory || [];
   const materials = project.materials || [];
   const purchaseOrders = project.purchaseOrders || [];
-  const assets = project.vehicles || [];
 
   // === STATISTICS CALCULATIONS ===
   const inventoryStats = useMemo(() => {
@@ -107,12 +83,7 @@ const ResourceManagementHub: React.FC<Props> = ({ project, onProjectUpdate, user
     return { totalMaterials, lowStock, outOfStock, totalValue };
   }, [materials]);
 
-  const assetStats = useMemo(() => {
-    const active = assets.filter(a => a.status === 'Active');
-    const maintenance = assets.filter(a => a.status === 'Maintenance');
-    const idle = assets.filter(a => a.status === 'Idle');
-    return { active, maintenance, idle };
-  }, [assets]);
+
 
   // === FILTERED DATA ===
   const filteredMaterials = useMemo(() => {
@@ -153,19 +124,7 @@ const ResourceManagementHub: React.FC<Props> = ({ project, onProjectUpdate, user
     setIsMaterialModalOpen(true);
   };
 
-  const handleAddAsset = () => {
-    setAssetForm({
-      plateNumber: '',
-      type: '',
-      status: 'Active',
-      driver: '',
-      agencyId: '',
-      chainage: '',
-      gpsLocation: undefined
-    });
-    setEditingAssetId(null);
-    setIsAssetModalOpen(true);
-  };
+
 
   const getStatusColor = (quantity: number, reorderLevel: number) => {
     if (quantity <= reorderLevel) return 'destructive';
@@ -220,10 +179,6 @@ const ResourceManagementHub: React.FC<Props> = ({ project, onProjectUpdate, user
             <TabsTrigger value="2">
               <FileText size={16} className="mr-2" />
               Purchase Orders ({purchaseOrders.length})
-            </TabsTrigger>
-            <TabsTrigger value="3">
-              <Car size={16} className="mr-2" />
-              Assets ({assets.length})
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -445,112 +400,7 @@ const ResourceManagementHub: React.FC<Props> = ({ project, onProjectUpdate, user
             </div>
           )}
 
-          {/* Assets Tab */}
-          {activeTab === "3" && (
-            <div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <div className="text-2xl font-bold text-green-600">
-                      {assetStats.active.length}
-                    </div>
-                    <p className="text-sm text-muted-foreground">Active Assets</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <div className="text-2xl font-bold text-yellow-600">
-                      {assetStats.maintenance.length}
-                    </div>
-                    <p className="text-sm text-muted-foreground">In Maintenance</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <div className="text-2xl font-bold text-blue-600">
-                      {assetStats.idle.length}
-                    </div>
-                    <p className="text-sm text-muted-foreground">Idle Assets</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <div className="text-2xl font-bold text-purple-600">
-                      {assets.length}
-                    </div>
-                    <p className="text-sm text-muted-foreground">Total Assets</p>
-                  </CardContent>
-                </Card>
-              </div>
 
-              <Card>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Asset</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Driver</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Chainage</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {assets.map(asset => (
-                      <TableRow key={asset.id}>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="font-medium">{asset.plateNumber}</div>
-                            <div className="text-sm text-muted-foreground">ID: {asset.id}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{asset.type}</Badge>
-                        </TableCell>
-                        <TableCell>{asset.driver}</TableCell>
-                        <TableCell>
-                          <Badge variant={
-                            asset.status === 'Active' ? 'default' :
-                            asset.status === 'Maintenance' ? 'secondary' : 'outline'
-                          }>
-                            {asset.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{asset.chainage}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex gap-2 justify-end">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedAsset(asset);
-                                setIsQRModalOpen(true);
-                              }}
-                            >
-                              <QrCode size={16} className="mr-1" />
-                              QR Code
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setAssetForm(asset);
-                                setEditingAssetId(asset.id);
-                                setIsAssetModalOpen(true);
-                              }}
-                            >
-                              <Edit size={16} className="mr-1" />
-                              Edit
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Card>
-            </div>
-          )}
         </div>
       </Card>
     </div>
