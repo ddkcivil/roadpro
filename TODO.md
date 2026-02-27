@@ -1,0 +1,4 @@
+- [x] Remove @ts-nocheck directive from ErrorBoundary.tsx
+- [x] Remove commented @ts-ignore from ErrorBoundary.tsx
+- [x] Add explicit state property declaration in ErrorBoundary class
+- [x] Fix setState access with type assertion

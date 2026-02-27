@@ -372,12 +372,8 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
           </TabsContent>
         </Tabs>
       </Card>
-    </div>
-  );
-};
 
-export default FinancialManagementHub;
-{/* Contract Bill Creation Dialog */}
+      {/* Contract Bill Creation Dialog */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>

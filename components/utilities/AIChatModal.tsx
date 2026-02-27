@@ -9,11 +9,8 @@ import { Badge } from '~/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { Label } from '~/components/ui/label';
 import { Switch } from '~/components/ui/switch';
-<<<<<<< HEAD
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
-=======
->>>>>>> 07d96fa59a73630864a7fee29723e0a5d71d62d0
 import { cn } from '~/lib/utils';
 
 interface Props {
@@ -26,7 +23,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFastMode, setIsFastMode] = useState(false);
-  
+
   // File Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachment, setAttachment] = useState<{
@@ -49,10 +46,10 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
     if (inputField) {
       inputField.focus();
     }
-    
+
     // Prevent background scrolling when modal is open
     document.body.style.overflow = 'hidden';
-    
+
     // Cleanup
     return () => {
       document.body.style.overflow = '';
@@ -65,12 +62,12 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
       const focusableElements = modalRef.current?.querySelectorAll(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
       ) as NodeListOf<HTMLElement>;
-      
+
       if (!focusableElements) return;
-      
+
       const firstElement = focusableElements[0];
       const lastElement = focusableElements[focusableElements.length - 1];
-      
+
       if (e.shiftKey && document.activeElement === firstElement) {
         lastElement.focus();
         e.preventDefault();
@@ -111,7 +108,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
       const isVideo = file.type.startsWith('video/');
       const isPdf = file.type === 'application/pdf';
       const preview = URL.createObjectURL(file);
-      
+
       setAttachment({
         file,
         preview,
@@ -180,7 +177,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
     // 3. Call AI Service
     const responseText = await chatWithGemini(
         userText || (attachment ? "Analyze this attachment." : ""), // Fallback text if empty
-        newHistory, 
+        newHistory,
         project,
         attachment ? { mimeType: attachment.file.type, data: base64Data } : undefined,
         isFastMode
@@ -202,15 +199,15 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
       if (label === "Extract RFI Details") prompt = "Analyze this RFI document. Extract key details including Description of Work, Inspection Status, Inspection Date, and Location in a summary table.";
       else if (label === "Analyze Invoice") prompt = "Extract invoice details: Vendor, Date, Bill No, Amount.";
       else if (label === "Assess Site Progress") prompt = "Analyze this site image/video and describe the construction progress and machinery used.";
-      
+
       sendMessage(prompt);
   };
 
   const renderSuggestionChips = () => {
       if (isLoading) return null;
-      
+
       const chips = [];
-      
+
       if (attachment) {
           if (attachment.type === 'pdf' || attachment.type === 'image') {
               chips.push("Extract RFI Details");
@@ -231,9 +228,9 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
       return (
           <div className="flex gap-2 mb-4 overflow-x-auto pb-2 px-1 scrollbar-hide">
               {chips.map((chip, i) => (
-                  <Badge 
-                      key={i} 
-                      onClick={() => handleChipClick(chip)} 
+                  <Badge
+                      key={i}
+                      onClick={() => handleChipClick(chip)}
                       className="cursor-pointer bg-background border border-border font-medium rounded-lg hover:bg-primary/10 hover:border-primary hover:text-primary transition-all shadow-sm flex items-center gap-1.5 py-1.5 px-3"
                       variant="outline"
                   >
@@ -246,19 +243,19 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
   };
 
   return (
-    <div 
+    <div
       ref={modalRef}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-background w-full max-w-[600px] h-[85vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col relative border border-border"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="chat-modal-title"
       >
-        
+
         {/* Header */}
         <div className="bg-gradient-to-br from-[#667eea] to-[#764ba2] p-4 flex items-center justify-between text-white shrink-0" id="chat-modal-title">
           <div className="flex items-center gap-3">
@@ -272,22 +269,22 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                 </div>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <Switch 
+                <Switch
                     id="fast-mode"
-                    checked={isFastMode} 
-                    onCheckedChange={setIsFastMode} 
+                    checked={isFastMode}
+                    onCheckedChange={setIsFastMode}
                 />
                 <Label htmlFor="fast-mode" className="text-[10px] font-medium text-white flex items-center gap-1 cursor-pointer">
                     <Zap size={12} className={cn(isFastMode ? "text-yellow-400" : "text-inherit")} />
                     Fast Mode
                 </Label>
               </div>
-              <Button 
-                  onClick={onClose} 
-                  variant="ghost" 
+              <Button
+                  onClick={onClose}
+                  variant="ghost"
                   size="icon"
                   className="text-white hover:bg-white/10 rounded-lg h-9 w-9"
               >
@@ -298,7 +295,6 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
 
         {/* Chat Area */}
         <div className="flex-1 overflow-y-auto p-4 bg-slate-50 flex flex-col gap-4">
-<<<<<<< HEAD
             {!isAIServiceAvailable() && (
                 <Alert variant="destructive" className="mb-2">
                     <AlertTriangle className="h-4 w-4" />
@@ -308,8 +304,6 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                     </AlertDescription>
                 </Alert>
             )}
-=======
->>>>>>> 07d96fa59a73630864a7fee29723e0a5d71d62d0
             {messages.map((msg, idx) => (
                 <div key={idx} className={cn("flex", msg.role === 'user' ? "justify-end" : "justify-start")}>
                     <div className={cn("flex max-w-[85%] gap-3", msg.role === 'user' ? "flex-row-reverse" : "flex-row")}>
@@ -328,8 +322,8 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                         {/* Bubble */}
                         <div className={cn(
                             "p-3 rounded-2xl shadow-sm text-sm leading-relaxed",
-                            msg.role === 'user' 
-                                ? "bg-primary text-primary-foreground rounded-tr-none" 
+                            msg.role === 'user'
+                                ? "bg-primary text-primary-foreground rounded-tr-none"
                                 : "bg-white text-foreground border border-slate-200 rounded-tl-none hover:shadow-md transition-shadow"
                         )}>
                             {/* Attachment Preview in Message */}
@@ -357,7 +351,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                                     )}
                                 </div>
                             )}
-                            
+
                             <div className="whitespace-pre-wrap font-sans">
                                 {msg.text}
                             </div>
@@ -365,7 +359,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                     </div>
                 </div>
             ))}
-            
+
             {isLoading && (
                 <div className="flex justify-start">
                     <div className="flex gap-3 max-w-[85%]">
@@ -400,10 +394,10 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                         <span className="text-xs font-medium text-foreground max-w-[150px] truncate">{attachment.file.name}</span>
                         <span className="text-[10px] text-muted-foreground uppercase">{attachment.type}</span>
                     </div>
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={clearAttachment} 
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={clearAttachment}
                         className="h-6 w-6 ml-1 hover:bg-red-50 hover:text-red-600"
                     >
                         <X size={14} />
@@ -424,11 +418,11 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                     accept="image/*,video/*,application/pdf"
                     aria-label="Upload attachment"
                 />
-                
+
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button 
+                            <Button
                                 type="button"
                                 variant="outline"
                                 size="icon"
@@ -449,8 +443,8 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                 </TooltipProvider>
 
                 <div className="flex-1 bg-background border border-border rounded-xl flex items-center px-3 py-2.5 transition-all shadow-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary">
-                    <input 
-                        type="text" 
+                    <input
+                        type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Ask about schedule, or upload RFI PDF..."
@@ -460,13 +454,9 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                     />
                 </div>
 
-                <Button 
-                    type="submit" 
-<<<<<<< HEAD
+                <Button
+                    type="submit"
                     disabled={isLoading || (!input.trim() && !attachment) || !isAIServiceAvailable()}
-=======
-                    disabled={isLoading || (!input.trim() && !attachment)}
->>>>>>> 07d96fa59a73630864a7fee29723e0a5d71d62d0
                     className="h-11 w-11 shrink-0 rounded-xl shadow-lg transition-transform active:scale-95"
                     size="icon"
                 >
@@ -485,4 +475,3 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
 };
 
 export default AIChatModal;
-

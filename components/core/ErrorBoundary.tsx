@@ -10,26 +10,23 @@ import { Terminal } from 'lucide-react';
 // The original logic has been temporarily removed to facilitate the UI migration.
 // It will be re-implemented in subsequent steps.
 
-interface Props {
+type Props = {
   children: ReactNode;
-}
+};
 
-interface State {
+type State = {
   hasError: boolean;
   error?: Error;
-}
+};
 
-<<<<<<< HEAD
-class ErrorBoundary extends (React.Component as any) {
-=======
-class ErrorBoundary extends Component<Props, State> {
->>>>>>> 07d96fa59a73630864a7fee29723e0a5d71d62d0
-  public state: State = {
-    hasError: false
-  };
-
+class ErrorBoundary extends React.Component<Props, State> {
+  public readonly props: Props;
+  public state: State;
   constructor(props: Props) {
     super(props);
+    this.state = {
+      hasError: false
+    };
   }
 
   static getDerivedStateFromError(error: Error): State {
@@ -67,7 +64,7 @@ class ErrorBoundary extends Component<Props, State> {
               </Alert>
             )}
             <div className="flex gap-2 justify-center">
-              <Button onClick={() => this.setState({ hasError: false, error: undefined })}>
+              <Button onClick={() => (this as React.Component<Props, State>).setState({ hasError: false, error: undefined })}>
                 Try Again
               </Button>
               <Button variant="outline" onClick={() => window.location.reload()}>
