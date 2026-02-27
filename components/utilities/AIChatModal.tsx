@@ -9,8 +9,11 @@ import { Badge } from '~/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { Label } from '~/components/ui/label';
 import { Switch } from '~/components/ui/switch';
+<<<<<<< HEAD
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+=======
+>>>>>>> 07d96fa59a73630864a7fee29723e0a5d71d62d0
 import { cn } from '~/lib/utils';
 
 interface Props {
@@ -295,6 +298,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
 
         {/* Chat Area */}
         <div className="flex-1 overflow-y-auto p-4 bg-slate-50 flex flex-col gap-4">
+<<<<<<< HEAD
             {!isAIServiceAvailable() && (
                 <Alert variant="destructive" className="mb-2">
                     <AlertTriangle className="h-4 w-4" />
@@ -304,6 +308,8 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                     </AlertDescription>
                 </Alert>
             )}
+=======
+>>>>>>> 07d96fa59a73630864a7fee29723e0a5d71d62d0
             {messages.map((msg, idx) => (
                 <div key={idx} className={cn("flex", msg.role === 'user' ? "justify-end" : "justify-start")}>
                     <div className={cn("flex max-w-[85%] gap-3", msg.role === 'user' ? "flex-row-reverse" : "flex-row")}>
@@ -456,7 +462,11 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
 
                 <Button 
                     type="submit" 
+<<<<<<< HEAD
                     disabled={isLoading || (!input.trim() && !attachment) || !isAIServiceAvailable()}
+=======
+                    disabled={isLoading || (!input.trim() && !attachment)}
+>>>>>>> 07d96fa59a73630864a7fee29723e0a5d71d62d0
                     className="h-11 w-11 shrink-0 rounded-xl shadow-lg transition-transform active:scale-95"
                     size="icon"
                 >

@@ -99,7 +99,7 @@ const DocumentationHub = lazy(() => import('./components/modules/DocumentationHu
 const FinancialManagementHub = lazy(() => import('./components/modules/FinancialManagementHub'));
 const SettingsModule = lazy(() => import('./components/modules/SettingsModule'));
 const ConstructionModule = lazy(() => import('./components/modules/ConstructionModule'));
-// const MapModule = lazy(() => import('./components/modules/MapModule'));
+const MapModule = lazy(() => import('./components/modules/MapModule'));
 const LabModule = lazy(() => import('./components/modules/LabModule'));
 const QualityHub = lazy(() => import('./components/hubs/QualityHub'));
 const LinearWorksModule = lazy(() => import('./components/modules/LinearWorksModule'));
@@ -642,7 +642,7 @@ const App: React.FC = () => {
   const overviewItems = useMemo(() => {
     const items = [
       { id: 'dashboard', label: 'Command Center', icon: LayoutDashboard }, 
-      // { id: 'map', label: 'GIS Alignment', icon: MapIcon },
+      { id: 'map', label: 'GIS Alignment', icon: MapIcon },
       { id: 'messages', label: 'Communications', icon: MessageSquare },
       { id: 'documents', label: 'Document Hub', icon: FolderOpen }
     ];

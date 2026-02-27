@@ -707,7 +707,7 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, userRo
 
       {/* Add/Edit Subcontractor Modal */}
       <Dialog open={isSubcontractorModalOpen || isEditModalOpen} onOpenChange={() => { setIsSubcontractorModalOpen(false); setIsEditModalOpen(false); }} >
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[375px]">
           <DialogHeader>
             <DialogTitle className="font-bold flex items-center gap-1.5">
               <Briefcase className="text-primary" /> {isEditModalOpen ? 'Edit Contractor' : 'Add New Contractor'}
@@ -865,7 +865,7 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, userRo
 
       {/* Payment Modal */}
       <Dialog open={isPaymentModalOpen} onOpenChange={() => setIsPaymentModalOpen(false)} >
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[375px]">
           <DialogHeader className="font-bold flex items-center gap-1 bg-primary text-white p-2 rounded-t-lg">
             <DollarSign size={20} className="text-white" /> Record Payment
           </DialogHeader>

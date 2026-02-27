@@ -12,7 +12,10 @@ import { Badge } from '~/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import { Separator } from '~/components/ui/separator';
 import { ScrollArea } from '~/components/ui/scroll-area';
+<<<<<<< HEAD
 import { cn } from '~/lib/utils';
+=======
+>>>>>>> 07d96fa59a73630864a7fee29723e0a5d71d62d0
 
 import {
   FileText, Calendar, Users, HardHat, FileSpreadsheet, TrendingUp,
