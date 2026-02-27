@@ -23,7 +23,7 @@ import {
     Clock, Lock, CheckCircle2, XCircle, FileSearch, CalendarPlus, 
     Link as LinkIcon, ExternalLink, Calendar, MapPin, BarChart2,
     MessageSquare, User as UserIcon, Circle, Filter, CheckCircle, Trash2,
-    ClipboardList
+    ClipboardList, AlertTriangle
 } from 'lucide-react';
 import StatCard from '../core/StatCard';
 import { cn } from '~/lib/utils'; // Assuming cn utility is available for conditional classes
@@ -812,14 +812,14 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                 <div className="col-span-1 md:col-span-1"> {/* Replaced Grid item */}
                     <Label htmlFor="works-status">Works Status</Label>
                     <Select 
-                        value={worksStatus} 
-                        onValueChange={value => setWorksStatus(value as 'Approved' | 'Approved as Noted' | 'Approved for Subsequent Work' | '')}
+                        value={worksStatus || 'none'} 
+                        onValueChange={value => setWorksStatus(value === 'none' ? '' : value as any)}
                     >
                         <SelectTrigger id="works-status">
                             <SelectValue placeholder="Select Status" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">Select Status</SelectItem>
+                            <SelectItem value="none">Select Status</SelectItem>
                             <SelectItem value="Approved">Approved</SelectItem>
                             <SelectItem value="Approved as Noted">Approved as Noted</SelectItem>
                             <SelectItem value="Approved for Subsequent Work">Approved for Subsequent Work</SelectItem>
@@ -912,15 +912,15 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                 <div className="col-span-1 md:col-span-1"> {/* Replaced Grid item */}
                     <Label htmlFor="linked-task">Link to Schedule Task</Label>
                     <Select
-                        value={formData.linkedTaskId || ''}
-                        onValueChange={value => setFormData({...formData, linkedTaskId: value})}
+                        value={formData.linkedTaskId || 'none'}
+                        onValueChange={value => setFormData({...formData, linkedTaskId: value === "none" ? "" : value})}
                     >
                         <SelectTrigger id="linked-task" className="pl-9">
                             <LinkIcon size={18} className="text-primary absolute left-3 top-1/2 -translate-y-1/2" />
                             <SelectValue placeholder="Bind this inspection to an activity..." />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">None</SelectItem>
+                            <SelectItem value="none">None</SelectItem>
                             {project.schedule.map(task => (
                                 <SelectItem key={task.id} value={task.id}>
                                     <div className="flex justify-between items-center w-full">
@@ -1063,8 +1063,8 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                                     <TableCell>{new Date(checklist.createdAt).toLocaleDateString()}</TableCell>
                                     <TableCell align="right">
                                         <div className="flex space-x-0 justify-end opacity-0 group-hover:opacity-100 transition-opacity"> {/* Replaced Stack */}
-                                            <Button variant="ghost" size="icon" onClick={() => handleEditChecklist(checklist)}><Edit2 size={16}/></Button> {/* Replaced IconButton */}
-                                            <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDeleteChecklist(checklist.id)}><Trash2 size={16}/></Button> {/* Replaced IconButton */}
+                                            <Button variant="ghost" size="icon" onClick={() => handleEditChecklist(checklist)} aria-label="Edit Checklist"><Edit2 size={16}/></Button> {/* Replaced IconButton */}
+                                            <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDeleteChecklist(checklist.id)} aria-label="Delete Checklist"><Trash2 size={16}/></Button> {/* Replaced IconButton */}
                                         </div>
                                     </TableCell>
                                 </TableRow>

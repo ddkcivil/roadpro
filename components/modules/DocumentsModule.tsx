@@ -595,12 +595,12 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                   {FOLDERS.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={scannedMetadata.subId} onValueChange={value => setScannedMetadata({...scannedMetadata, subId: value})}>
+              <Select value={scannedMetadata.subId || 'none'} onValueChange={value => setScannedMetadata({...scannedMetadata, subId: value === 'none' ? '' : value})}>
                 <SelectTrigger>
                   <SelectValue placeholder="Associated Subcontractor" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None / General</SelectItem>
+                  <SelectItem value="none">None / General</SelectItem>
                   {subcontractors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -620,14 +620,14 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
               </div>
               <div className="flex gap-2">
                 <Select
-                    value={scannedMetadata.correspondenceType || ''}
-                    onValueChange={value => setScannedMetadata({...scannedMetadata, correspondenceType: value as 'incoming' | 'outgoing'})}
+                    value={scannedMetadata.correspondenceType || 'none'}
+                    onValueChange={value => setScannedMetadata({...scannedMetadata, correspondenceType: value === 'none' ? '' : value as any})}
                 >
                     <SelectTrigger>
                         <SelectValue placeholder="Correspondence Type" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">Not Specified</SelectItem>
+                        <SelectItem value="none">Not Specified</SelectItem>
                         <SelectItem value="incoming">Incoming</SelectItem>
                         <SelectItem value="outgoing">Outgoing</SelectItem>
                     </SelectContent>
@@ -756,7 +756,12 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                       {previewDoc.tags?.map(t => (
                         <Badge key={t} variant="secondary" className="h-5 text-xs flex items-center">
                           {t}
-                          <button onClick={() => handleRemoveTag(previewDoc.id, t)} className="ml-1 focus:outline-none">
+                          <button 
+                            onClick={() => handleRemoveTag(previewDoc.id, t)} 
+                            className="ml-1 focus:outline-none"
+                            title="Remove tag"
+                            aria-label={`Remove tag ${t}`}
+                          >
                             <X className="h-3 w-3" />
                           </button>
                         </Badge>

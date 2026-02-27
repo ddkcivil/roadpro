@@ -336,7 +336,7 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =>
                                             <p className="text-xs font-bold">95%</p>
                                           </div>
                                           <div className="relative w-full h-1.5 bg-gray-200 rounded-full">
-                                            <div className="absolute h-full bg-green-500 rounded-full" style={{ width: '95%' }}></div>
+                                            <div className="absolute h-full bg-green-500 rounded-full w-[95%]"></div>
                                           </div>
                                         </div>
                                         <div>
@@ -345,7 +345,7 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =>
                                             <p className="text-xs font-bold">32 Days</p>
                                           </div>
                                           <div className="relative w-full h-1.5 bg-gray-200 rounded-full">
-                                            <div className="absolute h-full bg-amber-500 rounded-full" style={{ width: '30%' }}></div>
+                                            <div className="absolute h-full bg-amber-500 rounded-full w-[30%]"></div>
                                           </div>
                                         </div>
                                     </div>
@@ -459,14 +459,14 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =>
                     </Select>
                     <Label htmlFor="new-agency">Assigned Agency/Contractor</Label>
                     <Select
-                      value={newVehicle.agencyId || ''}
-                      onValueChange={(value) => setNewVehicle({...newVehicle, agencyId: value === "" ? undefined : value})}
+                      value={newVehicle.agencyId || 'none'}
+                      onValueChange={(value) => setNewVehicle({...newVehicle, agencyId: value === "none" ? undefined : value})}
                     >
                       <SelectTrigger id="new-agency">
                         <SelectValue placeholder="Select an agency" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         {project.agencies?.filter(a => a.type === 'agency' || a.type === 'subcontractor').map(agency => (
                           <SelectItem key={agency.id} value={agency.id}>{agency.name}</SelectItem>
                         ))}
@@ -543,14 +543,14 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =>
                     </Select>
                     <Label htmlFor="edit-agency">Assigned Agency/Contractor</Label>
                     <Select
-                      value={editingVehicle?.agencyId || ''}
-                      onValueChange={(value) => setEditingVehicle({...editingVehicle, agencyId: value === "" ? undefined : value})}
+                      value={editingVehicle?.agencyId || 'none'}
+                      onValueChange={(value) => setEditingVehicle({...editingVehicle, agencyId: value === "none" ? undefined : value})}
                     >
                       <SelectTrigger id="edit-agency">
                         <SelectValue placeholder="Select an agency" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         {project.agencies?.filter(a => a.type === 'agency' || a.type === 'subcontractor').map(agency => (
                           <SelectItem key={agency.id} value={agency.id}>{agency.name}</SelectItem>
                         ))}

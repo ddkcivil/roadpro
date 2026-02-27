@@ -253,12 +253,12 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                     <AccordionContent className="p-4 grid gap-4">
                       <Input label="Batch / Sample ID" placeholder="e.g. CONC/322/2024" value={testForm.sampleId} onChange={e => setTestForm({...testForm, sampleId: e.target.value})} />
                       <Input label="Chainage / GPS Location" value={testForm.location} onChange={e => setTestForm({...testForm, location: e.target.value})} />
-                      <Select value={testForm.assetId} onValueChange={value => setTestForm({...testForm, assetId: value})}>
+                      <Select value={testForm.assetId || 'none'} onValueChange={value => setTestForm({...testForm, assetId: value === 'none' ? '' : value})}>
                         <SelectTrigger>
                           <SelectValue placeholder="Target Asset" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">General / Alignment</SelectItem>
+                          <SelectItem value="none">General / Alignment</SelectItem>
                           {(project.structures || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem> )}
                         </SelectContent>
                       </Select>

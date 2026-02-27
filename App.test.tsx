@@ -62,26 +62,11 @@ const TestApp: React.FC = () => {
 
   if (error) {
     return (
-      <div style={{ 
-        height: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        backgroundColor: '#fee',
-        fontFamily: 'Arial, sans-serif'
-      }}>
-        <div style={{ 
-          textAlign: 'center', 
-          padding: '20px',
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-          border: '1px solid #fcc',
-          maxWidth: '500px'
-        }}>
-          <h1 style={{ color: '#c33', marginBottom: '10px' }}>Initialization Error</h1>
-          <p style={{ color: '#666', marginBottom: '15px' }}>{error}</p>
-          <div style={{ textAlign: 'left', backgroundColor: '#f8f8f8', padding: '10px', borderRadius: '4px', fontSize: '12px', fontFamily: 'monospace' }}>
+      <div className="h-screen flex items-center justify-center bg-red-50 font-sans">
+        <div className="text-center p-5 bg-white rounded-lg shadow-lg border border-red-200 max-w-[500px]">
+          <h1 className="text-red-700 mb-2.5 text-2xl font-bold">Initialization Error</h1>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <div className="text-left bg-gray-50 p-2.5 rounded text-xs font-mono">
             <p><strong>Debug Info:</strong></p>
             <p>LocalStorage: {LocalStorageUtils.getProjects() ? '✓' : '✗'}</p>
             <p>SQLite Ready: {sqliteReady ? '✓' : '✗'}</p>
@@ -89,15 +74,7 @@ const TestApp: React.FC = () => {
           </div>
           <button 
             onClick={() => window.location.reload()}
-            style={{
-              marginTop: '15px',
-              padding: '8px 16px',
-              backgroundColor: '#4f46e5',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
+            className="mt-4 px-4 py-2 bg-indigo-600 text-white border-none rounded cursor-pointer hover:bg-indigo-700 transition-colors"
           >
             Reload Page
           </button>
@@ -108,26 +85,11 @@ const TestApp: React.FC = () => {
 
   if (!initialized) {
     return (
-      <div style={{ 
-        height: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        backgroundColor: '#f0f0f0',
-        fontFamily: 'Arial, sans-serif'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ 
-            width: '40px', 
-            height: '40px', 
-            border: '4px solid #f3f3f3',
-            borderTop: '4px solid #4f46e5',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 15px'
-          }}></div>
-          <p style={{ color: '#666' }}>Initializing application services...</p>
-          <div style={{ marginTop: '10px', fontSize: '12px', color: '#999' }}>
+      <div className="h-screen flex items-center justify-center bg-slate-50 font-sans">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Initializing application services...</p>
+          <div className="mt-2.5 text-xs text-gray-400">
             {sqliteReady ? '✓ SQLite ready' : '○ Initializing SQLite...'}
           </div>
         </div>
@@ -136,25 +98,12 @@ const TestApp: React.FC = () => {
   }
 
   return (
-    <div style={{ 
-      height: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      backgroundColor: '#f0f0f0',
-      fontFamily: 'Arial, sans-serif'
-    }}>
-      <div style={{ 
-        textAlign: 'center', 
-        padding: '20px',
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-      }}>
-        <h1 style={{ color: '#333', marginBottom: '10px' }}>RoadMaster Pro</h1>
-        <p style={{ color: '#666' }}>All services initialized successfully!</p>
-        <p style={{ fontSize: '14px', color: '#999' }}>Application core is fully functional.</p>
-        <div style={{ marginTop: '15px', fontSize: '12px', color: '#666' }}>
+    <div className="h-screen flex items-center justify-center bg-slate-50 font-sans">
+      <div className="text-center p-5 bg-white rounded-lg shadow-lg">
+        <h1 className="text-gray-800 mb-2.5 text-2xl font-bold">RoadMaster Pro</h1>
+        <p className="text-gray-600">All services initialized successfully!</p>
+        <p className="text-sm text-gray-400">Application core is fully functional.</p>
+        <div className="mt-4 text-xs text-gray-600 space-y-1">
           <p>✓ LocalStorage utilities working</p>
           <p>✓ Permissions service working</p>
           <p>✓ Data cache working</p>
@@ -165,17 +114,7 @@ const TestApp: React.FC = () => {
             // Try to load the full application
             window.location.href = window.location.href + '?full=true';
           }}
-          style={{
-            marginTop: '20px',
-            padding: '10px 20px',
-            backgroundColor: '#10b981',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '600'
-          }}
+          className="mt-5 px-5 py-2.5 bg-green-600 text-white border-none rounded-md cursor-pointer text-sm font-semibold hover:bg-green-700 transition-colors"
         >
           Try Full Application
         </button>

@@ -44,7 +44,7 @@ import {
   Database,
   Loader2
 } from 'lucide-react';
-import { UserRole, Project, AppSettings, Message, UserWithPermissions, Permission } from './types';
+import { UserRole, Project, AppSettings, Message, UserWithPermissions, Permission, User } from './types';
 import { PermissionsService } from './services/auth/permissionsService';
 import { AuditService } from './services/analytics/auditService';
 import { DataCache, getCacheKey } from './utils/data/cacheUtils';
@@ -226,12 +226,14 @@ const App: React.FC = () => {
     const cacheKey = getCacheKey('projects');
     const cachedProjects = DataCache.get<Project[]>(cacheKey);
     
-    if (cachedProjects) {
+    if (cachedProjects && Array.isArray(cachedProjects)) {
       return cachedProjects;
     }
     
     const savedProjects = localStorage.getItem('roadmaster-projects');
     const projectsData = savedProjects ? JSON.parse(savedProjects) : [];
+    
+    const finalProjects = Array.isArray(projectsData) ? projectsData : [];
     
     // Initialize with empty array if no data exists
     if (!savedProjects) {
@@ -239,9 +241,9 @@ const App: React.FC = () => {
     }
     
     // Cache the projects
-    DataCache.set(cacheKey, projectsData, { ttl: 10 * 60 * 1000 }); // 10 minutes
+    DataCache.set(cacheKey, finalProjects, { ttl: 10 * 60 * 1000 }); // 10 minutes
     
-    return projectsData;
+    return finalProjects;
   });
   
   // Fetch projects from actual database on mount
@@ -264,8 +266,36 @@ const App: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated) {
       fetchProjects();
+      fetchUsers();
     }
   }, [isAuthenticated]);
+
+  const fetchUsers = async () => {
+    try {
+      const fetchedUsers = await apiService.getUsers();
+      setUsers(fetchedUsers);
+      localStorage.setItem('roadmaster-users', JSON.stringify(fetchedUsers));
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    }
+  };
+
+  const handleSendMessage = (text: string, receiverId: string, projectId: string) => {
+    const newMessage: Message = {
+      id: `msg-${Date.now()}`,
+      senderId: currentUser.id,
+      receiverId,
+      content: text,
+      timestamp: new Date().toISOString(),
+      projectId,
+      read: false
+    };
+
+    const updatedMessages = [...messages, newMessage];
+    setMessages(updatedMessages);
+    localStorage.setItem('roadmaster-messages', JSON.stringify(updatedMessages));
+    DataCache.set(getCacheKey('messages'), updatedMessages, { ttl: 5 * 60 * 1000 });
+  };
   
 
   
@@ -291,12 +321,14 @@ const App: React.FC = () => {
     const cacheKey = getCacheKey('messages');
     const cachedMessages = DataCache.get<Message[]>(cacheKey);
     
-    if (cachedMessages) {
+    if (cachedMessages && Array.isArray(cachedMessages)) {
       return cachedMessages;
     }
     
     const savedMessages = localStorage.getItem('roadmaster-messages');
-    const messagesData = savedMessages ? JSON.parse(savedMessages) : [];
+    const messagesData = savedMessages ? (JSON.parse(savedMessages) || []) : [];
+    
+    const finalMessages = Array.isArray(messagesData) ? messagesData : [];
     
     // Initialize with empty array if no data exists
     if (!savedMessages) {
@@ -304,14 +336,19 @@ const App: React.FC = () => {
     }
     
     // Cache the messages
-    DataCache.set(cacheKey, messagesData, { ttl: 5 * 60 * 1000 }); // 5 minutes
+    DataCache.set(cacheKey, finalMessages, { ttl: 5 * 60 * 1000 }); // 5 minutes
     
-    return messagesData;
+    return finalMessages;
   });
   
   const [isSyncing, setIsSyncing] = useState(false);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [users, setUsers] = useState<User[]>(() => {
+    const savedUsers = localStorage.getItem('roadmaster-users');
+    const usersData = savedUsers ? (JSON.parse(savedUsers) || []) : [];
+    return Array.isArray(usersData) ? usersData : [];
+  });
   
 
 
@@ -1031,7 +1068,17 @@ const App: React.FC = () => {
                         {activeTab === 'environment' && <EnvironmentModule project={currentProject!} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'output-export' && <MPRReportModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'data-analysis' && <DataAnalysisModule project={currentProject!} />}
-                        {activeTab === 'messages' && <MessagesModule project={currentProject!} onProjectUpdate={onSaveProject} currentUser={currentUser} />}
+                        {activeTab === 'messages' && (
+                          <MessagesModule 
+                            project={currentProject!} 
+                            onProjectUpdate={onSaveProject} 
+                            currentUser={currentUser}
+                            users={users}
+                            messages={messages}
+                            projectId={selectedProjectId || currentProject?.id || ''}
+                            onSendMessage={handleSendMessage}
+                          />
+                        )}
                         {activeTab === 'documents' && <DocumentationHub project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
                         
                         {activeTab === 'settings' && <SettingsModule settings={appSettings} onUpdate={setAppSettings} />}

@@ -1,14 +1,17 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Bot, Send, Paperclip, Zap, Image as ImageIcon, Video, Loader2, Sparkles, FileText } from 'lucide-react';
-import { chatWithGemini, ChatMessage } from '../../services/ai/geminiService';
+import { chatWithGemini, ChatMessage, isAIServiceAvailable } from '../../services/ai/geminiService';
 import { Project } from '../../types';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Avatar, AvatarFallback } from '~/components/ui/avatar';
 import { Badge } from '~/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
-import { Switch } from '~/components/ui/switch';
 import { Label } from '~/components/ui/label';
+import { Switch } from '~/components/ui/switch';
+import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
+import { cn } from '~/lib/utils';
 
 interface Props {
   project: Project;
@@ -223,256 +226,253 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
       if (chips.length === 0) return null;
 
       return (
-          <Box sx={{ display: 'flex', gap: 2, mb: 4, overflowX: 'auto', pb: 2, px: 1, '&::-webkit-scrollbar': { display: 'none' } }}>
+          <div className="flex gap-2 mb-4 overflow-x-auto pb-2 px-1 scrollbar-hide">
               {chips.map((chip, i) => (
-                  <Chip 
+                  <Badge 
                       key={i} 
-                      label={chip} 
                       onClick={() => handleChipClick(chip)} 
-                      sx={{ 
-                          cursor: 'pointer', 
-                          bgcolor: 'white', 
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          fontWeight: 500,
-                          borderRadius: 2,
-                          '&:hover': { bgcolor: 'primary.light', borderColor: 'primary.main', color: 'primary.main', transform: 'translateY(-1px)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' } 
-                      }}
-                      icon={<Sparkles size={14} style={{ color: 'primary.main' }} />}
-                  />
+                      className="cursor-pointer bg-background border border-border font-medium rounded-lg hover:bg-primary/10 hover:border-primary hover:text-primary transition-all shadow-sm flex items-center gap-1.5 py-1.5 px-3"
+                      variant="outline"
+                  >
+                      <Sparkles size={14} className="text-primary" />
+                      {chip}
+                  </Badge>
               ))}
-          </Box>
+          </div>
       );
   };
 
   return (
-    <Box 
+    <div 
       ref={modalRef}
-      sx={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4, bgcolor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)' }}
-      onClick={onClose} // Close modal when clicking on backdrop
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+      onClick={onClose}
     >
-      <Box 
-        sx={{ bgcolor: 'background.paper', width: '100%', maxWidth: '600px', height: '85vh', borderRadius: 4, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative', border: '1px solid', borderColor: 'divider' }}
-        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
+      <div 
+        className="bg-background w-full max-w-[600px] h-[85vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col relative border border-border"
+        onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="chat-modal-title"
       >
         
         {/* Header */}
-        <Box sx={{ bgcolor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', p: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'white', flexShrink: 0 }} id="chat-modal-title">
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <Box sx={{ bgcolor: 'rgba(255,255,255,0.2)', p: 2, borderRadius: '50%', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}>
+        <div className="bg-gradient-to-br from-[#667eea] to-[#764ba2] p-4 flex items-center justify-between text-white shrink-0" id="chat-modal-title">
+          <div className="flex items-center gap-3">
+            <div className="bg-white/20 p-2 rounded-full backdrop-blur-md border border-white/20">
                 <Bot size={24} />
-            </Box>
-            <Box>
-                <Typography variant="h6" fontWeight="bold" sx={{ lineHeight: '1.4' }}>RoadMaster AI</Typography>
-                <Box sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: 1 }}>
+            </div>
+            <div>
+                <h6 className="font-bold leading-tight">RoadMaster AI</h6>
+                <div className="text-[10px] text-white/70 flex items-center gap-1">
                     Powered by Gemini {isFastMode ? 'Flash Lite' : '3.0 Pro'}
-                </Box>
-            </Box>
-          </Box>
+                </div>
+            </div>
+          </div>
           
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              <FormControlLabel
-                control={
-                    <Switch 
-                        size="small" 
-                        checked={isFastMode} 
-                        onChange={(e) => setIsFastMode(e.target.checked)} 
-                        color="secondary"
-                        sx={{ 
-                            '& .MuiSwitch-track': { bgcolor: 'rgba(255,255,255,0.4)' },
-                            '& .Mui-checked + .MuiSwitch-track': { bgcolor: 'rgba(156, 163, 175, 0.7)' }
-                        }}
-                    />
-                }
-                label={
-                    <Box sx={{ fontSize: '0.75rem', fontWeight: 'medium', color: 'white', display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Zap size={12} className={isFastMode ? 'text-[#fbbf24]' : 'text-inherit'} />
-                        Fast Mode
-                    </Box>
-                }
-              />
-              <IconButton onClick={onClose} sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.1)', '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }, borderRadius: 2 }}>
+          <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Switch 
+                    id="fast-mode"
+                    checked={isFastMode} 
+                    onCheckedChange={setIsFastMode} 
+                />
+                <Label htmlFor="fast-mode" className="text-[10px] font-medium text-white flex items-center gap-1 cursor-pointer">
+                    <Zap size={12} className={cn(isFastMode ? "text-yellow-400" : "text-inherit")} />
+                    Fast Mode
+                </Label>
+              </div>
+              <Button 
+                  onClick={onClose} 
+                  variant="ghost" 
+                  size="icon"
+                  className="text-white hover:bg-white/10 rounded-lg h-9 w-9"
+              >
                 <X size={20} />
-              </IconButton>
-          </Box>
-        </Box>
+              </Button>
+          </div>
+        </div>
 
         {/* Chat Area */}
-        <Box sx={{ flex: 1, overflowY: 'auto', p: 3, bgcolor: 'grey.50', display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <div className="flex-1 overflow-y-auto p-4 bg-slate-50 flex flex-col gap-4">
+            {!isAIServiceAvailable() && (
+                <Alert variant="destructive" className="mb-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>AI Service Unavailable</AlertTitle>
+                    <AlertDescription>
+                        The Gemini API key is missing. Please add VITE_GEMINI_API_KEY to your .env file.
+                    </AlertDescription>
+                </Alert>
+            )}
             {messages.map((msg, idx) => (
-                <Box key={idx} sx={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                    <Box sx={{ display: 'flex', maxWidth: '85%', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row', gap: 3 }}>
+                <div key={idx} className={cn("flex", msg.role === 'user' ? "justify-end" : "justify-start")}>
+                    <div className={cn("flex max-w-[85%] gap-3", msg.role === 'user' ? "flex-row-reverse" : "flex-row")}>
                         {/* Avatar */}
-                        <Box sx={{ width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.5, boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', bgcolor: msg.role === 'user' ? 'primary.light' : 'grey.100', border: '1px solid', borderColor: 'divider' }}>
+                        <div className={cn(
+                            "w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-1 shadow-sm border",
+                            msg.role === 'user' ? "bg-primary/10 border-primary/20" : "bg-white border-slate-200"
+                        )}>
                             {msg.role === 'user' ? (
-                                <Typography variant="caption" fontWeight="bold" color="primary.main">ME</Typography>
+                                <span className="text-[10px] font-bold text-primary">ME</span>
                             ) : (
-                                <Sparkles size={18} style={{ color: 'primary.main' }} />
+                                <Sparkles size={18} className="text-primary" />
                             )}
-                        </Box>
+                        </div>
 
                         {/* Bubble */}
-                        <Box sx={{ 
-                            p: 2.5, 
-                            borderRadius: 3, 
-                            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', 
-                            fontSize: '0.9rem', 
-                            lineHeight: '1.5', 
-                            bgcolor: msg.role === 'user' ? 'primary.main' : 'background.paper',
-                            color: msg.role === 'user' ? 'primary.contrastText' : 'text.primary',
-                            borderTopRightRadius: msg.role === 'user' ? 0 : 3,
-                            borderTopLeftRadius: msg.role === 'user' ? 3 : 0,
-                            border: msg.role !== 'user' ? '1px solid' : 'none',
-                            borderColor: msg.role !== 'user' ? 'divider' : 'transparent',
-                            '&:hover': { boxShadow: msg.role !== 'user' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }
-                        }}>
+                        <div className={cn(
+                            "p-3 rounded-2xl shadow-sm text-sm leading-relaxed",
+                            msg.role === 'user' 
+                                ? "bg-primary text-primary-foreground rounded-tr-none" 
+                                : "bg-white text-foreground border border-slate-200 rounded-tl-none hover:shadow-md transition-shadow"
+                        )}>
                             {/* Attachment Preview in Message */}
                             {msg.attachment && (
-                                <Box sx={{ mb: 2, borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+                                <div className="mb-2 rounded-lg overflow-hidden border border-border bg-background">
                                     {msg.attachment.type === 'video' ? (
-                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 40, px: 2, gap: 1 }}>
-                                            <Video size={16} style={{ color: 'text.secondary' }} />
-                                            <Typography variant="caption" color="text.secondary">Video Attached</Typography>
-                                        </Box>
+                                        <div className="flex items-center justify-center h-10 px-2 gap-2">
+                                            <Video size={16} className="text-muted-foreground" />
+                                            <span className="text-xs text-muted-foreground">Video Attached</span>
+                                        </div>
                                     ) : msg.attachment.type === 'pdf' ? (
-                                        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-                                            <Box sx={{ bgcolor: 'error.light', p: 1.5, borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                <FileText size={18} style={{ color: '#ef4444' }} />
-                                            </Box>
-                                            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                                                <Typography variant="caption" fontWeight="medium" color={msg.role === 'user' ? 'primary.contrastText' : 'text.primary'}>PDF Document</Typography>
-                                                <Typography variant="caption" color={msg.role === 'user' ? 'primary.light' : 'text.secondary'}>Attached for analysis</Typography>
-                                            </Box>
-                                        </Box>
+                                        <div className="p-3 flex items-center gap-3">
+                                            <div className="bg-red-50 p-2 rounded flex items-center justify-center">
+                                                <FileText size={18} className="text-red-500" />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className={cn("text-xs font-medium", msg.role === 'user' ? "text-primary-foreground" : "text-foreground")}>PDF Document</span>
+                                                <span className={cn("text-[10px]", msg.role === 'user' ? "text-primary-foreground/70" : "text-muted-foreground")}>Attached for analysis</span>
+                                            </div>
+                                        </div>
                                     ) : (
-                                        <Box sx={{ position: 'relative' }}>
-                                            <img src={`data:${msg.attachment.mimeType};base64,${msg.attachment.data}`} alt="Upload" style={{ maxWidth: '200px', maxHeight: '192px', objectFit: 'cover', display: 'block' }} />
-                                        </Box>
+                                        <div className="relative">
+                                            <img src={`data:${msg.attachment.mimeType};base64,${msg.attachment.data}`} alt="Upload" className="max-w-[200px] max-h-48 object-cover block" />
+                                        </div>
                                     )}
-                                </Box>
+                                </div>
                             )}
                             
-                            <Box sx={{ whiteSpace: 'pre-wrap', fontFamily: 'Inter, sans-serif' }}>
+                            <div className="whitespace-pre-wrap font-sans">
                                 {msg.text}
-                            </Box>
-                        </Box>
-                    </Box>
-                </Box>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             ))}
             
             {isLoading && (
-                <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
-                    <Box sx={{ display: 'flex', gap: 3, maxWidth: '85%' }}>
-                        <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: 'background.paper', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.25, boxShadow: 1 }}>
-                            <Bot size={16} style={{ color: 'primary.main' }} />
-                        </Box>
-                        <Box sx={{ bgcolor: 'background.paper', p: 2, borderRadius: 2, borderTopLeftRadius: 0, border: '1px solid', borderColor: 'divider', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Loader2 size={16} style={{ animation: 'spin 1s linear infinite', color: 'primary.main' }} />
-                            <Typography variant="caption" color="text.secondary" fontWeight="medium">Analyzing...</Typography>
-                        </Box>
-                    </Box>
-                </Box>
+                <div className="flex justify-start">
+                    <div className="flex gap-3 max-w-[85%]">
+                        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 mt-1 shadow-sm border border-slate-200">
+                            <Bot size={16} className="text-primary" />
+                        </div>
+                        <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-2 rounded-tl-none">
+                            <Loader2 size={16} className="animate-spin text-primary" />
+                            <span className="text-xs text-muted-foreground font-medium">Analyzing...</span>
+                        </div>
+                    </div>
+                </div>
             )}
             <div ref={messagesEndRef} />
-        </Box>
+        </div>
 
         {/* Input Area */}
-        <Box sx={{ p: 3, bgcolor: 'background.paper', borderTop: '1px solid', borderColor: 'divider', boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+        <div className="p-4 bg-background border-t border-border shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
             {/* Attachment Preview Area */}
             {attachment && (
-                <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, bgcolor: 'background.paper', p: 1.5, borderRadius: 2, border: '1px solid', borderColor: 'divider', width: 'fit-content', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
-                    <Box sx={{ width: 48, height: 48, bgcolor: 'grey.100', borderRadius: 1, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', border: '1px solid', borderColor: 'divider' }}>
+                <div className="mb-3 flex items-center gap-3 bg-background p-2 rounded-xl border border-border w-fit shadow-sm">
+                    <div className="w-12 h-12 bg-slate-100 rounded-lg overflow-hidden flex items-center justify-center relative border border-border">
                         {attachment.type === 'image' ? (
-                            <img src={attachment.preview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img src={attachment.preview} alt="Preview" className="w-full h-full object-cover" />
                         ) : attachment.type === 'pdf' ? (
-                            <FileText size={20} style={{ color: '#ef4444' }} />
+                            <FileText size={20} className="text-red-500" />
                         ) : (
-                            <Video size={18} style={{ color: 'text.secondary' }} />
+                            <Video size={18} className="text-muted-foreground" />
                         )}
-                    </Box>
-                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                        <Typography variant="caption" fontWeight="medium" color="text.primary" sx={{ maxWidth: '150px', textOverflow: 'ellipsis', overflow: 'hidden' }}>{attachment.file.name}</Typography>
-                        <Typography variant="caption" color="text.secondary" textTransform="uppercase" fontWeight="regular">{attachment.type}</Typography>
-                    </Box>
-                    <IconButton size="small" onClick={clearAttachment} sx={{ ml: 1, borderRadius: 1, '&:hover': { bgcolor: 'error.light', color: 'error.dark' } }}>
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-xs font-medium text-foreground max-w-[150px] truncate">{attachment.file.name}</span>
+                        <span className="text-[10px] text-muted-foreground uppercase">{attachment.type}</span>
+                    </div>
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={clearAttachment} 
+                        className="h-6 w-6 ml-1 hover:bg-red-50 hover:text-red-600"
+                    >
                         <X size={14} />
-                    </IconButton>
-                </Box>
+                    </Button>
+                </div>
             )}
 
             {/* Suggestion Chips */}
             {renderSuggestionChips()}
 
-            <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', gap: 3, alignItems: 'flex-end' }}>
-                                <input
-                                    type="file"
-                                    id="file-upload-input" // Added id for accessibility
-                                    ref={fileInputRef}
-                                    onChange={handleFileSelect}
-                                    className="hidden"
-                                    accept="image/*,video/*,application/pdf"
-                                />
-                                <label htmlFor="file-upload-input" className="sr-only">Upload PDF (RFI/Invoice) or Media</label>
-                                
-                                {/* Fix: Wrapped Tooltip child in a span for strict MUI compatibility */}
-                                <Tooltip title="Upload PDF (RFI/Invoice) or Media" arrow>                    <span>
-                        <IconButton 
-                            onClick={() => fileInputRef.current?.click()}
-                            sx={{ 
-                                bgcolor: attachment ? 'indigo.50' : 'grey.100', 
-                                color: attachment ? 'indigo.600' : 'grey.600',
-                                border: '1px solid',
-                                borderColor: attachment ? 'indigo.200' : 'grey.300',
-                                borderRadius: 2,
-                                p: 1.5,
-                                '&:hover': { bgcolor: 'indigo.100', color: 'indigo.700', transform: 'translateY(-1px)' }
-                            }}
-                        >
-                            <Paperclip size={20} />
-                        </IconButton>
-                    </span>
-                </Tooltip>
+            <form onSubmit={handleSubmit} className="flex gap-3 items-end">
+                <input
+                    type="file"
+                    id="file-upload-input"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    accept="image/*,video/*,application/pdf"
+                    aria-label="Upload attachment"
+                />
+                
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button 
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={() => fileInputRef.current?.click()}
+                                className={cn(
+                                    "h-11 w-11 shrink-0 rounded-xl transition-all",
+                                    attachment ? "bg-indigo-50 text-indigo-600 border-indigo-200" : "bg-slate-50 text-slate-600 border-slate-200"
+                                )}
+                                aria-label="Upload PDF or Media"
+                            >
+                                <Paperclip size={20} />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Upload PDF (RFI/Invoice) or Media</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
 
-                <Box sx={{ flex: 1, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 3, display: 'flex', alignItems: 'center', px: 2, py: 1.5, transition: 'all 0.2s', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', '&:focus-within': { boxShadow: '0 0 0 3px rgba(99, 102, 241, 0.2) !important', borderColor: 'primary.main' } }}>
+                <div className="flex-1 bg-background border border-border rounded-xl flex items-center px-3 py-2.5 transition-all shadow-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary">
                     <input 
                         type="text" 
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="Ask about schedule, or upload RFI PDF for extraction..."
-                        className="flex-1 bg-transparent outline-none text-sm text-foreground p-0"
+                        placeholder="Ask about schedule, or upload RFI PDF..."
+                        className="flex-1 bg-transparent outline-none text-sm p-0"
                         autoFocus
                         aria-label="Ask about schedule or upload RFI PDF"
                     />
-                </Box>
+                </div>
 
-                <IconButton 
+                <Button 
                     type="submit" 
-                    disabled={isLoading || (!input.trim() && !attachment)}
-                    sx={{ 
-                        bgcolor: 'primary.main', 
-                        color: 'white', 
-                        p: 1.5,
-                        borderRadius: 2,
-                        boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.5), 0 2px 4px -1px rgba(79, 70, 229, 0.3)',
-                        '&:hover': { bgcolor: 'primary.dark', transform: 'translateY(-1px)', boxShadow: '0 6px 12px -2px rgba(79, 70, 229, 0.6)' },
-                        '&.Mui-disabled': { bgcolor: 'grey.300', color: 'grey.500', boxShadow: 'none', transform: 'none' }
-                    }}
+                    disabled={isLoading || (!input.trim() && !attachment) || !isAIServiceAvailable()}
+                    className="h-11 w-11 shrink-0 rounded-xl shadow-lg transition-transform active:scale-95"
+                    size="icon"
                 >
-                    {isLoading ? <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={20} />}
-                </IconButton>
-            </Box>
-            <Box sx={{ textAlign: 'center', mt: 1 }}>
-                <Typography variant="caption" color="text.disabled" fontSize={10}>
+                    {isLoading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
+                </Button>
+            </form>
+            <div className="text-center mt-2">
+                <span className="text-[10px] text-muted-foreground">
                     AI can make mistakes. Verify important project information.
-                </Typography>
-            </Box>
-        </Box>
-      </Box>
-    </Box>
+                </span>
+            </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
 export default AIChatModal;
+

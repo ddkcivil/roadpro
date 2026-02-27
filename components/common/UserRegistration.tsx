@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { cn } from '~/lib/utils';
+import { apiService } from '../../services/api/apiService';
 
 
 // NOTE: This is a refactored version of the UserRegistration component.

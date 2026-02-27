@@ -5,7 +5,8 @@ import { withErrorHandler } from '../../_utils/errorHandler.js';
 
 export default withErrorHandler(async function (req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+    res.status(405).json({ error: 'Method Not Allowed' });
+    return;
   }
 
   try {
@@ -13,14 +14,16 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
     const { id } = req.query;
 
     if (!id || typeof id !== 'string') {
-      return res.status(400).json({ error: 'Registration ID is required' });
+      res.status(400).json({ error: 'Registration ID is required' });
+      return;
     }
 
     // Find and delete the pending registration
     const registration = await PendingRegistration.findOneAndDelete({ id });
 
     if (!registration) {
-      return res.status(404).json({ error: 'Registration not found' });
+      res.status(404).json({ error: 'Registration not found' });
+      return;
     }
 
     res.status(204).end();

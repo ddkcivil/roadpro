@@ -19,7 +19,7 @@ interface Props {
   onSendMessage: (text: string, receiverId: string, projectId: string) => void;
 }
 
-const MessagesModule: React.FC<Props> = ({ currentUser, users, messages, projectId, onSendMessage }) => {
+const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [], projectId, onSendMessage }) => {
   const [activeChatId, setActiveChatId] = useState<string>('general');
   const [inputText, setInputText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,10 +35,10 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users, messages, project
 
   const getFilteredMessages = () => {
       if (activeChatId === 'general') {
-          return messages.filter(m => m.receiverId === 'general' && m.projectId === projectId);
+          return (messages || []).filter(m => m.receiverId === 'general' && m.projectId === projectId);
       }
       // Direct messages between current user and selected user
-      return messages.filter(m => 
+      return (messages || []).filter(m => 
           ((m.senderId === currentUser?.id && m.receiverId === activeChatId) ||
           (m.senderId === activeChatId && m.receiverId === currentUser?.id)) &&
           m.projectId === projectId
@@ -55,9 +55,9 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users, messages, project
   };
 
   // Helper to get user details
-  const getUser = (id: string) => users.find(u => u.id === id);
+  const getUser = (id: string) => (users || []).find(u => u.id === id);
 
-  const filteredUsers = users.filter(u => 
+  const filteredUsers = (users || []).filter(u => 
       u.id !== currentUser?.id && 
       u.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -125,8 +125,9 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users, messages, project
                 <div className="px-4 py-2 uppercase text-xs font-bold text-muted-foreground mt-4">Direct Messages</div>
                 
                 {filteredUsers.map(user => {
-                    const lastMsg = messages.filter(m => (m.senderId === user.id && m.receiverId === currentUser?.id) || (m.senderId === currentUser?.id && m.receiverId === user.id)).pop();
-                    const unreadCount = messages.filter(m => m.senderId === user.id && m.receiverId === currentUser?.id && !m.read).length;
+                    const userMessages = (messages || []).filter(m => (m.senderId === user.id && m.receiverId === currentUser?.id) || (m.senderId === currentUser?.id && m.receiverId === user.id));
+                    const lastMsg = userMessages.pop();
+                    const unreadCount = (messages || []).filter(m => m.senderId === user.id && m.receiverId === currentUser?.id && !m.read).length;
 
                     return (
                         <div 

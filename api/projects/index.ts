@@ -20,7 +20,8 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       const projectData = { ...req.body };
 
       if (!projectData.name || !projectData.client) {
-        return res.status(400).json({ error: 'Project name and client are required' });
+        res.status(400).json({ error: 'Project name and client are required' });
+        return;
       }
 
       // Ensure we don't save with an existing ID if provided in body for some reason

@@ -54,15 +54,10 @@ const Login: React.FC<Props> = ({ onLogin }) => {
     try {
         const authResult = await apiService.loginUser(email, password);
         
-        if (authResult.success || authResult.user) {
-            let role = UserRole.PROJECT_MANAGER;
-            let name = "Project Manager";
-            const user = authResult.user || authResult;
-            
-            if (user) {
-              name = user.name || name;
-              role = user.role || role;
-            }
+        if (authResult.success) {
+            const user = authResult.user;
+            const role = user?.role || UserRole.PROJECT_MANAGER;
+            const name = user?.name || "Project Manager";
             
             const userWithPermissions = PermissionsService.createUserWithPermissions({ 
               id: user?.id || `user-${Date.now()}`, 

@@ -7,11 +7,12 @@ import {
 import { getAutofillSuggestions, checkForDuplicates } from '../../utils/data/autofillUtils';
 import { 
     Project, StructureAsset, StructureType, UserRole, 
-    StructureComponent, StructureWorkLog, LabTest, BOQItem, Subcontractor 
+    StructureComponent, StructureWorkLog, LabTest, BOQItem, Subcontractor,
+    StructureTemplate
 } from '../../types';
 
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
@@ -24,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Badge } from '~/components/ui/badge';
 import { Progress } from '~/components/ui/progress';
@@ -177,12 +179,12 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
                           </div>
                           <div className="grid gap-2">
                               <Label htmlFor="subcontractor">Assigned Agency (Subcontractor)</Label>
-                              <Select value={newStructure.subcontractorId || ''} onValueChange={(value: string) => setNewStructure({...newStructure, subcontractorId: value})}>
+                              <Select value={newStructure.subcontractorId || 'none'} onValueChange={(value: string) => setNewStructure({...newStructure, subcontractorId: value === 'none' ? '' : value})}>
                                   <SelectTrigger>
                                       <SelectValue placeholder="Select subcontractor" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                      <SelectItem value="">Internal Execution</SelectItem>
+                                      <SelectItem value="none">Internal Execution</SelectItem>
                                       {project.agencies?.filter(a => a.type === 'subcontractor' || a.type === 'agency').map(agency => (
                                           <SelectItem key={agency.id} value={agency.id}>{agency.name} ({agency.trade})</SelectItem>
                                       ))}
@@ -229,12 +231,12 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
                                           </div>
                                           <div className="grid gap-2">
                                               <Label>BOQ Item Mapping</Label>
-                                              <Select value={comp.boqItemId || ''} onValueChange={(value: string) => handleUpdateComponent(idx, 'boqItemId', value)}>
+                                              <Select value={comp.boqItemId || 'none'} onValueChange={(value: string) => handleUpdateComponent(idx, 'boqItemId', value === 'none' ? '' : value)}>
                                                   <SelectTrigger>
                                                       <SelectValue placeholder="Select BOQ Item" />
                                                   </SelectTrigger>
                                                   <SelectContent>
-                                                      <SelectItem value="">Unlinked</SelectItem>
+                                                      <SelectItem value="none">Unlinked</SelectItem>
                                                       {project.boq.map(item => (
                                                           <SelectItem key={item.id} value={item.id}>[{item.itemNo}] {item.description.substring(0, 30)}...</SelectItem>
                                                       ))}
@@ -482,12 +484,12 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
                   </div>
                   <div className="grid gap-2">
                       <Label htmlFor="boqItemId">Linked BOQ Item</Label>
-                      <Select value={logForm.boqItemId} onValueChange={(value: string) => setLogForm({...logForm, boqItemId: value})}>
+                      <Select value={logForm.boqItemId || 'none'} onValueChange={(value: string) => setLogForm({...logForm, boqItemId: value === 'none' ? '' : value})}>
                           <SelectTrigger>
                               <SelectValue placeholder="Select BOQ Item (Optional)" />
                           </SelectTrigger>
                           <SelectContent>
-                              <SelectItem value="">None</SelectItem>
+                              <SelectItem value="none">None</SelectItem>
                               {project.boq.map(item => (
                                   <SelectItem key={item.id} value={item.id}>[{item.itemNo}] {item.description.substring(0, 30)}...</SelectItem>
                               ))}
@@ -496,12 +498,12 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
                   </div>
                   <div className="grid gap-2">
                       <Label htmlFor="subcontractorId">Assigned Subcontractor</Label>
-                      <Select value={logForm.subcontractorId} onValueChange={(value: string) => setLogForm({...logForm, subcontractorId: value})}>
+                      <Select value={logForm.subcontractorId || 'none'} onValueChange={(value: string) => setLogForm({...logForm, subcontractorId: value === 'none' ? '' : value})}>
                           <SelectTrigger>
                               <SelectValue placeholder="Select Subcontractor (Optional)" />
                           </SelectTrigger>
                           <SelectContent>
-                              <SelectItem value="">Internal / Not Assigned</SelectItem>
+                              <SelectItem value="none">Internal / Not Assigned</SelectItem>
                               {project.agencies?.filter(a => a.type === 'subcontractor' || a.type === 'agency').map(agency => (
                                   <SelectItem key={agency.id} value={agency.id}>{agency.name} ({agency.trade})</SelectItem>
                               ))}

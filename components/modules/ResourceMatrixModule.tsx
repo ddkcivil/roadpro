@@ -295,12 +295,12 @@ const ResourceMatrixModule: React.FC<ResourceMatrixModuleProps> = ({ project, on
               </div>
               <div>
                 <Label htmlFor="allocate-to-select">Allocate To</Label>
-                <ShadcnSelect value={allocationForm.allocatedTo} onValueChange={(value) => setAllocationForm({...allocationForm, allocatedTo: value})}>
+                <ShadcnSelect value={allocationForm.allocatedTo || 'none'} onValueChange={(value) => setAllocationForm({...allocationForm, allocatedTo: value === "none" ? "" : value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select Task/Item" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Select Task/Item</SelectItem>
+                    <SelectItem value="none">Select Task/Item</SelectItem>
                     {project.schedule?.map((task: any) => (
                       <SelectItem key={task.id} value={task.id}>
                         {task.name} (Schedule)
@@ -547,12 +547,12 @@ const ResourceMatrixModule: React.FC<ResourceMatrixModuleProps> = ({ project, on
             </div>
             <div>
               <Label htmlFor="supplier-select">Supplier</Label>
-              <ShadcnSelect value={editingResource.supplier || ''} onValueChange={(value) => setEditingResource({...editingResource, supplier: value})}>
+              <ShadcnSelect value={editingResource.supplier || 'none'} onValueChange={(value) => setEditingResource({...editingResource, supplier: value === "none" ? "" : value})}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select Supplier" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value=""><em>Select Supplier</em></SelectItem>
+                  <SelectItem value="none"><em>Select Supplier</em></SelectItem>
                   <SelectItem value="Nepal Cement Ltd">Nepal Cement Ltd</SelectItem>
                   <SelectItem value="Local Sand Suppliers">Local Sand Suppliers</SelectItem>
                   <SelectItem value="Local Stone Crushers">Local Stone Crushers</SelectItem>

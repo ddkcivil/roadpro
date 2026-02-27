@@ -10,8 +10,8 @@
     "moduleResolution": "NodeNext",
     "outDir": "./dist",
     "rootDir": "./",
-    "allowImportingTsExtensions": true,
-    "allowJs": true
+    "allowJs": true,
+    "noEmit": true
   },
   "include": ["./**/*.ts"],
   "exclude": ["node_modules"]

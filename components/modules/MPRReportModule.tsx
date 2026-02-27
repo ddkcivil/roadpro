@@ -11,6 +11,8 @@ import { Alert as ShadcnAlert, AlertDescription } from '~/components/ui/alert';
 import { Badge } from '~/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import { Separator } from '~/components/ui/separator';
+import { ScrollArea } from '~/components/ui/scroll-area';
+import { cn } from '~/lib/utils';
 
 import {
   FileText, Calendar, Users, HardHat, FileSpreadsheet, TrendingUp,
@@ -211,8 +213,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                         <div className="flex items-center gap-2 mt-2">
                           <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-primary"
-                              style={{ width: `${(physicalProgress.planned * 100).toFixed(1)}%` }}
+                              className={cn("h-full bg-primary", `w-[${(physicalProgress.planned * 100).toFixed(1)}%]`)}
                             />
                           </div>
                           <p className="text-xs">{(physicalProgress.planned * 100).toFixed(1)}%</p>
@@ -356,8 +357,11 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                         {project.boq.slice(0, 12).map((item, index) => (
                           <div key={index} className="flex-1 flex flex-col items-center">
                             <div
-                              className={`w-full rounded ${item.completedQuantity === item.quantity ? 'bg-green-500' : 'bg-primary'}`}
-                              style={{ height: `${(item.completedQuantity / item.quantity) * 100}%` }}
+                              className={cn(
+                                "w-full rounded",
+                                item.completedQuantity === item.quantity ? "bg-green-500" : "bg-primary",
+                                `h-[${(item.completedQuantity / item.quantity) * 100}%]`
+                              )}
                               title={`${item.description}: ${(item.completedQuantity / item.quantity) * 100}%`}
                             />
                             <p className="text-xs mt-2 text-center">{item.itemNo}</p>
@@ -446,8 +450,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                       {[60, 65, 70, 75, 80, 85, 90].map((val, index) => (
                         <div key={index} className="flex-1 flex flex-col items-center">
                           <div
-                            className="w-full bg-green-500 rounded"
-                            style={{ height: `${val}%` }}
+                            className={cn("w-full bg-green-500 rounded", `h-[${val}%]`)}
                           />
                           <p className="text-xs mt-2">{index + 1}M</p>
                         </div>

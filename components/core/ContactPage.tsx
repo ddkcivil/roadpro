@@ -193,22 +193,22 @@ const ContactPage: React.FC = () => {
               </p>
               <div className="flex gap-3">
                 <Button variant="outline" size="icon" asChild>
-                  <a href="#" target="_blank" rel="noopener noreferrer">
+                  <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Twitter" title="Twitter">
                     <Twitter size={18} />
                   </a>
                 </Button>
                 <Button variant="outline" size="icon" asChild>
-                  <a href="#" target="_blank" rel="noopener noreferrer">
+                  <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Facebook" title="Facebook">
                     <Facebook size={18} />
                   </a>
                 </Button>
                 <Button variant="outline" size="icon" asChild>
-                  <a href="#" target="_blank" rel="noopener noreferrer">
+                  <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Follow us on LinkedIn" title="LinkedIn">
                     <Linkedin size={18} />
                   </a>
                 </Button>
                 <Button variant="outline" size="icon" asChild>
-                  <a href="#" target="_blank" rel="noopener noreferrer">
+                  <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" title="Instagram">
                     <Instagram size={18} />
                   </a>
                 </Button>

@@ -1,3 +1,4 @@
+import React, { useState, useEffect, useRef } from 'react';
 import { cn } from "../../lib/utils";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -120,7 +121,8 @@ const OCRExtractionModule: React.FC = () => {
             ref={fileInputRef}
             onChange={handleFileUpload}
             accept="image/*,.pdf"
-            style={{ display: 'none' }}
+            className="hidden"
+            aria-label="Upload document"
           />
           
           {/* Extraction Mode Selector */}
@@ -203,9 +205,9 @@ const OCRExtractionModule: React.FC = () => {
 
       {/* Results with Side-by-Side Preview */}
       {result && (
-        <Grid container spacing={3}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Document Preview Column */}
-          <Grid item xs={12} md={6}>
+          <div>
             <Card className="rounded-2xl h-full">
               <CardContent>
                 <h6 className="text-lg font-bold mb-8 flex items-center gap-x-4">
@@ -223,10 +225,10 @@ const OCRExtractionModule: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
           
           {/* OCR Results Column */}
-          <Grid item xs={12} md={6}>
+          <div>
             <div className="space-y-4">
               <Card className="rounded-2xl">
                 <CardContent>
@@ -554,8 +556,8 @@ const OCRExtractionModule: React.FC = () => {
                 </CardContent>
               </Card>
             </div>
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       )}
     </div>
   );

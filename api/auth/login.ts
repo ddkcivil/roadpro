@@ -8,6 +8,7 @@ import { withErrorHandler } from '../_utils/errorHandler.js';
 export default withErrorHandler(async function (req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method Not Allowed' });
+    return;
   }
 
   try {
@@ -16,6 +17,7 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
 
     if (!email || !password) {
       res.status(400).json({ error: 'Email and password are required' });
+      return;
     }
 
     // Find user by email

@@ -6,23 +6,26 @@ import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
 const getAIClient = () => {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   if (!apiKey) {
-    console.warn("VITE_GEMINI_API_KEY is missing in environment variables. Please add it to your .env file as VITE_GEMINI_API_KEY=your_api_key");
     return null;
   }
   // Trim any whitespace from the API key
   const trimmedApiKey = apiKey.trim();
   if (!trimmedApiKey) {
-    console.warn("VITE_GEMINI_API_KEY is empty. Please check your .env file.");
     return null;
   }
   return new GoogleGenerativeAI(trimmedApiKey);
 };
 
+export const isAIServiceAvailable = (): boolean => {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  return !!(apiKey && apiKey.trim());
+};
+
 export const analyzeSitePhoto = async (photoBase64: string, category: string): Promise<string> => {
     const ai = getAIClient();
-    if (!ai) return "AI Service Unavailable.";
+    if (!ai) return "AI Service Unavailable. Please check your configuration.";
 
-    const model = ai.getGenerativeModel({ model: 'gemini-pro' });
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `You are a construction site auditor.
     Analyze this site photo from a road project. The photo is categorized as "${category}".
@@ -67,7 +70,7 @@ export const analyzeProjectStatus = async (
   const ai = getAIClient();
   if (!ai) return "AI Service Unavailable: Missing API Key.";
 
-  const model = ai.getGenerativeModel({ model: 'gemini-pro' });
+  const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
   // Validate inputs
   if (!boq || !rfis || !schedule) {
@@ -121,12 +124,10 @@ export const chatWithGemini = async (
   useFastModel: boolean = false
 ): Promise<string> => {
   const ai = getAIClient();
-  if (!ai) return "AI Service Unavailable.";
+  if (!ai) return "AI Service Unavailable. Please ensure VITE_GEMINI_API_KEY is set in your environment.";
 
-  let modelName = 'gemini-pro'; // Updated to use available model
-  if (!useFastModel && !attachment) {
-    modelName = 'gemini-pro'; // Updated to use available model
-  }
+  // Default to gemini-1.5-flash for all requests to ensure maximum compatibility and speed
+  let modelName = 'gemini-1.5-flash';
 
   const model = ai.getGenerativeModel({ model: modelName });
 
@@ -252,7 +253,7 @@ export const draftLetter = async (topic: string, recipient: string, useSearch: b
   const ai = getAIClient();
   if (!ai) return "AI Service Unavailable.";
   
-  const model = ai.getGenerativeModel({ model: 'gemini-pro' });
+  const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
   const prompt = `
     Draft a formal construction project correspondence letter.

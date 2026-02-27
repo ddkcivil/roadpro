@@ -3,6 +3,8 @@ import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
+import { Checkbox } from '~/components/ui/checkbox';
+import { ScrollArea } from '~/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '~/components/ui/tabs';
@@ -10,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import { Badge } from '~/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { Separator } from '~/components/ui/separator';
+import { cn } from '~/lib/utils';
 import { 
   Users, 
   FileText, 
@@ -26,7 +29,8 @@ import {
   TrendingUp,
   DollarSign,
   GraduationCap,
-  Clipboard
+  Clipboard,
+  Loader2
 } from 'lucide-react';
 import { apiService } from '../../services/api/apiService';
 import { LocalStorageUtils } from '../../utils/data/localStorageUtils';
@@ -247,7 +251,7 @@ interface EmployeeData {
 }
 
 const StaffManagementModule: React.FC = () => {
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState("leave-requests");
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [employees, setEmployees] = useState<EmployeeData[]>([]);
   const [performanceRecords, setPerformanceRecords] = useState<PerformanceRecord[]>([]);
@@ -437,7 +441,7 @@ const StaffManagementModule: React.FC = () => {
 
   // Filter data
   useEffect(() => {
-    if (activeTab === 0) {
+    if (activeTab === "leave-requests") {
       let filtered = [...leaveRequests];
       if (searchTerm) {
         filtered = filtered.filter(request => 
@@ -449,7 +453,7 @@ const StaffManagementModule: React.FC = () => {
         filtered = filtered.filter(request => request.status === statusFilter);
       }
       setFilteredLeaveRequests(filtered);
-    } else if (activeTab === 1) {
+    } else if (activeTab === "employees") {
       let filtered = [...employees];
       if (searchTerm) {
         filtered = filtered.filter(emp => 
@@ -458,7 +462,7 @@ const StaffManagementModule: React.FC = () => {
         );
       }
       setFilteredEmployees(filtered);
-    } else if (activeTab === 2) {
+    } else if (activeTab === "performance") {
       let filtered = [...performanceRecords];
       if (searchTerm) {
         filtered = filtered.filter(record => 
@@ -467,7 +471,7 @@ const StaffManagementModule: React.FC = () => {
         );
       }
       setFilteredPerformance(filtered);
-    } else if (activeTab === 3) {
+    } else if (activeTab === "attendance") {
       let filtered = [...attendanceRecords];
       if (searchTerm) {
         filtered = filtered.filter(record => 
@@ -479,7 +483,7 @@ const StaffManagementModule: React.FC = () => {
         filtered = filtered.filter(record => record.status === statusFilter);
       }
       setFilteredAttendance(filtered);
-    } else if (activeTab === 4) {
+    } else if (activeTab === "salary") {
       let filtered = [...salaryRecords];
       if (searchTerm) {
         filtered = filtered.filter(record => 
@@ -491,7 +495,7 @@ const StaffManagementModule: React.FC = () => {
         filtered = filtered.filter(record => record.status === statusFilter);
       }
       setFilteredSalaries(filtered);
-    } else if (activeTab === 5) {
+    } else if (activeTab === "training") {
       let filtered = [...trainingRecords];
       if (searchTerm) {
         filtered = filtered.filter(record => 
@@ -503,7 +507,7 @@ const StaffManagementModule: React.FC = () => {
         filtered = filtered.filter(record => record.status === statusFilter);
       }
       setFilteredTraining(filtered);
-    } else if (activeTab === 6) {
+    } else if (activeTab === "evaluations") {
       let filtered = [...evaluationForms];
       if (searchTerm) {
         filtered = filtered.filter(form => 
@@ -743,512 +747,522 @@ const StaffManagementModule: React.FC = () => {
     switch (joiningStep) { // Changed activeStep to joiningStep
       case 0: // Basic Information
         return (
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <Typography variant="h6" fontWeight="bold" mb={2}>Basic Information</Typography>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="col-span-full">
+              <h6 className="text-lg font-bold">Basic Information</h6>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="employeeName">Employee Name <span className="text-red-500">*</span></Label>
+              <Input
+                id="employeeName"
                 required
-                fullWidth
-                label="Employee Name"
                 value={newEmployee.employeeName}
                 onChange={(e) => handleInputChange('employeeName', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Designation"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="designation">Designation</Label>
+              <Input
+                id="designation"
                 value={newEmployee.designation}
                 onChange={(e) => handleInputChange('designation', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Department"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="department">Department</Label>
+              <Input
+                id="department"
                 value={newEmployee.department}
                 onChange={(e) => handleInputChange('department', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Work Station/Location"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="workStation">Work Station/Location</Label>
+              <textarea
+                id="workStation"
+                title="Work Station/Location"
+                placeholder="Enter work station or location details"
+                className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 value={newEmployee.workStation}
                 onChange={(e) => handleInputChange('workStation', e.target.value)}
-                multiline
-                rows={2}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Gender</InputLabel>
-                <Select
-                  value={newEmployee.gender}
-                  label="Gender"
-                  onChange={(e) => handleInputChange('gender', e.target.value)}
-                >
-                  <MenuItem value="Male">Male</MenuItem>
-                  <MenuItem value="Female">Female</MenuItem>
-                  <MenuItem value="Other">Other</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Nationality"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="gender">Gender</Label>
+              <Select
+                value={newEmployee.gender}
+                onValueChange={(val) => handleInputChange('gender', val)}
+              >
+                <SelectTrigger id="gender">
+                  <SelectValue placeholder="Select Gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="nationality">Nationality</Label>
+              <Input
+                id="nationality"
                 value={newEmployee.nationality}
                 onChange={(e) => handleInputChange('nationality', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Date of Birth"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dateOfBirth">Date of Birth</Label>
+              <Input
+                id="dateOfBirth"
                 type="date"
-                InputLabelProps={{ shrink: true }}
                 value={newEmployee.dateOfBirth}
                 onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Marital Status</InputLabel>
-                <Select
-                  value={newEmployee.maritalStatus}
-                  label="Marital Status"
-                  onChange={(e) => handleInputChange('maritalStatus', e.target.value)}
-                >
-                  <MenuItem value="Single">Single</MenuItem>
-                  <MenuItem value="Married">Married</MenuItem>
-                  <MenuItem value="Divorced">Divorced</MenuItem>
-                  <MenuItem value="Widowed">Widowed</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Blood Group"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="maritalStatus">Marital Status</Label>
+              <Select
+                value={newEmployee.maritalStatus}
+                onValueChange={(val) => handleInputChange('maritalStatus', val)}
+              >
+                <SelectTrigger id="maritalStatus">
+                  <SelectValue placeholder="Select Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Single">Single</SelectItem>
+                  <SelectItem value="Married">Married</SelectItem>
+                  <SelectItem value="Divorced">Divorced</SelectItem>
+                  <SelectItem value="Widowed">Widowed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bloodGroup">Blood Group</Label>
+              <Input
+                id="bloodGroup"
                 value={newEmployee.bloodGroup}
                 onChange={(e) => handleInputChange('bloodGroup', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Religion"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="religion">Religion</Label>
+              <Input
+                id="religion"
                 value={newEmployee.religion}
                 onChange={(e) => handleInputChange('religion', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Personal Mobile Number"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="personalMobile">Personal Mobile Number</Label>
+              <Input
+                id="personalMobile"
                 value={newEmployee.personalMobile}
                 onChange={(e) => handleInputChange('personalMobile', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Email Address"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="emailAddress">Email Address</Label>
+              <Input
+                id="emailAddress"
                 type="email"
                 value={newEmployee.emailAddress}
                 onChange={(e) => handleInputChange('emailAddress', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Emergency Contact Person"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="emergencyContactPerson">Emergency Contact Person</Label>
+              <Input
+                id="emergencyContactPerson"
                 value={newEmployee.emergencyContactPerson}
                 onChange={(e) => handleInputChange('emergencyContactPerson', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Emergency Contact Number"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="emergencyContactNumber">Emergency Contact Number</Label>
+              <Input
+                id="emergencyContactNumber"
                 value={newEmployee.emergencyContactNumber}
                 onChange={(e) => handleInputChange('emergencyContactNumber', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Permanent Address"
-                multiline
-                rows={2}
+            </div>
+            <div className="col-span-full space-y-2">
+              <Label htmlFor="permanentAddress">Permanent Address</Label>
+              <textarea
+                id="permanentAddress"
+                title="Permanent Address"
+                placeholder="Enter permanent address"
+                className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 value={newEmployee.permanentAddress}
                 onChange={(e) => handleInputChange('permanentAddress', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Temporary Address"
-                multiline
-                rows={2}
+            </div>
+            <div className="col-span-full space-y-2">
+              <Label htmlFor="temporaryAddress">Temporary Address</Label>
+              <textarea
+                id="temporaryAddress"
+                title="Temporary Address"
+                placeholder="Enter temporary address"
+                className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 value={newEmployee.temporaryAddress}
                 onChange={(e) => handleInputChange('temporaryAddress', e.target.value)}
               />
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         );
+
 
       case 1: // Educational Qualifications
         return (
-          <Box>
-            <Typography variant="h6" fontWeight="bold" mb={2}>Educational Qualifications</Typography>
-            <Typography variant="body2" color="text.secondary" mb={3}>
+          <div className="space-y-4">
+            <h6 className="text-lg font-bold">Educational Qualifications</h6>
+            <p className="text-sm text-muted-foreground">
               Add educational qualifications in chronological order (highest qualification first)
-            </Typography>
-            {/* Education form fields would go here */}
-            <Typography variant="body1" textAlign="center" color="text.secondary" mt={4}>
+            </p>
+            <div className="text-center py-10 text-muted-foreground">
               Education qualification form fields would be implemented here
-            </Typography>
-          </Box>
+            </div>
+          </div>
         );
 
       case 2: // Work Experience
         return (
-          <Box>
-            <Typography variant="h6" fontWeight="bold" mb={2}>Work Experience Summary</Typography>
-            <Typography variant="body2" color="text.secondary" mb={3}>
+          <div className="space-y-4">
+            <h6 className="text-lg font-bold">Work Experience Summary</h6>
+            <p className="text-sm text-muted-foreground">
               List previous work experience starting with the most recent
-            </Typography>
-            <Typography variant="body1" textAlign="center" color="text.secondary" mt={4}>
+            </p>
+            <div className="text-center py-10 text-muted-foreground">
               Work experience form fields would be implemented here
-            </Typography>
-          </Box>
+            </div>
+          </div>
         );
 
       case 3: // Banking Information
         return (
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <Typography variant="h6" fontWeight="bold" mb={2}>Banking Information</Typography>
-              <Typography variant="body2" color="text.secondary" mb={3}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="col-span-full">
+              <h6 className="text-lg font-bold">Banking Information</h6>
+              <p className="text-sm text-muted-foreground mb-2">
                 Please provide accurate banking details for salary processing
-              </Typography>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Bank Account Name"
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bankAccountName">Bank Account Name</Label>
+              <Input
+                id="bankAccountName"
                 value={newEmployee.bankAccountName}
                 onChange={(e) => handleInputChange('bankAccountName', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Bank Account Number"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bankAccountNumber">Bank Account Number</Label>
+              <Input
+                id="bankAccountNumber"
                 value={newEmployee.bankAccountNumber}
                 onChange={(e) => handleInputChange('bankAccountNumber', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Bank Name"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bankName">Bank Name</Label>
+              <Input
+                id="bankName"
                 value={newEmployee.bankName}
                 onChange={(e) => handleInputChange('bankName', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="PAN Number"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="panNumber">PAN Number</Label>
+              <Input
+                id="panNumber"
                 value={newEmployee.panNumber}
                 onChange={(e) => handleInputChange('panNumber', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="National ID No"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="nationalId">National ID No</Label>
+              <Input
+                id="nationalId"
                 value={newEmployee.nationalId}
                 onChange={(e) => handleInputChange('nationalId', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Provident Fund (PF) Number"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pfNumber">Provident Fund (PF) Number</Label>
+              <Input
+                id="pfNumber"
                 value={newEmployee.pfNumber}
                 onChange={(e) => handleInputChange('pfNumber', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="PF Contribution Branch"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pfBranch">PF Contribution Branch</Label>
+              <Input
+                id="pfBranch"
                 value={newEmployee.pfBranch}
                 onChange={(e) => handleInputChange('pfBranch', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="CIT Number"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="citNumber">CIT Number</Label>
+              <Input
+                id="citNumber"
                 value={newEmployee.citNumber}
                 onChange={(e) => handleInputChange('citNumber', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="CIT Contribution Branch"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="citBranch">CIT Contribution Branch</Label>
+              <Input
+                id="citBranch"
                 value={newEmployee.citBranch}
                 onChange={(e) => handleInputChange('citBranch', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Retirement Account Number"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="retirementAccount">Retirement Account Number</Label>
+              <Input
+                id="retirementAccount"
                 value={newEmployee.retirementAccount}
                 onChange={(e) => handleInputChange('retirementAccount', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Retirement Fund Bank"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="retirementBank">Retirement Fund Bank</Label>
+              <Input
+                id="retirementBank"
                 value={newEmployee.retirementBank}
                 onChange={(e) => handleInputChange('retirementBank', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="SSF Number"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ssfNumber">SSF Number</Label>
+              <Input
+                id="ssfNumber"
                 value={newEmployee.ssfNumber}
                 onChange={(e) => handleInputChange('ssfNumber', e.target.value)}
               />
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         );
 
       case 4: // Nominee Information
         return (
-          <Box>
-            <Typography variant="h6" fontWeight="bold" mb={2}>Nominee Information</Typography>
-            <Typography variant="body2" color="text.secondary" mb={3}>
+          <div className="space-y-4">
+            <h6 className="text-lg font-bold">Nominee Information</h6>
+            <p className="text-sm text-muted-foreground">
               Please provide details of your nominee for emergency purposes
-            </Typography>
-            <Typography variant="body1" textAlign="center" color="text.secondary" mt={4}>
+            </p>
+            <div className="text-center py-10 text-muted-foreground">
               Nominee information form fields would be implemented here
-            </Typography>
-          </Box>
+            </div>
+          </div>
         );
 
       case 5: // Declarations
         return (
-          <Box>
-            <Typography variant="h6" fontWeight="bold" mb={2}>Couple Declaration</Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Number of Sons"
+          <div className="space-y-4">
+            <h6 className="text-lg font-bold">Couple Declaration</h6>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="numberOfSons">Number of Sons</Label>
+                <Input
+                  id="numberOfSons"
                   type="number"
                   value={newEmployee.numberOfSons}
                   onChange={(e) => handleInputChange('numberOfSons', parseInt(e.target.value) || 0)}
                 />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Number of Daughters"
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="numberOfDaughters">Number of Daughters</Label>
+                <Input
+                  id="numberOfDaughters"
                   type="number"
                   value={newEmployee.numberOfDaughters}
                   onChange={(e) => handleInputChange('numberOfDaughters', parseInt(e.target.value) || 0)}
                 />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Number of Dependents"
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="numberOfDependents">Number of Dependents</Label>
+                <Input
+                  id="numberOfDependents"
                   type="number"
                   value={newEmployee.numberOfDependents}
                   onChange={(e) => handleInputChange('numberOfDependents', parseInt(e.target.value) || 0)}
                 />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Employee Signature"
+              </div>
+              <div className="col-span-full space-y-2">
+                <Label htmlFor="employeeSignature">Employee Signature</Label>
+                <Input
+                  id="employeeSignature"
                   placeholder="Digital signature or name for signature"
                   value={newEmployee.employeeSignature}
                   onChange={(e) => handleInputChange('employeeSignature', e.target.value)}
                 />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Date (DD/MM/YYYY)"
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="signatureDate">Date (DD/MM/YYYY)</Label>
+                <Input
+                  id="signatureDate"
                   value={newEmployee.signatureDate}
                   onChange={(e) => handleInputChange('signatureDate', e.target.value)}
                 />
-              </Grid>
-            </Grid>
-          </Box>
+              </div>
+            </div>
+          </div>
         );
 
       case 6: // ICT Terms
         return (
-          <Box>
-            <Typography variant="h6" fontWeight="bold" mb={2}>ICT Services Terms and Conditions</Typography>
-            <Paper variant="outlined" sx={{ p: 3, maxHeight: 300, overflowY: 'auto' }}>
-              <Typography variant="body2" paragraph>
+          <div className="space-y-4">
+            <h6 className="text-lg font-bold">ICT Services Terms and Conditions</h6>
+            <ScrollArea className="h-[300px] w-full rounded-md border p-4">
+              <p className="text-sm mb-4">
                 These terms form a legal agreement between you and the Company. You must accept all principles and regulations in the Company's acceptable use policies to access and use its ICT facilities and services.
-              </Typography>
-              <Typography variant="body2" paragraph>
+              </p>
+              <p className="text-sm mb-4">
                 TUNDI provides computing and ICT resources, including email, for official use to support the Company's objectives and administration. These facilities cannot be used for external projects or non-approved activities.
-              </Typography>
-              <Typography variant="body2" paragraph>
+              </p>
+              <p className="text-sm mb-4">
                 TUNDI reserves the right to monitor any data, including personal email and instant messages, sent, received, or accessed within office premises as needed.
-              </Typography>
-            </Paper>
-            <Box mt={2}>
+              </p>
+            </ScrollArea>
+            <div className="pt-2">
               <Button
-                variant={newEmployee.acceptsICTTerms ? "contained" : "outlined"}
+                variant={newEmployee.acceptsICTTerms ? "default" : "outline"}
                 onClick={() => handleInputChange('acceptsICTTerms', !newEmployee.acceptsICTTerms)}
-                fullWidth
+                className="w-full"
               >
                 {newEmployee.acceptsICTTerms ? 'Terms Accepted ✓' : 'Accept ICT Terms and Conditions'}
               </Button>
-            </Box>
-          </Box>
+            </div>
+          </div>
         );
 
       case 7: // Induction
         return (
-          <Box>
-            <Typography variant="h6" fontWeight="bold" mb={2}>Induction/Orientation Checklist</Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Button
-                  fullWidth
-                  variant={newEmployee.orientationCompleted ? "contained" : "outlined"}
-                  onClick={() => handleInputChange('orientationCompleted', !newEmployee.orientationCompleted)}
-                  sx={{ justifyContent: 'flex-start', py: 2 }}
-                >
-                  ✓ Briefing about Organization, Office Rules/Regulation
-                </Button>
-              </Grid>
-              <Grid item xs={12}>
-                <Button
-                  fullWidth
-                  variant={newEmployee.introductionToTeam ? "contained" : "outlined"}
-                  onClick={() => handleInputChange('introductionToTeam', !newEmployee.introductionToTeam)}
-                  sx={{ justifyContent: 'flex-start', py: 2 }}
-                >
-                  ✓ Introduction with Department Head & Team members
-                </Button>
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Other Orientation Activities"
-                  multiline
-                  rows={2}
+          <div className="space-y-4">
+            <h6 className="text-lg font-bold">Induction/Orientation Checklist</h6>
+            <div className="grid grid-cols-1 gap-4">
+              <Button
+                variant={newEmployee.orientationCompleted ? "default" : "outline"}
+                onClick={() => handleInputChange('orientationCompleted', !newEmployee.orientationCompleted)}
+                className="w-full justify-start py-6 h-auto whitespace-normal text-left"
+              >
+                <div className="flex items-center gap-2">
+                   {newEmployee.orientationCompleted && <span>✓</span>}
+                   <span>Briefing about Organization, Office Rules/Regulation</span>
+                </div>
+              </Button>
+              
+              <Button
+                variant={newEmployee.introductionToTeam ? "default" : "outline"}
+                onClick={() => handleInputChange('introductionToTeam', !newEmployee.introductionToTeam)}
+                className="w-full justify-start py-6 h-auto whitespace-normal text-left"
+              >
+                <div className="flex items-center gap-2">
+                   {newEmployee.introductionToTeam && <span>✓</span>}
+                   <span>Introduction with Department Head & Team members</span>
+                </div>
+              </Button>
+
+              <div className="space-y-2">
+                <Label htmlFor="other-orientation">Other Orientation Activities</Label>
+                <textarea
+                  id="other-orientation"
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Specify other activities..."
                   value={newEmployee.otherOrientation}
                   onChange={(e) => handleInputChange('otherOrientation', e.target.value)}
                 />
-              </Grid>
-            </Grid>
-          </Box>
+              </div>
+            </div>
+          </div>
         );
 
       case 8: // Office Setup
         return (
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <Typography variant="h6" fontWeight="bold" mb={2}>Office Assets and Setup</Typography>
-            </Grid>
-            <Grid item xs={12} md={6}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="col-span-full">
+              <h6 className="text-lg font-bold">Office Assets and Setup</h6>
+            </div>
+            
+            <div className="space-y-3">
               <Button
-                fullWidth
-                variant={newEmployee.laptopIssued ? "contained" : "outlined"}
+                variant={newEmployee.laptopIssued ? "default" : "outline"}
                 onClick={() => handleInputChange('laptopIssued', !newEmployee.laptopIssued)}
-                sx={{ py: 2, mb: 2 }}
+                className="w-full py-6 h-auto"
               >
                 {newEmployee.laptopIssued ? 'Laptop Issued ✓' : 'Issue Laptop'}
               </Button>
               {newEmployee.laptopIssued && (
-                <TextField
-                  fullWidth
-                  label="Laptop Brand Name"
-                  value={newEmployee.laptopBrand}
-                  onChange={(e) => handleInputChange('laptopBrand', e.target.value)}
-                  sx={{ mt: 1 }}
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="laptop-brand">Laptop Brand Name</Label>
+                  <Input
+                    id="laptop-brand"
+                    placeholder="Enter brand name"
+                    value={newEmployee.laptopBrand}
+                    onChange={(e) => handleInputChange('laptopBrand', e.target.value)}
+                  />
+                </div>
               )}
-            </Grid>
-            <Grid item xs={12} md={6}>
+            </div>
+
+            <div className="space-y-3">
               <Button
-                fullWidth
-                variant={newEmployee.mobileIssued ? "contained" : "outlined"}
+                variant={newEmployee.mobileIssued ? "default" : "outline"}
                 onClick={() => handleInputChange('mobileIssued', !newEmployee.mobileIssued)}
-                sx={{ py: 2, mb: 2 }}
+                className="w-full py-6 h-auto"
               >
-                {newEmployee.mobileIssued ? 'Mobile Issued ✓' : 'Issue Mobile/Handset'}
+                {newEmployee.mobileIssued ? 'Mobile Issued ✓' : 'Issue Mobile'}
               </Button>
               {newEmployee.mobileIssued && (
-                <TextField
-                  fullWidth
-                  label="Mobile Details & SIM Number"
-                  value={newEmployee.mobileDetails}
-                  onChange={(e) => handleInputChange('mobileDetails', e.target.value)}
-                  sx={{ mt: 1 }}
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="mobile-details">Mobile Details & SIM Number</Label>
+                  <Input
+                    id="mobile-details"
+                    placeholder="Enter details"
+                    value={newEmployee.mobileDetails}
+                    onChange={(e) => handleInputChange('mobileDetails', e.target.value)}
+                  />
+                </div>
               )}
-            </Grid>
-            <Grid item xs={12} md={6}>
+            </div>
+            <div className="space-y-3">
               <Button
-                fullWidth
-                variant={newEmployee.emailIssued ? "contained" : "outlined"}
+                variant={newEmployee.emailIssued ? "default" : "outline"}
                 onClick={() => handleInputChange('emailIssued', !newEmployee.emailIssued)}
-                sx={{ py: 2 }}
+                className="w-full py-6 h-auto"
               >
-                {newEmployee.emailIssued ? 'Office Email Issued ✓' : 'Issue Office Email'}
+                {newEmployee.emailIssued ? 'Official Email Issued ✓' : 'Issue Official Email'}
               </Button>
-            </Grid>
-            <Grid item xs={12} md={6}>
+            </div>
+            <div className="space-y-3">
               <Button
-                fullWidth
-                variant={newEmployee.hrisAccess ? "contained" : "outlined"}
+                variant={newEmployee.hrisAccess ? "default" : "outline"}
                 onClick={() => handleInputChange('hrisAccess', !newEmployee.hrisAccess)}
-                sx={{ py: 2 }}
+                className="w-full py-6 h-auto"
               >
                 {newEmployee.hrisAccess ? 'HRIS Access Granted ✓' : 'Grant HRIS Access'}
               </Button>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Basic Salary"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="baseSalary">Basic Salary</Label>
+              <Input
+                id="baseSalary"
                 value={newEmployee.basicSalary}
                 onChange={(e) => handleInputChange('basicSalary', e.target.value)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Allowances"
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="allowances">Allowances</Label>
+              <Input
+                id="allowances"
                 value={newEmployee.allowances}
                 onChange={(e) => handleInputChange('allowances', e.target.value)}
               />
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         );
 
       default:
@@ -1257,1174 +1271,1125 @@ const StaffManagementModule: React.FC = () => {
   };
 
   return (
-    <Box sx={{ height: 'calc(100vh - 140px)', overflowY: 'auto', p: 2 }}>
-      <Box display="flex" justifyContent="space-between" mb={3} alignItems="center">
-        <Box>
-          <Typography variant="h5" fontWeight="900">Staff Management</Typography>
-          <Typography variant="body2" color="text.secondary">
+    <div className="h-[calc(100vh-140px)] overflow-y-auto p-4">
+      <div className="flex justify-between mb-6 items-center">
+        <div>
+          <h5 className="text-2xl font-black">Staff Management</h5>
+          <p className="text-sm text-muted-foreground">
             Manage employee leave requests and onboarding
-          </Typography>
-        </Box>
-        <Box display="flex" gap={1}>
+          </p>
+        </div>
+        <div className="flex gap-2">
           <Button 
-            variant="outlined" 
-            startIcon={<FileText size={16}/>} 
+            variant="outline" 
             onClick={() => setIsLeaveModalOpen(true)}
           >
+            <FileText className="mr-2 h-4 w-4" />
             New Leave Request
           </Button>
           <Button 
-            variant="contained" 
-            startIcon={<User size={16}/>} 
             onClick={() => setIsJoiningModalOpen(true)}
           >
+            <User className="mr-2 h-4 w-4" />
             New Employee
           </Button>
-        </Box>
-      </Box>
+        </div>
+      </div>
 
-      <Paper variant="outlined" sx={{ borderRadius: 3 }}>
-        <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tab label={`Leave Requests (${leaveRequests.length})`} icon={<Calendar size={16} />} iconPosition="start" />
-          <Tab label={`Employees (${employees.length})`} icon={<Users size={16} />} iconPosition="start" />
-          <Tab label={`Performance (${performanceRecords.length})`} icon={<span>📊</span>} iconPosition="start" />
-          <Tab label={`Attendance (${attendanceRecords.length})`} icon={<Clock size={16} />} iconPosition="start" />
-          <Tab label={`Salary (${salaryRecords.length})`} icon={<span>💰</span>} iconPosition="start" />
-          <Tab label={`Training (${trainingRecords.length})`} icon={<span>🎓</span>} iconPosition="start" />
-          <Tab label={`Evaluations (${evaluationForms.length})`} icon={<span>📋</span>} iconPosition="start" />
-        </Tabs>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="bg-background rounded-xl border border-border shadow-sm">
+        <TabsList className="w-full justify-start rounded-none border-b bg-transparent h-12 p-0 overflow-x-auto overflow-y-hidden scrollbar-hide">
+          <TabsTrigger value="leave-requests" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 h-12">
+            <Calendar className="mr-2 h-4 w-4" /> Leave Requests ({leaveRequests.length})
+          </TabsTrigger>
+          <TabsTrigger value="employees" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 h-12">
+            <Users className="mr-2 h-4 w-4" /> Employees ({employees.length})
+          </TabsTrigger>
+          <TabsTrigger value="performance" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 h-12">
+            <span className="mr-2">📊</span> Performance ({performanceRecords.length})
+          </TabsTrigger>
+          <TabsTrigger value="attendance" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 h-12">
+            <Clock className="mr-2 h-4 w-4" /> Attendance ({attendanceRecords.length})
+          </TabsTrigger>
+          <TabsTrigger value="salary" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 h-12">
+            <span className="mr-2">💰</span> Salary ({salaryRecords.length})
+          </TabsTrigger>
+          <TabsTrigger value="training" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 h-12">
+            <span className="mr-2">🎓</span> Training ({trainingRecords.length})
+          </TabsTrigger>
+          <TabsTrigger value="evaluations" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 h-12">
+            <span className="mr-2">📋</span> Evaluations ({evaluationForms.length})
+          </TabsTrigger>
+        </TabsList>
 
-        <Box p={3}>
+        <div className="p-6">
           {/* Filters */}
-          <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: 2 }}>
-            <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  placeholder={activeTab === 0 ? "Search by employee name or ID..." : "Search by employee name or department..."}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: <Search size={18} style={{ marginRight: 8, color: '#64748b' }} />
-                  }}
-                />
-              </Grid>
-              {activeTab === 0 && (
-                <Grid item xs={12} md={3}>
-                  <FormControl fullWidth>
-                    <InputLabel>Status Filter</InputLabel>
-                    <Select
-                      value={statusFilter}
-                      label="Status Filter"
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                    >
-                      <MenuItem value="All">All Status</MenuItem>
-                      <MenuItem value="Pending">Pending</MenuItem>
-                      <MenuItem value="Approved">Approved</MenuItem>
-                      <MenuItem value="Rejected">Rejected</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
+          <div className="p-4 mb-6 rounded-lg border border-border bg-slate-50/50">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+              <div className="col-span-1 md:col-span-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    className="pl-9"
+                    placeholder={activeTab === "leave-requests" ? "Search by employee name or ID..." : "Search by employee name or department..."}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+              {activeTab === "leave-requests" && (
+                <div className="col-span-1 md:col-span-3">
+                  <Select
+                    value={statusFilter}
+                    onValueChange={setStatusFilter}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Status Filter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">All Status</SelectItem>
+                      <SelectItem value="Pending">Pending</SelectItem>
+                      <SelectItem value="Approved">Approved</SelectItem>
+                      <SelectItem value="Rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
-              <Grid item xs={12} md={activeTab === 0 ? 3 : 6}>
-                <Box display="flex" justifyContent="flex-end">
-                  <Tooltip title="Export to PDF">
-                    <IconButton>
-                      <Download size={20} />
-                    </IconButton>
+              <div className={cn("col-span-1 flex justify-end", activeTab === "leave-requests" ? "md:col-span-3" : "md:col-span-6")}>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="icon">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Export to PDF</p>
+                    </TooltipContent>
                   </Tooltip>
-                </Box>
-              </Grid>
-            </Grid>
-          </Paper>
+                </TooltipProvider>
+              </div>
+            </div>
+          </div>
 
-          {/* Leave Requests Tab */}
-          {activeTab === 0 && (
-            <Box>
+          {/* Leave Requests Tab Content */}
+          <TabsContent value="leave-requests" className="m-0 border-none p-0">
+            <div className="p-0">
               {loading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
-                  <Typography variant="h6">Loading leave requests...</Typography>
-                </Box>
+                <div className="flex justify-center items-center h-48">
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-muted-foreground font-medium">Loading leave requests...</p>
+                  </div>
+                </div>
               ) : (
                 <>
-                  {/* Statistics Cards */}
-                  <Grid container spacing={2} mb={3}>
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Card variant="outlined">
-                        <CardContent>
-                          <Typography variant="h4" color="primary" fontWeight="bold">
-                            {leaveRequests.filter(r => r.status === 'Pending').length}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            Pending Requests
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Card variant="outlined">
-                        <CardContent>
-                          <Typography variant="h4" color="success.main" fontWeight="bold">
-                            {leaveRequests.filter(r => r.status === 'Approved').length}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            Approved
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Card variant="outlined">
-                        <CardContent>
-                          <Typography variant="h4" color="error.main" fontWeight="bold">
-                            {leaveRequests.filter(r => r.status === 'Rejected').length}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            Rejected
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Card variant="outlined">
-                        <CardContent>
-                          <Typography variant="h4" color="info.main" fontWeight="bold">
-                            {leaveRequests.reduce((sum, r) => sum + r.numberOfDays, 0)}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            Total Leave Days
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  </Grid>
+                {/* Statistics Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-2xl font-bold text-primary">
+                        {leaveRequests.filter(r => r.status === 'Pending').length}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Pending Requests
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-2xl font-bold text-green-600">
+                        {leaveRequests.filter(r => r.status === 'Approved').length}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Approved
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-2xl font-bold text-red-600">
+                        {leaveRequests.filter(r => r.status === 'Rejected').length}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Rejected
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {leaveRequests.reduce((sum, r) => sum + r.numberOfDays, 0)}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Total Leave Days
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
 
-                  {/* Leave Requests Table */}
-                  <Paper variant="outlined" sx={{ borderRadius: 3 }}>
-                    <TableContainer>
-                      <Table>
-                        <TableHead>
-                          <TableRow sx={{ bgcolor: 'slate.50' }}>
-                            <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Employee</TableCell>
-                            <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Leave Type</TableCell>
-                            <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Dates</TableCell>
-                            <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Days</TableCell>
-                            <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Status</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Actions</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {filteredLeaveRequests.map(request => ( // Use filteredLeaveRequests
-                            <TableRow key={request.id} hover>
-                              <TableCell>
-                                <Stack direction="column" spacing={0.5}>
-                                  <Typography variant="body2" fontWeight="bold">
-                                    {request.employeeName}
-                                  </Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    ID: {request.employeeId} | {request.department}
-                                  </Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    {request.designation}
-                                  </Typography>
-                                </Stack>
-                              </TableCell>
-                              <TableCell>
-                                <Chip 
-                                  label={request.leaveType} 
-                                  size="small" 
-                                  variant="outlined"
-                                  sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <Stack direction="column" spacing={0.5}>
-                                  <Stack direction="row" alignItems="center" spacing={1}>
-                                    <Calendar size={14} />
-                                    <Typography variant="body2">
-                                      {new Date(request.startDate).toLocaleDateString()} - {new Date(request.endDate).toLocaleDateString()}
-                                    </Typography>
-                                  </Stack>
-                                  <Typography variant="caption" color="text.secondary">
-                                    Applied: {new Date(request.createdAt).toLocaleDateString()}
-                                  </Typography>
-                                </Stack>
-                              </TableCell>
-                              <TableCell>
-                                <Typography variant="body2" fontWeight="bold">
-                                  {request.numberOfDays} days
-                                </Typography>
-                              </TableCell>
-                              <TableCell>
-                                <Chip 
-                                  icon={getStatusIcon(request.status)}
-                                  label={request.status} 
-                                  size="small" 
-                                  color={getStatusColor(request.status) as any}
-                                  variant="filled"
-                                  sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}
-                                />
-                              </TableCell>
-                              <TableCell align="right">
-                                <Stack direction="row" justifyContent="flex-end" spacing={1}>
-                                  {request.status === 'Pending' && (
-                                    <>
-                                      <Button 
-                                        variant="outlined" 
-                                        size="small" 
-                                        color="success"
-                                        startIcon={<CheckCircle size={16}/>}
-                                        onClick={() => updateLeaveStatus(request.id, 'Approved')}
-                                      >
-                                        Approve
-                                      </Button>
-                                      <Button 
-                                        variant="outlined" 
-                                        size="small" 
-                                        color="error"
-                                        startIcon={<XCircle size={16}/>}
-                                        onClick={() => updateLeaveStatus(request.id, 'Rejected')}
-                                      >
-                                        Reject
-                                      </Button>
-                                    </>
-                                  )}
+                {/* Leave Requests Table */}
+                <div className="rounded-md border border-border overflow-hidden bg-background">
+                  <Table>
+                    <TableHeader className="bg-slate-50/50">
+                      <TableRow>
+                        <TableHead className="font-bold text-xs uppercase tracking-wider">Employee</TableHead>
+                        <TableHead className="font-bold text-xs uppercase tracking-wider">Leave Type</TableHead>
+                        <TableHead className="font-bold text-xs uppercase tracking-wider">Dates</TableHead>
+                        <TableHead className="font-bold text-xs uppercase tracking-wider">Days</TableHead>
+                        <TableHead className="font-bold text-xs uppercase tracking-wider">Status</TableHead>
+                        <TableHead className="text-right font-bold text-xs uppercase tracking-wider">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredLeaveRequests.map(request => (
+                        <TableRow key={request.id} className="hover:bg-slate-50/50">
+                          <TableCell>
+                            <div className="flex flex-col gap-0.5">
+                              <span className="font-medium text-sm">
+                                {request.employeeName}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground font-mono">
+                                ID: {request.employeeId} | {request.department}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {request.designation}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="font-medium bg-slate-50 text-[10px]">
+                              {request.leaveType}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-1.5 text-xs">
+                                <Calendar size={12} className="text-muted-foreground" />
+                                <span>
+                                  {new Date(request.startDate).toLocaleDateString()} - {new Date(request.endDate).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-muted-foreground ml-4.5">
+                                Applied: {new Date(request.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-bold text-sm">
+                              {request.numberOfDays} days
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={cn(
+                              "font-bold text-[10px] uppercase",
+                              request.status === 'Approved' ? "bg-green-100 text-green-700 hover:bg-green-100 border-none shadow-none" :
+                              request.status === 'Rejected' ? "bg-red-100 text-red-700 hover:bg-red-100 border-none shadow-none" :
+                              "bg-yellow-100 text-yellow-700 hover:bg-yellow-100 border-none shadow-none"
+                            )}>
+                              <div className="flex items-center gap-1">
+                                {getStatusIcon(request.status)}
+                                {request.status}
+                              </div>
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              {request.status === 'Pending' && (
+                                <>
                                   <Button 
-                                    variant="outlined" 
-                                    size="small" 
-                                    startIcon={<FileText size={16}/>}
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 text-xs text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
+                                    onClick={() => updateLeaveStatus(request.id, 'Approved')}
                                   >
-                                    View Details
+                                    <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
+                                    Approve
                                   </Button>
-                                </Stack>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </Paper>
-                </>
-              )}
-            </Box>
-          )}
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                                    onClick={() => updateLeaveStatus(request.id, 'Rejected')}
+                                  >
+                                    <XCircle className="mr-1.5 h-3.5 w-3.5" />
+                                    Reject
+                                  </Button>
+                                </>
+                              )}
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-8 text-xs"
+                              >
+                                <FileText className="mr-1.5 h-3.5 w-3.5" />
+                                Details
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                
+                {filteredLeaveRequests.length === 0 && (
+                  <div className="text-center text-muted-foreground py-12 bg-slate-50/30 rounded-lg border border-dashed mt-4">
+                    No leave requests found
+                  </div>
+                )}
+              </>
+            )}
+            </div>
+          </TabsContent>
 
-          {/* Employees Tab */}
-          {activeTab === 1 && (
-            <Box>
+          {/* Employees Tab Content */}
+          <TabsContent value="employees" className="m-0 border-none p-0">
+            <div>
               {/* Stats Cards */}
-              <Grid container spacing={2} mb={3}>
-                <Grid item xs={12} sm={6}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="primary" fontWeight="bold">
-                        {employees.filter(e => e.status === 'Active').length}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Active Employees
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="info.main" fontWeight="bold">
-                        {new Set(employees.map(e => e.department)).size}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Departments
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-primary">
+                      {employees.filter(e => e.status === 'Active').length}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Active Employees
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {new Set(employees.map(e => e.department)).size}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Departments
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
 
               {/* Employees Grid */}
-              <Grid container spacing={2}>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredEmployees.map(employee => (
-                  <Grid item xs={12} md={6} lg={4} key={employee.id}>
-                    <Card variant="outlined">
-                      <CardContent>
-                        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                          <Box>
-                            <Typography variant="h6" fontWeight="bold">
-                              {employee.employeeName}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {employee.designation}
-                            </Typography>
-                          </Box>
-                          <Chip 
-                            label={employee.status} 
-                            size="small" 
-                            color={employee.status === 'Active' ? 'success' : 'default'}
-                            variant="outlined"
-                          />
-                        </Box>
-                        
-                        <Divider sx={{ my: 1 }} />
-                        
-                        <Stack spacing={1} mt={2}>
-                          <Typography variant="body2">
-                            <strong>Department:</strong> {employee.department}
-                          </Typography>
-                          <Typography variant="body2">
-                            <strong>Email:</strong> {employee.emailAddress}
-                          </Typography>
-                          <Typography variant="body2">
-                            <strong>Mobile:</strong> {employee.personalMobile}
-                          </Typography>
-                          <Typography variant="body2">
-                            <strong>Joined:</strong> {new Date(employee.joinedDate).toLocaleDateString()}
-                          </Typography>
-                        </Stack>
-                      </CardContent>
-                    </Card>
-                  </Grid>
+                  <Card key={employee.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="pt-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h6 className="font-bold text-base">
+                            {employee.employeeName}
+                          </h6>
+                          <p className="text-xs text-muted-foreground">
+                            {employee.designation}
+                          </p>
+                        </div>
+                        <Badge variant={employee.status === 'Active' ? 'default' : 'outline'} className={cn(
+                          employee.status === 'Active' ? "bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-none" : ""
+                        )}>
+                          {employee.status}
+                        </Badge>
+                      </div>
+                      
+                      <Separator className="my-3" />
+                      
+                      <div className="space-y-2 mt-4 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground font-medium">Department:</span>
+                          <span className="font-semibold text-right">{employee.department}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground font-medium">Email:</span>
+                          <span className="font-semibold text-right truncate max-w-[150px]">{employee.emailAddress}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground font-medium">Mobile:</span>
+                          <span className="font-semibold text-right">{employee.personalMobile}</span>
+                        </div>
+                        <div className="flex justify-between pt-1">
+                          <span className="text-muted-foreground font-medium">Joined:</span>
+                          <span className="font-semibold text-right">{new Date(employee.joinedDate).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
-              </Grid>
+              </div>
               
               {filteredEmployees.length === 0 && (
-                <Typography textAlign="center" color="text.secondary" py={4}>
+                <div className="text-center text-muted-foreground py-12 bg-slate-50/30 rounded-lg border border-dashed">
                   No employees found
-                </Typography>
+                </div>
               )}
-            </Box>
-          )}
+            </div>
+          </TabsContent>
 
-          {/* Performance Tab */}
-          {activeTab === 2 && (
-            <Box>
-              <Box display="flex" justifyContent="space-between" mb={3}>
-                <Typography variant="h6">Performance Records</Typography>
-                <Button variant="contained" startIcon={<Plus size={16} />}>Add Performance Review</Button>
-              </Box>
+          {/* Performance Tab Content */}
+          <TabsContent value="performance" className="m-0 border-none p-0">
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <h6 className="text-lg font-bold">Performance Records</h6>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Performance Review
+                </Button>
+              </div>
               
-              <Grid container spacing={2} mb={3}>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="primary" fontWeight="bold">
-                        {performanceRecords.length}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Reviews Conducted
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="success.main" fontWeight="bold">
-                        {performanceRecords.length > 0 ? (performanceRecords.reduce((sum, r) => sum + r.overallRating, 0) / performanceRecords.length).toFixed(1) : '0'}%
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Avg Rating
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-primary">
+                      {performanceRecords.length}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Reviews Conducted
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-green-600">
+                      {performanceRecords.length > 0 ? (performanceRecords.reduce((sum, r) => sum + r.overallRating, 0) / performanceRecords.length).toFixed(1) : '0'}%
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Avg Rating
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
 
-              <Paper variant="outlined" sx={{ borderRadius: 3 }}>
-                <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: 'slate.50' }}>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Employee</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Period</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Overall Rating</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Reviewer</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Actions</TableCell>
+              <div className="rounded-md border border-border overflow-hidden bg-background">
+                <Table>
+                  <TableHeader className="bg-slate-50/50">
+                    <TableRow>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Employee</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Period</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Overall Rating</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Reviewer</TableHead>
+                      <TableHead className="text-right font-bold text-xs uppercase tracking-wider">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPerformance.map(record => (
+                      <TableRow key={record.id} className="hover:bg-slate-50/50">
+                        <TableCell>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-medium text-sm">
+                              {record.employeeName}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              ID: {record.employeeId}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{record.period}</span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={cn(
+                            "font-bold text-[10px]",
+                            record.overallRating >= 80 ? "bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-none" : 
+                            record.overallRating >= 60 ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-100 shadow-none border-none" : 
+                            "bg-red-100 text-red-700 hover:bg-red-100 shadow-none border-none"
+                          )}>
+                            {record.overallRating}%
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{record.reviewer}</span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" className="h-8 text-xs">
+                            <FileText className="mr-1.5 h-3.5 w-3.5" />
+                            Details
+                          </Button>
+                        </TableCell>
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {filteredPerformance.map(record => (
-                        <TableRow key={record.id} hover>
-                          <TableCell>
-                            <Stack direction="column" spacing={0.5}>
-                              <Typography variant="body2" fontWeight="bold">
-                                {record.employeeName}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                ID: {record.employeeId}
-                              </Typography>
-                            </Stack>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">{record.period}</Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Chip 
-                              label={`${record.overallRating}%`} 
-                              size="small" 
-                              color={record.overallRating >= 80 ? 'success' : record.overallRating >= 60 ? 'warning' : 'error'}
-                              variant="filled"
-                              sx={{ fontWeight: 'bold' }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">{record.reviewer}</Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Button 
-                              variant="outlined" 
-                              size="small" 
-                              startIcon={<FileText size={16}/>}
-                            >
-                              View Details
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Paper>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
               
               {filteredPerformance.length === 0 && (
-                <Typography textAlign="center" color="text.secondary" py={4}>
+                <div className="text-center text-muted-foreground py-12 bg-slate-50/30 rounded-lg border border-dashed mt-4">
                   No performance records found
-                </Typography>
+                </div>
               )}
-            </Box>
-          )}
+            </div>
+          </TabsContent>
 
-          {/* Attendance Tab */}
-          {activeTab === 3 && (
-            <Box>
-              <Box display="flex" justifyContent="space-between" mb={3}>
-                <Typography variant="h6">Attendance Records</Typography>
-                <Button variant="contained" startIcon={<Plus size={16} />}>Mark Attendance</Button>
-              </Box>
+          {/* Attendance Tab Content */}
+          <TabsContent value="attendance" className="m-0 border-none p-0">
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <h6 className="text-lg font-bold">Attendance Records</h6>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Mark Attendance
+                </Button>
+              </div>
               
-              <Grid container spacing={2} mb={3}>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="primary" fontWeight="bold">
-                        {attendanceRecords.filter(a => a.status === 'Present').length}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Present Today
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="error.main" fontWeight="bold">
-                        {attendanceRecords.filter(a => a.status === 'Absent').length}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Absent Today
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="warning.main" fontWeight="bold">
-                        {attendanceRecords.filter(a => a.status === 'Late').length}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Late Arrivals
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="info.main" fontWeight="bold">
-                        {attendanceRecords.reduce((sum, a) => sum + (a.hoursWorked || 0), 0).toFixed(1)}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Total Hours
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-green-600">
+                      {attendanceRecords.filter(a => a.status === 'Present').length}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Present Today
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-red-600">
+                      {attendanceRecords.filter(a => a.status === 'Absent').length}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Absent Today
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-yellow-600">
+                      {attendanceRecords.filter(a => a.status === 'Late').length}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Late Arrivals
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {attendanceRecords.reduce((sum, a) => sum + (a.hoursWorked || 0), 0).toFixed(1)}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Total Hours
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
 
-              <Paper variant="outlined" sx={{ borderRadius: 3 }}>
-                <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: 'slate.50' }}>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Employee</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Date</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Status</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Hours</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Overtime</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Actions</TableCell>
+              <div className="rounded-md border border-border overflow-hidden bg-background">
+                <Table>
+                  <TableHeader className="bg-slate-50/50">
+                    <TableRow>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Employee</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Date</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Status</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Hours</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Overtime</TableHead>
+                      <TableHead className="text-right font-bold text-xs uppercase tracking-wider">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredAttendance.map(record => (
+                      <TableRow key={record.id} className="hover:bg-slate-50/50">
+                        <TableCell>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-medium text-sm">
+                              {record.employeeName}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              ID: {record.employeeId}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{new Date(record.date).toLocaleDateString()}</span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={cn(
+                            "font-bold text-[10px] uppercase",
+                            record.status === 'Present' ? "bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-none" : 
+                            record.status === 'Absent' ? "bg-red-100 text-red-700 hover:bg-red-100 shadow-none border-none" : 
+                            record.status === 'Late' ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-100 shadow-none border-none" : 
+                            "bg-slate-100 text-slate-700 hover:bg-slate-100 shadow-none border-none"
+                          )}>
+                            {record.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{record.hoursWorked ? `${record.hoursWorked}h` : '-'}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{record.overtimeHours ? `${record.overtimeHours}h` : '-'}</span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" className="h-8 text-xs">
+                            <FileText className="mr-1.5 h-3.5 w-3.5" />
+                            Details
+                          </Button>
+                        </TableCell>
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {filteredAttendance.map(record => (
-                        <TableRow key={record.id} hover>
-                          <TableCell>
-                            <Stack direction="column" spacing={0.5}>
-                              <Typography variant="body2" fontWeight="bold">
-                                {record.employeeName}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                ID: {record.employeeId}
-                              </Typography>
-                            </Stack>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">{new Date(record.date).toLocaleDateString()}</Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Chip 
-                              label={record.status} 
-                              size="small" 
-                              color={
-                                record.status === 'Present' ? 'success' : 
-                                record.status === 'Absent' ? 'error' : 
-                                record.status === 'Late' ? 'warning' : 'default'
-                              }
-                              variant="filled"
-                              sx={{ fontWeight: 'bold' }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {record.hoursWorked ? `${record.hoursWorked}h` : '-'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {record.overtimeHours ? `${record.overtimeHours}h` : '-'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Button 
-                              variant="outlined" 
-                              size="small" 
-                              startIcon={<FileText size={16}/>}
-                            >
-                              View Details
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Paper>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
               
               {filteredAttendance.length === 0 && (
-                <Typography textAlign="center" color="text.secondary" py={4}>
+                <div className="text-center text-muted-foreground py-12 bg-slate-50/30 rounded-lg border border-dashed mt-4">
                   No attendance records found
-                </Typography>
+                </div>
               )}
-            </Box>
-          )}
+            </div>
+          </TabsContent>
 
-          {/* Salary Tab */}
-          {activeTab === 4 && (
-            <Box>
-              <Box display="flex" justifyContent="space-between" mb={3}>
-                <Typography variant="h6">Salary Management</Typography>
-                <Button variant="contained" startIcon={<Plus size={16} />}>Process Salary</Button>
-              </Box>
+          {/* Salary Tab Content */}
+          <TabsContent value="salary" className="m-0 border-none p-0">
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <h6 className="text-lg font-bold">Salary Management</h6>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Process Salary
+                </Button>
+              </div>
               
-              <Grid container spacing={2} mb={3}>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="primary" fontWeight="bold">
-                        ₹{salaryRecords.reduce((sum, s) => sum + s.netSalary, 0).toLocaleString()}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Total Payroll
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="success.main" fontWeight="bold">
-                        {salaryRecords.filter(s => s.status === 'Paid').length}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Paid Salaries
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="warning.main" fontWeight="bold">
-                        {salaryRecords.filter(s => s.status === 'Pending').length}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Pending
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="error.main" fontWeight="bold">
-                        {salaryRecords.filter(s => s.status === 'Overdue').length}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Overdue
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-primary">
+                      ₹{salaryRecords.reduce((sum, s) => sum + s.netSalary, 0).toLocaleString()}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Total Payroll
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-green-600">
+                      {salaryRecords.filter(s => s.status === 'Paid').length}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Paid Salaries
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-yellow-600">
+                      {salaryRecords.filter(s => s.status === 'Pending').length}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Pending
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-red-600">
+                      {salaryRecords.filter(s => s.status === 'Overdue').length}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Overdue
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
 
-              <Paper variant="outlined" sx={{ borderRadius: 3 }}>
-                <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: 'slate.50' }}>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Employee</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Period</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Basic Salary</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Net Salary</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Status</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Payment Date</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {filteredSalaries.map(record => (
-                        <TableRow key={record.id} hover>
-                          <TableCell>
-                            <Stack direction="column" spacing={0.5}>
-                              <Typography variant="body2" fontWeight="bold">
-                                {record.employeeName}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                ID: {record.employeeId}
-                              </Typography>
-                            </Stack>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">{record.payPeriod}</Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">₹{record.basicSalary.toLocaleString()}</Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" fontWeight="bold">₹{record.netSalary.toLocaleString()}</Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Chip 
-                              label={record.status} 
-                              size="small" 
-                              color={
-                                record.status === 'Paid' ? 'success' : 
-                                record.status === 'Pending' ? 'warning' : 'error'
-                              }
-                              variant="filled"
-                              sx={{ fontWeight: 'bold' }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">{new Date(record.paymentDate).toLocaleDateString()}</Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Stack direction="row" spacing={1}>
-                              <Button 
-                                variant="outlined" 
-                                size="small" 
-                                startIcon={<FileText size={16}/>}
-                              >
-                                Payslip
+              <div className="rounded-md border border-border overflow-hidden bg-background">
+                <Table>
+                  <TableHeader className="bg-slate-50/50">
+                    <TableRow>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Employee</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Period</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Basic Salary</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Net Salary</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Status</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Payment Date</TableHead>
+                      <TableHead className="text-right font-bold text-xs uppercase tracking-wider">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSalaries.map(record => (
+                      <TableRow key={record.id} className="hover:bg-slate-50/50">
+                        <TableCell>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-medium text-sm">
+                              {record.employeeName}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              ID: {record.employeeId}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{record.payPeriod}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">₹{record.basicSalary.toLocaleString()}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm font-bold">₹{record.netSalary.toLocaleString()}</span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={cn(
+                            "font-bold text-[10px] uppercase",
+                            record.status === 'Paid' ? "bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-none" : 
+                            record.status === 'Pending' ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-100 shadow-none border-none" : 
+                            "bg-red-100 text-red-700 hover:bg-red-100 shadow-none border-none"
+                          )}>
+                            {record.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{new Date(record.paymentDate).toLocaleDateString()}</span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="sm" className="h-8 text-xs">
+                              <FileText className="mr-1.5 h-3.5 w-3.5" />
+                              Payslip
+                            </Button>
+                            {record.status === 'Pending' && (
+                              <Button variant="outline" size="sm" className="h-8 text-xs bg-green-50 text-green-700 border-green-200 hover:bg-green-100">
+                                Process
                               </Button>
-                              {record.status === 'Pending' && (
-                                <Button 
-                                  variant="contained" 
-                                  size="small" 
-                                  color="success"
-                                >
-                                  Process
-                                </Button>
-                              )}
-                            </Stack>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Paper>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
               
               {filteredSalaries.length === 0 && (
-                <Typography textAlign="center" color="text.secondary" py={4}>
+                <div className="text-center text-muted-foreground py-12 bg-slate-50/30 rounded-lg border border-dashed mt-4">
                   No salary records found
-                </Typography>
+                </div>
               )}
-            </Box>
-          )}
+            </div>
+          </TabsContent>
 
-          {/* Training Tab */}
-          {activeTab === 5 && (
-            <Box>
-              <Box display="flex" justifyContent="space-between" mb={3}>
-                <Typography variant="h6">Training Records</Typography>
-                <Button variant="contained" startIcon={<Plus size={16} />}>Schedule Training</Button>
-              </Box>
+          {/* Training Tab Content */}
+          <TabsContent value="training" className="m-0 border-none p-0">
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <h6 className="text-lg font-bold">Training Records</h6>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Schedule Training
+                </Button>
+              </div>
               
-              <Grid container spacing={2} mb={3}>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="primary" fontWeight="bold">
-                        {trainingRecords.length}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Total Trainings
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="success.main" fontWeight="bold">
-                        {trainingRecords.filter(t => t.status === 'Completed').length}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Completed
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="warning.main" fontWeight="bold">
-                        {trainingRecords.filter(t => t.status === 'In Progress').length}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        In Progress
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="info.main" fontWeight="bold">
-                        ₹{trainingRecords.reduce((sum, t) => sum + t.cost, 0).toLocaleString()}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Total Investment
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-primary">
+                      {trainingRecords.length}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Total Trainings
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-green-600">
+                      {trainingRecords.filter(t => t.status === 'Completed').length}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Completed
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-yellow-600">
+                      {trainingRecords.filter(t => t.status === 'In Progress').length}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      In Progress
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-blue-600">
+                      ₹{trainingRecords.reduce((sum, t) => sum + t.cost, 0).toLocaleString()}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Total Investment
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
 
-              <Paper variant="outlined" sx={{ borderRadius: 3 }}>
-                <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: 'slate.50' }}>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Employee</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Course</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Type</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Duration</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Status</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Provider</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Actions</TableCell>
+              <div className="rounded-md border border-border overflow-hidden bg-background">
+                <Table>
+                  <TableHeader className="bg-slate-50/50">
+                    <TableRow>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Employee</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Course</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Type</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Duration</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Status</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Provider</TableHead>
+                      <TableHead className="text-right font-bold text-xs uppercase tracking-wider">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTraining.map(record => (
+                      <TableRow key={record.id} className="hover:bg-slate-50/50">
+                        <TableCell>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-medium text-sm">
+                              {record.employeeName}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              ID: {record.employeeId}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{record.courseName}</span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-bold text-[10px] bg-slate-50">
+                            {record.trainingType}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{record.duration} hrs</span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={cn(
+                            "font-bold text-[10px] uppercase",
+                            record.status === 'Completed' ? "bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-none" : 
+                            record.status === 'In Progress' ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-100 shadow-none border-none" : 
+                            record.status === 'Scheduled' ? "bg-blue-100 text-blue-700 hover:bg-blue-100 shadow-none border-none" :
+                            "bg-slate-100 text-slate-700 hover:bg-slate-100 shadow-none border-none"
+                          )}>
+                            {record.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{record.provider}</span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" className="h-8 text-xs">
+                            <FileText className="mr-1.5 h-3.5 w-3.5" />
+                            Details
+                          </Button>
+                        </TableCell>
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {filteredTraining.map(record => (
-                        <TableRow key={record.id} hover>
-                          <TableCell>
-                            <Stack direction="column" spacing={0.5}>
-                              <Typography variant="body2" fontWeight="bold">
-                                {record.employeeName}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                ID: {record.employeeId}
-                              </Typography>
-                            </Stack>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">{record.courseName}</Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Chip 
-                              label={record.trainingType} 
-                              size="small" 
-                              variant="outlined"
-                              sx={{ fontWeight: 'bold' }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">{record.duration} hrs</Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Chip 
-                              label={record.status} 
-                              size="small" 
-                              color={
-                                record.status === 'Completed' ? 'success' : 
-                                record.status === 'In Progress' ? 'warning' : 
-                                record.status === 'Scheduled' ? 'info' : 'default'
-                              }
-                              variant="filled"
-                              sx={{ fontWeight: 'bold' }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">{record.provider}</Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Button 
-                              variant="outlined" 
-                              size="small" 
-                              startIcon={<FileText size={16}/>}
-                            >
-                              View Details
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Paper>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
               
               {filteredTraining.length === 0 && (
-                <Typography textAlign="center" color="text.secondary" py={4}>
+                <div className="text-center text-muted-foreground py-12 bg-slate-50/30 rounded-lg border border-dashed mt-4">
                   No training records found
-                </Typography>
+                </div>
               )}
-            </Box>
-          )}
+            </div>
+          </TabsContent>
 
-          {/* Evaluations Tab */}
-          {activeTab === 6 && (
-            <Box>
-              <Box display="flex" justifyContent="space-between" mb={3}>
-                <Typography variant="h6">Employee Evaluations</Typography>
-                <Button variant="contained" startIcon={<Plus size={16} />}>New Evaluation</Button>
-              </Box>
+          {/* Evaluations Tab Content */}
+          <TabsContent value="evaluations" className="m-0 border-none p-0">
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <h6 className="text-lg font-bold">Employee Evaluations</h6>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Evaluation
+                </Button>
+              </div>
               
-              <Grid container spacing={2} mb={3}>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="primary" fontWeight="bold">
-                        {evaluationForms.length}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Total Evaluations
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="success.main" fontWeight="bold">
-                        {evaluationForms.filter(e => e.status === 'Approved').length}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Approved
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="warning.main" fontWeight="bold">
-                        {evaluationForms.filter(e => e.status === 'Submitted').length}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Pending Review
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h4" color="info.main" fontWeight="bold">
-                        {evaluationForms.reduce((sum, e) => sum + e.overallRating, 0) / evaluationForms.length || 0}%
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Avg Rating
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-primary">
+                      {evaluationForms.length}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Total Evaluations
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-green-600">
+                      {evaluationForms.filter(e => e.status === 'Approved').length}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Approved
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-yellow-600">
+                      {evaluationForms.filter(e => e.status === 'Submitted').length}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Pending Review
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {evaluationForms.reduce((sum, e) => sum + e.overallRating, 0) / evaluationForms.length || 0}%
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Avg Rating
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
 
-              <Paper variant="outlined" sx={{ borderRadius: 3 }}>
-                <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: 'slate.50' }}>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Employee</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Evaluator</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Period</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Rating</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Status</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Next Review</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {filteredEvaluations.map(form => (
-                        <TableRow key={form.id} hover>
-                          <TableCell>
-                            <Stack direction="column" spacing={0.5}>
-                              <Typography variant="body2" fontWeight="bold">
-                                {form.employeeName}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                ID: {form.employeeId}
-                              </Typography>
-                            </Stack>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">{form.evaluator}</Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">{form.period}</Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Chip 
-                              label={`${form.overallRating}%`} 
-                              size="small" 
-                              color={form.overallRating >= 80 ? 'success' : form.overallRating >= 60 ? 'warning' : 'error'}
-                              variant="filled"
-                              sx={{ fontWeight: 'bold' }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Chip 
-                              label={form.status} 
-                              size="small" 
-                              color={
-                                form.status === 'Approved' ? 'success' : 
-                                form.status === 'Submitted' ? 'warning' : 'default'
-                              }
-                              variant="filled"
-                              sx={{ fontWeight: 'bold' }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">{new Date(form.nextReviewDate).toLocaleDateString()}</Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Stack direction="row" spacing={1}>
-                              <Button 
-                                variant="outlined" 
-                                size="small" 
-                                startIcon={<FileText size={16}/>}
-                              >
-                                View Form
+              <div className="rounded-md border border-border overflow-hidden bg-background">
+                <Table>
+                  <TableHeader className="bg-slate-50/50">
+                    <TableRow>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Employee</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Evaluator</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Period</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Rating</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Status</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider">Next Review</TableHead>
+                      <TableHead className="text-right font-bold text-xs uppercase tracking-wider">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredEvaluations.map(form => (
+                      <TableRow key={form.id} className="hover:bg-slate-50/50">
+                        <TableCell>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-medium text-sm">
+                              {form.employeeName}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              ID: {form.employeeId}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{form.evaluator}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{form.period}</span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={cn(
+                            "font-bold text-[10px]",
+                            form.overallRating >= 80 ? "bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-none" : 
+                            form.overallRating >= 60 ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-100 shadow-none border-none" : 
+                            "bg-red-100 text-red-700 hover:bg-red-100 shadow-none border-none"
+                          )}>
+                            {form.overallRating}%
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={cn(
+                            "font-bold text-[10px] uppercase",
+                            form.status === 'Approved' ? "bg-green-100 text-green-700 hover:bg-green-100 shadow-none border-none" : 
+                            form.status === 'Submitted' ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-100 shadow-none border-none" : 
+                            "bg-slate-100 text-slate-700 hover:bg-slate-100 shadow-none border-none"
+                          )}>
+                            {form.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{new Date(form.nextReviewDate).toLocaleDateString()}</span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="sm" className="h-8 text-xs">
+                              <FileText className="mr-1.5 h-3.5 w-3.5" />
+                              View Form
+                            </Button>
+                            {form.status === 'Submitted' && (
+                              <Button variant="outline" size="sm" className="h-8 text-xs bg-green-50 text-green-700 border-green-200 hover:bg-green-100">
+                                <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
+                                Approve
                               </Button>
-                              {form.status === 'Submitted' && (
-                                <Button 
-                                  variant="contained" 
-                                  size="small" 
-                                  color="success"
-                                  startIcon={<CheckCircle size={16}/>}
-                                >
-                                  Approve
-                                </Button>
-                              )}
-                            </Stack>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Paper>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
               
               {filteredEvaluations.length === 0 && (
-                <Typography textAlign="center" color="text.secondary" py={4}>
+                <div className="text-center text-muted-foreground py-12 bg-slate-50/30 rounded-lg border border-dashed mt-4">
                   No evaluation forms found
-                </Typography>
+                </div>
               )}
-            </Box>
-          )}
-        </Box>
-      </Paper>
+            </div>
+          </TabsContent>
+        </div>
+      </Tabs>
 
       {/* New Leave Request Modal */}
-      <Dialog open={isLeaveModalOpen} onClose={() => setIsLeaveModalOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <FileText className="text-primary" /> Submit Leave Request
-        </DialogTitle>
-        <DialogContent>
-          <Box component="form" onSubmit={handleSubmitLeaveRequest} sx={{ mt: 2 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  required
-                  fullWidth
-                  label="Employee ID"
-                  value={newLeaveRequest.employeeId}
-                  onChange={(e) => setNewLeaveRequest({...newLeaveRequest, employeeId: e.target.value})}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  required
-                  fullWidth
-                  label="Employee Name"
-                  value={newLeaveRequest.employeeName}
-                  onChange={(e) => setNewLeaveRequest({...newLeaveRequest, employeeName: e.target.value})}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Department"
-                  value={newLeaveRequest.department}
-                  onChange={(e) => setNewLeaveRequest({...newLeaveRequest, department: e.target.value})}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Designation"
-                  value={newLeaveRequest.designation}
-                  onChange={(e) => setNewLeaveRequest({...newLeaveRequest, designation: e.target.value})}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel>Leave Type</InputLabel>
-                  <Select
-                    value={newLeaveRequest.leaveType}
-                    label="Leave Type"
-                    onChange={(e) => setNewLeaveRequest({...newLeaveRequest, leaveType: e.target.value as any})}
-                  >
-                    <MenuItem value="Annual">Annual Leave</MenuItem>
-                    <MenuItem value="Sick">Sick Leave</MenuItem>
-                    <MenuItem value="Home">Home Leave</MenuItem>
-                    <MenuItem value="Maternity/Paternity/Parental">Maternity/Paternity/Parental Leave</MenuItem>
-                    <MenuItem value="Bereavement">Bereavement Leave</MenuItem>
-                    <MenuItem value="Other">Other Leave</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  required
-                  fullWidth
-                  label="Start Date"
-                  type="date"
-                  InputLabelProps={{ shrink: true }}
-                  value={newLeaveRequest.startDate}
-                  onChange={(e) => setNewLeaveRequest({...newLeaveRequest, startDate: e.target.value})}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  required
-                  fullWidth
-                  label="End Date"
-                  type="date"
-                  InputLabelProps={{ shrink: true }}
-                  value={newLeaveRequest.endDate}
-                  onChange={(e) => setNewLeaveRequest({...newLeaveRequest, endDate: e.target.value})}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  required
-                  fullWidth
-                  label="Reason for Leave"
-                  multiline
-                  rows={3}
-                  value={newLeaveRequest.reason}
-                  onChange={(e) => setNewLeaveRequest({...newLeaveRequest, reason: e.target.value})}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Work Handover To"
-                  placeholder="Person name and signature"
-                  value={newLeaveRequest.workHandoverTo}
-                  onChange={(e) => setNewLeaveRequest({...newLeaveRequest, workHandoverTo: e.target.value})}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Alternate Contact Number"
-                  value={newLeaveRequest.alternateContact}
-                  onChange={(e) => setNewLeaveRequest({...newLeaveRequest, alternateContact: e.target.value})}
-                />
-              </Grid>
-            </Grid>
-          </Box>
+      <Dialog open={isLeaveModalOpen} onOpenChange={setIsLeaveModalOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Submit Leave Request
+            </DialogTitle>
+            <DialogDescription>
+              Fill in the details below to request time off.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="leave-emp-id">Employee ID <span className="text-red-500">*</span></Label>
+              <Input
+                id="leave-emp-id"
+                required
+                value={newLeaveRequest.employeeId}
+                onChange={(e) => setNewLeaveRequest({...newLeaveRequest, employeeId: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="leave-emp-name">Employee Name <span className="text-red-500">*</span></Label>
+              <Input
+                id="leave-emp-name"
+                required
+                value={newLeaveRequest.employeeName}
+                onChange={(e) => setNewLeaveRequest({...newLeaveRequest, employeeName: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="leave-dept">Department</Label>
+              <Input
+                id="leave-dept"
+                value={newLeaveRequest.department}
+                onChange={(e) => setNewLeaveRequest({...newLeaveRequest, department: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="leave-desig">Designation</Label>
+              <Input
+                id="leave-desig"
+                value={newLeaveRequest.designation}
+                onChange={(e) => setNewLeaveRequest({...newLeaveRequest, designation: e.target.value})}
+              />
+            </div>
+            <div className="col-span-full space-y-2">
+              <Label htmlFor="leave-type">Leave Type</Label>
+              <Select
+                value={newLeaveRequest.leaveType}
+                onValueChange={(val) => setNewLeaveRequest({...newLeaveRequest, leaveType: val as any})}
+              >
+                <SelectTrigger id="leave-type">
+                  <SelectValue placeholder="Select Leave Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Annual">Annual Leave</SelectItem>
+                  <SelectItem value="Sick">Sick Leave</SelectItem>
+                  <SelectItem value="Home">Home Leave</SelectItem>
+                  <SelectItem value="Maternity/Paternity/Parental">Maternity/Paternity/Parental Leave</SelectItem>
+                  <SelectItem value="Bereavement">Bereavement Leave</SelectItem>
+                  <SelectItem value="Other">Other Leave</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="leave-start">Start Date <span className="text-red-500">*</span></Label>
+              <Input
+                id="leave-start"
+                type="date"
+                required
+                value={newLeaveRequest.startDate}
+                onChange={(e) => setNewLeaveRequest({...newLeaveRequest, startDate: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="leave-end">End Date <span className="text-red-500">*</span></Label>
+              <Input
+                id="leave-end"
+                type="date"
+                required
+                value={newLeaveRequest.endDate}
+                onChange={(e) => setNewLeaveRequest({...newLeaveRequest, endDate: e.target.value})}
+              />
+            </div>
+            <div className="col-span-full space-y-2">
+              <Label htmlFor="leave-reason">Reason for Leave <span className="text-red-500">*</span></Label>
+              <textarea
+                id="leave-reason"
+                title="Reason for Leave"
+                placeholder="Describe the reason for your leave request"
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                required
+                value={newLeaveRequest.reason}
+                onChange={(e) => setNewLeaveRequest({...newLeaveRequest, reason: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="leave-handover">Work Handover To</Label>
+              <Input
+                id="leave-handover"
+                placeholder="Person name"
+                value={newLeaveRequest.workHandoverTo}
+                onChange={(e) => setNewLeaveRequest({...newLeaveRequest, workHandoverTo: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="leave-contact">Alternate Contact Number</Label>
+              <Input
+                id="leave-contact"
+                value={newLeaveRequest.alternateContact}
+                onChange={(e) => setNewLeaveRequest({...newLeaveRequest, alternateContact: e.target.value})}
+              />
+            </div>
+          </div>
+          <DialogFooter className="bg-slate-50/50 p-4 -mx-6 -mb-6 rounded-b-lg">
+            <Button variant="outline" onClick={() => setIsLeaveModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSubmitLeaveRequest}>Submit Request</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ p: 3, bgcolor: '#f8fafc' }}>
-          <Button onClick={() => setIsLeaveModalOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSubmitLeaveRequest}>Submit Request</Button>
-        </DialogActions>
       </Dialog>
 
       {/* New Employee Modal */}
-      <Paper 
-        sx={{ 
-          position: 'fixed', 
-          bottom: 20, 
-          right: 20, 
-          width: 500, 
-          maxHeight: '80vh', 
-          overflowY: 'auto',
-          zIndex: 1000,
-          display: isJoiningModalOpen ? 'block' : 'none',
-          borderRadius: 2,
-          boxShadow: 3
-        }}
-      >
-        <Box p={2}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6" fontWeight="bold">New Employee</Typography>
-            <IconButton onClick={() => setIsJoiningModalOpen(false)}>×</IconButton>
-          </Box>
+      <Dialog open={isJoiningModalOpen} onOpenChange={setIsJoiningModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>New Employee Onboarding</DialogTitle>
+          </DialogHeader>
           
-          <Stepper activeStep={joiningStep} alternativeLabel sx={{ mb: 4 }}>
-            {joiningSteps.map((label) => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
+          <div className="flex justify-between mb-8 overflow-x-auto pb-2 px-1">
+            {joiningSteps.map((label, index) => (
+              <div key={label} className="flex flex-col items-center gap-1.5 min-w-[80px]">
+                <div className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors",
+                  joiningStep === index ? "bg-primary text-primary-foreground" : 
+                  joiningStep > index ? "bg-green-500 text-white" : "bg-slate-200 text-slate-500"
+                )}>
+                  {joiningStep > index ? "✓" : index + 1}
+                </div>
+                <span className={cn(
+                  "text-[10px] text-center font-medium max-w-[70px] leading-tight",
+                  joiningStep === index ? "text-primary" : "text-slate-500"
+                )}>
+                  {label}
+                </span>
+              </div>
             ))}
-          </Stepper>
+          </div>
 
-          <Divider sx={{ mb: 3 }} />
+          <Separator className="mb-6" />
 
-          {/* Step Content */}
-          <Box sx={{ minHeight: 400 }}>
+          <div className="min-h-[400px]">
             {renderStepContent()}
-          </Box>
+          </div>
 
-          <Divider sx={{ mt: 3, mb: 2 }} />
+          <Separator className="my-6" />
 
-          {/* Navigation Buttons */}
-          <Box display="flex" justifyContent="space-between">
+          <div className="flex justify-between">
             <Button
+              variant="outline"
               onClick={handleBackJoiningStep}
               disabled={joiningStep === 0}
             >
@@ -2433,24 +2398,23 @@ const StaffManagementModule: React.FC = () => {
             
             {joiningStep === joiningSteps.length - 1 ? (
               <Button
-                variant="contained"
                 onClick={handleSubmitEmployee}
-                endIcon={<Save />}
+                className="bg-green-600 hover:bg-green-700"
               >
+                <Save className="mr-2 h-4 w-4" />
                 Submit Form
               </Button>
             ) : (
               <Button
-                variant="contained"
                 onClick={handleNextJoiningStep}
               >
                 Next →
               </Button>
             )}
-          </Box>
-        </Box>
-      </Paper>
-    </Box>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 

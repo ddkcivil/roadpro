@@ -31,7 +31,6 @@ import { Badge } from '~/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { cn } from '~/lib/utils';
 import { Textarea } from '~/components/ui/textarea';
-import { Autocomplete } from '~/components/ui/autocomplete'; // Assuming a custom autocomplete, or using a basic input
 
 // NOTE: This is a refactored version of the BOQModule component.
 // The original logic has been temporarily removed to facilitate the UI migration.

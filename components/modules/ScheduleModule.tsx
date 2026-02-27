@@ -385,27 +385,37 @@ const ScheduleModule: React.FC<Props> = ({ project, userRole, onProjectUpdate })
                 <div className="flex gap-1 bg-gray-100 rounded-md p-1"> {/* ToggleButtonGroup */}
                     <button 
                         className={cn("px-4 py-1 rounded-md", viewMode === 'GANTT' ? 'bg-blue-500 text-white' : 'hover:bg-gray-200')}
-                        onClick={() => setViewMode('GANTT')}>
+                        onClick={() => setViewMode('GANTT')}
+                        title="Gantt Chart View"
+                        aria-label="Gantt Chart View">
                         <BarChartHorizontal size={18} />
                     </button>
                     <button 
                         className={cn("px-4 py-1 rounded-md", viewMode === 'LIST' ? 'bg-blue-500 text-white' : 'hover:bg-gray-200')}
-                        onClick={() => setViewMode('LIST')}>
+                        onClick={() => setViewMode('LIST')}
+                        title="List View"
+                        aria-label="List View">
                         <LayoutList size={18} />
                     </button>
                     <button 
                         className={cn("px-4 py-1 rounded-md", viewMode === 'RESOURCES' ? 'bg-blue-500 text-white' : 'hover:bg-gray-200')}
-                        onClick={() => setViewMode('RESOURCES')}>
+                        onClick={() => setViewMode('RESOURCES')}
+                        title="Resource Allocation View"
+                        aria-label="Resource Allocation View">
                         <FileCheck size={18} />
                     </button>
                     <button 
                         className={cn("px-4 py-1 rounded-md", viewMode === 'CAPACITY' ? 'bg-blue-500 text-white' : 'hover:bg-gray-200')}
-                        onClick={() => setViewMode('CAPACITY')}>
+                        onClick={() => setViewMode('CAPACITY')}
+                        title="Capacity Planning View"
+                        aria-label="Capacity Planning View">
                         <Layers size={18} />
                     </button>
                     <button 
                         className={cn("px-4 py-1 rounded-md", viewMode === 'MILESTONES' ? 'bg-blue-500 text-white' : 'hover:bg-gray-200')}
-                        onClick={() => setViewMode('MILESTONES')}>
+                        onClick={() => setViewMode('MILESTONES')}
+                        title="Milestones View"
+                        aria-label="Milestones View">
                         <Flag size={18} />
                     </button>
                 </div>
@@ -413,7 +423,15 @@ const ScheduleModule: React.FC<Props> = ({ project, userRole, onProjectUpdate })
                    <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button size="sm" variant="outline" onClick={() => setZoomLevel('MONTH')} className={zoomLevel === 'MONTH' ? 'bg-blue-500 text-white' : ''}><ZoomOut size={16}/></Button>
+                            <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => setZoomLevel('MONTH')} 
+                                className={zoomLevel === 'MONTH' ? 'bg-blue-500 text-white' : ''}
+                                title="Month View"
+                                aria-label="Month View">
+                                <ZoomOut size={16}/>
+                            </Button>
                         </TooltipTrigger>
                         <TooltipContent>Month View</TooltipContent>
                    </Tooltip>
@@ -421,7 +439,15 @@ const ScheduleModule: React.FC<Props> = ({ project, userRole, onProjectUpdate })
                    <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button size="sm" variant="outline" onClick={() => setZoomLevel('WEEK')} className={zoomLevel === 'WEEK' ? 'bg-blue-500 text-white' : ''}><Maximize size={16}/></Button>
+                            <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => setZoomLevel('WEEK')} 
+                                className={zoomLevel === 'WEEK' ? 'bg-blue-500 text-white' : ''}
+                                title="Week View"
+                                aria-label="Week View">
+                                <Maximize size={16}/>
+                            </Button>
                         </TooltipTrigger>
                         <TooltipContent>Week View</TooltipContent>
                     </Tooltip>
@@ -429,7 +455,15 @@ const ScheduleModule: React.FC<Props> = ({ project, userRole, onProjectUpdate })
                    <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button size="sm" variant="outline" onClick={() => setZoomLevel('DAY')} className={zoomLevel === 'DAY' ? 'bg-blue-500 text-white' : ''}><ZoomIn size={16}/></Button>
+                            <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => setZoomLevel('DAY')} 
+                                className={zoomLevel === 'DAY' ? 'bg-blue-500 text-white' : ''}
+                                title="Day View"
+                                aria-label="Day View">
+                                <ZoomIn size={16}/>
+                            </Button>
                         </TooltipTrigger>
                         <TooltipContent>Day View</TooltipContent>
                     </Tooltip>
@@ -493,12 +527,11 @@ const ScheduleModule: React.FC<Props> = ({ project, userRole, onProjectUpdate })
                                     </td>
                                     <td className="py-2 px-4 w-40"> {/* TableCell */}
                                         <div className="flex items-center gap-1.5"> {/* Box */}
-                                            <div className="flex-1 h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                                                <div 
-                                                    className={cn("h-full", task.progress === 100 ? 'bg-green-500' : 'bg-primary')}
-                                                    style={{ width: `${task.progress}%` }}
-                                                ></div>
-                                            </div>
+                                            <Progress 
+                                                value={task.progress} 
+                                                className="h-1.5 flex-1" 
+                                                indicatorClassName={task.progress === 100 ? 'bg-green-500' : ''}
+                                            />
                                             <span className="text-xs font-bold">{task.progress}%</span> {/* Typography */}
                                         </div>
                                     </td>
@@ -514,10 +547,24 @@ const ScheduleModule: React.FC<Props> = ({ project, userRole, onProjectUpdate })
                                         </Badge>
                                     </td>
                                     <td className="py-2 px-4 text-right"> {/* TableCell */}
-                                        <Button variant="ghost" size="icon" className="p-1 mr-1" onClick={() => handleOpenModal(task)}> {/* IconButton */}
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="p-1 mr-1" 
+                                            onClick={() => handleOpenModal(task)}
+                                            title="Edit Task"
+                                            aria-label="Edit Task"
+                                        > {/* IconButton */}
                                             <Edit2 size={16}/>
                                         </Button>
-                                        <Button variant="ghost" size="icon" className="p-1 text-red-500" onClick={() => handleDeleteTask(task.id)}> {/* IconButton */}
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="p-1 text-red-500" 
+                                            onClick={() => handleDeleteTask(task.id)}
+                                            title="Delete Task"
+                                            aria-label="Delete Task"
+                                        > {/* IconButton */}
                                             <Trash2 size={16}/>
                                         </Button>
                                     </td>
@@ -810,7 +857,12 @@ const ScheduleModule: React.FC<Props> = ({ project, userRole, onProjectUpdate })
                                                         />
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Button variant="ghost" size="icon" onClick={() => {
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="icon" 
+                                                            title={milestone.status === 'Completed' ? "Mark as In Progress" : "Mark as Completed"}
+                                                            aria-label={milestone.status === 'Completed' ? "Mark as In Progress" : "Mark as Completed"}
+                                                            onClick={() => {
                                                             // Edit milestone functionality
                                                             const updatedStatus = milestone.status === 'Completed' ? 'In Progress' : 'Completed';
                                                             const updatedMilestones = (project.milestones || []).map(m =>
@@ -825,7 +877,13 @@ const ScheduleModule: React.FC<Props> = ({ project, userRole, onProjectUpdate })
                                                         }}>
                                                             {milestone.status === 'Completed' ? <CheckCircle size={16} className="text-emerald-500" /> : <Edit2 size={16} />}
                                                         </Button>
-                                                        <Button variant="ghost" size="icon" className="text-red-500" onClick={() => {
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="icon" 
+                                                            className="text-red-500" 
+                                                            title="Delete Milestone"
+                                                            aria-label="Delete Milestone"
+                                                            onClick={() => {
                                                             // Delete milestone functionality
                                                             if (window.confirm('Are you sure you want to delete this milestone?')) {
                                                                 const updatedMilestones = (project.milestones || []).filter(m => m.id !== milestone.id);
@@ -1005,7 +1063,13 @@ const ScheduleModule: React.FC<Props> = ({ project, userRole, onProjectUpdate })
                                 <div key={index} className="border p-2 rounded-lg"> {/* Paper */}
                                     <div className="flex justify-between items-center mb-1"> {/* Box */}
                                         <h5 className="text-base font-bold">Dependency {index + 1}</h5> {/* Typography */}
-                                        <Button variant="ghost" size="icon" className="text-red-500" onClick={() => { {/* IconButton */}
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="text-red-500" 
+                                            title="Delete Dependency"
+                                            aria-label="Delete Dependency"
+                                            onClick={() => { {/* IconButton */}
                                             const updatedDeps = [...(editingTask.dependencies || [])];
                                             updatedDeps.splice(index, 1);
                                             setEditingTask({...editingTask, dependencies: updatedDeps});
@@ -1112,14 +1176,14 @@ const ScheduleModule: React.FC<Props> = ({ project, userRole, onProjectUpdate })
                         
                         <Label htmlFor="linked-boq-item">Linked BOQ Item</Label> {/* FormControl, InputLabel */}
                         <Select 
-                            value={editingTask.boqItemId || ''}
-                            onValueChange={(value) => setEditingTask({...editingTask, boqItemId: value as string})}
+                            value={editingTask.boqItemId || 'none'}
+                            onValueChange={(value) => setEditingTask({...editingTask, boqItemId: value === "none" ? "" : value})}
                         > {/* Select */}
                             <SelectTrigger id="linked-boq-item">
                                 <SelectValue placeholder="No BOQ Item" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value=""><em>No BOQ Item</em></SelectItem> {/* MenuItem */}
+                                <SelectItem value="none"><em>No BOQ Item</em></SelectItem> {/* MenuItem */}
                                 {project.boq.map(item => (
                                     <SelectItem key={item.id} value={item.id}>
                                         <div> {/* Box */}
@@ -1164,7 +1228,13 @@ const ScheduleModule: React.FC<Props> = ({ project, userRole, onProjectUpdate })
                                                             Quantity: {alloc.allocatedQuantity} {resource?.unit} | Period: {alloc.startDate} to {alloc.endDate}
                                                         </p>
                                                     </div>
-                                                    <Button variant="ghost" size="icon" className="text-red-500" onClick={() => { {/* IconButton */}
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon" 
+                                                        className="text-red-500" 
+                                                        title="Remove Resource Allocation"
+                                                        aria-label="Remove Resource Allocation"
+                                                        onClick={() => { {/* IconButton */}
                                                             const updatedAllocations = (project.resourceAllocations || []).filter(a => a.id !== alloc.id);
                                                             onProjectUpdate({ 
                                                                 ...project, 

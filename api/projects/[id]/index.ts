@@ -8,7 +8,8 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
   const { id } = req.query;
 
   if (!id || typeof id !== 'string') {
-    return res.status(400).json({ error: 'Project ID is required' });
+    res.status(400).json({ error: 'Project ID is required' });
+    return;
   }
 
   if (req.method === 'GET') {
@@ -17,7 +18,8 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       const project = await Project.findOne({ id: id as string });
 
       if (!project) {
-        return res.status(404).json({ error: 'Project not found' });
+        res.status(404).json({ error: 'Project not found' });
+        return;
       }
 
       res.status(200).json(project);
@@ -31,7 +33,8 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       const projectData = { ...req.body };
       
       if (!projectData.name || !projectData.client) {
-        return res.status(400).json({ error: 'Project name and client are required for updates' });
+        res.status(400).json({ error: 'Project name and client are required for updates' });
+        return;
       }
       
       // MongoDB does not allow updating the immutable _id field
@@ -45,7 +48,8 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       );
 
       if (!updatedProject) {
-        return res.status(404).json({ error: 'Project not found' });
+        res.status(404).json({ error: 'Project not found' });
+        return;
       }
       
       res.status(200).json(updatedProject);
@@ -66,14 +70,17 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       
       if (!deletedProject) {
         console.log(`[DEBUG] Project not found for deletion: ${id}`);
-        return res.status(404).json({ error: 'Project not found' });
+        res.status(404).json({ error: 'Project not found' });
+        return;
       }
       
       console.log(`[DEBUG] Successfully deleted project: ${id}`);
-      return res.status(204).end(); // Use .end() for 204 No Content
+      res.status(204).end(); // Use .end() for 204 No Content
+      return;
     } catch (error: any) {
       console.error('Failed to delete project. Error:', error);
-      return res.status(500).json({ error: 'Failed to delete project', details: error.message });
+      res.status(500).json({ error: 'Failed to delete project', details: error.message });
+      return;
     }
   } else {
     res.status(405).json({ error: 'Method Not Allowed' });

@@ -49,7 +49,7 @@ const DeterminateProgress = ({ value, color, size = 50, thickness = 4 }: { value
   const offset = circumference - (value / 100) * circumference;
 
   return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+    <div className="relative flex items-center justify-center w-fit h-fit">
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
         <circle
           className="text-slate-200"
@@ -61,7 +61,7 @@ const DeterminateProgress = ({ value, color, size = 50, thickness = 4 }: { value
           cy={size / 2}
         />
         <circle
-          stroke="currentColor"
+          stroke={color}
           strokeWidth={thickness}
           strokeDasharray={circumference}
           strokeDashoffset={offset}
@@ -70,7 +70,7 @@ const DeterminateProgress = ({ value, color, size = 50, thickness = 4 }: { value
           r={r}
           cx={size / 2}
           cy={size / 2}
-          style={{ color: color, transition: 'stroke-dashoffset 0.35s' }}
+          className="transition-[stroke-dashoffset] duration-[350ms]"
         />
       </svg>
     </div>
