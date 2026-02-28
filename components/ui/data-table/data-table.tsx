@@ -30,10 +30,10 @@ import {
 } from "../dropdown-menu";
 import { SlidersHorizontal, Search } from "lucide-react";
 import { FixedSizeList } from 'react-window';
-import AutoSizer from 'react-virtualized-auto-sizer';
+import AutoSizerRaw from 'react-virtualized-auto-sizer';
 
 const List = FixedSizeList;
-const TypedAutoSizer = AutoSizer as any;
+const TypedAutoSizer = AutoSizerRaw as any;
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
