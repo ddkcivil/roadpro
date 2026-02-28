@@ -25,7 +25,7 @@ import {
   Clock, CheckCircle, TrendingUp, DollarSign, 
   Sun, Wind, Droplets,
   Layers, Sparkles, FileText,
-  FileDown, Settings, GripVertical, ChevronDown, ChevronUp, ShieldCheck, AlertTriangle, Info, Check
+  FileDown, Settings, GripVertical, ChevronDown, ChevronUp, ShieldCheck, AlertTriangle, Info, Check, ClipboardCheck
 } from 'lucide-react';
 
 import { Button } from '~/components/ui/button';
