@@ -121,6 +121,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     
     toastFn(notification.title, {
       description: notification.message,
+      duration: notification.priority === 'critical' ? 10000 : 
+                notification.priority === 'high' ? 7000 : 5000,
     });
 
     // Browser Push Notification fallback

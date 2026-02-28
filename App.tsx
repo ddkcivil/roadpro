@@ -402,7 +402,17 @@ const App: React.FC = () => {
               userRole={userRole}
             />
           </div>
-          <Toaster position="bottom-right" richColors />
+          <Toaster 
+            position="bottom-right" 
+            richColors 
+            closeButton
+            theme={themeMode}
+            toastOptions={{
+              className: 'rounded-2xl border-border/50 glass shadow-2xl',
+              descriptionClassName: 'text-xs opacity-70 font-medium',
+              titleClassName: 'font-black tracking-tight',
+            }}
+          />
         </TooltipProvider>
       </NotificationProvider>
     </I18nProvider>
