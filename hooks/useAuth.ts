@@ -5,10 +5,6 @@ import { AuditService } from '../services/analytics/auditService';
 import { encryptionUtils } from '../utils/data/encryptionUtils';
 
 export const useAuth = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('roadmaster-authenticated') === 'true';
-  });
-  
   const [userRole, setUserRole] = useState<UserRole>(() => {
     return (localStorage.getItem('roadmaster-user-role') as UserRole) || UserRole.SITE_ENGINEER;
   });
@@ -24,19 +20,34 @@ export const useAuth = () => {
   const [token, setToken] = useState(() => {
     const encryptedToken = localStorage.getItem('roadmaster-token');
     if (!encryptedToken) return '';
-    return encryptionUtils.decrypt<string>(encryptedToken) || '';
+    try {
+      return encryptionUtils.decrypt<string>(encryptedToken) || '';
+    } catch (e) {
+      return '';
+    }
+  });
+
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const auth = localStorage.getItem('roadmaster-authenticated') === 'true';
+    const hasToken = !!localStorage.getItem('roadmaster-token');
+    return auth && hasToken;
   });
 
   // Debug effect to track authentication state changes
   useEffect(() => {
-    console.log('Authentication state changed:', {
+    console.log('Authentication state checked:', {
       isAuthenticated,
       userRole,
       userName,
       currentUserId,
       hasToken: !!token
     });
-  }, [isAuthenticated, userRole, userName, currentUserId, token]);
+
+    if (localStorage.getItem('roadmaster-authenticated') === 'true' && !token) {
+      console.warn('Inconsistent auth state detected: Authenticated but no token. Resetting.');
+      logout();
+    }
+  }, [isAuthenticated, token, userRole, userName, currentUserId]);
 
   const currentUser = useMemo(() => {
     // Get users from localStorage, fallback to empty array
