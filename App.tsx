@@ -596,6 +596,10 @@ const App: React.FC = () => {
           return updatedProjects;
         });
       });
+
+      toast.success(isUpdate ? "Project Updated" : "Project Created", {
+        description: `${completeProjectData.name} has been synchronized with the cloud.`,
+      });
     } catch (error: any) {
       console.error('[ERROR] Failed to save project to backend:', error);
       
@@ -612,6 +616,9 @@ const App: React.FC = () => {
     startTransition(() => {
       setAppSettings(newSettings);
       localStorage.setItem('roadmaster-settings', JSON.stringify(newSettings));
+    });
+    toast.success("Settings Saved", {
+      description: "System-wide configuration has been updated successfully.",
     });
   };
 
