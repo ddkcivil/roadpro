@@ -52,33 +52,86 @@ interface MapModuleProps {
 // KML Layer Component
 /**
  * Component to render and sync KML data from XML content using leaflet-omnivore.
- * Since leaflet-omnivore is not a React component, we use a custom useEffect
- * to handle the direct leaflet layer manipulation on the map instance.
+ * Now includes 500m interval chainage markers with KML filename prefixing.
  */
-const KMLDataLayer: React.FC<{ kmlData: KMLData[] }> = ({ kmlData }) => {
+const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
   const map = useMap();
+  const [chainageMarkers, setChainageMarkers] = useState<L.Layer[]>([]);
 
   useEffect(() => {
-    const layers: L.Layer[] = [];
-    
-    kmlData.forEach(kml => {
-      if (kml.visible && kml.content) {
-        try {
-          // leaflet-omnivore parses KML directly into a leaflet layer
-          const kmlLayer = omnivore.kml.parse(kml.content);
-          kmlLayer.addTo(map);
-          layers.push(kmlLayer);
-        } catch (error) {
-          console.error(`Failed to parse KML: ${kml.name}`, error);
-        }
-      }
-    });
+    if (!kml.visible || !kml.content) return;
 
-    // Clean up all layers when component unmounts or data changes
+    let kmlLayer: L.Layer;
+    const markers: L.Layer[] = [];
+
+    try {
+      // 1. Parse KML directly into a leaflet layer
+      kmlLayer = omnivore.kml.parse(kml.content);
+      kmlLayer.addTo(map);
+
+      // 2. Extract lines and calculate chainage markers
+      kmlLayer.eachLayer((layer: any) => {
+        if (layer instanceof L.Polyline) {
+          const coords = layer.getLatLngs() as L.LatLng[];
+          if (coords.length < 2) return;
+
+          let totalDist = 0;
+          let lastMarkerDist = 0;
+          const interval = 500; // 500 meters
+
+          // Add start marker (0+000)
+          const startIcon = L.divIcon({
+            className: 'bg-black/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded border border-white whitespace-nowrap shadow-md',
+            html: `${kml.name.split('.')[0]}: 0+000`,
+            iconAnchor: [0, 0]
+          });
+          markers.push(L.marker(coords[0], { icon: startIcon }).addTo(map));
+
+          for (let i = 0; i < coords.length - 1; i++) {
+            const p1 = coords[i];
+            const p2 = coords[i + 1];
+            const segmentDist = p1.distanceTo(p2);
+            
+            totalDist += segmentDist;
+
+            // Check if we passed a 500m threshold
+            while (totalDist >= lastMarkerDist + interval) {
+              const markerDist = lastMarkerDist + interval;
+              const fraction = (markerDist - (totalDist - segmentDist)) / segmentDist;
+              
+              // Interpolate position
+              const lat = p1.lat + (p2.lat - p1.lat) * fraction;
+              const lng = p1.lng + (p2.lng - p1.lng) * fraction;
+              
+              const chainageKm = Math.floor(markerDist / 1000);
+              const chainageM = Math.round(markerDist % 1000);
+              const label = `${kml.name.split('.')[0]}: ${chainageKm}+${chainageM.toString().padStart(3, '0')}`;
+
+              const icon = L.divIcon({
+                className: 'bg-white/90 text-black text-[9px] font-bold px-1.5 py-0.5 rounded border border-black/20 shadow-sm whitespace-nowrap',
+                html: label,
+                iconAnchor: [0, 0]
+              });
+
+              markers.push(L.marker([lat, lng], { icon: icon }).addTo(map));
+              lastMarkerDist = markerDist;
+            }
+          }
+        }
+      });
+
+      setChainageMarkers(markers);
+
+    } catch (error) {
+      console.error(`Failed to parse KML: ${kml.name}`, error);
+    }
+
+    // Clean up when component unmounts or data changes
     return () => {
-      layers.forEach(layer => map.removeLayer(layer));
+      if (kmlLayer) map.removeLayer(kmlLayer);
+      markers.forEach(m => map.removeLayer(m));
     };
-  }, [kmlData, map]);
+  }, [kml, map]);
 
   return null;
 };
@@ -250,6 +303,32 @@ interface LayerVisibility {
   linearWorks: boolean;
   kml: boolean;
 }
+
+// Helper Component for Linear Monitoring Info
+const LinearReferenceView: React.FC<{ info: { lineName: string, chainage: string, offset: number } | null }> = ({ info }) => {
+  if (!info) return null;
+  return (
+    <div className="mt-2 pt-2 border-t border-indigo-100">
+      <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest mb-1 flex items-center gap-1">
+        <Route size={10} /> Linear Monitoring (GIS)
+      </p>
+      <div className="bg-indigo-50/50 rounded p-1.5 border border-indigo-100/50">
+        <p className="text-[10px] flex justify-between">
+          <span className="text-indigo-400 font-bold">ALIGN:</span>
+          <span className="font-black text-indigo-900 truncate max-w-[100px]">{info.lineName}</span>
+        </p>
+        <p className="text-[10px] flex justify-between">
+          <span className="text-indigo-400 font-bold">CHAIN:</span>
+          <span className="font-black text-indigo-900">{info.chainage}</span>
+        </p>
+        <p className="text-[10px] flex justify-between">
+          <span className="text-indigo-400 font-bold">OFFSET:</span>
+          <span className="font-black text-indigo-900">{info.offset}m</span>
+        </p>
+      </div>
+    </div>
+  );
+};
 
 const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, settings }) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -443,6 +522,66 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
     });
   };
 
+  // Extract active KML lines for linear referencing monitoring
+  const activeKMLLines = useMemo(() => {
+    if (!layerVisibility.kml || !project.kmlData) return [];
+    
+    const lines: { name: string, coords: L.LatLng[] }[] = [];
+    const parser = new DOMParser();
+
+    project.kmlData.forEach(kml => {
+      if (!kml.visible || !kml.content) return;
+      
+      const xml = parser.parseFromString(kml.content, 'text/xml');
+      const coordinates = xml.getElementsByTagName('coordinates');
+      
+      for (let i = 0; i < coordinates.length; i++) {
+        const coordStr = coordinates[i].textContent || '';
+        const points = coordStr.trim().split(/\s+/).map(p => {
+          const [lng, lat] = p.split(',').map(Number);
+          return L.latLng(lat, lng);
+        }).filter(p => !isNaN(p.lat) && !isNaN(p.lng));
+        
+        if (points.length >= 2) {
+          lines.push({ name: kml.name.split('.')[0], coords: points });
+        }
+      }
+    });
+    
+    return lines;
+  }, [project.kmlData, layerVisibility.kml]);
+
+  // Helper to find nearest chainage on any active KML line
+  const getNearestChainage = useCallback((point: L.LatLng) => {
+    let nearestInfo = null;
+    let minDistance = Infinity;
+
+    activeKMLLines.forEach(line => {
+      let cumulativeDist = 0;
+      for (let i = 0; i < line.coords.length - 1; i++) {
+        const p1 = line.coords[i];
+        const p2 = line.coords[i+1];
+        
+        // Find nearest point on this segment
+        // Simple approximation: check distance to p1
+        const d = point.distanceTo(p1);
+        if (d < minDistance && d < 100) { // Only if within 100m
+          minDistance = d;
+          const chainageKm = Math.floor(cumulativeDist / 1000);
+          const chainageM = Math.round(cumulativeDist % 1000);
+          nearestInfo = {
+            lineName: line.name,
+            chainage: `${chainageKm}+${chainageM.toString().padStart(3, '0')}`,
+            offset: Math.round(d)
+          };
+        }
+        cumulativeDist += p1.distanceTo(p2);
+      }
+    });
+
+    return nearestInfo;
+  }, [activeKMLLines]);
+
   // Structure markers
   const structureMarkers = useMemo(() => {
     if (!project.structures || !layerVisibility.structures) return [];
@@ -450,6 +589,8 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
       if (!structure.coordinates) return null;
       const [lat, lng] = structure.coordinates.split(',').map(Number);
       if (isNaN(lat) || isNaN(lng)) return null;
+      
+      const nearestKML = getNearestChainage(L.latLng(lat, lng));
       
       return (
         <Marker
@@ -476,6 +617,7 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                   </Badge>
                 </p>
               </div>
+              <LinearReferenceView info={nearestKML} />
             </div>
           </Popup>
         </Marker>
@@ -490,6 +632,8 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
       const location = vehicle.gpsLocation || vehicle.lastKnownLocation;
       if (!location) return null;
       
+      const nearestKML = getNearestChainage(L.latLng(location.latitude, location.longitude));
+
       return (
         <Marker
           key={`vehicle-${vehicle.id}`}
@@ -524,6 +668,7 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                   </p>
                 )}
               </div>
+              <LinearReferenceView info={nearestKML} />
             </div>
           </Popup>
         </Marker>
@@ -535,6 +680,8 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
   const staffMarkers = useMemo(() => {
     if (!project.staffLocations || !layerVisibility.staff) return [];
     return project.staffLocations.map((staff: StaffLocation) => {
+      const nearestKML = getNearestChainage(L.latLng(staff.latitude, staff.longitude));
+      
       return (
         <Marker
           key={`staff-${staff.id}`}
@@ -551,6 +698,7 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
               <p className="text-[10px] text-gray-400 mt-2">
                 Updated: {new Date(staff.timestamp).toLocaleTimeString()}
               </p>
+              <LinearReferenceView info={nearestKML} />
             </div>
           </Popup>
         </Marker>
@@ -622,6 +770,8 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
       const lat = parseFloat(coords[1]);
       const lng = parseFloat(coords[2]);
       
+      const nearestKML = getNearestChainage(L.latLng(lat, lng));
+
       return (
         <Marker
           key={`photo-${photo.id}`}
@@ -640,6 +790,7 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                 <span>{photo.category}</span>
                 <span>{new Date(photo.date).toLocaleDateString()}</span>
               </div>
+              <LinearReferenceView info={nearestKML} />
             </div>
           </Popup>
         </Marker>
@@ -791,7 +942,10 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
             {layerVisibility.overlays && mapOverlayLayers}
             {layerVisibility.sitePhotos && sitePhotoMarkers}
             {layerVisibility.linearWorks && linearWorksLayers}
-            {layerVisibility.kml && project.kmlData && <KMLDataLayer kmlData={project.kmlData} />}
+            
+            {layerVisibility.kml && project.kmlData && project.kmlData.map(kml => (
+              <KMLDataLayer key={kml.id} kml={kml} />
+            ))}
 
             <MapRuler active={isRulerActive} onClose={() => setIsRulerActive(false)} />
             <MapDrawingTool 
@@ -965,8 +1119,8 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                         <Layers size={16} />
                       </div>
                       <div>
-                        <Label className="font-bold text-sm">KML Layers</Label>
-                        <p className="text-[10px] text-muted-foreground uppercase">External Spatial Data</p>
+                        <Label className="font-bold text-sm">KML Master</Label>
+                        <p className="text-[10px] text-muted-foreground uppercase">Global KML Toggle</p>
                       </div>
                     </div>
                     <Switch 
@@ -974,6 +1128,35 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                       onCheckedChange={() => toggleLayer('kml')} 
                     />
                   </div>
+
+                  {/* Individual KML Files */}
+                  {layerVisibility.kml && project.kmlData && project.kmlData.length > 0 && (
+                    <div className="pl-10 space-y-2 mt-2 border-l-2 border-indigo-50">
+                      {project.kmlData.map((kml) => (
+                        <div key={kml.id} className="flex items-center justify-between group">
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-[11px] font-bold truncate pr-2 leading-tight" title={kml.name}>
+                              {kml.name}
+                            </span>
+                            <span className="text-[9px] text-muted-foreground uppercase tracking-tighter font-medium">
+                              {new Date(kml.timestamp).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <Switch 
+                            size="sm"
+                            className="scale-75 origin-right"
+                            checked={kml.visible} 
+                            onCheckedChange={(checked) => {
+                              const updatedKMLs = project.kmlData?.map(item => 
+                                item.id === kml.id ? { ...item, visible: checked } : item
+                              );
+                              onProjectUpdate({ kmlData: updatedKMLs });
+                            }} 
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <Separator />
