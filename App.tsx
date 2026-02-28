@@ -453,7 +453,7 @@ const App: React.FC = () => {
           let userId = 'u2'; // default fallback
           
           if ((role as any) === UserRole.ADMIN) {
-            const adminUser = users.find((u: User) => u.role === 'Admin' || u.role === UserRole.ADMIN);
+            const adminUser = users.find((u: User) => u.role === UserRole.ADMIN);
             userId = adminUser ? adminUser.id : 'admin-001';
           } else {
             userId = users.find((u: User) => u.role === role)?.id || userId;
@@ -1048,7 +1048,7 @@ const App: React.FC = () => {
                         {activeTab === 'subcontractors' && <SubcontractorModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'subcontractor-billing' && <SubcontractorBillingModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
                         
-                        {activeTab === 'schedule' && <ScheduleModule project={currentProject!} settings={appSettings} onProjectUpdate={onSaveProject} userRole={userRole} />}
+                        {activeTab === 'schedule' && <ScheduleModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
                         {activeTab === 'construction' && <ConstructionModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
                         {activeTab === 'linear-works' && <LinearWorksModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
                         {activeTab === 'site-photos' && <SitePhotosModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
