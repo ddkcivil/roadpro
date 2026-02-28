@@ -28,12 +28,12 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "../dropdown-menu";
-import { ChevronDown, SlidersHorizontal, Search } from "lucide-react";
-import * as ReactWindow from 'react-window';
-import AutoSizer from 'react-virtualized-auto-sizer';
+import { SlidersHorizontal, Search } from "lucide-react";
+import { FixedSizeList } from 'react-window';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 
-const List = (ReactWindow as any).FixedSizeList || ReactWindow.FixedSizeList;
-const TypedAutoSizer = (AutoSizer as any).default || AutoSizer;
+const List = FixedSizeList;
+const TypedAutoSizer = AutoSizer as any;
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -81,6 +81,10 @@ export function DataTable<TData, TValue>({
 
   const { rows } = table.getRowModel();
   const shouldVirtualize = rows.length > virtualizeThreshold;
+
+  const containerStyle = React.useMemo(() => ({
+    height: `${Math.min(rows.length * rowHeight, 400)}px`
+  }), [rows.length, rowHeight]);
 
   const VirtualizedRow = ({ index, style }: { index: number, style: React.CSSProperties }) => {
     const row = rows[index];
@@ -170,7 +174,7 @@ export function DataTable<TData, TValue>({
           <TableBody className="block">
             {rows?.length ? (
               shouldVirtualize ? (
-                <div style={{ height: `${Math.min(rows.length * rowHeight, 400)}px` }}>
+                <div style={containerStyle}>
                   <TypedAutoSizer>
                     {({ height, width }: any) => (
                       <List
