@@ -1,10 +1,9 @@
-const CACHE_NAME = 'roadmaster-v4';
+const CACHE_NAME = 'roadmaster-v5';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
   '/favicon.ico',
-  '/apple-touch-icon.png',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap'
 ];
 
@@ -44,6 +43,24 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (request.method !== 'GET') return;
 
+  // Strategy for Navigation (HTML): Network First, then fallback to Cache
+  if (request.mode === 'navigate' || (request.headers.get('accept') || '').includes('text/html')) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const clonedResponse = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, clonedResponse);
+          });
+          return response;
+        })
+        .catch(() => {
+          return caches.match(request);
+        })
+    );
+    return;
+  }
+
   // Strategy for API calls: Network First, then fallback to Cache
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
@@ -62,7 +79,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Strategy for static assets: Cache First, then Network
+  // Strategy for hashed assets (Vite): Cache First, as they are unique
+  if (url.pathname.startsWith('/assets/')) {
+    event.respondWith(
+      caches.match(request).then((cachedResponse) => {
+        if (cachedResponse) return cachedResponse;
+        return fetch(request).then((response) => {
+          if (response && response.status === 200) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseToCache);
+            });
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // Default: Cache First, then Network
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) return cachedResponse;
