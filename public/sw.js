@@ -1,4 +1,4 @@
-const CACHE_NAME = 'roadmaster-v7';
+const CACHE_NAME = 'roadmaster-v8';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -35,96 +35,77 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+/**
+ * Helper to fetch and cache
+ */
+async function fetchAndCache(request, cacheName) {
+  try {
+    const response = await fetch(request);
+    if (response && response.status === 200) {
+      const cache = await caches.open(cacheName);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    console.error('[SW] Fetch failed:', error);
+    throw error;
+  }
+}
+
 // Fetch Event - Strategy implementation
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  const url = new URL(request.url);
-
-  // Skip non-GET requests
   if (request.method !== 'GET') return;
+
+  const url = new URL(request.url);
 
   // Strategy for Navigation (HTML): Network First, then fallback to Cache
   if (request.mode === 'navigate' || (request.headers.get('accept') || '').includes('text/html')) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const clonedResponse = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, clonedResponse);
-          });
-          return response;
-        })
-        .catch(() => {
-          return caches.match(request);
-        })
+      (async () => {
+        try {
+          return await fetchAndCache(request, CACHE_NAME);
+        } catch (error) {
+          return await caches.match(request) || await caches.match('/index.html');
+        }
+      })()
     );
     return;
   }
 
-  // Strategy for API calls (Internal and External like Weather): Network First
+  // Strategy for API calls: Network First, then fallback to Cache
   if (url.pathname.startsWith('/api/') || url.hostname.includes('api.open-meteo.com')) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Only cache successful responses
-          if (response && response.status === 200) {
-            const clonedResponse = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, clonedResponse);
-            });
-          }
-          return response;
-        })
-        .catch(() => {
-          return caches.match(request);
-        })
-    );
-    return;
-  }
-
-  // Strategy for hashed assets (Vite): Cache First, as they are unique
-  if (url.pathname.startsWith('/assets/')) {
-    event.respondWith(
-      caches.match(request).then((cachedResponse) => {
-        if (cachedResponse) return cachedResponse;
-        return fetch(request).then((response) => {
-          if (response && response.status === 200) {
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseToCache);
-            });
-          }
-          return response;
-        }).catch(() => {
-            // Return nothing if fetch fails for assets not in cache
-            return null;
-        });
-      })
+      (async () => {
+        try {
+          return await fetchAndCache(request, CACHE_NAME);
+        } catch (error) {
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          
+          // Return a synthetic error response for API calls if offline and not cached
+          return new Response(JSON.stringify({ error: 'Offline', details: 'Network request failed' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+      })()
     );
     return;
   }
 
   // Default: Cache First, then Network
   event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) return cachedResponse;
+    (async () => {
+      const cached = await caches.match(request);
+      if (cached) return cached;
 
-      return fetch(request).then((response) => {
-        // Don't cache if not a valid response or not basic/cors
-        if (!response || response.status !== 200 || (response.type !== 'basic' && response.type !== 'cors')) {
-          return response;
-        }
-
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(request, responseToCache);
-        });
-
-        return response;
-      }).catch(() => {
-          // Silently fail for default fetches (images, etc)
-          return null;
-      });
-    })
+      try {
+        return await fetchAndCache(request, CACHE_NAME);
+      } catch (error) {
+        // For non-critical assets, just return the error
+        return new Response('Network error', { status: 408, statusText: 'Network error' });
+      }
+    })()
   );
 });

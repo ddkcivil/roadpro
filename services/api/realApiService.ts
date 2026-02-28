@@ -313,6 +313,92 @@ class RealApiService {
   }
 
   /**
+   * Submits a new user registration request
+   */
+  async submitRegistration(data: any): Promise<any> {
+    return this.fetchApi<any>('/pending-registrations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Approves a pending registration
+   */
+  async approveRegistration(id: string): Promise<User> {
+    return this.fetchApi<User>(`/pending-registrations/${id}/approve`, {
+      method: 'POST',
+    });
+  }
+
+  /**
+   * Rejects a pending registration
+   */
+  async rejectRegistration(id: string): Promise<void> {
+    return this.fetchApi<void>(`/pending-registrations/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Creates a new user directly
+   */
+  async createUser(userData: Partial<User>): Promise<User> {
+    return this.fetchApi<User>('/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  /**
+   * Updates an existing user
+   */
+  async updateUser(id: string, userData: Partial<User>): Promise<User> {
+    return this.fetchApi<User>(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  /**
+   * Deletes a user
+   */
+  async deleteUser(id: string): Promise<void> {
+    return this.fetchApi<void>(`/users/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // --- Staff Management ---
+
+  /**
+   * Fetches all leave requests
+   */
+  async getLeaveRequests(): Promise<any[]> {
+    return this.fetchApi<any[]>('/leave-requests', { method: 'GET' }, true);
+  }
+
+  /**
+   * Creates a new leave request
+   */
+  async createLeaveRequest(leaveData: any): Promise<any> {
+    return this.fetchApi<any>('/leave-requests', {
+      method: 'POST',
+      body: JSON.stringify(leaveData),
+    });
+  }
+
+  /**
+   * Updates an existing leave request
+   */
+  async updateLeaveRequest(id: string, leaveData: any): Promise<any> {
+    return this.fetchApi<any>(`/leave-requests/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(leaveData),
+    });
+  }
+
+  /**
    * Health check for the API
    */
   async healthCheck(): Promise<{ status: string; message: string }> {
