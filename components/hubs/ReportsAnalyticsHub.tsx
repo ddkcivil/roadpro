@@ -75,10 +75,10 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
     }, [boq, labTests, rfis, schedule, structures]);
 
     // Placeholder filter functions
-    const filteredBoq = useMemo(() => boq.filter(item => item.description.toLowerCase().includes(searchTerm.toLowerCase())), [boq, searchTerm]);
-    const filteredTests = useMemo(() => labTests.filter(test => test.testName.toLowerCase().includes(searchTerm.toLowerCase())), [labTests, searchTerm]);
-    const filteredRfis = useMemo(() => rfis.filter(rfi => rfi.description.toLowerCase().includes(searchTerm.toLowerCase())), [rfis, searchTerm]);
-    const filteredSchedule = useMemo(() => schedule.filter(task => task.taskName.toLowerCase().includes(searchTerm.toLowerCase())), [schedule, searchTerm]);
+    const filteredBoq = useMemo(() => boq.filter(item => (item.description || '').toLowerCase().includes(searchTerm.toLowerCase())), [boq, searchTerm]);
+    const filteredTests = useMemo(() => labTests.filter(test => (test.testName || '').toLowerCase().includes(searchTerm.toLowerCase())), [labTests, searchTerm]);
+    const filteredRfis = useMemo(() => rfis.filter(rfi => (rfi.description || '').toLowerCase().includes(searchTerm.toLowerCase())), [rfis, searchTerm]);
+    const filteredSchedule = useMemo(() => schedule.filter(task => (task.taskName || '').toLowerCase().includes(searchTerm.toLowerCase())), [schedule, searchTerm]);
 
 
     // Placeholder export functions
@@ -852,12 +852,3 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
 };
 
 export default ReportsAnalyticsHub;
-
-const getStatusIcon = (status: 'idle' | 'processing' | 'success' | 'error') => {
-    switch (status) {
-        case 'processing': return <Loader2 className="h-4 w-4 animate-spin text-blue-600" />;
-        case 'success': return <CheckCircle className="h-4 w-4 text-emerald-600" />;
-        case 'error': return <AlertTriangle className="h-4 w-4 text-destructive" />;
-        default: return <Download className="h-4 w-4 text-muted-foreground" />;
-    }
-};

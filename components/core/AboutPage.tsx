@@ -100,7 +100,7 @@ const AboutPage: React.FC = () => {
                   <HardHat size={32} />
                 </Avatar>
                 <div>
-                  <h3 className="text-lg font-bold">RoadMaster.Pro</h3>
+                  <h3 className="text-lg font-bold">RoadMaster</h3>
                   <p className="text-sm text-muted-foreground">Infrastructure Solutions</p>
                 </div>
               </div>

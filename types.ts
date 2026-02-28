@@ -207,6 +207,7 @@ export interface StructureAsset {
   name: string; 
   type: StructureType;
   location: string; 
+  coordinates?: string; // Lat, Lng string
   status: 'Not Started' | 'In Progress' | 'Completed';
   progress?: number;
   components: StructureComponent[];
@@ -498,6 +499,7 @@ export interface LandParcel {
   unit: 'sq.m' | 'hectares' | 'acres';
   ownerName: string;
   acquisitionStatus: 'Identified' | 'Negotiation' | 'Acquired' | 'Compensated';
+  coordinates?: { lat: number, lng: number }[];
   compensationAmount?: number;
   acquisitionDate?: string;
 }

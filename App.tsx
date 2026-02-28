@@ -1033,6 +1033,7 @@ const App: React.FC = () => {
                     ) : (
                       <>
                         {activeTab === 'dashboard' && <Dashboard project={currentProject!} settings={appSettings} onUpdateProject={onSaveProject} onUpdateSettings={(s) => startTransition(() => setAppSettings(s))} />}
+                        {activeTab === 'map' && <MapModule project={currentProject!} onProjectUpdate={onSaveProject} />}
                         {activeTab === 'about' && <AboutPage />}
                         {activeTab === 'contact' && <ContactPage />}
                         {activeTab === 'user-management' && <UserManagement />}
