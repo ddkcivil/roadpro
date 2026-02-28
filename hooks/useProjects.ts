@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo, startTransition } from 'react';
+import { useState, useEffect, useMemo, startTransition, useCallback } from 'react';
 import { Project } from '../types';
 import { apiService } from '../services/api/apiService';
 import { DataCache, getCacheKey } from '../utils/data/cacheUtils';
 import { prepareProjectWithMaterials } from '../utils/migration/materialMigrationUtils';
 import { toast } from 'sonner';
+import { useDebounce } from './useDebounce';
 
 export const useProjects = (isAuthenticated: boolean) => {
   const [projects, setProjects] = useState<Project[]>(() => {
@@ -34,6 +35,11 @@ export const useProjects = (isAuthenticated: boolean) => {
 
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+
+  const debouncedSaveProjects = useDebounce((updatedProjects: Project[]) => {
+    localStorage.setItem('roadmaster-projects', JSON.stringify(updatedProjects));
+    DataCache.set(getCacheKey('projects'), updatedProjects, { ttl: 10 * 60 * 1000 });
+  }, 1000);
 
   useEffect(() => {
     if (selectedProjectId) {
@@ -169,8 +175,7 @@ export const useProjects = (isAuthenticated: boolean) => {
             ? prev.map(p => p.id === backendProject.id ? backendProject : p)
             : [...prev, backendProject];
           
-          localStorage.setItem('roadmaster-projects', JSON.stringify(updatedProjects));
-          DataCache.set(getCacheKey('projects'), updatedProjects, { ttl: 10 * 60 * 1000 });
+          debouncedSaveProjects(updatedProjects);
           
           return updatedProjects;
         });
@@ -194,10 +199,7 @@ export const useProjects = (isAuthenticated: boolean) => {
       await apiService.deleteProject(projectId);
       setProjects(prev => {
         const updatedProjects = prev.filter(p => p.id !== projectId);
-        setTimeout(() => {
-          localStorage.setItem('roadmaster-projects', JSON.stringify(updatedProjects));
-          DataCache.set(getCacheKey('projects'), updatedProjects, { ttl: 10 * 60 * 1000 });
-        }, 0);
+        debouncedSaveProjects(updatedProjects);
         return updatedProjects;
       });
       if (selectedProjectId === projectId) {

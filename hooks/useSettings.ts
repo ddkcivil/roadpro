@@ -1,6 +1,7 @@
 import { useState, startTransition } from 'react';
 import { AppSettings } from '../types';
 import { toast } from 'sonner';
+import { useDebounce } from './useDebounce';
 
 export const useSettings = () => {
   const [appSettings, setAppSettings] = useState<AppSettings>(() => {
@@ -23,10 +24,14 @@ export const useSettings = () => {
     };
   });
 
+  const debouncedSaveSettings = useDebounce((newSettings: AppSettings) => {
+    localStorage.setItem('roadmaster-settings', JSON.stringify(newSettings));
+  }, 1000);
+
   const updateSettings = (newSettings: AppSettings) => {
     startTransition(() => {
       setAppSettings(newSettings);
-      localStorage.setItem('roadmaster-settings', JSON.stringify(newSettings));
+      debouncedSaveSettings(newSettings);
     });
     toast.success("Settings Saved", {
       description: "System-wide configuration has been updated successfully.",

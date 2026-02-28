@@ -1,6 +1,7 @@
 import { useState, startTransition } from 'react';
 import { Message, UserWithPermissions } from '../types';
 import { DataCache, getCacheKey } from '../utils/data/cacheUtils';
+import { useDebounce } from './useDebounce';
 
 export const useMessages = (currentUser: UserWithPermissions) => {
   const [messages, setMessages] = useState<Message[]>(() => {
@@ -25,6 +26,11 @@ export const useMessages = (currentUser: UserWithPermissions) => {
     return finalMessages;
   });
 
+  const debouncedSaveMessages = useDebounce((updatedMessages: Message[]) => {
+    localStorage.setItem('roadmaster-messages', JSON.stringify(updatedMessages));
+    DataCache.set(getCacheKey('messages'), updatedMessages, { ttl: 5 * 60 * 1000 });
+  }, 1000);
+
   const sendMessage = (text: string, receiverId: string, projectId: string) => {
     const newMessage: Message = {
       id: `msg-${Date.now()}`,
@@ -38,8 +44,7 @@ export const useMessages = (currentUser: UserWithPermissions) => {
 
     const updatedMessages = [...messages, newMessage];
     setMessages(updatedMessages);
-    localStorage.setItem('roadmaster-messages', JSON.stringify(updatedMessages));
-    DataCache.set(getCacheKey('messages'), updatedMessages, { ttl: 5 * 60 * 1000 });
+    debouncedSaveMessages(updatedMessages);
   };
 
   return {
