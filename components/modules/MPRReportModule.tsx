@@ -83,6 +83,20 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
     return { activeNCRs, openRFIs };
   };
 
+  const calculateTimeProgress = (start: string, end: string) => {
+    if (!start || !end) return 0;
+    const startDate = new Date(start).getTime();
+    const endDate = new Date(end).getTime();
+    const today = new Date().getTime();
+    if (today <= startDate) return 0;
+    if (today >= endDate) return 100;
+    const total = endDate - startDate;
+    const elapsed = today - startDate;
+    return total > 0 ? (elapsed / total) * 100 : 0;
+  };
+
+  const timeProgress = calculateTimeProgress(project.startDate, project.endDate);
+
   return (
     <div className="h-[calc(100vh-140px)] flex gap-3">
       <Card className="w-[300px] rounded-3xl flex flex-col overflow-hidden border">
@@ -244,13 +258,13 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                     </h2>
 
                     <div className="grid grid-cols-2 gap-4 mb-4">
-                      <Card className="p-4 bg-muted">
-                        <p className="text-xs text-muted-foreground">Contract Duration</p>
-                        <p className="text-lg font-black">{project.contractPeriod || 'TBD'}</p>
+                      <Card className="p-4 bg-muted text-center">
+                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Contract Duration</p>
+                        <p className="text-xl font-black text-primary">{project.contractPeriod || 'TBD'}</p>
                       </Card>
-                      <Card className="p-4 bg-muted">
-                        <p className="text-xs text-muted-foreground">Elapsed Time</p>
-                        <p className="text-lg font-black">{(project.schedule.length > 0 ? project.schedule.filter(s => s.status === 'Completed').length / project.schedule.length * 100 : 0).toFixed(1)}%</p>
+                      <Card className="p-4 bg-muted text-center">
+                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Elapsed Time</p>
+                        <p className="text-xl font-black text-primary">{timeProgress.toFixed(1)}%</p>
                       </Card>
                     </div>
 
