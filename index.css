@@ -123,16 +123,37 @@
 
 @layer utilities {
   .glass {
-    @apply bg-white/70 dark:bg-black/70 backdrop-blur-md border border-white/20 dark:border-white/10;
+    @apply bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl border border-white/20 dark:border-white/5;
   }
   
   .glass-card {
-    @apply bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-white/20 dark:border-white/10 shadow-xl;
+    @apply bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-2xl;
   }
 
   .neo-shadow {
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.1), 0 0 20px -5px rgba(0, 0, 0, 0.05);
   }
+
+  .active-glow {
+    @apply relative after:absolute after:inset-0 after:rounded-[inherit] after:shadow-[0_0_15px_-2px_rgba(var(--primary),0.5)] after:pointer-events-none;
+  }
+
+  .bg-grid-white {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='rgb(255 255 255 / 0.04)'%3E%3Cpath d='M0 .5H31.5V32'/%3E%3C/svg%3E");
+  }
+
+  .bg-grid-slate {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='rgb(15 23 42 / 0.04)'%3E%3Cpath d='M0 .5H31.5V32'/%3E%3C/svg%3E");
+  }
+
+  /* Semantic Gradients */
+  .grad-primary { @apply bg-gradient-to-br from-blue-600 to-indigo-700 text-white; }
+  .grad-emerald { @apply bg-gradient-to-br from-emerald-500 to-teal-700 text-white; }
+  .grad-amber { @apply bg-gradient-to-br from-amber-500 to-orange-600 text-white; }
+  .grad-rose { @apply bg-gradient-to-br from-rose-500 to-pink-700 text-white; }
+  .grad-indigo { @apply bg-gradient-to-br from-indigo-500 to-blue-700 text-white; }
+  .grad-violet { @apply bg-gradient-to-br from-violet-500 to-purple-700 text-white; }
+  .grad-slate { @apply bg-gradient-to-br from-slate-700 to-slate-900 text-white; }
 }
 
 @keyframes spin {

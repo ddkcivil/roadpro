@@ -47,41 +47,45 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   currentUser
 }) => {
   return (
-    <header className="border-b bg-white dark:bg-slate-900 px-4 flex justify-between items-center h-16 shrink-0 z-10 transition-all duration-200">
-      <div className="flex items-center gap-2 md:gap-4">
+    <header className="border-b border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl px-6 flex justify-between items-center h-16 shrink-0 z-10 sticky top-0 transition-all duration-300">
+      <div className="flex items-center gap-3">
         <Button 
           variant="ghost" 
           size="icon" 
-          className="lg:hidden h-10 w-10" // Improved touch target
+          className="lg:hidden h-9 w-9 hover:bg-primary/10 hover:text-primary rounded-xl"
           onClick={() => setSidebarOpen(true)}
         >
-          <MenuIcon className="h-6 w-6" />
-        </Button>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="hidden lg:flex h-10 w-10" // Improved touch target
-          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        >
-          {isSidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+          <MenuIcon className="h-5 w-5" />
         </Button>
         
-        <Separator orientation="vertical" className="h-8 mx-1 hidden lg:block" />
-        
-        <div className="flex items-center gap-2 md:gap-3">
-          <h2 className="text-sm md:text-base font-bold truncate max-w-[150px] md:max-w-[300px]">{currentProject?.name || 'No Project Selected'}</h2>
-          {currentProject?.code && <Badge variant="secondary" className="hidden sm:inline-flex px-2 py-0.5">{currentProject.code}</Badge>}
-          <Button variant="outline" size="sm" className="h-9 hidden sm:flex px-3" onClick={() => setSelectedProjectId(null)}>
-            <LayoutGrid className="mr-2 h-4 w-4" /> Switch
-          </Button>
+        <div className="hidden lg:flex items-center gap-2">
+          <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+            <h2 className="text-[13px] font-black px-2 tracking-tight text-slate-700 dark:text-slate-300 truncate max-w-[200px]">
+              {currentProject?.name || 'Select Workspace'}
+            </h2>
+            {currentProject?.code && (
+              <Badge variant="outline" className="bg-white dark:bg-slate-900 border-primary/20 text-primary text-[10px] font-black px-1.5 py-0 rounded-lg">
+                {currentProject.code}
+              </Badge>
+            )}
+            <Separator orientation="vertical" className="h-4 mx-1" />
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 px-2 text-[11px] font-bold hover:bg-primary/10 hover:text-primary rounded-lg" 
+              onClick={() => setSelectedProjectId(null)}
+            >
+              <LayoutGrid className="mr-1.5 h-3.5 w-3.5" /> Workspace
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-1 md:gap-3">
+      <div className="flex items-center gap-2 md:gap-4">
         <Button 
           variant="ghost" 
           size="sm" 
-          className="hidden md:flex items-center gap-2 text-muted-foreground font-medium px-3 border border-slate-200 dark:border-slate-800 rounded-lg h-10 hover:bg-slate-100 transition-all"
+          className="hidden md:flex items-center gap-2.5 text-muted-foreground font-semibold px-4 bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl h-10 hover:bg-white dark:hover:bg-slate-900 hover:border-primary/30 hover:text-primary transition-all group"
           onClick={() => {
             const event = new KeyboardEvent('keydown', {
               key: 'k',
@@ -91,40 +95,44 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             document.dispatchEvent(event);
           }}
         >
-          <Search className="h-4 w-4" />
-          <span className="text-xs lg:text-sm">Search...</span>
-          <kbd className="ml-2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-            <span className="text-xs">⌘</span>K
+          <Search className="h-4 w-4 group-hover:scale-110 transition-transform" />
+          <span className="text-xs">Intelligence Command</span>
+          <kbd className="ml-2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-1.5 font-mono text-[9px] font-black text-muted-foreground opacity-100">
+            ⌘K
           </kbd>
         </Button>
         
-        <div className="flex items-center gap-1 md:gap-2">
+        <div className="flex items-center gap-1.5 md:gap-2">
           <OfflineIndicator />
 
-          <Toggle 
-            size="sm" 
-            className="h-10 w-10"
-            pressed={themeMode === 'dark'} 
-            onPressedChange={() => setThemeMode(themeMode === 'light' ? 'dark' : 'light')}
-          >
-            <Sun className="h-5 w-5 dark:scale-0 transition-transform" />
-            <Moon className="absolute h-5 w-5 scale-0 dark:scale-100 transition-transform" />
-          </Toggle>
+          <div className="flex items-center gap-1 bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+            <Toggle 
+              size="sm" 
+              className="h-8 w-8 rounded-lg data-[state=on]:bg-white dark:data-[state=on]:bg-slate-900 data-[state=on]:shadow-sm"
+              pressed={themeMode === 'dark'} 
+              onPressedChange={() => setThemeMode(themeMode === 'light' ? 'dark' : 'light')}
+            >
+              <Sun className="h-4 w-4 dark:hidden" />
+              <Moon className="h-4 w-4 hidden dark:block text-blue-400" />
+            </Toggle>
 
-          <NotificationsBadge />
+            <Separator orientation="vertical" className="h-4 mx-0.5" />
 
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-10 w-10"
-            onClick={() => setIsAIModalOpen(true)}
-          >
-            <Bot className="h-5 w-5" />
-          </Button>
+            <NotificationsBadge />
 
-          <Avatar className="h-9 w-9 border-2 border-transparent hover:border-primary transition-all cursor-pointer">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 rounded-lg hover:bg-indigo-500/10 hover:text-indigo-500"
+              onClick={() => setIsAIModalOpen(true)}
+            >
+              <Bot className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <Avatar className="h-9 w-9 ring-2 ring-offset-2 ring-transparent hover:ring-primary transition-all duration-300 cursor-pointer shadow-md">
             <AvatarImage src={currentUser.avatar} />
-            <AvatarFallback className="bg-primary/10 text-primary font-bold">{currentUser.name.charAt(0)}</AvatarFallback>
+            <AvatarFallback className="bg-primary grad-primary text-white font-black text-xs">{currentUser.name.charAt(0)}</AvatarFallback>
           </Avatar>
         </div>
       </div>

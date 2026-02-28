@@ -268,64 +268,66 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
                         const timeProgress = calculateTimeProgress(project.startDate, project.endDate);
                         const duration = calculateDuration(project.startDate, project.endDate);
                         const status = getProjectStatus(project.startDate, project.endDate);
+                        const topBorderColor = index % 4 === 0 ? 'border-t-blue-500' : index % 4 === 1 ? 'border-t-emerald-500' : index % 4 === 2 ? 'border-t-amber-500' : 'border-t-rose-500';
 
                         return (
-                            <Card key={project.id} className="h-full cursor-pointer transition-all hover:shadow-lg group border-border/50 overflow-hidden" onClick={() => onSelectProject(project.id)}>
+                            <Card key={project.id} className={cn("h-full cursor-pointer transition-all duration-500 hover:shadow-2xl group border-border/50 overflow-hidden rounded-2xl border-t-4", topBorderColor)} onClick={() => onSelectProject(project.id)}>
                                 <CardContent className="p-0">
-                                    <div className="p-5">
-                                      <div className="flex justify-between mb-4 items-start">
-                                          <Avatar className="h-12 w-12 rounded-xl bg-secondary text-primary font-bold shadow-sm">
-                                              <AvatarImage src={project.logo} />
-                                              <AvatarFallback>{project.name.charAt(0)}</AvatarFallback>
-                                          </Avatar>
-                                          <Badge variant="secondary" className={cn("font-bold text-[10px] px-2 py-0.5 uppercase tracking-wider", status.color)}>{status.label}</Badge>
+                                    <div className="p-6">
+                                      <div className="flex justify-between mb-5 items-start">
+                                          <div className="p-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 group-hover:scale-110 transition-transform duration-500">
+                                            <Avatar className="h-12 w-12 rounded-xl bg-white dark:bg-slate-900 text-primary font-black shadow-sm">
+                                                <AvatarImage src={project.logo} />
+                                                <AvatarFallback className="grad-primary text-white">{project.name.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                          </div>
+                                          <Badge variant="secondary" className={cn("font-black text-[9px] px-2 py-0.5 uppercase tracking-[0.1em] rounded-lg", status.color.replace('text-', 'bg-').replace('600', '100').replace('500', '100') + ' ' + status.color)}>{status.label}</Badge>
                                       </div>
                                       
-                                      <h3 className="text-lg font-bold leading-tight mb-1 line-clamp-1 group-hover:text-primary transition-colors">{project.name}</h3>
-                                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-4 font-medium">
-                                          <Badge variant="outline" className="font-mono text-[10px] h-5">{project.code}</Badge>
-                                          <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {project.location}</span>
+                                      <h3 className="text-xl font-black leading-tight mb-1 line-clamp-1 group-hover:text-primary transition-colors tracking-tight">{project.name}</h3>
+                                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-6 font-bold uppercase tracking-wider opacity-70">
+                                          <span className="flex items-center gap-1.5"><MapPin className="h-3 w-3 text-primary" /> {project.location}</span>
                                       </div>
 
-                                      <div className="space-y-4 pt-2">
+                                      <div className="space-y-5">
                                           <div>
-                                              <div className="flex justify-between mb-1.5 items-center">
-                                                  <p className="text-[10px] font-black text-muted-foreground flex items-center gap-1 uppercase tracking-widest"><Timer className="h-3 w-3" /> Contract Time</p>
-                                                  <p className="text-xs font-bold text-primary">{duration}</p>
+                                              <div className="flex justify-between mb-2 items-center">
+                                                  <p className="text-[10px] font-black text-slate-400 flex items-center gap-1.5 uppercase tracking-[0.15em]"><Timer className="h-3 w-3" /> Timeline</p>
+                                                  <Badge variant="outline" className="text-[10px] font-black border-primary/20 text-primary">{duration}</Badge>
                                               </div>
                                               <Progress 
                                                   value={timeProgress} 
-                                                  className="h-1.5"
-                                                  indicatorClassName={cn(timeProgress > physProgress ? 'bg-destructive' : 'bg-primary')}
+                                                  className="h-2 rounded-full bg-slate-100 dark:bg-slate-800"
+                                                  indicatorClassName={cn("rounded-full", timeProgress > physProgress ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.3)]' : 'grad-primary shadow-[0_0_10px_rgba(37,99,235,0.3)]')}
                                               />
                                           </div>
 
                                           <div>
-                                              <div className="flex justify-between mb-1.5">
-                                                  <p className="text-[10px] font-black text-muted-foreground flex items-center gap-1 uppercase tracking-widest"><TrendingUp className="h-3 w-3" /> Physical</p>
-                                                  <p className="text-xs font-bold text-emerald-600">{physProgress}%</p>
+                                              <div className="flex justify-between mb-2 items-center">
+                                                  <p className="text-[10px] font-black text-slate-400 flex items-center gap-1.5 uppercase tracking-[0.15em]"><TrendingUp className="h-3 w-3" /> Execution</p>
+                                                  <p className="text-[11px] font-black text-emerald-600">{physProgress}%</p>
                                               </div>
-                                              <Progress value={physProgress} className="h-1.5 [&::-webkit-progress-value]:bg-emerald-600" />
+                                              <Progress value={physProgress} className="h-2 rounded-full bg-slate-100 dark:bg-slate-800" indicatorClassName="grad-emerald rounded-full shadow-[0_0_10px_rgba(16,185,129,0.3)]" />
                                           </div>
                                       </div>
                                     </div>
                                     
-                                    <div className="px-5 py-3 bg-muted/30 border-t border-border/40 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <div className="flex gap-1">
+                                    <div className="px-6 py-4 bg-slate-50/50 dark:bg-slate-900/50 border-t border-border/40 flex justify-between items-center group-hover:bg-white dark:group-hover:bg-slate-900 transition-colors duration-500">
+                                        <div className="flex gap-1.5">
                                           <HasPermission permission={Permission.PROJECT_UPDATE}>
-                                              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background" onClick={(e) => { e.stopPropagation(); handleOpenEdit(project); }}>
-                                                  <Edit className="h-3.5 w-3.5" />
+                                              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all" onClick={(e) => { e.stopPropagation(); handleOpenEdit(project); }}>
+                                                  <Edit className="h-4 w-4" />
                                               </Button>
                                           </HasPermission>
 
                                           <HasPermission permission={Permission.PROJECT_DELETE}>
-                                              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteProject(project.id); }}>
-                                                  <Trash2 className="h-3.5 w-3.5" />
+                                              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-rose-500/10 hover:text-rose-500 transition-all" onClick={(e) => { e.stopPropagation(); handleDeleteProject(project.id); }}>
+                                                  <Trash2 className="h-4 w-4" />
                                               </Button>
                                           </HasPermission>
                                         </div>
-                                        <Button variant="ghost" size="sm" className="h-8 px-2 text-xs font-bold" onClick={(e) => { e.stopPropagation(); onSelectProject(project.id); }}>
-                                          CONTROL PANEL <ArrowRight className="ml-1 h-3 w-3" />
+                                        <Button variant="ghost" size="sm" className="h-9 px-4 text-[10px] font-black tracking-widest rounded-xl border border-transparent hover:border-primary/20 hover:bg-primary/5 hover:text-primary transition-all" onClick={(e) => { e.stopPropagation(); onSelectProject(project.id); }}>
+                                          ENTER WORKSPACE <ArrowRight className="ml-2 h-3.5 w-3.5" />
                                         </Button>
                                     </div>
                                 </CardContent>

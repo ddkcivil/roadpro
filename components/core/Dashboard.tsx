@@ -205,10 +205,10 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
         </div>
 
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard title="Schedule Perf. Index" value={stats.spi.toFixed(2)} icon={Clock} color="hsl(var(--primary))" trend="+2.4%" isLoading={isLoading} />
-            <StatCard title="Cost Perf. Index" value={stats.cpi.toFixed(2)} icon={DollarSign} color="hsl(var(--primary))" trend="+0.8%" isLoading={isLoading} />
-            <StatCard title="Total Earned Value" value={`${currency}${(stats.earnedValue / 1000000).toFixed(1)}M`} icon={TrendingUp} color="hsl(var(--primary))" isLoading={isLoading} />
-            <StatCard title="Physical Progress" value={`${stats.physPercent.toFixed(0)}%`} icon={CheckCircle} color="hsl(var(--primary))" trend="+1.2%" isLoading={isLoading} />
+            <StatCard title="Schedule Index" value={stats.spi.toFixed(2)} icon={Clock} color="primary" trend="+2.4%" isLoading={isLoading} />
+            <StatCard title="Cost Index" value={stats.cpi.toFixed(2)} icon={DollarSign} color="success" trend="+0.8%" isLoading={isLoading} />
+            <StatCard title="Portfolio Value" value={`${currency}${(stats.earnedValue / 1000000).toFixed(1)}M`} icon={TrendingUp} color="warning" isLoading={isLoading} />
+            <StatCard title="Execution Progress" value={`${stats.physPercent.toFixed(0)}%`} icon={CheckCircle} color="info" trend="+1.2%" isLoading={isLoading} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">

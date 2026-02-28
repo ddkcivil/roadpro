@@ -263,7 +263,14 @@ const App: React.FC = () => {
     <I18nProvider>
       <NotificationProvider>
         <TooltipProvider>
-          <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans antialiased text-slate-900 dark:text-slate-100 transition-colors duration-500">
+          <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans antialiased text-slate-900 dark:text-slate-100 transition-colors duration-500 relative">
+            {/* Decorative background elements */}
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+              <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-[120px] animate-pulse" />
+              <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-[120px] animate-pulse" />
+              <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-emerald-500/5 dark:bg-emerald-500/5 rounded-full blur-[100px]" />
+            </div>
+
             <AppSidebar 
               isSidebarCollapsed={isSidebarCollapsed}
               setIsSidebarCollapsed={setIsSidebarCollapsed}

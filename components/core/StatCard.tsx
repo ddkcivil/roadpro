@@ -17,26 +17,26 @@ interface StatCardProps {
 const StatCard: React.FC<StatCardProps> = memo(({ title, value, icon: Icon, color, trend, isLoading = false }) => {
   const getColorClasses = (colorName: string) => {
     const map: Record<string, string> = {
-      primary: "text-primary bg-primary/20",
-      success: "text-green-500 bg-green-500/20",
-      danger: "text-red-500 bg-red-500/20",
-      warning: "text-amber-500 bg-amber-500/20",
-      info: "text-blue-500 bg-blue-500/20",
-      violet: "text-violet-500 bg-violet-500/20",
-      rose: "text-rose-500 bg-rose-500/20",
-      slate: "text-slate-500 bg-slate-500/20",
+      primary: "grad-primary shadow-blue-500/20",
+      success: "grad-emerald shadow-emerald-500/20",
+      danger: "grad-rose shadow-rose-500/20",
+      warning: "grad-amber shadow-amber-500/20",
+      info: "grad-indigo shadow-indigo-500/20",
+      violet: "grad-violet shadow-violet-500/20",
+      rose: "grad-rose shadow-rose-500/20",
+      slate: "grad-slate shadow-slate-500/20",
     };
-    return map[colorName] || "text-slate-500 bg-slate-500/20";
+    return map[colorName] || "grad-slate shadow-slate-500/20";
   };
 
-  const colorClasses = getColorClasses(color);
+  const gradientClass = getColorClasses(color);
 
   if (isLoading) {
     return (
-      <Card className="h-full bg-card border-border/50 rounded-xl">
+      <Card className="h-full bg-card border-border/50 rounded-2xl">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <Shimmer className="h-3 w-20" />
-          <Shimmer className="h-8 w-8 rounded-lg" />
+          <Shimmer className="h-10 w-10 rounded-xl" />
         </CardHeader>
         <CardContent>
           <Shimmer className="h-8 w-16 mb-2" />
@@ -48,26 +48,34 @@ const StatCard: React.FC<StatCardProps> = memo(({ title, value, icon: Icon, colo
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
       className="h-full"
     >
-      <Card className="h-full bg-card hover:bg-accent/5 transition-all duration-300 hover:shadow-md border-border/50 group">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{title}</CardTitle>
-          <div className={cn("p-2 rounded-xl transition-transform group-hover:scale-110 duration-300", colorClasses)}>
+      <Card className="h-full glass-card hover:bg-white/60 dark:hover:bg-slate-900/60 transition-all duration-500 hover:-translate-y-1 group relative overflow-hidden rounded-2xl">
+        <div className={cn("absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 opacity-[0.03] transition-transform duration-700 group-hover:scale-150 group-hover:rotate-12", color.includes('success') ? 'text-emerald-500' : 'text-primary')}>
+            <Icon size={120} strokeWidth={1} />
+        </div>
+        
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+          <CardTitle className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">{title}</CardTitle>
+          <div className={cn("p-2.5 rounded-xl transition-all group-hover:rotate-6 duration-500 shadow-lg", gradientClass)}>
             <Icon className="h-5 w-5" />
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-black tracking-tight">{value}</div>
+        <CardContent className="relative z-10 pt-2">
+          <div className="text-3xl font-black tracking-tighter text-slate-800 dark:text-slate-100">{value}</div>
           {trend && (
-              <div className="flex items-center gap-1 mt-1">
-                <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-full", trend.startsWith('+') ? 'bg-emerald-500/10 text-emerald-600' : 'bg-red-500/10 text-red-600')}>
-                    {trend}
-                </span>
-                <span className="text-[10px] text-muted-foreground font-medium">vs last month</span>
+              <div className="flex items-center gap-1.5 mt-2">
+                <div className={cn("flex items-center gap-0.5 text-[10px] font-black px-2 py-0.5 rounded-lg shadow-sm", 
+                  trend.startsWith('+') 
+                    ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' 
+                    : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
+                )}>
+                    {trend.startsWith('+') ? '↑' : '↓'} {trend.replace('+', '').replace('-', '')}
+                </div>
+                <span className="text-[10px] text-muted-foreground font-bold opacity-60 uppercase tracking-wider">vs Period</span>
               </div>
           )}
         </CardContent>
