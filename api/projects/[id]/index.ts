@@ -3,8 +3,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 import { connectToDatabase } from '../../_utils/dbConnect.js';
 import { withErrorHandler } from '../../_utils/errorHandler.js';
+import { withAuth } from '../../_utils/auth.js';
 
-export default withErrorHandler(async function (req: VercelRequest, res: VercelResponse) {
+const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { id } = req.query;
 
   if (!id || typeof id !== 'string') {
@@ -28,6 +29,13 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       res.status(500).json({ error: 'Failed to fetch project', details: error.message });
     }
   } else if (req.method === 'PUT') {
+    // Only admins or project managers can update projects
+    const userRole = (req as any).user?.role;
+    if (userRole !== 'Admin' && userRole !== 'ADMIN' && userRole !== 'Project Manager') {
+      res.status(403).json({ error: 'Only admins or project managers can update projects' });
+      return;
+    }
+
     try {
       const { Project } = await connectToDatabase();
       const projectData = { ...req.body };
@@ -43,7 +51,7 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       
       const updatedProject = await Project.findOneAndUpdate(
         { id: id as string },
-        { $set: projectData },
+        { $set: { ...projectData, updatedAt: new Date().toISOString() } },
         { new: true, runValidators: true }
       );
 
@@ -62,6 +70,13 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       });
     }
   } else if (req.method === 'DELETE') {
+    // Only admins can delete projects
+    const userRole = (req as any).user?.role;
+    if (userRole !== 'Admin' && userRole !== 'ADMIN') {
+      res.status(403).json({ error: 'Only admins can delete projects' });
+      return;
+    }
+
     try {
       const { Project } = await connectToDatabase();
       console.log(`[DEBUG] Attempting to delete project with custom id: ${id}`);
@@ -85,4 +100,6 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
   } else {
     res.status(405).json({ error: 'Method Not Allowed' });
   }
-})
+};
+
+export default withErrorHandler(withAuth(handler));

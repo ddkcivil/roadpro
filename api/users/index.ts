@@ -3,9 +3,10 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { connectToDatabase } from '../_utils/dbConnect.js';
 import bcrypt from 'bcrypt';
 import { withErrorHandler } from '../_utils/errorHandler.js';
+import { withAuth } from '../_utils/auth.js';
 import { IUser } from '../_utils/dbConnect.js';
 
-export default withErrorHandler(async function (req: VercelRequest, res: VercelResponse) {
+const handler = async function (req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') {
     try {
       const { User } = await connectToDatabase();
@@ -17,6 +18,13 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       res.status(500).json({ error: 'Failed to fetch users', details: error.message });
     }
   } else if (req.method === 'POST') {
+    // Only admins can create users directly (others go through registration)
+    const userRole = (req as any).user?.role;
+    if (userRole !== 'Admin' && userRole !== 'ADMIN') {
+      res.status(403).json({ error: 'Only admins can create users directly' });
+      return;
+    }
+
     try {
       const { User } = await connectToDatabase();
       const { name, email, phone, role, password } = req.body;
@@ -58,4 +66,6 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
   } else {
     res.status(405).json({ error: 'Method Not Allowed' });
   }
-})
+};
+
+export default withErrorHandler(withAuth(handler));

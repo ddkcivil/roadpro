@@ -1,20 +1,44 @@
 // api/projects/index.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { connectToDatabase } from '../_utils/dbConnect.js';
-
 import { withErrorHandler } from '../_utils/errorHandler.js';
+import { withAuth } from '../_utils/auth.js';
+import { CSRFProtection } from '../_utils/csrf.js';
 
-export default withErrorHandler(async function (req: VercelRequest, res: VercelResponse) {
+const handler = async function (req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') {
     try {
       const { Project } = await connectToDatabase();
-      const projects = await Project.find(); // Mongoose: find
-      res.status(200).json(projects);
+      
+      // Pagination parameters
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const skip = (page - 1) * limit;
+
+      const total = await Project.countDocuments();
+      const projects = await Project.find().skip(skip).limit(limit); 
+      
+      res.status(200).json({
+        data: projects,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit)
+        }
+      });
     } catch (error: any) {
       console.error('Failed to fetch projects:', error);
       res.status(500).json({ error: 'Failed to fetch projects', details: error.message });
     }
   } else if (req.method === 'POST') {
+    // Only admins or project managers can create projects
+    const userRole = (req as any).user?.role;
+    if (userRole !== 'Admin' && userRole !== 'ADMIN' && userRole !== 'Project Manager') {
+      res.status(403).json({ error: 'Only admins or project managers can create projects' });
+      return;
+    }
+
     try {
       const { Project } = await connectToDatabase();
       const projectData = { ...req.body };
@@ -24,13 +48,13 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
         return;
       }
 
-      // Ensure we don't save with an existing ID if provided in body for some reason
       delete projectData._id;
       delete projectData.__v;
 
       const project = new Project({
         ...projectData,
-        id: projectData.id || `proj-${Date.now()}` // Generate ID if not provided
+        id: projectData.id || `proj-${Date.now()}`,
+        updatedAt: new Date().toISOString()
       });
       await project.save();
 
@@ -42,4 +66,6 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
   } else {
     res.status(405).json({ error: 'Method Not Allowed' });
   }
-})
+};
+
+export default withErrorHandler(withAuth(CSRFProtection.withCSRF(handler)));

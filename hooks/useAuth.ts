@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, startTransition } from 'react';
 import { UserRole, User, UserWithPermissions } from '../types';
 import { PermissionsService } from '../services/auth/permissionsService';
 import { AuditService } from '../services/analytics/auditService';
+import { encryptionUtils } from '../utils/data/encryptionUtils';
 
 export const useAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -20,15 +21,22 @@ export const useAuth = () => {
     return localStorage.getItem('roadmaster-current-user-id') || '';
   });
 
+  const [token, setToken] = useState(() => {
+    const encryptedToken = localStorage.getItem('roadmaster-token');
+    if (!encryptedToken) return '';
+    return encryptionUtils.decrypt<string>(encryptedToken) || '';
+  });
+
   // Debug effect to track authentication state changes
   useEffect(() => {
     console.log('Authentication state changed:', {
       isAuthenticated,
       userRole,
       userName,
-      currentUserId
+      currentUserId,
+      hasToken: !!token
     });
-  }, [isAuthenticated, userRole, userName, currentUserId]);
+  }, [isAuthenticated, userRole, userName, currentUserId, token]);
 
   const currentUser = useMemo(() => {
     // Get users from localStorage, fallback to empty array
@@ -62,7 +70,7 @@ export const useAuth = () => {
     return PermissionsService.createUserWithPermissions(user);
   }, [currentUserId]);
 
-  const login = (role: UserRole, name: string) => {
+  const login = (role: UserRole, name: string, userToken?: string, userId?: string) => {
     startTransition(() => {
       setIsAuthenticated(true);
       setUserRole(role);
@@ -73,26 +81,33 @@ export const useAuth = () => {
       localStorage.setItem('roadmaster-user-role', role);
       localStorage.setItem('roadmaster-user-name', name);
       
-      // Get users from localStorage
-      const savedUsers = localStorage.getItem('roadmaster-users');
-      let users: User[] = savedUsers ? JSON.parse(savedUsers) : [];
+      if (userToken) {
+        setToken(userToken);
+        const encryptedToken = encryptionUtils.encrypt(userToken);
+        localStorage.setItem('roadmaster-token', encryptedToken);
+      }
 
-      if (!savedUsers) {
-        users = [];
-        localStorage.setItem('roadmaster-users', JSON.stringify(users));
-      }
-      
-      let userId = 'u2'; // default fallback
-      
-      if ((role as any) === UserRole.ADMIN) {
-        const adminUser = users.find((u: User) => (u.role as any) === UserRole.ADMIN);
-        userId = adminUser ? adminUser.id : 'admin-001';
+      if (userId) {
+        setCurrentUserId(userId);
+        localStorage.setItem('roadmaster-current-user-id', userId);
       } else {
-        userId = users.find((u: User) => (u.role as any) === role)?.id || userId;
+        // Fallback for mock login
+        // Get users from localStorage
+        const savedUsers = localStorage.getItem('roadmaster-users');
+        let users: User[] = savedUsers ? JSON.parse(savedUsers) : [];
+
+        let fallbackUserId = 'u2'; 
+        
+        if ((role as any) === UserRole.ADMIN) {
+          const adminUser = users.find((u: User) => (u.role as any) === UserRole.ADMIN);
+          fallbackUserId = adminUser ? adminUser.id : 'admin-001';
+        } else {
+          fallbackUserId = users.find((u: User) => (u.role as any) === role)?.id || fallbackUserId;
+        }
+        
+        setCurrentUserId(fallbackUserId);
+        localStorage.setItem('roadmaster-current-user-id', fallbackUserId);
       }
-      
-      setCurrentUserId(userId);
-      localStorage.setItem('roadmaster-current-user-id', userId);
     });
   };
 
@@ -102,10 +117,12 @@ export const useAuth = () => {
     setUserRole(UserRole.PROJECT_MANAGER);
     setUserName('');
     setCurrentUserId('u2');
+    setToken('');
     localStorage.removeItem('roadmaster-authenticated');
     localStorage.removeItem('roadmaster-user-role');
     localStorage.removeItem('roadmaster-user-name');
     localStorage.removeItem('roadmaster-current-user-id');
+    localStorage.removeItem('roadmaster-token');
   };
 
   return {

@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import { Slider } from '~/components/ui/slider';
 import { AppSettings } from '../../types';
 import { Settings, Palette, Shield, Cloud, Save, BarChart3, Bell, Activity, Share2, Info, Image as ImageIcon, Mail, AlertCircle, MapPin } from 'lucide-react';
+import { NotificationSettings } from './NotificationSettings';
 
 
 interface Props {
@@ -24,19 +25,21 @@ const SettingsModule: React.FC<Props> = ({ settings, onUpdate }) => {
   const [activeTab, setActiveTab] = useState("general");
   const [formData, setFormData] = useState<AppSettings>(settings);
 
-  const handleUpdate = () => {
+  const handleUpdate = (e?: React.FormEvent) => {
+      e?.preventDefault();
       onUpdate(formData);
   };
 
   return (
     <div className="animate-in fade-in duration-500">
+      <form onSubmit={handleUpdate}>
         <div className="flex items-center justify-between mb-6">
             <div>
                 <h4 className="text-2xl font-extrabold tracking-tight">System Settings</h4>
                 <p className="text-gray-500">Configure your project parameters and integrations</p>
             </div>
             <Button 
-                onClick={handleUpdate} 
+                type="submit" 
                 className="px-6 py-2 font-bold rounded-lg"
             >
                 <Save size={18} className="mr-2" /> 
@@ -387,91 +390,7 @@ const SettingsModule: React.FC<Props> = ({ settings, onUpdate }) => {
 
           {/* TAB 4: Notifications */}
           <TabsContent value="notifications">
-              <Card className="rounded-lg mb-3">
-                <CardContent>
-                  <h6 className="text-lg font-bold mb-4 text-primary">Alert Preferences</h6>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                          <Card className="rounded-lg p-4">
-                              <p className="text-base font-bold mb-4 flex items-center gap-2">
-                                  <Mail size={16}/> Email Alerts
-                              </p>
-                              <div className="flex flex-col gap-3">
-                                  <div className="flex items-center space-x-2">
-                                      <Switch 
-                                          id="enable-email-notifications"
-                                          checked={formData.notifications.enableEmail} 
-                                          onCheckedChange={checked => setFormData({
-                                            ...formData, 
-                                            notifications: {
-                                              ...formData.notifications, 
-                                              enableEmail: checked
-                                            }
-                                          })} 
-                                        /> 
-                                      <Label htmlFor="enable-email-notifications">Enable Email Notifications</Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                      <Switch id="daily-digest-summary" defaultChecked /> 
-                                      <Label htmlFor="daily-digest-summary">Daily Digest Summary</Label>
-                                  </div>
-                              </div>
-                          </Card>
-                      </div>
-                      <div>
-                          <Card className="rounded-lg p-4">
-                              <p className="text-base font-bold mb-4 flex items-center gap-2">
-                                  <AlertCircle size={16}/> Triggers
-                              </p>
-                              <div className="flex flex-col gap-3">
-                                  <div className="flex items-center space-x-2">
-                                      <Switch 
-                                          id="alert-on-overdue-tasks"
-                                          checked={formData.notifications.notifyOverdue} 
-                                          onCheckedChange={checked => setFormData({
-                                            ...formData, 
-                                            notifications: {
-                                              ...formData.notifications, 
-                                              notifyOverdue: checked
-                                            }
-                                          })} 
-                                        /> 
-                                      <Label htmlFor="alert-on-overdue-tasks" className="text-red-500">Alert on Overdue Tasks</Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                      <Switch 
-                                          id="alert-on-upcoming-tasks"
-                                          checked={formData.notifications.notifyUpcoming} 
-                                          onCheckedChange={checked => setFormData({
-                                            ...formData, 
-                                            notifications: {
-                                              ...formData.notifications, 
-                                              notifyUpcoming: checked
-                                            }
-                                          })} 
-                                        /> 
-                                      <Label htmlFor="alert-on-upcoming-tasks">Alert on Upcoming Tasks</Label>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                      <Switch 
-                                          id="daily-digest"
-                                          checked={formData.notifications.dailyDigest} 
-                                          onCheckedChange={checked => setFormData({
-                                            ...formData, 
-                                            notifications: {
-                                              ...formData.notifications, 
-                                              dailyDigest: checked
-                                            }
-                                          })} 
-                                        /> 
-                                      <Label htmlFor="daily-digest">Daily Digest</Label>
-                                  </div>
-                              </div>
-                          </Card>
-                      </div>
-                  </div>                </CardContent>
-              </Card>
+              <NotificationSettings />
           </TabsContent>
           
           {/* TAB 5: Appearance */}
@@ -734,6 +653,7 @@ const SettingsModule: React.FC<Props> = ({ settings, onUpdate }) => {
               </Card>
           </TabsContent>
         </Tabs>
+      </form>
     </div>
   );
 };

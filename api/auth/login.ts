@@ -2,8 +2,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { connectToDatabase } from '../_utils/dbConnect.js';
 import bcrypt from 'bcrypt';
-
 import { withErrorHandler } from '../_utils/errorHandler.js';
+import { generateToken } from '../_utils/auth.js';
+import { CSRFProtection } from '../_utils/csrf.js';
 
 export default withErrorHandler(async function (req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -43,14 +44,37 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
     const userData = user.toObject();
     delete (userData as any).password;
 
+    // Generate real JWT
+    const token = generateToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role
+    });
+
+    // Generate CSRF Token
+    const csrfToken = CSRFProtection.generateToken();
+
+    // Set cookies
+    const cookieOptions = [
+      `roadmaster-token=${token}; HttpOnly; Path=/; SameSite=Strict; Max-Age=86400`,
+      `csrf-token=${csrfToken}; Path=/; SameSite=Strict; Max-Age=86400`
+    ];
+    
+    if (process.env.NODE_ENV === 'production') {
+      cookieOptions[0] += '; Secure';
+      cookieOptions[1] += '; Secure';
+    }
+
+    res.setHeader('Set-Cookie', cookieOptions);
+
     res.status(200).json({
       success: true,
       user: userData,
-      token: `token-${user.id}-${Date.now()}`
+      token,
+      csrfToken
     });
   } catch (error: any) {
     console.error('Login failed:', error);
-    // Removed Mongoose-specific error check
     res.status(500).json({ error: 'Login failed', details: error.message });
   }
 })

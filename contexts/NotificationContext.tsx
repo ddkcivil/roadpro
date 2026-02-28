@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { toast } from 'sonner';
 
 // Define notification types
 export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'reminder' | 'alert' | 'update' | 'task';
@@ -9,14 +10,14 @@ export type NotificationChannel = 'email' | 'in-app' | 'push' | 'sms';
 // Define notification priority
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'critical';
 
-interface NotificationPreferences {
+export interface NotificationPreferences {
   channels: NotificationChannel[];
   types: NotificationType[];
   enabled: boolean;
   muteHours?: { start: number; end: number }; // Hours in 24-hour format
 }
 
-interface Notification {
+export interface Notification {
   id: string;
   title: string;
   message: string;
@@ -44,6 +45,7 @@ interface NotificationContextType {
   updatePreferences: (prefs: Partial<NotificationPreferences>) => void;
   getNotificationHistory: (limit?: number) => Notification[];
   clearNotifications: () => void;
+  requestPushPermission: () => Promise<void>;
 }
 
 const NOTIFICATION_STORAGE_KEY = 'roadmaster-notifications';
@@ -103,7 +105,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       return; // Don't add if disabled or type not allowed
     }
 
-    const newNotification = {
+    const newNotification: Notification = {
       ...notification,
       id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       timestamp: new Date(),
@@ -111,6 +113,33 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     };
     
     setNotifications(prev => [newNotification, ...prev]);
+
+    // Integrate with sonner for immediate visual feedback
+    const toastFn = notification.type === 'error' ? toast.error : 
+                    notification.type === 'success' ? toast.success : 
+                    notification.type === 'warning' ? toast.warning : toast.info;
+    
+    toastFn(notification.title, {
+      description: notification.message,
+    });
+
+    // Browser Push Notification fallback
+    if (preferences.channels.includes('push') && 'Notification' in window && Notification.permission === 'granted') {
+      new window.Notification(notification.title, {
+        body: notification.message,
+        icon: '/favicon.ico'
+      });
+    }
+  };
+
+  const requestPushPermission = async () => {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        updatePreferences({ channels: [...preferences.channels, 'push'] });
+        toast.success("Push Notifications Enabled");
+      }
+    }
   };
 
   const removeNotification = (id: string) => {
@@ -155,7 +184,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       markAllAsRead,
       updatePreferences,
       getNotificationHistory,
-      clearNotifications
+      clearNotifications,
+      requestPushPermission
     }}>
       {children}
     </NotificationContext.Provider>

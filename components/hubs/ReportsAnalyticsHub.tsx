@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Project, UserRole, BOQItem, LabTest, RFI, RFIStatus, ScheduleTask, StructureAsset, NCR, DailyReport, AppSettings } from '../../types';
 import { formatCurrency, exportBOQToCSV, exportStructuresToCSV, exportRFIToCSV, exportLabTestsToCSV, exportSubcontractorPaymentsToCSV, exportScheduleToCSV } from '../../utils/formatting/exportUtils';
+import { ReportingService, EVMMetrics, ResourceForecast } from '../../services/analytics/reportingService';
 
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
@@ -57,6 +58,9 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
     const structures: StructureAsset[] = project.structures || [];
     const ncrs: NCR[] = project.ncrs || [];
     const dailyReports: DailyReport[] = project.dailyReports || [];
+
+    const evmMetrics = useMemo(() => ReportingService.calculateEVM(project), [project]);
+    const resourceForecast = useMemo(() => ReportingService.predictResourceNeeds(project), [project]);
 
     // Placeholder stats
     const reportStats = useMemo(() => {
@@ -121,7 +125,7 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
 
             <Card className="mb-4">
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList className="grid w-full grid-cols-6 h-12">
+                    <TabsList className="grid w-full grid-cols-7 h-12">
                         <TabsTrigger value="boq-analytics">
                             <FileText className="mr-2 h-4 w-4" /> BOQ Analytics
                         </TabsTrigger>
@@ -136,6 +140,9 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
                         </TabsTrigger>
                         <TabsTrigger value="progress-reports">
                             <TrendingUp className="mr-2 h-4 w-4" /> Progress Reports
+                        </TabsTrigger>
+                        <TabsTrigger value="advanced-analytics">
+                            <TrendingUp className="mr-2 h-4 w-4" /> Advanced
                         </TabsTrigger>
                         <TabsTrigger value="export-center">
                             <Download className="mr-2 h-4 w-4" /> Export Center
@@ -636,6 +643,120 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
                                         </TableBody>
                                     </Table>
                                 </ScrollArea>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="advanced-analytics" className="p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-black uppercase tracking-widest text-muted-foreground">EVM Performance</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
+                                            <p className="text-[10px] font-bold text-primary uppercase">Schedule Index (SPI)</p>
+                                            <p className="text-2xl font-black">{evmMetrics.spi.toFixed(2)}</p>
+                                            <Badge variant="outline" className={cn("mt-2 text-[9px]", evmMetrics.spi >= 1 ? "text-emerald-600" : "text-destructive")}>
+                                                {evmMetrics.spi >= 1 ? "ON TRACK" : "BEHIND"}
+                                            </Badge>
+                                        </div>
+                                        <div className="p-4 rounded-xl bg-violet-500/5 border border-violet-500/10">
+                                            <p className="text-[10px] font-bold text-violet-600 uppercase">Cost Index (CPI)</p>
+                                            <p className="text-2xl font-black">{evmMetrics.cpi.toFixed(2)}</p>
+                                            <Badge variant="outline" className={cn("mt-2 text-[9px]", evmMetrics.cpi >= 1 ? "text-emerald-600" : "text-destructive")}>
+                                                {evmMetrics.cpi >= 1 ? "UNDER BUDGET" : "OVER BUDGET"}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                    <div className="mt-6 space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs font-medium text-muted-foreground">Planned Value (PV)</span>
+                                            <span className="text-xs font-bold">{formatCurrency(evmMetrics.plannedValue, settings)}</span>
+                                        </div>
+                                        <Separator />
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs font-medium text-muted-foreground">Earned Value (EV)</span>
+                                            <span className="text-xs font-bold">{formatCurrency(evmMetrics.earnedValue, settings)}</span>
+                                        </div>
+                                        <Separator />
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs font-medium text-muted-foreground">Actual Cost (AC)</span>
+                                            <span className="text-xs font-bold">{formatCurrency(evmMetrics.actualCost, settings)}</span>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-black uppercase tracking-widest text-muted-foreground">Predictive Forecasts</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/10 mb-4">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                            <p className="text-xs font-bold text-amber-700 uppercase">Estimate at Completion</p>
+                                        </div>
+                                        <p className="text-2xl font-black text-amber-600">{formatCurrency(evmMetrics.estimateAtCompletion, settings)}</p>
+                                        <p className="text-[10px] text-amber-600/70 font-medium mt-1">Based on current performance trends.</p>
+                                    </div>
+                                    
+                                    <div className="space-y-4">
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Resource Shortfall Alerts</h4>
+                                        <div className="space-y-2">
+                                            {resourceForecast.filter(f => f.shortfall > 0).slice(0, 3).map((f, i) => (
+                                                <div key={i} className="flex items-center justify-between p-2 rounded-lg border border-border/50 bg-background">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className={cn("w-1.5 h-1.5 rounded-full", f.criticality === 'Critical' ? "bg-destructive" : "bg-amber-500")} />
+                                                        <span className="text-xs font-bold">{f.resourceName}</span>
+                                                    </div>
+                                                    <span className="text-[10px] font-black text-destructive">-{f.shortfall} Units</span>
+                                                </div>
+                                            ))}
+                                            {resourceForecast.filter(f => f.shortfall > 0).length === 0 && (
+                                                <p className="text-xs text-muted-foreground italic py-2">No critical shortfalls predicted.</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base font-bold">Comprehensive Resource Burn-Rate Analysis</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-muted/50">
+                                            <TableHead className="text-[10px] font-black uppercase tracking-widest">Resource</TableHead>
+                                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-right">Current Stock</TableHead>
+                                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-right">Estimated Need</TableHead>
+                                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-right">Shortfall</TableHead>
+                                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-right">Days Left</TableHead>
+                                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Status</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {resourceForecast.map((f, i) => (
+                                            <TableRow key={i}>
+                                                <TableCell className="text-xs font-bold">{f.resourceName}</TableCell>
+                                                <TableCell className="text-xs text-right font-medium">{f.currentStock}</TableCell>
+                                                <TableCell className="text-xs text-right font-medium">{f.estimatedNeeded}</TableCell>
+                                                <TableCell className="text-xs text-right font-black text-destructive">{f.shortfall > 0 ? f.shortfall : '-'}</TableCell>
+                                                <TableCell className="text-xs text-right font-medium">{f.daysRemaining} Days</TableCell>
+                                                <TableCell className="text-center">
+                                                    <Badge className="text-[9px] h-4 uppercase font-black" variant={f.criticality === 'Critical' ? 'destructive' : f.criticality === 'Warning' ? 'outline' : 'secondary'}>
+                                                        {f.criticality}
+                                                    </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
                             </CardContent>
                         </Card>
                     </TabsContent>

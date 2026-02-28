@@ -96,7 +96,8 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
       setWorkItemsToday(workItemsToday.filter((_, i) => i !== index));
   };
 
-  const handleFinalizeReport = () => {
+  const handleFinalizeReport = (e?: React.FormEvent) => {
+      e?.preventDefault();
       // Validate required fields
       let isValid = true;
       const newErrors = {
@@ -139,13 +140,14 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
 
   return (
     <div className="animate-in fade-in duration-300">
+      <form onSubmit={handleFinalizeReport}>
         <div className="flex justify-between mb-4 items-center">
             <div>
                 <h1 className="text-2xl font-black text-foreground">Daily Site Operations (DPR)</h1>
                 <p className="text-sm text-muted-foreground">Execution logging and resource allocation oversight</p>
             </div>
             <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setPrintModalOpen(true)} className="rounded-lg">
+                <Button type="button" variant="outline" onClick={() => setPrintModalOpen(true)} className="rounded-lg">
                     <Printer className="w-4 h-4 mr-2" />
                     Print Official Form
                 </Button>
@@ -234,8 +236,8 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                             </div>
                         </div>
                         <div className="flex justify-end gap-2 mt-4">
-                            <Button onClick={() => setPrintModalOpen(false)}>Close</Button>
-                            <Button onClick={() => window.print()}>
+                            <Button type="button" onClick={() => setPrintModalOpen(false)}>Close</Button>
+                            <Button type="button" onClick={() => window.print()}>
                                 <Printer className="w-4 h-4 mr-2" />
                                 Print Report
                             </Button>
@@ -243,7 +245,7 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                     </DialogContent>
                 </Dialog>
 
-                <Button variant="default" onClick={handleFinalizeReport} className="rounded-lg">
+                <Button type="submit" variant="default" className="rounded-lg">
                     <CheckCircle className="w-4 h-4 mr-2" />
                     Submit & Sync Data
                 </Button>
@@ -280,6 +282,7 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                         </SelectContent>
                     </Select>
                     <Button
+                        type="button"
                         variant="outline"
                         size="icon"
                         onClick={handleFetchWeather}
@@ -334,6 +337,7 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                             <div className="md:col-span-2 flex items-end gap-2">
                                 {index > 0 && (
                                     <Button
+                                        type="button"
                                         variant="destructive"
                                         size="icon"
                                         onClick={() => setVisitors(visitors.filter((_, i) => i !== index))}
@@ -343,6 +347,7 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                                 )}
                                 {index === visitors.length - 1 && (
                                     <Button
+                                        type="button"
                                         variant="outline"
                                         size="icon"
                                         onClick={() => setVisitors([...visitors, { id: Date.now().toString(), name: '', organization: '' }])}
@@ -445,6 +450,7 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                                         </div>
                                         <div className="md:col-span-2 flex justify-end items-center">
                                             <Button
+                                                type="button"
                                                 variant="destructive"
                                                 size="icon"
                                                 onClick={() => removeWorkToday(i)}
@@ -456,7 +462,7 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                                 </Card>
                             );
                         })}
-                        <Button variant="outline" onClick={handleAddWorkToday} className="w-full border-dashed">
+                        <Button type="button" variant="outline" onClick={handleAddWorkToday} className="w-full border-dashed">
                             <Plus className="w-4 h-4 mr-2" />
                             Add Another Entry
                         </Button>
@@ -513,6 +519,7 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                             </div>
                         ))}
                         <Button
+                            type="button"
                             variant="outline"
                             onClick={() => setRemarks([...remarks, ''])}
                         >
@@ -543,6 +550,7 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                 </TabsContent>
             </Tabs>
         </Card>
+      </form>
     </div>
   );
 };

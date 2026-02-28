@@ -2,26 +2,21 @@ import { useState, startTransition } from 'react';
 import { AppSettings } from '../types';
 import { toast } from 'sonner';
 import { useDebounce } from './useDebounce';
+import { DEFAULT_APP_SETTINGS } from '../config/defaults';
 
 export const useSettings = () => {
   const [appSettings, setAppSettings] = useState<AppSettings>(() => {
     const savedSettings = localStorage.getItem('roadmaster-settings');
-    return savedSettings ? JSON.parse(savedSettings) : {
-      companyName: 'RoadMaster Pro',
-      currency: 'USD',
-      vatRate: 13,
-      fiscalYearStart: '2024-01-01',
-      googleSpreadsheetId: '',
-      defaultLocation: '27.7006, 83.4484',
-      notifications: {
-          enableEmail: true,
-          enableInApp: true,
-          notifyUpcoming: true,
-          daysBefore: 7,
-          notifyOverdue: true,
-          dailyDigest: true,
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        // Merge with defaults to handle new fields
+        return { ...DEFAULT_APP_SETTINGS, ...parsed };
+      } catch (e) {
+        console.error('Failed to parse settings', e);
       }
-    };
+    }
+    return DEFAULT_APP_SETTINGS;
   });
 
   const debouncedSaveSettings = useDebounce((newSettings: AppSettings) => {

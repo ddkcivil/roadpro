@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserRole, UserWithPermissions } from '../../types';
 import { PermissionsService } from '../../services/auth/permissionsService';
 import { validatePasswordStrength, validateEmail } from '../../utils/validation/validationUtils';
 import { AuthService } from '../../services/auth/authService';
 import { AuditService } from '../../services/analytics/auditService';
 import { apiService } from '../../services/api/apiService';
-import { LocalStorageUtils } from '../../utils/data/localStorageUtils';
 import { UserPlus, ArrowLeft, Mail, Lock, User, Briefcase, ChevronRight, Fingerprint, Loader2 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
@@ -14,15 +13,41 @@ import { Label } from '~/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { cn } from '~/lib/utils';
+import { z } from 'zod';
+import { ErrorSummary } from '~/components/ui/error-summary';
+import { useRateLimit } from '~/hooks/useRateLimit';
+
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+const registerSchema = z.object({
+  name: z.string().min(2, "Full name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  role: z.nativeEnum(UserRole),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
 
 interface Props {
-  onLogin: (role: UserRole, name: string) => void;
+  onLogin: (role: UserRole, name: string, token?: string, userId?: string) => void;
 }
 
 const Login: React.FC<Props> = ({ onLogin }) => {
   const [view, setView] = useState<'LOGIN' | 'REGISTER' | 'RESET'>('LOGIN');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{type: 'success' | 'destructive', text: string} | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const { isLocked, remainingTime, checkLimit } = useRateLimit({
+    limit: 5,
+    windowMs: 60000 // 1 minute
+  });
+
+  useEffect(() => {
+    setErrors({});
+    setMessage(null);
+  }, [view]);
 
   // Login State
   const [email, setEmail] = useState('');
@@ -40,8 +65,31 @@ const Login: React.FC<Props> = ({ onLogin }) => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setErrors({});
     setMessage(null);
+
+    if (!checkLimit()) {
+      setMessage({ 
+        type: 'destructive', 
+        text: `Too many attempts. Please wait ${Math.ceil(remainingTime)} seconds.` 
+      });
+      return;
+    }
+
+    try {
+      loginSchema.parse({ email, password });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        const newErrors: Record<string, string> = {};
+        err.issues.forEach((e) => {
+          if (e.path[0]) newErrors[e.path[0].toString()] = e.message;
+        });
+        setErrors(newErrors);
+        return;
+      }
+    }
+
+    setLoading(true);
     
     if (AuthService.isAccountLocked(email)) {
         const timeRemaining = AuthService.getTimeUntilUnlock(email);
@@ -58,9 +106,11 @@ const Login: React.FC<Props> = ({ onLogin }) => {
             const user = authResult.user;
             const role = user?.role || UserRole.PROJECT_MANAGER;
             const name = user?.name || "Project Manager";
+            const token = (authResult as any).token;
+            const userId = user?.id;
             
             const userWithPermissions = PermissionsService.createUserWithPermissions({ 
-              id: user?.id || `user-${Date.now()}`, 
+              id: userId || `user-${Date.now()}`, 
               name, 
               email, 
               phone: user?.phone || '', 
@@ -68,7 +118,7 @@ const Login: React.FC<Props> = ({ onLogin }) => {
             });
             
             AuditService.logLogin(userWithPermissions.id, userWithPermissions.name);
-            onLogin(role, name);
+            onLogin(role, name, token, userId);
         } else {
             setMessage({ type: 'destructive', text: authResult.message || 'Invalid email or password.' });
         }
@@ -81,11 +131,26 @@ const Login: React.FC<Props> = ({ onLogin }) => {
 
   const handleRegister = async (e: React.FormEvent) => {
       e.preventDefault();
+      setErrors({});
+      setMessage(null);
+
+      try {
+        registerSchema.parse({ name: regName, email: regEmail, role: regRole, password: regPassword });
+      } catch (err) {
+        if (err instanceof z.ZodError) {
+          const newErrors: Record<string, string> = {};
+          err.errors.forEach((e) => {
+            if (e.path[0]) newErrors[e.path[0].toString()] = e.message;
+          });
+          setErrors(newErrors);
+          return;
+        }
+      }
       
       if (regPassword.length > 0) {
           const passwordStrength = validatePasswordStrength(regPassword);
           if (!passwordStrength.isValid) {
-              setMessage({ type: 'destructive', text: 'Password does not meet security requirements. ' + passwordStrength.feedback.join(', ') });
+              setErrors(prev => ({ ...prev, password: passwordStrength.feedback[0] }));
               return;
           }
       }
@@ -145,6 +210,12 @@ const Login: React.FC<Props> = ({ onLogin }) => {
 
         <Card className="rounded-2xl shadow-lg border-slate-200/50">
           <CardContent className="p-6">
+            <ErrorSummary 
+              errors={errors} 
+              className="mb-4" 
+              onClear={() => setErrors({})} 
+            />
+            
             {message && (
                 <Alert variant={message.type} className="mb-4">
                     <AlertDescription>{message.text}</AlertDescription>
@@ -159,27 +230,29 @@ const Login: React.FC<Props> = ({ onLogin }) => {
                     <p className="text-sm text-muted-foreground">Enter your professional credentials</p>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email" className={cn(errors.email && "text-destructive")}>Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input id="email" type="email" placeholder="email@example.com" required value={email} onChange={e => setEmail(e.target.value)} className="pl-10" />
+                      <Input id="email" type="email" placeholder="email@example.com" value={email} onChange={e => setEmail(e.target.value)} className={cn("pl-10", errors.email && "border-destructive")} />
                     </div>
+                    {errors.email && <p className="text-[10px] text-destructive font-medium">{errors.email}</p>}
                   </div>
                   <div className="grid gap-2">
                     <div className="flex items-center">
-                      <Label htmlFor="password">Password</Label>
+                      <Label htmlFor="password" className={cn(errors.password && "text-destructive")}>Password</Label>
                       <button type="button" onClick={() => setView('RESET')} className="ml-auto inline-block text-sm font-medium text-primary hover:text-primary underline-offset-4 hover:underline">
                         Forgot Password?
                       </button>
                     </div>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input id="password" type="password" required value={password} onChange={e => setPassword(e.target.value)} className="pl-10" />
+                      <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} className={cn("pl-10", errors.password && "border-destructive")} />
                     </div>
+                    {errors.password && <p className="text-[10px] text-destructive font-medium">{errors.password}</p>}
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button type="submit" className="w-full" disabled={loading || isLocked}>
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Continue
+                    {isLocked ? `Locked (${Math.ceil(remainingTime)}s)` : 'Continue'}
                   </Button>
                   <p className="px-8 text-center text-sm text-muted-foreground">
                     Need access?{' '}
@@ -199,18 +272,20 @@ const Login: React.FC<Props> = ({ onLogin }) => {
                     <p className="text-sm text-muted-foreground">Join the project management workforce</p>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="reg-name">Full Name</Label>
+                    <Label htmlFor="reg-name" className={cn(errors.name && "text-destructive")}>Full Name</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input id="reg-name" placeholder="John Doe" required value={regName} onChange={e => setRegName(e.target.value)} className="pl-10" />
+                      <Input id="reg-name" placeholder="John Doe" value={regName} onChange={e => setRegName(e.target.value)} className={cn("pl-10", errors.name && "border-destructive")} />
                     </div>
+                    {errors.name && <p className="text-[10px] text-destructive font-medium">{errors.name}</p>}
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="reg-email">Email</Label>
+                    <Label htmlFor="reg-email" className={cn(errors.email && "text-destructive")}>Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input id="reg-email" type="email" placeholder="email@example.com" required value={regEmail} onChange={e => setRegEmail(e.target.value)} className="pl-10" />
+                      <Input id="reg-email" type="email" placeholder="email@example.com" value={regEmail} onChange={e => setRegEmail(e.target.value)} className={cn("pl-10", errors.email && "border-destructive")} />
                     </div>
+                    {errors.email && <p className="text-[10px] text-destructive font-medium">{errors.email}</p>}
                   </div>
                    <div className="grid gap-2">
                     <Label htmlFor="reg-role">Assign Role</Label>
@@ -224,19 +299,20 @@ const Login: React.FC<Props> = ({ onLogin }) => {
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="reg-password">Password</Label>
+                    <Label htmlFor="reg-password" className={cn(errors.password && "text-destructive")}>Password</Label>
                      <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input id="reg-password" type="password" required value={regPassword} onChange={e => {
+                      <Input id="reg-password" type="password" value={regPassword} onChange={e => {
                         const newPassword = e.target.value;
                         setRegPassword(newPassword);
                         setRegPasswordStrength(newPassword.length > 0 ? validatePasswordStrength(newPassword) : null);
-                      }} className="pl-10" />
+                      }} className={cn("pl-10", errors.password && "border-destructive")} />
                     </div>
+                    {errors.password && <p className="text-[10px] text-destructive font-medium">{errors.password}</p>}
                     {regPasswordStrength && regPasswordStrength.feedback.length > 0 && (
                       <div className="mt-1">
                         {regPasswordStrength.feedback.map((msg, idx) => (
-                          <p key={idx} className="text-xs text-red-600">• {msg}</p>
+                          <p key={idx} className="text-[10px] text-amber-600 font-medium tracking-tight leading-tight mb-0.5">• {msg}</p>
                         ))}
                       </div>
                     )}

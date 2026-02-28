@@ -1,82 +1,80 @@
 import React, { ReactNode } from 'react';
-
 import { Button } from '~/components/ui/button';
-import { Card, CardContent } from '~/components/ui/card';
+import { Card } from '~/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
-import { Terminal } from 'lucide-react';
+import { Terminal } from '@/components/icons';
+import { ErrorReportingService } from '~/services/error/errorReportingService';
 
-
-// NOTE: This is a refactored version of the ErrorBoundary component.
-// The original logic has been temporarily removed to facilitate the UI migration.
-// It will be re-implemented in subsequent steps.
-
-type Props = {
+interface Props {
   children: ReactNode;
-};
+}
 
-type State = {
+interface State {
   hasError: boolean;
   error?: Error;
-};
+}
 
+/**
+ * Standard React Error Boundary component.
+ * Catches rendering errors, reports them, and displays a fallback UI.
+ */
 class ErrorBoundary extends React.Component<Props, State> {
-  public readonly props: Props;
-  public state: State;
   constructor(props: Props) {
     super(props);
-    this.state = {
-      hasError: false
-    };
+    this.state = { hasError: false };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    // Check if it's a dynamic import failure (common after new deployments)
+    // Auto-reload on dynamic import failures (assets out of sync after deployment)
     if (error.message && (
       error.message.includes("Failed to fetch dynamically imported module") ||
       error.message.includes("Importing a module script failed")
     )) {
-      console.warn("Detected dynamic import failure. Attempting to reload page to get latest assets...");
       window.location.reload();
     }
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
-    // Also log to a more visible place
-    console.error('Full error details:', {
-      message: error.message,
-      stack: error.stack,
-      componentStack: errorInfo.componentStack
-    });
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Report to centralized error service
+    ErrorReportingService.captureError(error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-background text-foreground">
-          <Card className="max-w-xl w-full p-6 text-center">
-            <h1 className="text-3xl font-bold mb-2">Something went wrong</h1>
-            <p className="text-muted-foreground mb-4">An error occurred while rendering the application.</p>
+        <div className="flex flex-col items-center justify-center min-h-[400px] p-4 bg-background text-foreground w-full">
+          <Card className="max-w-xl w-full p-8 text-center shadow-lg border-border/50">
+            <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Terminal className="h-8 w-8 text-destructive" />
+            </div>
+            <h1 className="text-2xl font-black mb-2">Operation Halted</h1>
+            <p className="text-muted-foreground mb-6 font-medium">
+              The system encountered an unexpected exception in this module.
+            </p>
+            
             {this.state.error && (
-              <Alert variant="destructive" className="mb-4 text-left">
-                <Terminal className="h-4 w-4" />
-                <AlertTitle>Error: {this.state.error.message}</AlertTitle>
-                {this.state.error.stack && (
-                  <AlertDescription>
-                    <pre className="mt-2 w-full whitespace-pre-wrap word-break-all text-xs">
-                      {this.state.error.stack}
-                    </pre>
-                  </AlertDescription>
-                )}
+              <Alert variant="destructive" className="mb-6 text-left border-destructive/20 bg-destructive/5">
+                <AlertTitle className="font-bold text-xs uppercase tracking-widest opacity-70">Diagnostic Payload</AlertTitle>
+                <AlertDescription className="mt-2 font-mono text-[10px] break-all leading-tight opacity-90">
+                  {this.state.error.message}
+                </AlertDescription>
               </Alert>
             )}
-            <div className="flex gap-2 justify-center">
-              <Button onClick={() => (this as React.Component<Props, State>).setState({ hasError: false, error: undefined })}>
-                Try Again
+            
+            <div className="flex gap-3 justify-center">
+              <Button 
+                className="font-bold"
+                onClick={() => this.setState({ hasError: false, error: undefined })}
+              >
+                Reset Component
               </Button>
-              <Button variant="outline" onClick={() => window.location.reload()}>
-                Reload Page
+              <Button 
+                variant="outline" 
+                className="font-bold"
+                onClick={() => window.location.reload()}
+              >
+                Reload Application
               </Button>
             </div>
           </Card>

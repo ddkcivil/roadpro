@@ -97,7 +97,7 @@ export interface User {
   avatar?: string;
 }
 
-export interface RFI {
+export interface BaseRFI {
   id: string;
   rfiNumber: string;
   rfiNo?: string;
@@ -106,7 +106,6 @@ export interface RFI {
   location: string;
   description: string;
   category?: string;
-  status: RFIStatus;
   requestedBy: string; // User ID
   inspectionDate?: string;
   inspectionTime?: string;
@@ -114,15 +113,7 @@ export interface RFI {
   workflowLog: any[];
   question?: string;
   priority?: string;
-  responseDate?: string;
   inspectionPurpose?: 'First' | 'Second' | 'Third' | 'Routine' | 'Special' | 'Other';
-  inspectionReport?: string;
-  engineerComments?: string;
-  areSignature?: string;
-  iowSignature?: string;
-  meSltSignature?: string;
-  reSignature?: string;
-  requestNumber?: string;
   workingDrawings?: string[];
   submittedBy?: string;
   receivedBy?: string;
@@ -131,9 +122,28 @@ export interface RFI {
   linkedChecklistIds?: string[];
   inspectionType?: string;
   specificWorkDetails?: string;
-  engineerRepresentativeComments?: string;
-  worksStatus?: 'Approved' | 'Approved as Noted' | 'Approved for Subsequent Work' | '';
 }
+
+export interface OpenRFI extends BaseRFI {
+  status: RFIStatus.OPEN;
+}
+
+export interface PendingInspectionRFI extends BaseRFI {
+  status: RFIStatus.PENDING_INSPECTION;
+}
+
+export interface ResolvedRFI extends BaseRFI {
+  status: RFIStatus.APPROVED | RFIStatus.REJECTED | RFIStatus.CLOSED;
+  responseDate: string;
+  engineerComments: string;
+  worksStatus?: 'Approved' | 'Approved as Noted' | 'Approved for Subsequent Work' | '';
+  areSignature?: string;
+  iowSignature?: string;
+  meSltSignature?: string;
+  reSignature?: string;
+}
+
+export type RFI = OpenRFI | PendingInspectionRFI | ResolvedRFI;
 
 export interface LabTest {
   id: string;
@@ -880,6 +890,8 @@ export interface Project {
   client: string;
   engineer?: string;
   contractNo?: string;
+  lat?: number;
+  lng?: number;
   boq: BOQItem[];
   variationOrders?: VariationOrder[];
   rfis: RFI[];
@@ -921,6 +933,7 @@ export interface Project {
   lastSynced?: string;
   spreadsheetId?: string;
   settings?: AppSettings;
+  updatedAt?: string; // ISO timestamp for conflict resolution
   resources?: ResourceMatrix[];
   resourceAllocations?: ResourceAllocation[];
   milestones?: Milestone[];

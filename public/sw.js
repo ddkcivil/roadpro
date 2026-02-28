@@ -1,88 +1,85 @@
-
-const CACHE_NAME = 'roadmaster-v3'; // Updated version to clear old cache
+const CACHE_NAME = 'roadmaster-v4';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
   '/favicon.ico',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap',
+  '/apple-touch-icon.png',
+  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap'
 ];
 
+// Install Event - Cache static assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
+      console.log('[SW] Caching app shell');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
+  self.skipWaiting();
 });
 
+// Activate Event - Clean up old caches
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            console.log('[SW] Clearing old cache:', cache);
+            return caches.delete(cache);
+          }
+        })
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+// Fetch Event - Strategy implementation
 self.addEventListener('fetch', (event) => {
-  // Skip Google Analytics requests to avoid blocking issues
-  if (event.request.url.includes('google-analytics.com')) {
-    event.respondWith(fetch(event.request));
-    return;
-  }
+  const { request } = event;
+  const url = new URL(request.url);
 
-  // Skip TypeScript files in dev mode to avoid fetch errors
-  if (event.request.url.includes('.ts') || event.request.url.includes('.tsx')) {
-    return;
-  }
+  // Skip non-GET requests
+  if (request.method !== 'GET') return;
 
-  // Skip API requests to avoid caching and fetch errors
-  if (event.request.url.includes('/api')) {
-    return;
-  }
-
-  // Handle navigation requests separately from resource requests
-  if (event.request.mode === 'navigate') {
+  // Strategy for API calls: Network First, then fallback to Cache
+  if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match('/index.html');
-      })
+      fetch(request)
+        .then((response) => {
+          const clonedResponse = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, clonedResponse);
+          });
+          return response;
+        })
+        .catch(() => {
+          return caches.match(request);
+        })
     );
     return;
   }
 
-  // For other requests, try cache first then network
+  // Strategy for static assets: Cache First, then Network
   event.respondWith(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.match(event.request).then((cachedResponse) => {
-        if (cachedResponse) {
-          // Update cache in background for static assets
-          if (event.request.destination === 'script' || 
-              event.request.destination === 'style' || 
-              event.request.destination === 'image') {
-            fetch(event.request).then((networkResponse) => {
-              if (networkResponse && networkResponse.status === 200) {
-                cache.put(event.request, networkResponse.clone());
-              }
-            }).catch((error) => {
-              console.warn('Background fetch failed for:', event.request.url, error);
-            });
-          }
-          return cachedResponse;
+    caches.match(request).then((cachedResponse) => {
+      if (cachedResponse) return cachedResponse;
+
+      return fetch(request).then((response) => {
+        // Don't cache if not a valid response
+        if (!response || response.status !== 200 || response.type !== 'basic') {
+          return response;
         }
-        
-        // If not in cache, fetch from network
-        return fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            // Only cache successful responses for appropriate content types
-            if (event.request.destination === 'script' || 
-                event.request.destination === 'style' || 
-                event.request.destination === 'image' ||
-                event.request.destination === 'font') {
-              cache.put(event.request, networkResponse.clone());
-            }
-          }
-          return networkResponse;
-        }).catch((error) => {
-          console.error('Network request failed:', event.request.url, error);
-          throw error;
+
+        const responseToCache = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(request, responseToCache);
         });
+
+        return response;
       });
-    }).catch((error) => {
-      console.error('Cache operation failed:', event.request.url, error);
-      return fetch(event.request.clone());
     })
   );
 });

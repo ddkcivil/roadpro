@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { 
   HardHat, 
   ChevronLeft, 
   ChevronRight, 
   LogOut,
   Settings
-} from 'lucide-react';
+} from '@/components/icons';
 import { Button } from '~/components/ui/button';
 import { ScrollArea } from '~/components/ui/scroll-area';
 import { Separator } from '~/components/ui/separator';
@@ -14,6 +14,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '~/components/ui/sh
 import { cn } from '~/lib/utils';
 import { NavGroup } from '~/config/navigation';
 import { UserWithPermissions } from '~/types';
+import { motion } from 'framer-motion';
 
 interface AppSidebarProps {
   isSidebarCollapsed: boolean;
@@ -29,7 +30,7 @@ interface AppSidebarProps {
   projectName?: string;
 }
 
-const AppSidebar: React.FC<AppSidebarProps> = ({
+const AppSidebar: React.FC<AppSidebarProps> = memo(({
   isSidebarCollapsed,
   setIsSidebarCollapsed,
   sidebarOpen,
@@ -61,21 +62,28 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
                 <div key={group.title} className="mb-4">
                   <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2 px-2">{group.title}</h3>
                   {group.items.map(item => (
-                    <Button
+                    <motion.div
                       key={item.id}
-                      variant={activeTab === item.id ? "secondary" : "ghost"}
-                      className={cn(
-                        "w-full justify-start gap-3 h-9 px-2",
-                        activeTab === item.id && "bg-secondary text-primary hover:bg-secondary/80"
-                      )}
-                      onClick={() => {
-                        setActiveTab(item.id);
-                        setSidebarOpen(false);
-                      }}
+                      whileHover={{ x: 4 }}
+                      whileTap={{ scale: 0.98 }}
                     >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{item.label}</span>
-                    </Button>
+                      <Button
+                        variant={activeTab === item.id ? "secondary" : "ghost"}
+                        className={cn(
+                          "w-full justify-start gap-3 h-9 px-2 transition-all duration-200",
+                          activeTab === item.id 
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm" 
+                            : "hover:bg-secondary/50"
+                        )}
+                        onClick={() => {
+                          setActiveTab(item.id);
+                          setSidebarOpen(false);
+                        }}
+                      >
+                        <item.icon className={cn("h-4 w-4 shrink-0", activeTab === item.id ? "text-primary-foreground" : "text-muted-foreground")} />
+                        <span className="truncate font-medium">{item.label}</span>
+                      </Button>
+                    </motion.div>
                   ))}
                 </div>
               ))}
@@ -115,18 +123,28 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
                   {group.items.map(item => (
                     <Tooltip key={item.id} delayDuration={0}>
                       <TooltipTrigger asChild>
-                        <Button
-                          variant={activeTab === item.id ? "secondary" : "ghost"}
-                          className={cn(
-                            "w-full justify-start h-9 transition-all",
-                            isSidebarCollapsed ? "px-0 justify-center" : "gap-3 px-2",
-                            activeTab === item.id && "bg-secondary text-primary hover:bg-secondary/80"
-                          )}
-                          onClick={() => setActiveTab(item.id)}
+                        <motion.div
+                          whileHover={isSidebarCollapsed ? { scale: 1.1 } : { x: 4 }}
+                          whileTap={{ scale: 0.98 }}
                         >
-                          <item.icon className="h-4 w-4 shrink-0" />
-                          {!isSidebarCollapsed && <span className="truncate">{item.label}</span>}
-                        </Button>
+                          <Button
+                            variant={activeTab === item.id ? "secondary" : "ghost"}
+                            className={cn(
+                              "w-full justify-start h-9 transition-all duration-200",
+                              isSidebarCollapsed ? "px-0 justify-center" : "gap-3 px-2",
+                              activeTab === item.id 
+                                ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm" 
+                                : "hover:bg-secondary/50"
+                            )}
+                            onClick={() => setActiveTab(item.id)}
+                          >
+                            <item.icon className={cn(
+                              "h-4 w-4 shrink-0 transition-transform", 
+                              activeTab === item.id ? "text-primary-foreground scale-110" : "text-muted-foreground"
+                            )} />
+                            {!isSidebarCollapsed && <span className="truncate font-medium">{item.label}</span>}
+                          </Button>
+                        </motion.div>
                       </TooltipTrigger>
                       {isSidebarCollapsed && (
                         <TooltipContent side="right">
@@ -142,26 +160,32 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         </ScrollArea>
 
         <div className="p-2 border-t mt-auto">
-          <Button 
-            variant="ghost" 
-            className={cn("w-full justify-start", isSidebarCollapsed ? "px-0 justify-center" : "gap-3")}
-            onClick={() => setActiveTab('settings')}
-          >
-            <Settings className="h-4 w-4 shrink-0" />
-            {!isSidebarCollapsed && <span>Settings</span>}
-          </Button>
-          <Button 
-            variant="ghost" 
-            className={cn("w-full justify-start text-red-500 mt-1", isSidebarCollapsed ? "px-0 justify-center" : "gap-3")}
-            onClick={() => logout(selectedProjectId || undefined, projectName)}
-          >
-            <LogOut className="h-4 w-4 shrink-0" />
-            {!isSidebarCollapsed && <span>Logout</span>}
-          </Button>
+          <motion.div whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }}>
+            <Button 
+              variant="ghost" 
+              className={cn("w-full justify-start", isSidebarCollapsed ? "px-0 justify-center" : "gap-3")}
+              onClick={() => setActiveTab('settings')}
+            >
+              <Settings className="h-4 w-4 shrink-0" />
+              {!isSidebarCollapsed && <span>Settings</span>}
+            </Button>
+          </motion.div>
+          <motion.div whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }}>
+            <Button 
+              variant="ghost" 
+              className={cn("w-full justify-start text-red-500 mt-1", isSidebarCollapsed ? "px-0 justify-center" : "gap-3")}
+              onClick={() => logout(selectedProjectId || undefined, projectName)}
+            >
+              <LogOut className="h-4 w-4 shrink-0" />
+              {!isSidebarCollapsed && <span>Logout</span>}
+            </Button>
+          </motion.div>
         </div>
       </aside>
     </>
   );
-};
+});
+
+AppSidebar.displayName = 'AppSidebar';
 
 export default AppSidebar;

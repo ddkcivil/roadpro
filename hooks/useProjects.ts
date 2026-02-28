@@ -1,67 +1,79 @@
-import { useState, useEffect, useMemo, startTransition, useCallback } from 'react';
+import { useEffect, useMemo, startTransition } from 'react';
 import { Project } from '../types';
 import { apiService } from '../services/api/apiService';
 import { DataCache, getCacheKey } from '../utils/data/cacheUtils';
 import { prepareProjectWithMaterials } from '../utils/migration/materialMigrationUtils';
 import { toast } from 'sonner';
 import { useDebounce } from './useDebounce';
+import { AuditService } from '../services/analytics/auditService';
+import { sanitizationUtils } from '../utils/validation/sanitizationUtils';
+import { usePersistedReducer } from './usePersistence';
+import { useRateLimit } from './useRateLimit';
 
-export const useProjects = (isAuthenticated: boolean) => {
-  const [projects, setProjects] = useState<Project[]>(() => {
-    const cacheKey = getCacheKey('projects');
-    const cachedProjects = DataCache.get<Project[]>(cacheKey);
-    
-    if (cachedProjects && Array.isArray(cachedProjects)) {
-      return cachedProjects;
-    }
-    
-    const savedProjects = localStorage.getItem('roadmaster-projects');
-    const projectsData = savedProjects ? JSON.parse(savedProjects) : [];
-    
-    const finalProjects = Array.isArray(projectsData) ? projectsData : [];
-    
-    if (!savedProjects) {
-      localStorage.setItem('roadmaster-projects', JSON.stringify([]));
-    }
-    
-    DataCache.set(cacheKey, finalProjects, { ttl: 10 * 60 * 1000 });
-    
-    return finalProjects;
+interface ProjectsState {
+  projects: Project[];
+  selectedProjectId: string | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+type ProjectsAction = 
+  | { type: 'FETCH_START' }
+  | { type: 'FETCH_SUCCESS'; payload: Project[] }
+  | { type: 'FETCH_ERROR'; payload: string }
+  | { type: 'SET_SELECTED_PROJECT'; payload: string | null }
+  | { type: 'UPDATE_PROJECTS'; payload: Project[] };
+
+const projectsReducer = (state: ProjectsState, action: ProjectsAction): ProjectsState => {
+  switch (action.type) {
+    case 'FETCH_START':
+      return { ...state, isLoading: true, error: null };
+    case 'FETCH_SUCCESS':
+      return { ...state, isLoading: false, projects: action.payload, error: null };
+    case 'FETCH_ERROR':
+      return { ...state, isLoading: false, error: action.payload };
+    case 'SET_SELECTED_PROJECT':
+      return { ...state, selectedProjectId: action.payload };
+    case 'UPDATE_PROJECTS':
+      return { ...state, projects: action.payload };
+    default:
+      return state;
+  }
+};
+
+const INITIAL_STATE: ProjectsState = {
+  projects: [],
+  selectedProjectId: null,
+  isLoading: false,
+  error: null,
+};
+
+export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
+  const [state, dispatch] = usePersistedReducer(
+    projectsReducer, 
+    INITIAL_STATE, 
+    'roadmaster-projects-state'
+  );
+
+  const { checkLimit, remainingTime } = useRateLimit({
+    limit: 10,
+    windowMs: 60000 // 10 saves per minute
   });
 
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() => {
-    return localStorage.getItem('roadmaster-selected-project') || null;
-  });
-
-  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
-
-  const debouncedSaveProjects = useDebounce((updatedProjects: Project[]) => {
-    localStorage.setItem('roadmaster-projects', JSON.stringify(updatedProjects));
+  const debouncedCacheSync = useDebounce((updatedProjects: Project[]) => {
     DataCache.set(getCacheKey('projects'), updatedProjects, { ttl: 10 * 60 * 1000 });
   }, 1000);
 
-  useEffect(() => {
-    if (selectedProjectId) {
-      localStorage.setItem('roadmaster-selected-project', selectedProjectId);
-    } else {
-      localStorage.removeItem('roadmaster-selected-project');
-    }
-  }, [selectedProjectId]);
-
-  const fetchProjects = async () => {
-    setIsLoadingProjects(true);
-    setApiError(null);
+  const fetchProjects = async (page = 1) => {
+    dispatch({ type: 'FETCH_START' });
     try {
-      const fetchedProjects = await apiService.getProjects();
-      setProjects(fetchedProjects);
-      localStorage.setItem('roadmaster-projects', JSON.stringify(fetchedProjects));
+      const response = await apiService.getProjects(page);
+      const fetchedProjects = response.data;
+      dispatch({ type: 'FETCH_SUCCESS', payload: fetchedProjects });
       DataCache.set(getCacheKey('projects'), fetchedProjects, { ttl: 10 * 60 * 1000 });
     } catch (error: any) {
       console.error('Failed to fetch projects from database:', error);
-      setApiError(error.message || 'Failed to connect to the database. Please check your connection and configuration.');
-    } finally {
-      setIsLoadingProjects(false);
+      dispatch({ type: 'FETCH_ERROR', payload: error.message || 'Failed to connect to the database.' });
     }
   };
 
@@ -72,18 +84,38 @@ export const useProjects = (isAuthenticated: boolean) => {
   }, [isAuthenticated]);
 
   const currentProject = useMemo(() => {
-    const project = projects.find(p => p.id === selectedProjectId);
+    if (!state?.projects) return undefined;
+    const project = state.projects.find(p => p.id === state.selectedProjectId);
     return project ? prepareProjectWithMaterials(project) : undefined;
-  }, [projects, selectedProjectId]);
+  }, [state?.projects, state?.selectedProjectId]);
+
+  const setSelectedProjectId = (id: string | null) => {
+    dispatch({ type: 'SET_SELECTED_PROJECT', payload: id });
+  };
 
   const saveProject = async (project: Partial<Project>) => {
+    if (!checkLimit()) {
+      toast.warning("Rate limit exceeded", {
+        description: `Please wait ${Math.ceil(remainingTime)} seconds before saving again.`
+      });
+      return;
+    }
+
+    const previousProjects = [...state.projects];
     try {
       const targetProjectId = project.id || currentProject?.id;
       const isUpdate = !!targetProjectId;
       
       const baseProject = project.id 
-        ? projects.find(p => p.id === project.id) 
+        ? state.projects.find(p => p.id === project.id) 
         : currentProject;
+
+      // Basic Conflict Check
+      if (isUpdate && baseProject?.updatedAt && project.updatedAt) {
+        if (new Date(baseProject.updatedAt) > new Date(project.updatedAt)) {
+          console.warn('Potential conflict detected: Local version might be older than last sync.');
+        }
+      }
 
       const completeProjectData: Project = {
         id: targetProjectId || `proj-${Date.now()}`,
@@ -106,6 +138,7 @@ export const useProjects = (isAuthenticated: boolean) => {
         lastSynced: project.lastSynced || baseProject?.lastSynced,
         spreadsheetId: project.spreadsheetId || baseProject?.spreadsheetId,
         settings: project.settings || baseProject?.settings,
+        updatedAt: new Date().toISOString(),
         environmentRegistry: project.environmentRegistry || baseProject?.environmentRegistry || { treesRemoved: 0, treesPlanted: 0, sprinklingLogs: [], treeLogs: [] },
         boq: project.boq || baseProject?.boq || [],
         rfis: project.rfis || baseProject?.rfis || [],
@@ -160,71 +193,122 @@ export const useProjects = (isAuthenticated: boolean) => {
         return;
       }
 
-      const processedProject: Project = prepareProjectWithMaterials(completeProjectData);
+      const sanitizedProjectData = sanitizationUtils.sanitizeObject(completeProjectData);
+
+      const optimisticProjects = isUpdate 
+        ? state.projects.map(p => p.id === sanitizedProjectData.id ? sanitizedProjectData : p)
+        : [...state.projects, sanitizedProjectData];
+      
+      dispatch({ type: 'UPDATE_PROJECTS', payload: optimisticProjects });
+
+      const processedProject: Project = prepareProjectWithMaterials(sanitizedProjectData);
 
       let backendProject: Project;
       if (isUpdate) {
-        backendProject = await apiService.updateProject(completeProjectData.id, processedProject);
+        backendProject = await apiService.updateProject(sanitizedProjectData.id, processedProject);
+        if (currentUser) {
+          AuditService.logDataModification(
+            currentUser.id, 
+            currentUser.name, 
+            'UPDATE', 
+            'project', 
+            backendProject.id, 
+            backendProject.name,
+            baseProject,
+            backendProject
+          );
+        }
       } else {
         backendProject = await apiService.createProject(processedProject);
+        if (currentUser) {
+          AuditService.logDataModification(
+            currentUser.id, 
+            currentUser.name, 
+            'CREATE', 
+            'project', 
+            backendProject.id, 
+            backendProject.name,
+            undefined,
+            backendProject
+          );
+        }
       }
 
       startTransition(() => {
-        setProjects(prev => {
-          const updatedProjects = isUpdate 
-            ? prev.map(p => p.id === backendProject.id ? backendProject : p)
-            : [...prev, backendProject];
-          
-          debouncedSaveProjects(updatedProjects);
-          
-          return updatedProjects;
-        });
+        const finalProjects = isUpdate 
+          ? state.projects.map(p => p.id === backendProject.id ? backendProject : p)
+          : optimisticProjects.map(p => p.id === sanitizedProjectData.id ? backendProject : p);
+        
+        dispatch({ type: 'UPDATE_PROJECTS', payload: finalProjects });
+        debouncedCacheSync(finalProjects);
       });
 
       toast.success(isUpdate ? "Project Updated" : "Project Created", {
-        description: `${completeProjectData.name} has been synchronized with the cloud.`,
+        description: `${sanitizedProjectData.name} has been synchronized with the cloud.`,
       });
     } catch (error: any) {
+      dispatch({ type: 'UPDATE_PROJECTS', payload: previousProjects });
+      
       console.error('[ERROR] Failed to save project to backend:', error);
       const errorMsg = error.response?.data?.details || error.message || 'Unknown server error';
       toast.error("Save Failed", {
-        description: `Server responded with: ${errorMsg}`,
+        description: `Rollback applied. Server responded with: ${errorMsg}`,
       });
       throw error;
     }
   };
 
   const deleteProject = async (projectId: string) => {
+    const previousProjects = state?.projects ? [...state.projects] : [];
+    const projectToDelete = state?.projects?.find(p => p.id === projectId);
+    
     try {
-      await apiService.deleteProject(projectId);
-      setProjects(prev => {
-        const updatedProjects = prev.filter(p => p.id !== projectId);
-        debouncedSaveProjects(updatedProjects);
-        return updatedProjects;
-      });
-      if (selectedProjectId === projectId) {
+      const updatedProjects = previousProjects.filter(p => p.id !== projectId);
+      dispatch({ type: 'UPDATE_PROJECTS', payload: updatedProjects });
+      
+      if (state?.selectedProjectId === projectId) {
         setSelectedProjectId(null);
       }
+
+      await apiService.deleteProject(projectId);
+      if (currentUser && projectToDelete) {
+        AuditService.logDataModification(
+          currentUser.id, 
+          currentUser.name, 
+          'DELETE', 
+          'project', 
+          projectId, 
+          projectToDelete.name,
+          projectToDelete,
+          undefined
+        );
+      }
+      debouncedCacheSync(updatedProjects);
+      
       toast.success("Project Deleted", {
         description: "The project has been permanently removed from the database.",
       });
     } catch (error: any) {
+      dispatch({ type: 'UPDATE_PROJECTS', payload: previousProjects });
+      if (state?.selectedProjectId === null && projectToDelete) {
+         setSelectedProjectId(projectId);
+      }
+      
       console.error('[ERROR] Failed to delete project from backend:', error);
       const errorMsg = error.response?.data?.details || error.message || 'Unknown server error';
       toast.error("Delete Failed", {
-        description: `Server responded with: ${errorMsg}`,
+        description: `Rollback applied. Server responded with: ${errorMsg}`,
       });
     }
   };
 
   return {
-    projects,
-    setProjects,
-    selectedProjectId,
+    projects: state?.projects || [],
+    selectedProjectId: state?.selectedProjectId || null,
     setSelectedProjectId,
     currentProject,
-    isLoadingProjects,
-    apiError,
+    isLoadingProjects: state?.isLoading || false,
+    apiError: state?.error || null,
     fetchProjects,
     saveProject,
     deleteProject

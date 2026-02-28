@@ -9,12 +9,16 @@ import {
   FolderOpen,
   ArrowRight,
   Command,
-  X
+  X,
+  Star,
+  History,
+  Trash2
 } from 'lucide-react';
 import { Dialog, DialogContent } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Badge } from '~/components/ui/badge';
 import { ScrollArea } from '~/components/ui/scroll-area';
+import { Button } from '~/components/ui/button';
 import { Project, UserRole } from '../../types';
 import { cn } from '~/lib/utils';
 
@@ -46,6 +50,45 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  
+  // History and Favorites state
+  const [history, setHistory] = useState<SearchResult[]>(() => {
+    const saved = localStorage.getItem('roadmaster-search-history');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  const [favorites, setFavorites] = useState<SearchResult[]>(() => {
+    const saved = localStorage.getItem('roadmaster-search-favorites');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('roadmaster-search-history', JSON.stringify(history));
+  }, [history]);
+
+  useEffect(() => {
+    localStorage.setItem('roadmaster-search-favorites', JSON.stringify(favorites));
+  }, [favorites]);
+
+  const addToHistory = useCallback((result: SearchResult) => {
+    setHistory(prev => {
+      const filtered = prev.filter(item => item.id !== result.id || item.type !== result.type);
+      return [result, ...filtered].slice(0, 5); // Keep last 5
+    });
+  }, []);
+
+  const toggleFavorite = useCallback((e: React.MouseEvent, result: SearchResult) => {
+    e.stopPropagation();
+    setFavorites(prev => {
+      const isFav = prev.some(item => item.id === result.id && item.type === result.type);
+      if (isFav) {
+        return prev.filter(item => item.id !== result.id || item.type !== result.type);
+      }
+      return [result, ...prev];
+    });
+  }, []);
+
+  const clearHistory = () => setHistory([]);
 
   // Toggle search with Ctrl+K
   useEffect(() => {
@@ -146,6 +189,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
   }, [query, projects, currentProject]);
 
   const handleSelect = useCallback((result: SearchResult) => {
+    addToHistory(result);
     if (result.type === 'Project') {
       onSelectProject(result.id);
     } else {
@@ -153,7 +197,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
     }
     setOpen(false);
     setQuery('');
-  }, [onSelectProject, onNavigate]);
+  }, [onSelectProject, onNavigate, addToHistory]);
 
   // Keyboard navigation for results
   useEffect(() => {
@@ -232,6 +276,14 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
                         {result.subtitle}
                       </p>
                     </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className={cn("h-8 w-8 hover:bg-white/20", selectedIndex === index ? "text-white" : "text-slate-400")}
+                      onClick={(e) => toggleFavorite(e, result)}
+                    >
+                      <Star size={14} className={cn(favorites.some(f => f.id === result.id) && "fill-yellow-400 text-yellow-400")} />
+                    </Button>
                     <ArrowRight size={14} className={cn(
                       "shrink-0 transition-transform duration-200",
                       selectedIndex === index ? "translate-x-0 opacity-100" : "-translate-x-2 opacity-0"
@@ -245,7 +297,54 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
                 <p className="text-slate-500 font-medium">No results found for "{query}"</p>
               </div>
             ) : (
-              <div className="p-4 space-y-4">
+              <div className="p-2 space-y-4">
+                {favorites.length > 0 && (
+                  <div>
+                    <p className="px-2 mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                      <Star size={10} className="text-yellow-500" /> Favorites
+                    </p>
+                    <div className="space-y-1">
+                      {favorites.map((fav) => (
+                        <button
+                          key={`fav-${fav.id}`}
+                          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          onClick={() => handleSelect(fav)}
+                        >
+                          <fav.icon size={14} className="text-slate-400" />
+                          <span className="text-sm font-medium flex-1 truncate">{fav.title}</span>
+                          <Badge variant="secondary" className="text-[9px] h-4">{fav.type}</Badge>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {history.length > 0 && (
+                  <div>
+                    <div className="px-2 mb-2 flex justify-between items-center">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                        <History size={10} /> Recent Searches
+                      </p>
+                      <button onClick={clearHistory} className="text-[9px] font-bold text-red-500 hover:underline flex items-center gap-1">
+                        <Trash2 size={10} /> Clear
+                      </button>
+                    </div>
+                    <div className="space-y-1">
+                      {history.map((hist) => (
+                        <button
+                          key={`hist-${hist.id}`}
+                          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          onClick={() => handleSelect(hist)}
+                        >
+                          <hist.icon size={14} className="text-slate-400" />
+                          <span className="text-sm font-medium flex-1 truncate">{hist.title}</span>
+                          <Badge variant="outline" className="text-[9px] h-4">{hist.type}</Badge>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-2">
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700">
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Keyboard Shortcuts</p>
