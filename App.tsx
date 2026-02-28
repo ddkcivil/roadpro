@@ -4,42 +4,14 @@ import {
   Moon,
   LayoutDashboard,
   HardHat,
-  Hammer,
   FileText,
   Settings,
   Menu as MenuIcon,
-  Bot,
-  CalendarClock,
-  ClipboardCheck,
-  Map as MapIcon,
   LogOut,
   ChevronLeft,
   ChevronRight,
   CloudCog,
   LayoutGrid,
-  Eye,
-  Shield,
-  Scale,
-  Package,
-  DollarSign,
-  BarChart3,
-  CreditCard,
-  Users,
-  PackageSearch,
-  Mail,
-  MessageSquare,
-  FolderOpen,
-  UserCheck,
-  FileDiff,
-  Briefcase,
-  Navigation,
-  Camera,
-  ClipboardList,
-  Truck,
-  Layers,
-  Trees,
-  Download,
-  AlertTriangle,
   RefreshCw,
   Database,
   Loader2
@@ -49,6 +21,7 @@ import { PermissionsService } from './services/auth/permissionsService';
 import { AuditService } from './services/analytics/auditService';
 import { DataCache, getCacheKey } from './utils/data/cacheUtils';
 import { LocalStorageUtils } from './utils/data/localStorageUtils';
+import { getNavigationGroups } from './config/navigation';
 
 import { apiService } from './services/api/apiService';
 import { prepareProjectWithMaterials } from './utils/migration/materialMigrationUtils';
@@ -689,66 +662,7 @@ const App: React.FC = () => {
 
   // const handleSnackbarClose removed - replaced by useToast
   
-  const overviewItems = useMemo(() => {
-    const items = [
-      { id: 'dashboard', label: 'Command Center', icon: LayoutDashboard }, 
-      { id: 'map', label: 'GIS Alignment', icon: MapIcon },
-      { id: 'messages', label: 'Communications', icon: MessageSquare },
-      { id: 'documents', label: 'Document Hub', icon: FolderOpen }
-    ];
-    
-    const userRole = currentUser.role;
-    if (userRole === UserRole.ADMIN || userRole === UserRole.PROJECT_MANAGER) {
-      if ((currentUser as UserWithPermissions).permissions.includes(Permission.USER_READ)) {
-        items.push({ id: 'user-management', label: 'User Management', icon: UserCheck });
-      }
-      items.push({ id: 'user-registration', label: 'Create Account', icon: Shield }); // This is 'Create Account'
-      items.push({ id: 'staff-management', label: 'Staff Management', icon: Users });
-    }
-    
-    return items;
-  }, [currentUser]);
-
-  const navGroups = useMemo(() => [
-    { title: 'Overview', items: overviewItems },
-    { title: 'Commercial', items: [
-        { id: 'boq', label: 'BOQ Ledger', icon: FileText },
-        { id: 'billing', label: 'Billing & Invoicing', icon: CreditCard },
-        { id: 'variations', label: 'Amendments', icon: FileDiff },
-        { id: 'financials', label: 'Financials & Commercial', icon: DollarSign },
-        { id: 'ocr-extraction', label: 'Chandra OCR', icon: Eye }
-    ]},
-    { title: 'Partners', items: [
-        { id: 'agencies', label: 'Agencies', icon: Briefcase },
-        { id: 'subcontractors', label: 'Subcontractors', icon: Briefcase },
-        { id: 'subcontractor-billing', label: 'Subcontractor Billing', icon: CreditCard }
-    ]},
-    { title: 'Execution', items: [
-        { id: 'schedule', label: 'CPM Schedule', icon: CalendarClock }, 
-        { id: 'construction', label: 'Structural', icon: Hammer }, 
-        { id: 'linear-works', label: 'Chainage Progress', icon: Navigation }, 
-        { id: 'site-photos', label: 'Visual Intel', icon: Camera },
-        { id: 'daily-reports', label: 'Field DPR', icon: ClipboardList },
-        { id: 'pre-construction', label: 'Pre-Construction', icon: HardHat },
-        { id: 'reports-analytics', label: 'Reports & Analytics', icon: BarChart3 },
-        { id: 'mpr-report', label: 'Monthly Reports', icon: FileText }
-    ]},
-    { title: 'Ops & Quality', items: [
-        { id: 'rfis', label: 'Inspections', icon: ClipboardCheck },
-        { id: 'materials-hub', label: 'Materials & Resources', icon: Package },
-        { id: 'assets', label: 'Assets & Equipment', icon: PackageSearch },
-        { id: 'resource-matrix', label: 'Resource Matrix', icon: Layers },
-        { id: 'fleet', label: 'Telemetry', icon: Truck },
-        { id: 'quality', label: 'Quality Hub', icon: Shield },
-        { id: 'lab', label: 'Material Testing', icon: Scale },
-        { id: 'environment', label: 'EMP Compliance', icon: Trees },
-        { id: 'data-analysis', label: 'Data Analysis', icon: BarChart3 }
-    ]},
-    { title: 'Information', items: [
-        { id: 'about', label: 'About', icon: HardHat },
-        { id: 'contact', label: 'Contact', icon: Mail }
-    ]}
-  ], [overviewItems]);
+  const navGroups = useMemo(() => getNavigationGroups(currentUser), [currentUser]);
 
   // Render login screen if not authenticated
   if (!isAuthenticated) {
