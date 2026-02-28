@@ -4,6 +4,7 @@ import { Project, User } from './types';
 import { LocalStorageUtils } from './utils/data/localStorageUtils';
 import { getNavigationGroups } from './config/navigation';
 import { SyncService } from './services/api/syncService';
+import { DataSyncService } from './services/database/dataSyncService';
 import { useAuth } from './hooks/useAuth';
 import { useProjects } from './hooks/useProjects';
 import { useMessages } from './hooks/useMessages';
@@ -11,6 +12,7 @@ import { useSettings } from './hooks/useSettings';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 import { apiService } from './services/api/apiService';
+import { sqliteService } from './services/database/sqliteService';
 import { addSkipLink } from './utils/accessibility/a11yUtils';
 
 import AboutPage from './components/core/AboutPage';
@@ -118,6 +120,13 @@ const App: React.FC = () => {
   // Initialize service worker and accessibility on mount
   useEffect(() => {
     LocalStorageUtils.initializeEmptyData();
+    
+    // Initialize SQLite service
+    sqliteService.initialize().then(() => {
+      DataSyncService.syncAllToSQLite();
+    }).catch(err => {
+      console.error('Failed to initialize SQLite service:', err);
+    });
     
     if ('serviceWorker' in navigator) {
       const registerSW = async () => {
