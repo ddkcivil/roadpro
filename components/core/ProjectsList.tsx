@@ -20,7 +20,7 @@ import { SearchInput } from '~/components/ui/search-input';
 import { HasPermission } from '~/components/common/HasPermission';
 import { CardGrid } from '~/components/ui/card-grid';
 import { FixedSizeList as List } from 'react-window';
-import AutoSizer from 'react-virtualized-auto-sizer';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 
 interface Props {
   projects: Project[];
