@@ -1,37 +1,23 @@
 import React, { useState, useEffect, useMemo, startTransition, lazy, Suspense } from 'react';
-import { 
-  Sun,
-  Moon,
-  LayoutDashboard,
-  HardHat,
-  FileText,
-  Settings,
-  Menu as MenuIcon,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-  CloudCog,
-  LayoutGrid,
-  RefreshCw,
-  Database,
-  Loader2
-} from 'lucide-react';
-import { UserRole, Project, AppSettings, Message, UserWithPermissions, Permission, User } from './types';
-import { PermissionsService } from './services/auth/permissionsService';
-import { AuditService } from './services/analytics/auditService';
-import { DataCache, getCacheKey } from './utils/data/cacheUtils';
+import { Loader2, Database } from 'lucide-react';
+import { Project, User, UserRole } from './types';
 import { LocalStorageUtils } from './utils/data/localStorageUtils';
 import { getNavigationGroups } from './config/navigation';
+import { useAuth } from './hooks/useAuth';
+import { useProjects } from './hooks/useProjects';
+import { useMessages } from './hooks/useMessages';
+import { useSettings } from './hooks/useSettings';
 
 import { apiService } from './services/api/apiService';
-import { prepareProjectWithMaterials } from './utils/migration/materialMigrationUtils';
 import { addSkipLink } from './utils/accessibility/a11yUtils';
 
 import AboutPage from './components/core/AboutPage';
 import ContactPage from './components/core/ContactPage';
 import ErrorBoundary from './components/core/ErrorBoundary';
-import NotificationsBadge from './components/core/NotificationsBadge';
 import ProjectModal from './components/core/ProjectModal';
+import AppSidebar from './components/core/AppSidebar';
+import AppHeader from './components/core/AppHeader';
+import ProjectSelector from './components/core/ProjectSelector';
 
 import { I18nProvider } from './contexts/I18nContext';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -39,22 +25,14 @@ import { NotificationProvider } from './contexts/NotificationContext';
 // Components
 import Login from './components/core/Login';
 import DataAnalysisModule from './components/core/DataAnalysisModule';
-import ProjectsList from './components/core/ProjectsList';
 
 // Shadcn UI components
 import { Button } from '~/components/ui/button';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '~/components/ui/sheet';
-import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
-import { Toggle } from '~/components/ui/toggle';
-import { Separator } from '~/components/ui/separator';
-import { Badge } from '~/components/ui/badge';
 import { Toaster, toast } from 'sonner';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
-import { cn } from '~/lib/utils';
-import { ScrollArea } from '~/components/ui/scroll-area';
+import { TooltipProvider } from '~/components/ui/tooltip';
 
 
-// Lazy-loaded components - keep as is
+// Lazy-loaded components
 const Dashboard = lazy(() => import('./components/core/Dashboard'));
 const BOQModule = lazy(() => import('./components/modules/BOQModule'));
 const BillingModule = lazy(() => import('./components/modules/BillingModule'));
@@ -62,12 +40,10 @@ const VariationModule = lazy(() => import('./components/modules/VariationModule'
 const RFIModule = lazy(() => import('./components/modules/RFIModule'));
 const ScheduleModule = lazy(() => import('./components/modules/ScheduleModule'));
 const DailyReportModule = lazy(() => import('./components/modules/DailyReportModule'));
-const PortfolioDashboard = lazy(() => import('./components/core/PortfolioDashboard'));
 const AIChatModal = lazy(() => import('./components/utilities/AIChatModal'));
 const UserManagement = lazy(() => import('./components/common/UserManagement'));
 const UserRegistration = lazy(() => import('./components/common/UserRegistration'));
 const StaffManagementModule = lazy(() => import('./components/modules/StaffManagementModule'));
-const ResourceManagementHub = lazy(() => import('./components/modules/ResourceManagementHub'));
 const DocumentationHub = lazy(() => import('./components/modules/DocumentationHub'));
 const FinancialManagementHub = lazy(() => import('./components/modules/FinancialManagementHub'));
 const SettingsModule = lazy(() => import('./components/modules/SettingsModule'));
@@ -78,14 +54,11 @@ const QualityHub = lazy(() => import('./components/hubs/QualityHub'));
 const LinearWorksModule = lazy(() => import('./components/modules/LinearWorksModule'));
 const SubcontractorModule = lazy(() => import('./components/modules/SubcontractorModule'));
 const SubcontractorBillingModule = lazy(() => import('./components/modules/SubcontractorBillingModule'));
-const DocumentsModule = lazy(() => import('./components/modules/DocumentsModule'));
 const MessagesModule = lazy(() => import('./components/modules/MessagesModule'));
 const FleetModule = lazy(() => import('./components/modules/FleetModule'));
-const ResourceManager = lazy(() => import('./components/modules/ResourceManager'));
 const SitePhotosModule = lazy(() => import('./components/modules/SitePhotosModule'));
 const EnvironmentModule = lazy(() => import('./components/modules/EnvironmentModule'));
 const PreConstructionModule = lazy(() => import('./components/modules/PreConstructionModule'));
-const PavementModule = lazy(() => import('./components/modules/PavementModule'));
 const AgencyModule = lazy(() => import('./components/modules/AgencyModule'));
 const AssetsModule = lazy(() => import('./components/modules/AssetsModule'));
 const ResourceMatrixModule = lazy(() => import('./components/modules/ResourceMatrixModule'));
@@ -96,35 +69,53 @@ const MPRReportModule = lazy(() => import('./components/modules/MPRReportModule'
 
 
 const App: React.FC = () => {
-  // Register service worker and add accessibility features on component mount
-  useEffect(() => {
-    // Initialize localStorage with empty arrays if no data exists
-    LocalStorageUtils.initializeEmptyData();
-    
-    // Initialize with empty users array if no data exists
-    const savedUsers = localStorage.getItem('roadmaster-users');
-    if (!savedUsers) {
-      localStorage.setItem('roadmaster-users', JSON.stringify([]));
-    }
-    
+  // Global hooks
+  const { 
+    isAuthenticated, 
+    userRole, 
+    userName, 
+    currentUser, 
+    login, 
+    logout 
+  } = useAuth();
 
+  const { 
+    appSettings, 
+    updateSettings 
+  } = useSettings();
+
+  const {
+    projects,
+    selectedProjectId,
+    setSelectedProjectId,
+    currentProject,
+    isLoadingProjects,
+    apiError,
+    fetchProjects,
+    saveProject,
+    deleteProject
+  } = useProjects(isAuthenticated);
+
+  const {
+    messages,
+    sendMessage
+  } = useMessages(currentUser);
+
+  // Initialize service worker and accessibility on mount
+  useEffect(() => {
+    LocalStorageUtils.initializeEmptyData();
     
     if ('serviceWorker' in navigator) {
       const registerSW = async () => {
         try {
-          // Check if we're on localhost or a secure context (HTTPS)
           if (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-            const registration = await navigator.serviceWorker.register('./sw.js');
-            console.log('SW registered: ', registration);
-          } else {
-            console.log('Service worker not registered: not a secure context');
+            await navigator.serviceWorker.register('./sw.js');
           }
-        } catch (registrationError) {
-          console.log('SW registration failed: ', registrationError);
+        } catch (error) {
+          console.error('SW registration failed: ', error);
         }
       };
       
-      // Wait for the window to load
       if (document.readyState === 'loading') {
         window.addEventListener('load', registerSW);
       } else {
@@ -132,11 +123,10 @@ const App: React.FC = () => {
       }
     }
     
-    // Add accessibility features
     addSkipLink('#main-content', 'Skip to main content');
   }, []);
 
-
+  // Theme management
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
   
   useEffect(() => {
@@ -147,101 +137,19 @@ const App: React.FC = () => {
     }
   }, [themeMode]);
 
-
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('roadmaster-authenticated') === 'true';
-  });
-  const [userRole, setUserRole] = useState<UserRole>(() => {
-    return (localStorage.getItem('roadmaster-user-role') as UserRole) || UserRole.SITE_ENGINEER;
-  });
-  const [userName, setUserName] = useState(() => {
-    return localStorage.getItem('roadmaster-user-name') || '';
-  });
-  const [currentUserId, setCurrentUserId] = useState<string>(() => {
-    return localStorage.getItem('roadmaster-current-user-id') || '';
-  });
-
-  // Effect to verify authentication state after component mounts
-  useEffect(() => {
-    console.log('Component mounted - Auth state check:', {
-      isAuthenticated,
-      userRole,
-      userName,
-      currentUserId,
-      localStorageAuth: localStorage.getItem('roadmaster-authenticated'),
-      localStorageRole: localStorage.getItem('roadmaster-user-role'),
-      localStorageName: localStorage.getItem('roadmaster-user-name'),
-      localStorageUserId: localStorage.getItem('roadmaster-current-user-id'),
-    });
-  }, [isAuthenticated, userRole, userName, currentUserId]);
-
-  // Debug effect to track authentication state changes
-  useEffect(() => {
-    console.log('Authentication state changed:', {
-      isAuthenticated,
-      userRole,
-      userName,
-      currentUserId
-    });
-  }, [isAuthenticated, userRole, userName, currentUserId]);
-  
-  // Project selection state
-  const [hasSelectedProject, setHasSelectedProject] = useState(false);
-  
-  // Main app state
+  // UI state
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [editProject, setEditProject] = useState<Partial<Project> | null>(null);
   
-  // Initialize projects from localStorage or use mock data with caching
-  const [projects, setProjects] = useState<Project[]>(() => {
-    const cacheKey = getCacheKey('projects');
-    const cachedProjects = DataCache.get<Project[]>(cacheKey);
-    
-    if (cachedProjects && Array.isArray(cachedProjects)) {
-      return cachedProjects;
-    }
-    
-    const savedProjects = localStorage.getItem('roadmaster-projects');
-    const projectsData = savedProjects ? JSON.parse(savedProjects) : [];
-    
-    const finalProjects = Array.isArray(projectsData) ? projectsData : [];
-    
-    // Initialize with empty array if no data exists
-    if (!savedProjects) {
-      localStorage.setItem('roadmaster-projects', JSON.stringify([]));
-    }
-    
-    // Cache the projects
-    DataCache.set(cacheKey, finalProjects, { ttl: 10 * 60 * 1000 }); // 10 minutes
-    
-    return finalProjects;
+  const [users, setUsers] = useState<User[]>(() => {
+    const savedUsers = localStorage.getItem('roadmaster-users');
+    return savedUsers ? (JSON.parse(savedUsers) || []) : [];
   });
-  
-  // Fetch projects from actual database on mount
-  const fetchProjects = async () => {
-    setIsLoadingProjects(true);
-    setApiError(null);
-    try {
-      const fetchedProjects = await apiService.getProjects();
-      setProjects(fetchedProjects);
-      localStorage.setItem('roadmaster-projects', JSON.stringify(fetchedProjects));
-      DataCache.set(getCacheKey('projects'), fetchedProjects, { ttl: 10 * 60 * 1000 });
-    } catch (error: any) {
-      console.error('Failed to fetch projects from database:', error);
-      setApiError(error.message || 'Failed to connect to the database. Please check your connection and configuration.');
-    } finally {
-      setIsLoadingProjects(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchProjects();
-      fetchUsers();
-    }
-  }, [isAuthenticated]);
 
   const fetchUsers = async () => {
     try {
@@ -253,539 +161,68 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSendMessage = (text: string, receiverId: string, projectId: string) => {
-    const newMessage: Message = {
-      id: `msg-${Date.now()}`,
-      senderId: currentUser.id,
-      receiverId,
-      content: text,
-      timestamp: new Date().toISOString(),
-      projectId,
-      read: false
-    };
-
-    const updatedMessages = [...messages, newMessage];
-    setMessages(updatedMessages);
-    localStorage.setItem('roadmaster-messages', JSON.stringify(updatedMessages));
-    DataCache.set(getCacheKey('messages'), updatedMessages, { ttl: 5 * 60 * 1000 });
-  };
-  
-
-  
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() => {
-    // Try to restore the last selected project from localStorage
-    const savedSelectedProject = localStorage.getItem('roadmaster-selected-project');
-    console.log('Initial selectedProjectId state:', savedSelectedProject);
-    return savedSelectedProject || null;
-  });
-  
-  // Update localStorage whenever selectedProjectId changes
   useEffect(() => {
-    if (selectedProjectId) {
-      localStorage.setItem('roadmaster-selected-project', selectedProjectId);
-      setHasSelectedProject(true); // Move to main app after project selection
-    } else {
-      localStorage.removeItem('roadmaster-selected-project');
+    if (isAuthenticated) {
+      fetchUsers();
     }
-  }, [selectedProjectId]);
-  
-  // Initialize messages from localStorage or use mock data
-  const [messages, setMessages] = useState<Message[]>(() => {
-    const cacheKey = getCacheKey('messages');
-    const cachedMessages = DataCache.get<Message[]>(cacheKey);
-    
-    if (cachedMessages && Array.isArray(cachedMessages)) {
-      return cachedMessages;
-    }
-    
-    const savedMessages = localStorage.getItem('roadmaster-messages');
-    const messagesData = savedMessages ? (JSON.parse(savedMessages) || []) : [];
-    
-    const finalMessages = Array.isArray(messagesData) ? messagesData : [];
-    
-    // Initialize with empty array if no data exists
-    if (!savedMessages) {
-      localStorage.setItem('roadmaster-messages', JSON.stringify([]));
-    }
-    
-    // Cache the messages
-    DataCache.set(cacheKey, finalMessages, { ttl: 5 * 60 * 1000 }); // 5 minutes
-    
-    return finalMessages;
-  });
-  
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [users, setUsers] = useState<User[]>(() => {
-    const savedUsers = localStorage.getItem('roadmaster-users');
-    const usersData = savedUsers ? (JSON.parse(savedUsers) || []) : [];
-    return Array.isArray(usersData) ? usersData : [];
-  });
-  
-
-
-  const [appSettings, setAppSettings] = useState<AppSettings>(() => {
-    const savedSettings = localStorage.getItem('roadmaster-settings');
-    return savedSettings ? JSON.parse(savedSettings) : {
-      companyName: 'RoadMaster Pro',
-      currency: 'USD', // Default currency - can be changed in settings
-      vatRate: 13,
-      fiscalYearStart: '2024-01-01',
-      googleSpreadsheetId: '',
-      defaultLocation: '27.7006, 83.4484', // Butwal, Nepal
-      notifications: {
-          enableEmail: true,
-          enableInApp: true,
-          notifyUpcoming: true,
-          daysBefore: 7,
-          notifyOverdue: true,
-          dailyDigest: true,
-      }
-    };
-  });
-
-  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
-  const [editProject, setEditProject] = useState<Partial<Project> | null>(null);
-  
-  const currentProject = useMemo(() => {
-    const project = projects.find(p => p.id === selectedProjectId);
-    console.log('[DEBUG] currentProject memo:', { 
-      selectedProjectId, 
-      found: !!project, 
-      projectsCount: projects.length 
-    });
-    return project ? prepareProjectWithMaterials(project) : undefined;
-  }, [projects, selectedProjectId]);
-
-  useEffect(() => {
-    console.log('[DEBUG] State Change:', {
-      isAuthenticated,
-      selectedProjectId,
-      hasCurrentProject: !!currentProject,
-      activeTab
-    });
-  }, [isAuthenticated, selectedProjectId, currentProject, activeTab]);
-
-  const currentUser = useMemo(() => {
-    // Get users from localStorage, fallback to empty array
-    const savedUsers = localStorage.getItem('roadmaster-users');
-    let users: User[] = savedUsers ? JSON.parse(savedUsers) : [];
-
-    // Initialize with empty array if no data exists
-    if (!savedUsers) {
-      users = [];
-      localStorage.setItem('roadmaster-users', JSON.stringify(users));
-    }
-    
-    // Find user by ID or use a default user
-    let user = users.find((u: User) => u.id === currentUserId);
-    if (!user && users.length > 0) {
-      user = users[0]; // Use first user as fallback
-    }
-    
-    // If no user found, create a default user
-    if (!user) {
-      user = {
-        id: currentUserId || 'admin-001',
-        name: 'Dharma Dhoj Kunwar',
-        email: 'dharmadkunwar20@gmail.com',
-        phone: '9779802877286',
-        role: UserRole.ADMIN,
-        avatar: 'https://ui-avatars.com/api/?name=Dharma+Kunwar&background=random'
-      };
-    }
-    
-    return PermissionsService.createUserWithPermissions(user);
-  }, [currentUserId]);
-  
-  // Memoize the user permissions to prevent unnecessary recalculations
-  const userPermissions = useMemo(() => currentUser, [currentUser]);
-
-  const handleLogin = (role: UserRole, name: string) => {
-      startTransition(() => {
-          setIsAuthenticated(true);
-          setUserRole(role);
-          setUserName(name);
-          
-          // Save authentication state to localStorage
-          localStorage.setItem('roadmaster-authenticated', 'true');
-          localStorage.setItem('roadmaster-user-role', role);
-          localStorage.setItem('roadmaster-user-name', name);
-          
-          // Get users from localStorage
-          const savedUsers = localStorage.getItem('roadmaster-users');
-          let users: User[] = savedUsers ? JSON.parse(savedUsers) : [];
-
-          // Initialize with empty array if no data exists
-          if (!savedUsers) {
-            users = [];
-            localStorage.setItem('roadmaster-users', JSON.stringify(users));
-          }
-          
-          // Look for admin user first, then by role, then default
-          let userId = 'u2'; // default fallback
-          
-          if ((role as any) === UserRole.ADMIN) {
-            const adminUser = users.find((u: User) => (u.role as any) === UserRole.ADMIN);
-            userId = adminUser ? adminUser.id : 'admin-001';
-          } else {
-            userId = users.find((u: User) => (u.role as any) === role)?.id || userId;
-          }
-          
-          setCurrentUserId(userId);
-          localStorage.setItem('roadmaster-current-user-id', userId);
-      });
-  };
-
-  const onSaveProject = async (project: Partial<Project>) => {
-    console.log('[DEBUG] onSaveProject start. Received partial project:', project);
-    try {
-      let backendProject: Project;
-      
-      // Determine if we are updating an existing project or creating a new one
-      // 1. If project object has an ID, it's an update to that ID
-      // 2. If no ID in project object, but we have a currentProject, it's an update to current project
-      // 3. Otherwise, it's a new project
-      const targetProjectId = project.id || currentProject?.id;
-      const isUpdate = !!targetProjectId;
-      
-      console.log('[DEBUG] isUpdate:', isUpdate, 'targetProjectId:', targetProjectId);
-
-      const baseProject = project.id 
-        ? projects.find(p => p.id === project.id) 
-        : currentProject;
-      
-      if (isUpdate && !baseProject) {
-        console.warn('[DEBUG] Update requested but baseProject not found in state. targetProjectId:', targetProjectId);
-      }
-
-      // Ensure all fields are initialized to prevent issues with backend or other modules
-      const completeProjectData: Project = {
-        // Base fields from current project or incoming update, with defaults
-        id: targetProjectId || `proj-${Date.now()}`,
-        name: project.name || baseProject?.name || '',
-        code: project.code || baseProject?.code || '',
-        location: project.location || baseProject?.location || '',
-        contractor: project.contractor || baseProject?.contractor || '',
-        startDate: project.startDate || baseProject?.startDate || '',
-        endDate: project.endDate || baseProject?.endDate || '',
-        client: project.client || baseProject?.client || '',
-        engineer: project.engineer || baseProject?.engineer || '',
-        contractNo: project.contractNo || baseProject?.contractNo || '',
-        contractPeriod: project.contractPeriod || baseProject?.contractPeriod || '',
-        projectManager: project.projectManager || baseProject?.projectManager || '',
-        supervisor: project.supervisor || baseProject?.supervisor || '',
-        consultantName: project.consultantName || baseProject?.consultantName || '',
-        clientName: project.clientName || baseProject?.clientName || '',
-        logo: project.logo || baseProject?.logo || '',
-        weather: project.weather || baseProject?.weather,
-        lastSynced: project.lastSynced || baseProject?.lastSynced,
-        spreadsheetId: project.spreadsheetId || baseProject?.spreadsheetId,
-        settings: project.settings || baseProject?.settings,
-        environmentRegistry: project.environmentRegistry || baseProject?.environmentRegistry || { treesRemoved: 0, treesPlanted: 0, sprinklingLogs: [], treeLogs: [] },
-
-        // Arrays, ensure they are always arrays and merge if it's an update
-        boq: project.boq || baseProject?.boq || [],
-        rfis: project.rfis || baseProject?.rfis || [],
-        labTests: project.labTests || baseProject?.labTests || [],
-        schedule: project.schedule || baseProject?.schedule || [],
-        structures: project.structures || baseProject?.structures || [],
-        agencies: project.agencies || baseProject?.agencies || [],
-        agencyPayments: project.agencyPayments || baseProject?.agencyPayments || [],
-        linearWorks: project.linearWorks || baseProject?.linearWorks || [],
-        inventory: project.inventory || baseProject?.inventory || [],
-        inventoryTransactions: project.inventoryTransactions || baseProject?.inventoryTransactions || [],
-        vehicles: project.vehicles || baseProject?.vehicles || [],
-        vehicleLogs: project.vehicleLogs || baseProject?.vehicleLogs || [],
-        documents: project.documents || baseProject?.documents || [],
-        sitePhotos: project.sitePhotos || baseProject?.sitePhotos || [],
-        dailyReports: project.dailyReports || baseProject?.dailyReports || [],
-        preConstruction: project.preConstruction || baseProject?.preConstruction || [],
-        landParcels: project.landParcels || baseProject?.landParcels || [],
-        mapOverlays: project.mapOverlays || baseProject?.mapOverlays || [],
-        hindrances: project.hindrances || baseProject?.hindrances || [],
-        ncrs: project.ncrs || baseProject?.ncrs || [],
-        contractBills: project.contractBills || baseProject?.contractBills || [],
-        subcontractorBills: project.subcontractorBills || baseProject?.subcontractorBills || [],
-        measurementSheets: project.measurementSheets || baseProject?.measurementSheets || [],
-        staffLocations: project.staffLocations || baseProject?.staffLocations || [],
-        purchaseOrders: project.purchaseOrders || baseProject?.purchaseOrders || [],
-        agencyMaterials: project.agencyMaterials || baseProject?.agencyMaterials || [],
-        agencyBills: project.agencyBills || baseProject?.agencyBills || [],
-        subcontractorPayments: project.subcontractorPayments || baseProject?.subcontractorPayments || [],
-        preConstructionTasks: project.preConstructionTasks || baseProject?.preConstructionTasks || [],
-        kmlData: project.kmlData || baseProject?.kmlData || [],
-        variationOrders: project.variationOrders || baseProject?.variationOrders || [],
-        resources: project.resources || baseProject?.resources || [],
-        resourceAllocations: project.resourceAllocations || baseProject?.resourceAllocations || [],
-        milestones: project.milestones || baseProject?.milestones || [],
-        comments: project.comments || baseProject?.comments || [],
-        checklists: project.checklists || baseProject?.checklists || [],
-        defects: project.defects || baseProject?.defects || [],
-        complianceWorkflows: project.complianceWorkflows || baseProject?.complianceWorkflows || [],
-        auditLogs: project.auditLogs || baseProject?.auditLogs || [],
-        structureTemplates: project.structureTemplates || baseProject?.structureTemplates || [],
-        accountingIntegrations: project.accountingIntegrations || baseProject?.accountingIntegrations || [],
-        accountingTransactions: project.accountingTransactions || baseProject?.accountingTransactions || [],
-        personnel: project.personnel || baseProject?.personnel || [],
-        fleet: project.fleet || baseProject?.fleet || [],
-      };
-      
-      // Client-side validation before sending to server
-      if (!completeProjectData.name || !completeProjectData.client) {
-        console.error('[DEBUG] Validation failed in onSaveProject. Missing name or client.', {
-          name: completeProjectData.name,
-          client: completeProjectData.client,
-          received: project,
-          base: baseProject ? { id: baseProject.id, name: baseProject.name, client: baseProject.client } : 'null'
-        });
-        toast.error("Save Blocked", {
-          description: "Project name and employer/client are required fields.",
-        });
-        return;
-      }
-
-      // Apply material migration to ensure unified material system is used
-      const processedProject: Project = prepareProjectWithMaterials(completeProjectData);
-
-      console.log('[DEBUG] Sending project to backend. isUpdate:', isUpdate);
-      if (isUpdate) {
-        backendProject = await apiService.updateProject(completeProjectData.id, processedProject);
-      } else {
-        backendProject = await apiService.createProject(processedProject);
-      }
-      console.log('[DEBUG] Backend response received:', backendProject);
-
-      startTransition(() => {
-        setProjects(prev => {
-          const updatedProjects = project.id 
-            ? prev.map(p => p.id === backendProject.id ? backendProject : p)
-            : [...prev, backendProject];
-          
-          localStorage.setItem('roadmaster-projects', JSON.stringify(updatedProjects));
-          DataCache.set(getCacheKey('projects'), updatedProjects, { ttl: 10 * 60 * 1000 }); // 10 minutes
-          
-          return updatedProjects;
-        });
-      });
-
-      toast.success(isUpdate ? "Project Updated" : "Project Created", {
-        description: `${completeProjectData.name} has been synchronized with the cloud.`,
-      });
-    } catch (error: any) {
-      console.error('[ERROR] Failed to save project to backend:', error);
-      
-      const errorMsg = error.response?.data?.details || error.message || 'Unknown server error';
-      toast.error("Save Failed", {
-        description: `Server responded with: ${errorMsg}`,
-      });
-      
-      throw error; 
-    }
-  };
-
-  const handleUpdateSettings = (newSettings: AppSettings) => {
-    startTransition(() => {
-      setAppSettings(newSettings);
-      localStorage.setItem('roadmaster-settings', JSON.stringify(newSettings));
-    });
-    toast.success("Settings Saved", {
-      description: "System-wide configuration has been updated successfully.",
-    });
-  };
-
-  const handleSelectProject = (projectId: string) => {
-    startTransition(() => setSelectedProjectId(projectId));
-  };
-  
-  const handleClearProject = () =>{
-    startTransition(() => {
-      setSelectedProjectId(null);
-      // setHasSelectedProject(false); // This state is no longer needed after refactor.
-    });
-  };
-  
-  const onDeleteProject = async (projectId: string) => {
-    try {
-      await apiService.deleteProject(projectId);
-      setProjects(prev => {
-        const updatedProjects = prev.filter(p => p.id !== projectId);
-        
-        // Defer synchronous storage updates
-        setTimeout(() => {
-          localStorage.setItem('roadmaster-projects', JSON.stringify(updatedProjects));
-          DataCache.set(getCacheKey('projects'), updatedProjects, { ttl: 10 * 60 * 1000 });
-        }, 0);
-
-        return updatedProjects;
-      });
-      
-      toast.success("Project Deleted", {
-        description: "The project has been permanently removed from the database.",
-      });
-    } catch (error: any) {
-      console.error('[ERROR] Failed to delete project from backend:', error);
-      const errorMsg = error.response?.data?.details || error.message || 'Unknown server error';
-      toast.error("Delete Failed", {
-        description: `Server responded with: ${errorMsg}`,
-      });
-      // Do not re-throw here to avoid unhandled promise rejections in callers
-      // The UI already informs the user via toast; keep the function resolved.
-      return;
-    }
-  };
+  }, [isAuthenticated]);
 
   const handleManualSync = () => {
-      if (!appSettings.googleSpreadsheetId && !currentProject?.spreadsheetId) {
-          toast("Sync Failed", {
-            description: "Please configure a Google Spreadsheet ID in Settings > Cloud Integrations first.",
-            action: {
-              label: "Close",
-              onClick: () => console.log("Close"),
-            },
-          });
-          return;
+    if (!appSettings.googleSpreadsheetId && !currentProject?.spreadsheetId) {
+      toast("Sync Failed", {
+        description: "Please configure a Google Spreadsheet ID in Settings > Cloud Integrations first.",
+      });
+      return;
+    }
+    setIsSyncing(true);
+    setTimeout(() => {
+      setIsSyncing(false);
+      const now = new Date().toLocaleTimeString();
+      if (currentProject) {
+        saveProject({ ...currentProject, lastSynced: now });
+        toast("Sync Complete", {
+          description: `Project synced successfully at ${now}.`,
+        });
       }
-      setIsSyncing(true);
-      setTimeout(() => {
-          setIsSyncing(false);
-          const now = new Date().toLocaleTimeString();
-          if (currentProject) {
-            onSaveProject({ ...currentProject, lastSynced: now });
-            toast("Sync Complete", {
-              description: `Project synced successfully at ${now}.`,
-            });
-          }
-      }, 2000);
+    }, 2000);
   };
 
-  // const handleSnackbarClose removed - replaced by useToast
-  
   const navGroups = useMemo(() => getNavigationGroups(currentUser), [currentUser]);
 
-  // Render login screen if not authenticated
+  // Authentication Guard
   if (!isAuthenticated) {
     return (
       <I18nProvider>
         <NotificationProvider>
-          <Login onLogin={handleLogin} />
+          <Login onLogin={login} />
         </NotificationProvider>
       </I18nProvider>
     );
   }
     
-  // Render project selection screen if authenticated but no project selected
+  // Project Selection Guard
   if (isAuthenticated && (!selectedProjectId || !currentProject)) {
-        if (isLoadingProjects) {
-          return (
-            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
-              <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-              <p className="text-muted-foreground font-medium">Loading engineering projects...</p>
-            </div>
-          );
-        }
-    
-        if (apiError) {
-          return (
-            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
-              <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full border border-red-100">
-                <div className="w-20 h-20 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 mx-auto mb-6">
-                  <Database size={40} />
-                </div>
-                <h2 className="text-2xl font-black tracking-tight text-slate-900 mb-2">Connection Error</h2>
-                <p className="text-slate-600 mb-6 font-medium">
-                  We couldn't reach the project database. This usually happens when environment variables are missing or the database is offline.
-                </p>
-                <div className="bg-red-50 text-red-700 p-4 rounded-xl text-xs font-mono mb-8 break-words text-left border border-red-100">
-                  <strong>Error Details:</strong><br/>
-                  {apiError}
-                </div>
-                <div className="flex flex-col gap-3">
-                  <Button size="lg" className="w-full font-bold h-12" onClick={() => fetchProjects()}>
-                    <RefreshCw className="mr-2 h-4 w-4" /> Retry Connection
-                  </Button>
-                  <Button variant="outline" className="w-full font-bold h-12" onClick={() => {
-                    setIsAuthenticated(false);
-                    localStorage.removeItem('roadmaster-authenticated');
-                  }}>
-                    <LogOut className="mr-2 h-4 w-4" /> Sign Out
-                  </Button>
-                </div>
-                <p className="mt-6 text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-                  Engineering OS • Connectivity Module
-                </p>
-              </div>
-            </div>
-          );
-        }
-          return (
+    return (
       <I18nProvider>
         <NotificationProvider>
-          <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col transition-colors duration-500">
-            <header className="sticky top-0 z-50 glass border-b p-4 flex justify-between items-center shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20 rotate-3 hover:rotate-0 transition-transform">
-                  <HardHat size={22} strokeWidth={2.5} />
-                </div>
-                <div>
-                  <h1 className="text-xl font-black tracking-tighter text-foreground leading-none">RoadMaster<span className="text-primary">.Pro</span></h1>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">Engineering OS</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Toggle
-                  size="sm"
-                  className="rounded-full w-10 h-10 p-0"
-                  pressed={themeMode === 'dark'}
-                  onPressedChange={() => startTransition(() => setThemeMode(prevMode => (prevMode === 'light' ? 'dark' : 'light')))}
-                >
-                  <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                  <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                </Toggle>
-                <Button variant="outline" size="sm" className="rounded-full px-4 font-bold border-2" onClick={() => {
-                  AuditService.logLogout(currentUser.id, currentUser.name, selectedProjectId || undefined, currentProject?.name);
-                  setIsAuthenticated(false);
-                  setUserRole(UserRole.PROJECT_MANAGER);
-                  setUserName('');
-                  setCurrentUserId('u2');
-                  localStorage.removeItem('roadmaster-authenticated');
-                  localStorage.removeItem('roadmaster-user-role');
-                  localStorage.removeItem('roadmaster-user-name');
-                  localStorage.removeItem('roadmaster-current-user-id');
-                }}>
-                  <LogOut className="mr-2 h-4 w-4" /> Logout
-                </Button>
-              </div>
-            </header>
-            <main className="flex-1 p-6 md:p-12 overflow-auto max-w-7xl mx-auto w-full">
-              <div className="mb-10 text-center md:text-left">
-                <h2 className="text-4xl font-black tracking-tight mb-2">Welcome, {userName}</h2>
-                <p className="text-lg text-muted-foreground font-medium">Select an active engineering project to access the control center</p>
-              </div>
-              
-              <div className="glass-card rounded-3xl p-1 md:p-2">
-                <ProjectsList
-                  projects={projects}
-                  userRole={userRole}
-                  onSelectProject={handleSelectProject}
-                  onSaveProject={onSaveProject}
-                  onDeleteProject={onDeleteProject}
-                  onOpenModal={(project) => {
-                    setEditProject(project);
-                    setIsProjectModalOpen(true);
-                  }}
-                />
-              </div>
-            </main>
-          </div>
-          <ProjectModal
-            open={isProjectModalOpen}
-            onClose={() => setIsProjectModalOpen(false)}
-            onSave={(project) => {
-              onSaveProject(project);
-              setIsProjectModalOpen(false);
-            }}
+          <ProjectSelector 
+            userName={userName}
+            themeMode={themeMode}
+            setThemeMode={setThemeMode}
+            logout={logout}
+            projects={projects}
+            setSelectedProjectId={setSelectedProjectId}
+            deleteProject={deleteProject}
+            onOpenProjectModal={(p) => { setEditProject(p); setIsProjectModalOpen(true); }}
+            isLoadingProjects={isLoadingProjects}
+            apiError={apiError}
+            fetchProjects={fetchProjects}
+            userRole={userRole}
+          />
+          <ProjectModal 
+            isOpen={isProjectModalOpen} 
+            onClose={() => setIsProjectModalOpen(false)} 
+            onSave={(p) => { saveProject(p); setIsProjectModalOpen(false); }}
             project={editProject}
           />
         </NotificationProvider>
@@ -793,198 +230,40 @@ const App: React.FC = () => {
     );
   }
     
-  // Render main application if authenticated and project is selected
+  // Main Application Shell
   return (
     <I18nProvider>
       <NotificationProvider>
         <TooltipProvider>
-          <Toaster />
-          <div className="flex min-h-screen bg-background text-foreground overflow-hidden">
-            {/* Mobile Sidebar (Sheet) */}
-            <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-              <SheetContent side="left" className="w-64 p-0">
-                <SheetHeader className="p-4 border-b">
-                  <SheetTitle className="flex items-center gap-2">
-                    <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
-                      <HardHat size={20} strokeWidth={2.5} />
-                    </div>
-                    RoadMaster<span className="text-primary">.Pro</span>
-                  </SheetTitle>
-                </SheetHeader>
-                <ScrollArea className="h-[calc(100vh-140px)]">
-                  <nav className="grid items-start gap-1 p-4">
-                    {navGroups.map(group => (
-                      <div key={group.title} className="mb-4">
-                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2 px-2">{group.title}</h3>
-                        {group.items.map(item => (
-                          <Button
-                            key={item.id}
-                            variant={activeTab === item.id ? "secondary" : "ghost"}
-                            className={cn(
-                              "w-full justify-start gap-3 h-9 px-2",
-                              activeTab === item.id && "bg-secondary text-primary hover:bg-secondary/80"
-                            )}
-                            onClick={() => {
-                              startTransition(() => setActiveTab(item.id));
-                              setSidebarOpen(false);
-                            }}
-                          >
-                            <item.icon className="h-4 w-4 shrink-0" />
-                            <span className="truncate">{item.label}</span>
-                          </Button>
-                        ))}
-                      </div>
-                    ))}
-                  </nav>
-                </ScrollArea>
-              </SheetContent>
-            </Sheet>
+          <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans antialiased text-slate-900 dark:text-slate-100 transition-colors duration-500">
+            <AppSidebar 
+              isSidebarCollapsed={isSidebarCollapsed}
+              setIsSidebarCollapsed={setIsSidebarCollapsed}
+              sidebarOpen={sidebarOpen}
+              setSidebarOpen={setSidebarOpen}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              navGroups={navGroups}
+              currentUser={currentUser}
+              logout={logout}
+              selectedProjectId={selectedProjectId}
+              projectName={currentProject?.name}
+            />
 
-            {/* Desktop Sidebar (Persistent & Collapsible) */}
-            <aside 
-              className={cn(
-                "hidden lg:flex flex-col border-r bg-white transition-all duration-300 ease-in-out shrink-0 h-screen",
-                isSidebarCollapsed ? "w-16" : "w-64"
-              )}
-            >
-              <div className="h-14 flex items-center px-4 border-b shrink-0 overflow-hidden">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white shrink-0">
-                    <HardHat size={16} strokeWidth={2.5} />
-                  </div>
-                  {!isSidebarCollapsed && (
-                    <span className="font-bold whitespace-nowrap">RoadMaster<span className="text-primary">.Pro</span></span>
-                  )}
-                </div>
-              </div>
-
-              <ScrollArea className="flex-1">
-                <nav className="p-2 space-y-4">
-                  {navGroups.map(group => (
-                    <div key={group.title}>
-                      {!isSidebarCollapsed ? (
-                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2 px-2">{group.title}</h3>
-                      ) : (
-                        <Separator className="my-4" />
-                      )}
-                      <div className="space-y-1">
-                        {group.items.map(item => (
-                          <Tooltip key={item.id} delayDuration={0}>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant={activeTab === item.id ? "secondary" : "ghost"}
-                                className={cn(
-                                  "w-full justify-start h-9 transition-all",
-                                  isSidebarCollapsed ? "px-0 justify-center" : "gap-3 px-2",
-                                  activeTab === item.id && "bg-secondary text-primary hover:bg-secondary/80"
-                                )}
-                                onClick={() => startTransition(() => setActiveTab(item.id))}
-                              >
-                                <item.icon className="h-4 w-4 shrink-0" />
-                                {!isSidebarCollapsed && <span className="truncate">{item.label}</span>}
-                              </Button>
-                            </TooltipTrigger>
-                            {isSidebarCollapsed && (
-                              <TooltipContent side="right">
-                                {item.label}
-                              </TooltipContent>
-                            )}
-                          </Tooltip>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </nav>
-              </ScrollArea>
-
-              <div className="p-2 border-t mt-auto">
-                <Button 
-                  variant="ghost" 
-                  className={cn("w-full justify-start", isSidebarCollapsed ? "px-0 justify-center" : "gap-3")}
-                  onClick={() => startTransition(() => setActiveTab('settings'))}
-                >
-                  <Settings className="h-4 w-4 shrink-0" />
-                  {!isSidebarCollapsed && <span>Settings</span>}
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  className={cn("w-full justify-start text-red-500 mt-1", isSidebarCollapsed ? "px-0 justify-center" : "gap-3")}
-                  onClick={() => {
-                    AuditService.logLogout(currentUser.id, currentUser.name, selectedProjectId || undefined, currentProject?.name);
-                    setIsAuthenticated(false);
-                    setUserRole(UserRole.PROJECT_MANAGER);
-                    setUserName('');
-                    setCurrentUserId('u2');
-                    localStorage.removeItem('roadmaster-authenticated');
-                    localStorage.removeItem('roadmaster-user-role');
-                    localStorage.removeItem('roadmaster-user-name');
-                    localStorage.removeItem('roadmaster-current-user-id');
-                  }}
-                >
-                  <LogOut className="h-4 w-4 shrink-0" />
-                  {!isSidebarCollapsed && <span>Logout</span>}
-                </Button>
-              </div>
-            </aside>
-
-            {/* Main content area */}
-            <div id="main-content" className="flex flex-col flex-1 h-screen overflow-hidden">
-              <header className="border-b bg-white p-2 flex justify-between items-center h-14 shrink-0 z-10">
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="lg:hidden"
-                    onClick={() => setSidebarOpen(true)}
-                  >
-                    <MenuIcon className="h-5 w-5" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="hidden lg:flex"
-                    onClick={() => startTransition(() => setIsSidebarCollapsed(!isSidebarCollapsed))}
-                  >
-                    {isSidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-                  </Button>
-                  
-                  <Separator orientation="vertical" className="h-6 mx-2 hidden lg:block" />
-                  
-                  <div className="flex items-center gap-3">
-                    <h2 className="text-sm font-bold truncate max-w-[200px]">{currentProject?.name || 'No Project Selected'}</h2>
-                    {currentProject?.code && <Badge variant="secondary" className="hidden sm:inline-flex">{currentProject.code}</Badge>}
-                    <Button variant="outline" size="sm" className="h-8 hidden sm:flex" onClick={() => setSelectedProjectId(null)}>
-                      <LayoutGrid className="mr-2 h-3 w-3" /> Switch
-                    </Button>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" onClick={handleManualSync}>
-                        {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudCog className="h-4 w-4" />}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{isSyncing ? "Syncing..." : "Live Sheets"}</TooltipContent>
-                  </Tooltip>
-                  <Toggle
-                    size="sm"
-                    pressed={themeMode === 'dark'} // Control the pressed state based on themeMode
-                    onPressedChange={() => startTransition(() => setThemeMode(prevMode => (prevMode === 'light' ? 'dark' : 'light')))}
-                  >
-                    <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                    <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                  </Toggle>
-                  <NotificationsBadge />
-                  <Button variant="ghost" size="icon" onClick={() => startTransition(() => setIsAIModalOpen(true))}>
-                    <Bot className="h-5 w-5" />
-                  </Button>
-                  <Avatar>
-                    <AvatarImage src={currentUser.avatar} />
-                    <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                </div>
-              </header>
+            <div id="main-content" className="flex-1 flex flex-col min-w-0 relative">
+              <AppHeader 
+                setSidebarOpen={setSidebarOpen}
+                isSidebarCollapsed={isSidebarCollapsed}
+                setIsSidebarCollapsed={setIsSidebarCollapsed}
+                currentProject={currentProject}
+                setSelectedProjectId={setSelectedProjectId}
+                handleManualSync={handleManualSync}
+                isSyncing={isSyncing}
+                themeMode={themeMode}
+                setThemeMode={setThemeMode}
+                setIsAIModalOpen={setIsAIModalOpen}
+                currentUser={currentUser}
+              />
 
               <main className="flex-1 p-4 overflow-auto bg-slate-50">
                 <ErrorBoundary>
@@ -992,44 +271,41 @@ const App: React.FC = () => {
                     {!currentProject && !['about', 'contact', 'user-management', 'user-registration', 'settings'].includes(activeTab) ? (
                       <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                         <Database className="h-12 w-12 mb-4 opacity-20" />
-                        <p className="text-lg font-medium">Project data synchronized. Please wait or re-select.</p>
-                        <Button variant="outline" className="mt-4" onClick={() => setSelectedProjectId(null)}>Return to Portfolio</Button>
+                        <p className="text-lg font-medium">Please re-select a project.</p>
+                        <Button variant="outline" className="mt-4" onClick={() => setSelectedProjectId(null)}>Portfolio</Button>
                       </div>
                     ) : (
                       <>
-                        {activeTab === 'dashboard' && <Dashboard project={currentProject!} settings={appSettings} onUpdateProject={onSaveProject} onUpdateSettings={(s) => startTransition(() => setAppSettings(s))} />}
-                        {activeTab === 'map' && <MapModule project={currentProject!} onProjectUpdate={onSaveProject as any} settings={appSettings} />}
+                        {activeTab === 'dashboard' && <Dashboard project={currentProject!} settings={appSettings} onUpdateProject={saveProject} onUpdateSettings={updateSettings} />}
+                        {activeTab === 'map' && <MapModule project={currentProject!} onProjectUpdate={saveProject as any} settings={appSettings} />}
                         {activeTab === 'about' && <AboutPage />}
                         {activeTab === 'contact' && <ContactPage />}
                         {activeTab === 'user-management' && <UserManagement />}
                         {activeTab === 'user-registration' && <UserRegistration />}
-                        {activeTab === 'boq' && <BOQModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'billing' && <BillingModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'variations' && <VariationModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'financials' && <FinancialManagementHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'boq' && <BOQModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={saveProject as any} />}
+                        {activeTab === 'billing' && <BillingModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={saveProject as any} />}
+                        {activeTab === 'variations' && <VariationModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={saveProject as any} />}
+                        {activeTab === 'financials' && <FinancialManagementHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={saveProject as any} />}
                         {activeTab === 'ocr-extraction' && <ChandraOCRAnalyzer />}
-                        
-                        {activeTab === 'agencies' && <AgencyModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} settings={appSettings} />}
-                        {activeTab === 'subcontractors' && <SubcontractorModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'subcontractor-billing' && <SubcontractorBillingModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        
-{activeTab === 'schedule' && <ScheduleModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
-                        {activeTab === 'construction' && <ConstructionModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
-                        {activeTab === 'linear-works' && <LinearWorksModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
-                        {activeTab === 'site-photos' && <SitePhotosModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
-                        {activeTab === 'daily-reports' && <DailyReportModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'pre-construction' && <PreConstructionModule project={currentProject!} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'reports-analytics' && <ReportsAnalyticsHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'mpr-report' && <MPRReportModule project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={onSaveProject} />}
-                        
-                        {activeTab === 'rfis' && <RFIModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'materials-hub' && <MaterialManagementModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'assets' && <AssetsModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
-                        {activeTab === 'fleet' && <FleetModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
-                        {activeTab === 'resource-matrix' && <ResourceMatrixModule project={currentProject!} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'quality' && <QualityHub project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'lab' && <LabModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'environment' && <EnvironmentModule project={currentProject!} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'agencies' && <AgencyModule project={currentProject!} onProjectUpdate={saveProject as any} userRole={userRole} settings={appSettings} />}
+                        {activeTab === 'subcontractors' && <SubcontractorModule project={currentProject!} userRole={userRole} onProjectUpdate={saveProject as any} />}
+                        {activeTab === 'subcontractor-billing' && <SubcontractorBillingModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={saveProject as any} />}
+                        {activeTab === 'schedule' && <ScheduleModule project={currentProject!} onProjectUpdate={saveProject as any} userRole={userRole} />}
+                        {activeTab === 'construction' && <ConstructionModule project={currentProject!} onProjectUpdate={saveProject as any} userRole={userRole} />}
+                        {activeTab === 'linear-works' && <LinearWorksModule project={currentProject!} onProjectUpdate={saveProject as any} userRole={userRole} />}
+                        {activeTab === 'site-photos' && <SitePhotosModule project={currentProject!} onProjectUpdate={saveProject as any} userRole={userRole} />}
+                        {activeTab === 'daily-reports' && <DailyReportModule project={currentProject!} userRole={userRole} onProjectUpdate={saveProject as any} />}
+                        {activeTab === 'pre-construction' && <PreConstructionModule project={currentProject!} onProjectUpdate={saveProject as any} />}
+                        {activeTab === 'reports-analytics' && <ReportsAnalyticsHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={saveProject as any} />}
+                        {activeTab === 'mpr-report' && <MPRReportModule project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={saveProject as any} />}
+                        {activeTab === 'rfis' && <RFIModule project={currentProject!} userRole={userRole} onProjectUpdate={saveProject as any} />}
+                        {activeTab === 'materials-hub' && <MaterialManagementModule project={currentProject!} userRole={userRole} onProjectUpdate={saveProject as any} />}
+                        {activeTab === 'assets' && <AssetsModule project={currentProject!} onProjectUpdate={saveProject as any} userRole={userRole} />}
+                        {activeTab === 'fleet' && <FleetModule project={currentProject!} onProjectUpdate={saveProject as any} userRole={userRole} />}
+                        {activeTab === 'resource-matrix' && <ResourceMatrixModule project={currentProject!} onProjectUpdate={saveProject as any} />}
+                        {activeTab === 'quality' && <QualityHub project={currentProject!} userRole={userRole} onProjectUpdate={saveProject as any} />}
+                        {activeTab === 'lab' && <LabModule project={currentProject!} userRole={userRole} onProjectUpdate={saveProject as any} />}
+                        {activeTab === 'environment' && <EnvironmentModule project={currentProject!} onProjectUpdate={saveProject as any} />}
                         {activeTab === 'data-analysis' && <DataAnalysisModule />}
                         {activeTab === 'messages' && (
                           <MessagesModule 
@@ -1037,12 +313,11 @@ const App: React.FC = () => {
                             users={users}
                             messages={messages}
                             projectId={selectedProjectId || currentProject?.id || ''}
-                            onSendMessage={handleSendMessage}
+                            onSendMessage={sendMessage}
                           />
                         )}
-                        {activeTab === 'documents' && <DocumentationHub project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
-                        
-                        {activeTab === 'settings' && <SettingsModule settings={appSettings} onUpdate={handleUpdateSettings} />}
+                        {activeTab === 'documents' && <DocumentationHub project={currentProject!} onProjectUpdate={saveProject as any} userRole={userRole} />}
+                        {activeTab === 'settings' && <SettingsModule settings={appSettings} onUpdate={updateSettings} />}
                         {activeTab === 'staff-management' && <StaffManagementModule />}
                       </>
                     )}
@@ -1051,14 +326,15 @@ const App: React.FC = () => {
               </main>
             </div>
 
-            {isAIModalOpen && currentProject && <AIChatModal project={currentProject} onClose={() => setIsAIModalOpen(false)} />}
-            <ProjectModal
-              open={isProjectModalOpen}
-              onClose={() => setIsProjectModalOpen(false)}
-              onSave={(project) => { onSaveProject(project); setIsProjectModalOpen(false); }}
+            <AIChatModal isOpen={isAIModalOpen} onClose={() => setIsAIModalOpen(false)} project={currentProject!} />
+            <ProjectModal 
+              isOpen={isProjectModalOpen} 
+              onClose={() => setIsProjectModalOpen(false)} 
+              onSave={(p) => { saveProject(p); setIsProjectModalOpen(false); }}
               project={editProject}
             />
           </div>
+          <Toaster position="bottom-right" richColors />
         </TooltipProvider>
       </NotificationProvider>
     </I18nProvider>
