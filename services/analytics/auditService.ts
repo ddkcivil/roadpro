@@ -47,7 +47,19 @@ export class AuditService {
     // Keep only the last 1000 logs to prevent storage overflow
     const trimmedLogs = logs.slice(0, 1000);
     
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(trimmedLogs));
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(trimmedLogs));
+    } catch (error) {
+      console.error('Failed to save audit logs to localStorage (likely circular structure or quota exceeded):', error);
+      // Try again with a safer approach for the last log
+      try {
+        const saferLog = { ...auditLog, oldValue: '[Circular]', newValue: '[Circular]', metadata: { ...auditLog.metadata, error: 'Circular reference removed' } };
+        const saferLogs = [saferLog, ...logs.slice(1, 1000)];
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(saferLogs));
+      } catch (innerError) {
+        console.error('Even safe storage failed:', innerError);
+      }
+    }
   }
 
   /**
