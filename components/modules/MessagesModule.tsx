@@ -10,8 +10,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/comp
 import { Badge } from '~/components/ui/badge';
 import { Textarea } from '~/components/ui/textarea';
 import { toast } from 'sonner';
-import { FixedSizeList as List } from 'react-window';
+import * as ReactWindow from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
+
+const List = (ReactWindow as any).FixedSizeList || ReactWindow.FixedSizeList;
+const TypedAutoSizer = (AutoSizer as any).default || AutoSizer;
 
 interface Props {
   currentUser: User | null;
@@ -91,9 +94,6 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
       onSendMessage(inputText, activeChatId, projectId);
       setInputText('');
   };
-
-  // Helper to get user details
-  const getUser = (id: string) => (users || []).find(u => u.id === id);
 
   const filteredUsers = (users || []).filter(u => 
       u.id !== currentUser?.id && 

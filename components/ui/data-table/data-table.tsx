@@ -29,8 +29,11 @@ import {
   DropdownMenuTrigger,
 } from "../dropdown-menu";
 import { ChevronDown, SlidersHorizontal, Search } from "lucide-react";
-import { FixedSizeList as List } from 'react-window';
+import * as ReactWindow from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
+
+const List = (ReactWindow as any).FixedSizeList || ReactWindow.FixedSizeList;
+const TypedAutoSizer = (AutoSizer as any).default || AutoSizer;
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -168,8 +171,8 @@ export function DataTable<TData, TValue>({
             {rows?.length ? (
               shouldVirtualize ? (
                 <div style={{ height: `${Math.min(rows.length * rowHeight, 400)}px` }}>
-                  <AutoSizer>
-                    {({ height, width }) => (
+                  <TypedAutoSizer>
+                    {({ height, width }: any) => (
                       <List
                         height={height}
                         width={width}
@@ -179,7 +182,7 @@ export function DataTable<TData, TValue>({
                         {VirtualizedRow}
                       </List>
                     )}
-                  </AutoSizer>
+                  </TypedAutoSizer>
                 </div>
               ) : (
                 rows.map((row) => (
