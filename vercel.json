@@ -10,6 +10,24 @@
           "value": "public, max-age=0, must-revalidate"
         }
       ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
     }
   ],
   "rewrites": [
@@ -18,7 +36,7 @@
       "destination": "/api/$1"
     },
     {
-      "source": "/((?!api|manifest\\.json|sw\\.js|favicon\\.ico|apple-touch-icon\\.png|assets/).*)",
+      "source": "/((?!api|manifest\\.json|sw\\.js|favicon\\.ico|assets/).*)",
       "destination": "/index.html"
     }
   ]
