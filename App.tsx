@@ -453,10 +453,10 @@ const App: React.FC = () => {
           let userId = 'u2'; // default fallback
           
           if ((role as any) === UserRole.ADMIN) {
-            const adminUser = users.find((u: User) => u.role === UserRole.ADMIN);
+            const adminUser = users.find((u: User) => (u.role as any) === UserRole.ADMIN);
             userId = adminUser ? adminUser.id : 'admin-001';
           } else {
-            userId = users.find((u: User) => u.role === role)?.id || userId;
+            userId = users.find((u: User) => (u.role as any) === role)?.id || userId;
           }
           
           setCurrentUserId(userId);
@@ -1038,33 +1038,33 @@ const App: React.FC = () => {
                         {activeTab === 'contact' && <ContactPage />}
                         {activeTab === 'user-management' && <UserManagement />}
                         {activeTab === 'user-registration' && <UserRegistration />}
-                        {activeTab === 'boq' && <BOQModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'billing' && <BillingModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'variations' && <VariationModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'financials' && <FinancialManagementHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'boq' && <BOQModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject as any} />}
+                        {activeTab === 'billing' && <BillingModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject as any} />}
+                        {activeTab === 'variations' && <VariationModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject as any} />}
+                        {activeTab === 'financials' && <FinancialManagementHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={onSaveProject as any} />}
                         {activeTab === 'ocr-extraction' && <ChandraOCRAnalyzer />}
                         
-                        {activeTab === 'agencies' && <AgencyModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} settings={appSettings} />}
-                        {activeTab === 'subcontractors' && <SubcontractorModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'subcontractor-billing' && <SubcontractorBillingModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'agencies' && <AgencyModule project={currentProject!} onProjectUpdate={onSaveProject as any} userRole={userRole} settings={appSettings} />}
+                        {activeTab === 'subcontractors' && <SubcontractorModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject as any} />}
+                        {activeTab === 'subcontractor-billing' && <SubcontractorBillingModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={onSaveProject as any} />}
                         
-                        {activeTab === 'schedule' && <ScheduleModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
-                        {activeTab === 'construction' && <ConstructionModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
-                        {activeTab === 'linear-works' && <LinearWorksModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
-                        {activeTab === 'site-photos' && <SitePhotosModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
-                        {activeTab === 'daily-reports' && <DailyReportModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'pre-construction' && <PreConstructionModule project={currentProject!} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'reports-analytics' && <ReportsAnalyticsHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'mpr-report' && <MPRReportModule project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'schedule' && <ScheduleModule project={currentProject!} onProjectUpdate={onSaveProject as any} userRole={userRole} />}
+                        {activeTab === 'construction' && <ConstructionModule project={currentProject!} onProjectUpdate={onSaveProject as any} userRole={userRole} />}
+                        {activeTab === 'linear-works' && <LinearWorksModule project={currentProject!} onProjectUpdate={onSaveProject as any} userRole={userRole} />}
+                        {activeTab === 'site-photos' && <SitePhotosModule project={currentProject!} onProjectUpdate={onSaveProject as any} userRole={userRole} />}
+                        {activeTab === 'daily-reports' && <DailyReportModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject as any} />}
+                        {activeTab === 'pre-construction' && <PreConstructionModule project={currentProject!} onProjectUpdate={onSaveProject as any} />}
+                        {activeTab === 'reports-analytics' && <ReportsAnalyticsHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={onSaveProject as any} />}
+                        {activeTab === 'mpr-report' && <MPRReportModule project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={onSaveProject as any} />}
                         
-                        {activeTab === 'rfis' && <RFIModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'materials-hub' && <MaterialManagementModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'assets' && <AssetsModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
-                        {activeTab === 'fleet' && <FleetModule project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
-                        {activeTab === 'resource-matrix' && <ResourceMatrixModule project={currentProject!} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'quality' && <QualityHub project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'lab' && <LabModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject} />}
-                        {activeTab === 'environment' && <EnvironmentModule project={currentProject!} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'rfis' && <RFIModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject as any} />}
+                        {activeTab === 'materials-hub' && <MaterialManagementModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject as any} />}
+                        {activeTab === 'assets' && <AssetsModule project={currentProject!} onProjectUpdate={onSaveProject as any} userRole={userRole} />}
+                        {activeTab === 'fleet' && <FleetModule project={currentProject!} onProjectUpdate={onSaveProject as any} userRole={userRole} />}
+                        {activeTab === 'resource-matrix' && <ResourceMatrixModule project={currentProject!} onProjectUpdate={onSaveProject as any} />}
+                        {activeTab === 'quality' && <QualityHub project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject as any} />}
+                        {activeTab === 'lab' && <LabModule project={currentProject!} userRole={userRole} onProjectUpdate={onSaveProject as any} />}
+                        {activeTab === 'environment' && <EnvironmentModule project={currentProject!} onProjectUpdate={onSaveProject as any} />}
                         {activeTab === 'data-analysis' && <DataAnalysisModule />}
                         {activeTab === 'messages' && (
                           <MessagesModule 
@@ -1075,7 +1075,7 @@ const App: React.FC = () => {
                             onSendMessage={handleSendMessage}
                           />
                         )}
-                        {activeTab === 'documents' && <DocumentationHub project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
+                        {activeTab === 'documents' && <DocumentationHub project={currentProject!} onProjectUpdate={onSaveProject as any} userRole={userRole} />}
                         
                         {activeTab === 'settings' && <SettingsModule settings={appSettings} onUpdate={setAppSettings} />}
                         {activeTab === 'staff-management' && <StaffManagementModule />}
