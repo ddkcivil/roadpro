@@ -24,9 +24,21 @@ const CACHE_CONFIG: Record<string, number> = {
  * - Background sync queue for offline mutations
  */
 class RealApiService {
+  private static instance: RealApiService;
   private cache: Map<string, { data: any, timestamp: number }> = new Map();
   private lastSyncTime: number = 0;
   private isRefreshing: boolean = false;
+
+  constructor() {
+    // Private constructor for singleton
+  }
+
+  public static getInstance(): RealApiService {
+    if (!RealApiService.instance) {
+      RealApiService.instance = new RealApiService();
+    }
+    return RealApiService.instance;
+  }
 
   /**
    * Gets the TTL for a specific endpoint
@@ -308,4 +320,4 @@ class RealApiService {
   }
 }
 
-export const realApiService = new RealApiService();
+export const realApiService = RealApiService.getInstance();
