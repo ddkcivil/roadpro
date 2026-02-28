@@ -1,4 +1,4 @@
-const CACHE_NAME = 'roadmaster-v6';
+const CACHE_NAME = 'roadmaster-v7';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -61,15 +61,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Strategy for API calls: Network First, then fallback to Cache
-  if (url.pathname.startsWith('/api/')) {
+  // Strategy for API calls (Internal and External like Weather): Network First
+  if (url.pathname.startsWith('/api/') || url.hostname.includes('api.open-meteo.com')) {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const clonedResponse = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, clonedResponse);
-          });
+          // Only cache successful responses
+          if (response && response.status === 200) {
+            const clonedResponse = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, clonedResponse);
+            });
+          }
           return response;
         })
         .catch(() => {
@@ -92,6 +95,9 @@ self.addEventListener('fetch', (event) => {
             });
           }
           return response;
+        }).catch(() => {
+            // Return nothing if fetch fails for assets not in cache
+            return null;
         });
       })
     );
@@ -104,8 +110,8 @@ self.addEventListener('fetch', (event) => {
       if (cachedResponse) return cachedResponse;
 
       return fetch(request).then((response) => {
-        // Don't cache if not a valid response
-        if (!response || response.status !== 200 || response.type !== 'basic') {
+        // Don't cache if not a valid response or not basic/cors
+        if (!response || response.status !== 200 || (response.type !== 'basic' && response.type !== 'cors')) {
           return response;
         }
 
@@ -115,6 +121,9 @@ self.addEventListener('fetch', (event) => {
         });
 
         return response;
+      }).catch(() => {
+          // Silently fail for default fetches (images, etc)
+          return null;
       });
     })
   );
