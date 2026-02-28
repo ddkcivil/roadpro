@@ -4,6 +4,14 @@ import { offlineStorage } from '../database/offlineStorage';
 import { encryptionUtils } from '../../utils/data/encryptionUtils';
 import { SyncService } from './syncService';
 
+const DEFAULT_TTL = 30000; // 30 seconds default
+const CACHE_CONFIG: Record<string, number> = {
+  '/projects': 60000, // 1 minute
+  '/users': 120000,   // 2 minutes
+  '/auth/': 0,        // Never cache auth
+  '/health': 5000,    // 5 seconds
+};
+
 /**
  * RealApiService
  * 
@@ -17,23 +25,15 @@ import { SyncService } from './syncService';
  */
 class RealApiService {
   private cache: Map<string, { data: any, timestamp: number }> = new Map();
-  private readonly DEFAULT_TTL = 30000; // 30 seconds default
   private lastSyncTime: number = 0;
   private isRefreshing: boolean = false;
-
-  private readonly CACHE_CONFIG: Record<string, number> = {
-    '/projects': 60000, // 1 minute
-    '/users': 120000,   // 2 minutes
-    '/auth/': 0,        // Never cache auth
-    '/health': 5000,    // 5 seconds
-  };
 
   /**
    * Gets the TTL for a specific endpoint
    */
   private getTTL(endpoint: string): number {
-    const configKey = Object.keys(this.CACHE_CONFIG).find(key => endpoint.startsWith(configKey));
-    return configKey !== undefined ? this.CACHE_CONFIG[configKey] : this.DEFAULT_TTL;
+    const configKey = Object.keys(CACHE_CONFIG).find(key => endpoint.startsWith(key));
+    return configKey !== undefined ? CACHE_CONFIG[configKey] : DEFAULT_TTL;
   }
 
   /**
