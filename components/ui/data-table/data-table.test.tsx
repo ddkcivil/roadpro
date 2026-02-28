@@ -1,7 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { DataTable } from './data-table';
-import React from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 
 interface TestData {

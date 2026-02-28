@@ -30,7 +30,7 @@ import {
 } from "../dropdown-menu";
 import { SlidersHorizontal, Search } from "lucide-react";
 import { FixedSizeList } from 'react-window';
-import { AutoSizer } from 'react-virtualized-auto-sizer';
+import AutoSizer from 'react-virtualized-auto-sizer';
 
 const List = FixedSizeList;
 const TypedAutoSizer = AutoSizer as any;
@@ -174,6 +174,7 @@ export function DataTable<TData, TValue>({
           <TableBody className="block">
             {rows?.length ? (
               shouldVirtualize ? (
+                /* eslint-disable react/no-inline-styles */
                 <div style={containerStyle}>
                   <TypedAutoSizer>
                     {({ height, width }: any) => (
