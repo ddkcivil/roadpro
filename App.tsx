@@ -7,6 +7,7 @@ import { useAuth } from './hooks/useAuth';
 import { useProjects } from './hooks/useProjects';
 import { useMessages } from './hooks/useMessages';
 import { useSettings } from './hooks/useSettings';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 import { apiService } from './services/api/apiService';
 import { addSkipLink } from './utils/accessibility/a11yUtils';
@@ -18,6 +19,7 @@ import ProjectModal from './components/core/ProjectModal';
 import AppSidebar from './components/core/AppSidebar';
 import AppHeader from './components/core/AppHeader';
 import ProjectSelector from './components/core/ProjectSelector';
+import GlobalSearch from './components/utilities/GlobalSearch';
 
 import { I18nProvider } from './contexts/I18nContext';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -100,6 +102,11 @@ const App: React.FC = () => {
     messages,
     sendMessage
   } = useMessages(currentUser);
+
+  useKeyboardShortcuts({
+    onToggleSidebar: () => setIsSidebarCollapsed(prev => !prev),
+    onOpenProjectSwitcher: () => setSelectedProjectId(null),
+  });
 
   // Initialize service worker and accessibility on mount
   useEffect(() => {
@@ -336,6 +343,14 @@ const App: React.FC = () => {
               onClose={() => setIsProjectModalOpen(false)} 
               onSave={(p) => { saveProject(p); setIsProjectModalOpen(false); }}
               project={editProject}
+            />
+            
+            <GlobalSearch 
+              projects={projects}
+              currentProject={currentProject}
+              onSelectProject={(id) => setSelectedProjectId(id)}
+              onNavigate={(tabId) => setActiveTab(tabId)}
+              userRole={userRole}
             />
           </div>
           <Toaster position="bottom-right" richColors />

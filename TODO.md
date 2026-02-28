@@ -20,7 +20,7 @@
 
 ### 1.3 State Management Optimization
 - [ ] Replace multiple useState calls with useReducer for complex state (project, settings)
-- [ ] Add debouncing for localStorage writes
+- [x] Add debouncing for localStorage writes
 - [ ] Implement optimistic updates for better UX
 - [ ] Add state persistence middleware
 
@@ -81,15 +81,15 @@
 - [ ] Add shimmer effects for loading cards
 
 ### 4.2 Keyboard Navigation
-- [ ] Add keyboard shortcuts for common actions:
-  - `Ctrl+K` for global search
-  - `Ctrl+P` for project switcher
-  - `Ctrl+B` for sidebar toggle
+- [x] Add keyboard shortcuts for common actions:
+  - [x] `Ctrl+K` for global search
+  - [x] `Ctrl+P` for project switcher
+  - [x] `Ctrl+B` for sidebar toggle
 - [ ] Improve tab navigation in forms
 - [ ] Add focus trap in modals
 
 ### 4.3 Search and Filter
-- [ ] Implement global search across all modules
+- [x] Implement global search across all modules
 - [ ] Add advanced filtering with multiple criteria
 - [ ] Add search history and favorites
 
@@ -168,8 +168,8 @@
 1. [x] Extract navigation config to separate file
 2. [x] Create custom hooks for auth/projects/messages/settings
 3. [x] Add debouncing for localStorage operations
-4. [ ] Implement global search
-5. [ ] Add keyboard shortcuts
+4. [x] Implement global search
+5. [x] Add keyboard shortcuts
 
 ### Medium Priority (Short-term)
 1. [x] Split App.tsx into smaller components

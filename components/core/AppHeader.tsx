@@ -8,7 +8,8 @@ import {
   CloudCog, 
   Sun, 
   Moon, 
-  Bot 
+  Bot,
+  Search
 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
@@ -77,6 +78,26 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
       </div>
       <div className="flex items-center gap-2">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="hidden md:flex items-center gap-2 text-muted-foreground font-medium px-3 border border-slate-200 dark:border-slate-800 rounded-lg h-9"
+          onClick={() => {
+            const event = new KeyboardEvent('keydown', {
+              key: 'k',
+              ctrlKey: true,
+              bubbles: true
+            });
+            document.dispatchEvent(event);
+          }}
+        >
+          <Search className="h-4 w-4" />
+          <span className="text-xs">Search...</span>
+          <kbd className="ml-2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+            <span className="text-xs">⌘</span>K
+          </kbd>
+        </Button>
+        
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={handleManualSync}>
