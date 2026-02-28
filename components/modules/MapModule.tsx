@@ -11,6 +11,12 @@ import { Label } from '~/components/ui/label';
 import { ScrollArea } from '~/components/ui/scroll-area';
 import { Separator } from '~/components/ui/separator';
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "~/components/ui/accordion";
+import {
   MapPin,
   Truck,
   Users,
@@ -27,7 +33,9 @@ import {
   EyeOff,
   Loader2,
   Maximize,
-  Minimize
+  Minimize,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '~/lib/utils';
 
@@ -335,6 +343,7 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isRulerActive, setIsRulerActive] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({
     structures: true,
@@ -918,7 +927,7 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
         </div>
       </div>
 
-      <div className="flex flex-1 gap-4 overflow-hidden">
+      <div className="flex flex-1 gap-4 overflow-hidden relative">
         {/* Map Container */}
         <div className="flex-1 relative rounded-2xl overflow-hidden border-2 border-slate-200 shadow-inner bg-slate-100">
           <MapContainer
@@ -968,6 +977,15 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
           
           {/* Custom Map Controls */}
           <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
+            <Button 
+              variant="secondary" 
+              size="icon" 
+              className="shadow-lg rounded-xl"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              title={sidebarOpen ? "Hide Controls" : "Show Controls"}
+            >
+              {sidebarOpen ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+            </Button>
             <Button variant="secondary" size="icon" className="shadow-lg rounded-xl">
               <Search size={20} />
             </Button>
@@ -991,7 +1009,10 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
         </div>
 
         {/* Sidebar Controls */}
-        <Card className="w-80 shrink-0 border-2 shadow-sm flex flex-col">
+        <Card className={cn(
+          "w-80 shrink-0 border-2 shadow-sm flex flex-col transition-all duration-300 transform",
+          !sidebarOpen && "w-0 opacity-0 -mr-4 pointer-events-none translate-x-full"
+        )}>
           <CardHeader className="p-4 border-b">
             <CardTitle className="text-sm font-black flex items-center gap-2">
               <Layers size={16} /> LAYER CONTROLS
@@ -999,189 +1020,217 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
           </CardHeader>
           <CardContent className="p-0 flex-1 overflow-hidden">
             <ScrollArea className="h-full">
-              <div className="p-4 space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
-                        <Building size={16} />
+              <div className="p-4">
+                <Accordion type="multiple" defaultValue={["layers", "kml"]} className="w-full">
+                  <AccordionItem value="layers" className="border-none">
+                    <AccordionTrigger className="hover:no-underline py-2">
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        <Layers size={14} /> GIS Monitoring Layers
                       </div>
-                      <div>
-                        <Label className="font-bold text-sm">Structures</Label>
-                        <p className="text-[10px] text-muted-foreground uppercase">Culverts & Walls</p>
-                      </div>
-                    </div>
-                    <Switch 
-                      checked={layerVisibility.structures} 
-                      onCheckedChange={() => toggleLayer('structures')} 
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-green-100 text-green-600 rounded-lg">
-                        <Truck size={16} />
-                      </div>
-                      <div>
-                        <Label className="font-bold text-sm">Fleet Tracking</Label>
-                        <p className="text-[10px] text-muted-foreground uppercase">Live Vehicle GPS</p>
-                      </div>
-                    </div>
-                    <Switch 
-                      checked={layerVisibility.vehicles} 
-                      onCheckedChange={() => toggleLayer('vehicles')} 
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-amber-100 text-amber-600 rounded-lg">
-                        <Users size={16} />
-                      </div>
-                      <div>
-                        <Label className="font-bold text-sm">Site Personnel</Label>
-                        <p className="text-[10px] text-muted-foreground uppercase">Staff Locations</p>
-                      </div>
-                    </div>
-                    <Switch 
-                      checked={layerVisibility.staff} 
-                      onCheckedChange={() => toggleLayer('staff')} 
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
-                        <MapPin size={16} />
-                      </div>
-                      <div>
-                        <Label className="font-bold text-sm">Land Parcels</Label>
-                        <p className="text-[10px] text-muted-foreground uppercase">Property Boundaries</p>
-                      </div>
-                    </div>
-                    <Switch 
-                      checked={layerVisibility.landParcels} 
-                      onCheckedChange={() => toggleLayer('landParcels')} 
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-pink-100 text-pink-600 rounded-lg">
-                        <Camera size={16} />
-                      </div>
-                      <div>
-                        <Label className="font-bold text-sm">Site Photos</Label>
-                        <p className="text-[10px] text-muted-foreground uppercase">Geotagged Media</p>
-                      </div>
-                    </div>
-                    <Switch 
-                      checked={layerVisibility.sitePhotos} 
-                      onCheckedChange={() => toggleLayer('sitePhotos')} 
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-slate-100 text-slate-600 rounded-lg">
-                        <Route size={16} />
-                      </div>
-                      <div>
-                        <Label className="font-bold text-sm">Alignments</Label>
-                        <p className="text-[10px] text-muted-foreground uppercase">Road Design Layers</p>
-                      </div>
-                    </div>
-                    <Switch 
-                      checked={layerVisibility.overlays} 
-                      onCheckedChange={() => toggleLayer('overlays')} 
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-cyan-100 text-cyan-600 rounded-lg">
-                        <Route size={16} />
-                      </div>
-                      <div>
-                        <Label className="font-bold text-sm">Linear Works</Label>
-                        <p className="text-[10px] text-muted-foreground uppercase">Progress by Chainage</p>
-                      </div>
-                    </div>
-                    <Switch 
-                      checked={layerVisibility.linearWorks} 
-                      onCheckedChange={() => toggleLayer('linearWorks')} 
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
-                        <Layers size={16} />
-                      </div>
-                      <div>
-                        <Label className="font-bold text-sm">KML Master</Label>
-                        <p className="text-[10px] text-muted-foreground uppercase">Global KML Toggle</p>
-                      </div>
-                    </div>
-                    <Switch 
-                      checked={layerVisibility.kml} 
-                      onCheckedChange={() => toggleLayer('kml')} 
-                    />
-                  </div>
-
-                  {/* Individual KML Files */}
-                  {layerVisibility.kml && project.kmlData && project.kmlData.length > 0 && (
-                    <div className="pl-10 space-y-2 mt-2 border-l-2 border-indigo-50">
-                      {project.kmlData.map((kml) => (
-                        <div key={kml.id} className="flex items-center justify-between group">
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-[11px] font-bold truncate pr-2 leading-tight" title={kml.name}>
-                              {kml.name}
-                            </span>
-                            <span className="text-[9px] text-muted-foreground uppercase tracking-tighter font-medium">
-                              {new Date(kml.timestamp).toLocaleDateString()}
-                            </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-2 pb-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                            <Building size={16} />
                           </div>
-                          <Switch 
-                            size="sm"
-                            className="scale-75 origin-right"
-                            checked={kml.visible} 
-                            onCheckedChange={(checked) => {
-                              const updatedKMLs = project.kmlData?.map(item => 
-                                item.id === kml.id ? { ...item, visible: checked } : item
-                              );
-                              onProjectUpdate({ kmlData: updatedKMLs });
-                            }} 
-                          />
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Structures</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Culverts & Walls</p>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                        <Switch 
+                          checked={layerVisibility.structures} 
+                          onCheckedChange={() => toggleLayer('structures')} 
+                        />
+                      </div>
 
-                <Separator />
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-green-100 text-green-600 rounded-lg">
+                            <Truck size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Fleet Tracking</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Live Vehicle GPS</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.vehicles} 
+                          onCheckedChange={() => toggleLayer('vehicles')} 
+                        />
+                      </div>
 
-                <div className="space-y-4">
-                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Map Statistics</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="bg-slate-50 p-2 rounded-lg border">
-                      <p className="text-[10px] text-slate-500 font-bold uppercase">Structures</p>
-                      <p className="text-xl font-black">{project.structures?.length || 0}</p>
-                    </div>
-                    <div className="bg-slate-50 p-2 rounded-lg border">
-                      <p className="text-[10px] text-slate-500 font-bold uppercase">Vehicles</p>
-                      <p className="text-xl font-black">{project.vehicles?.length || 0}</p>
-                    </div>
-                    <div className="bg-slate-50 p-2 rounded-lg border">
-                      <p className="text-[10px] text-slate-500 font-bold uppercase">Photos</p>
-                      <p className="text-xl font-black">{project.sitePhotos?.length || 0}</p>
-                    </div>
-                    <div className="bg-slate-50 p-2 rounded-lg border">
-                      <p className="text-[10px] text-slate-500 font-bold uppercase">Staff</p>
-                      <p className="text-xl font-black">{project.staffLocations?.length || 0}</p>
-                    </div>
-                  </div>
-                </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-amber-100 text-amber-600 rounded-lg">
+                            <Users size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Site Personnel</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Staff Locations</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.staff} 
+                          onCheckedChange={() => toggleLayer('staff')} 
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
+                            <MapPin size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Land Parcels</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Property Boundaries</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.landParcels} 
+                          onCheckedChange={() => toggleLayer('landParcels')} 
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-pink-100 text-pink-600 rounded-lg">
+                            <Camera size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Site Photos</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Geotagged Media</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.sitePhotos} 
+                          onCheckedChange={() => toggleLayer('sitePhotos')} 
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-slate-100 text-slate-600 rounded-lg">
+                            <Route size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Alignments</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Road Design Layers</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.overlays} 
+                          onCheckedChange={() => toggleLayer('overlays')} 
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-cyan-100 text-cyan-600 rounded-lg">
+                            <Route size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Linear Works</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Progress by Chainage</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.linearWorks} 
+                          onCheckedChange={() => toggleLayer('linearWorks')} 
+                        />
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="kml" className="border-none mt-2">
+                    <AccordionTrigger className="hover:no-underline py-2">
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        <Route size={14} /> KML Alignment Management
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-2 pb-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                            <Layers size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">KML Master</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Global KML Toggle</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.kml} 
+                          onCheckedChange={() => toggleLayer('kml')} 
+                        />
+                      </div>
+
+                      {/* Individual KML Files */}
+                      {layerVisibility.kml && project.kmlData && project.kmlData.length > 0 && (
+                        <div className="pl-4 space-y-3 mt-2 border-l-2 border-indigo-100">
+                          {project.kmlData.map((kml) => (
+                            <div key={kml.id} className="flex items-center justify-between group">
+                              <div className="flex flex-col min-w-0 pr-4">
+                                <span className="text-[11px] font-bold truncate leading-tight text-slate-600" title={kml.name}>
+                                  {kml.name}
+                                </span>
+                                <span className="text-[9px] text-muted-foreground uppercase tracking-tighter font-medium">
+                                  {new Date(kml.timestamp).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <Switch 
+                                size="sm"
+                                className="scale-75 origin-right"
+                                checked={kml.visible} 
+                                onCheckedChange={(checked) => {
+                                  const updatedKMLs = project.kmlData?.map(item => 
+                                    item.id === kml.id ? { ...item, visible: checked } : item
+                                  );
+                                  onProjectUpdate({ kmlData: updatedKMLs });
+                                }} 
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {!project.kmlData?.length && (
+                        <div className="text-center p-4 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">No KML Files Uploaded</p>
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="stats" className="border-none mt-2">
+                    <AccordionTrigger className="hover:no-underline py-2">
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        <BarChart3 size={14} /> Map Statistics
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-2 pb-4">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-slate-50 p-2 rounded-lg border">
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">Structures</p>
+                          <p className="text-xl font-black">{project.structures?.length || 0}</p>
+                        </div>
+                        <div className="bg-slate-50 p-2 rounded-lg border">
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">Vehicles</p>
+                          <p className="text-xl font-black">{project.vehicles?.length || 0}</p>
+                        </div>
+                        <div className="bg-slate-50 p-2 rounded-lg border">
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">Photos</p>
+                          <p className="text-xl font-black">{project.sitePhotos?.length || 0}</p>
+                        </div>
+                        <div className="bg-slate-50 p-2 rounded-lg border">
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">Staff</p>
+                          <p className="text-xl font-black">{project.staffLocations?.length || 0}</p>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </div>
             </ScrollArea>
           </CardContent>

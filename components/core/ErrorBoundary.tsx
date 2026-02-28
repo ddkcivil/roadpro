@@ -30,6 +30,14 @@ class ErrorBoundary extends React.Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
+    // Check if it's a dynamic import failure (common after new deployments)
+    if (error.message && (
+      error.message.includes("Failed to fetch dynamically imported module") ||
+      error.message.includes("Importing a module script failed")
+    )) {
+      console.warn("Detected dynamic import failure. Attempting to reload page to get latest assets...");
+      window.location.reload();
+    }
     return { hasError: true, error };
   }
 
