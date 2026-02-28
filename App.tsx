@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense, startTransition } from 'react';
 import { Loader2, Database } from 'lucide-react';
 import { Project, User } from './types';
 import { LocalStorageUtils } from './utils/data/localStorageUtils';
@@ -172,6 +172,12 @@ const App: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+
+  const handleTabChange = (tab: string) => {
+    startTransition(() => {
+      setActiveTab(tab);
+    });
+  };
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editProject, setEditProject] = useState<Partial<Project> | null>(null);
   
@@ -255,7 +261,7 @@ const App: React.FC = () => {
               sidebarOpen={sidebarOpen}
               setSidebarOpen={setSidebarOpen}
               activeTab={activeTab}
-              setActiveTab={setActiveTab}
+              setActiveTab={handleTabChange}
               navGroups={navGroups}
               currentUser={currentUser}
               logout={logout}
@@ -376,7 +382,7 @@ const App: React.FC = () => {
               projects={projects}
               currentProject={currentProject}
               onSelectProject={(id) => setSelectedProjectId(id)}
-              onNavigate={(tabId) => setActiveTab(tabId)}
+              onNavigate={handleTabChange}
               userRole={userRole}
             />
           </div>

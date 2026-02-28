@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, startTransition } from 'react';
 import { 
   Search, 
   FileText, 
@@ -193,7 +193,9 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
     if (result.type === 'Project') {
       onSelectProject(result.id);
     } else {
-      onNavigate(result.tabId);
+      startTransition(() => {
+        onNavigate(result.tabId);
+      });
     }
     setOpen(false);
     setQuery('');
