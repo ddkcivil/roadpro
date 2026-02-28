@@ -1,16 +1,6 @@
 import { offlineStorage } from '../database/offlineStorage';
-import { realApiService } from './realApiService';
+import { SyncOperation } from '../../types';
 import { toast } from 'sonner';
-
-export interface SyncOperation {
-  id: string;
-  endpoint: string;
-  method: 'POST' | 'PUT' | 'DELETE';
-  body: any;
-  timestamp: number;
-  retries: number;
-  description: string;
-}
 
 const SYNC_QUEUE_KEY = 'roadmaster-sync-queue';
 
@@ -53,6 +43,9 @@ export class SyncService {
     const queue = await this.getQueue();
     if (queue.length === 0) return;
 
+    // Dynamically import realApiService to break circular dependency
+    const { realApiService } = await import('./realApiService');
+
     console.log(`[SyncService] Processing ${queue.length} pending operations...`);
     
     const remainingQueue: SyncOperation[] = [];
@@ -61,8 +54,6 @@ export class SyncService {
 
     for (const op of queue) {
       try {
-        // We use fetch directly or a specialized method in realApiService 
-        // to avoid re-enqueueing on failure during sync
         await realApiService.executeSyncOperation(op);
         successCount++;
       } catch (error) {

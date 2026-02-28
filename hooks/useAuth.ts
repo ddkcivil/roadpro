@@ -111,8 +111,12 @@ export const useAuth = () => {
     });
   };
 
-  const logout = (selectedProjectId?: string, projectName?: string) => {
-    AuditService.logLogout(currentUser.id, currentUser.name, selectedProjectId, projectName);
+  const logout = (selectedProjectId?: string | any, projectName?: string) => {
+    // Check if called as an event handler
+    const actualProjectId = typeof selectedProjectId === 'string' ? selectedProjectId : undefined;
+    const actualProjectName = typeof selectedProjectId === 'string' ? projectName : undefined;
+    
+    AuditService.logLogout(currentUser.id, currentUser.name, actualProjectId, actualProjectName);
     setIsAuthenticated(false);
     setUserRole(UserRole.PROJECT_MANAGER);
     setUserName('');

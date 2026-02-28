@@ -1187,6 +1187,16 @@ export interface GenericResource<T = any> {
   notes?: string;
 }
 
+export interface SyncOperation {
+  id: string;
+  endpoint: string;
+  method: 'POST' | 'PUT' | 'DELETE';
+  body: any;
+  timestamp: number;
+  retries: number;
+  description: string;
+}
+
 // === UNIFIED RESOURCE TYPES ===
 
 // Unified Material type that combines all resource-related fields

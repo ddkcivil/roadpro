@@ -1,8 +1,8 @@
 // services/api/realApiService.ts
-import { Project, User, Message, AppSettings } from '../../types';
+import { Project, User, Message, AppSettings, SyncOperation } from '../../types';
 import { offlineStorage } from '../database/offlineStorage';
 import { encryptionUtils } from '../../utils/data/encryptionUtils';
-import { SyncService, SyncOperation } from './syncService';
+import { SyncService } from './syncService';
 
 /**
  * RealApiService
