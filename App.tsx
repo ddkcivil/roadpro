@@ -466,88 +466,123 @@ const App: React.FC = () => {
   };
 
   const onSaveProject = async (project: Partial<Project>) => {
-    console.log('onSaveProject called with:', project);
+    console.log('[DEBUG] onSaveProject start. Received partial project:', project);
     try {
       let backendProject: Project;
+      
+      // Determine if we are updating an existing project or creating a new one
+      // 1. If project object has an ID, it's an update to that ID
+      // 2. If no ID in project object, but we have a currentProject, it's an update to current project
+      // 3. Otherwise, it's a new project
+      const targetProjectId = project.id || currentProject?.id;
+      const isUpdate = !!targetProjectId;
+      
+      console.log('[DEBUG] isUpdate:', isUpdate, 'targetProjectId:', targetProjectId);
+
+      const baseProject = project.id 
+        ? projects.find(p => p.id === project.id) 
+        : currentProject;
+      
+      if (isUpdate && !baseProject) {
+        console.warn('[DEBUG] Update requested but baseProject not found in state. targetProjectId:', targetProjectId);
+      }
+
       // Ensure all fields are initialized to prevent issues with backend or other modules
       const completeProjectData: Project = {
-        id: project.id || `proj-${Date.now()}`, // Generate ID if new
-        name: project.name || '',
-        code: project.code || '',
-        location: project.location || '',
-        contractor: project.contractor || '',
-        startDate: project.startDate || '',
-        endDate: project.endDate || '',
-        client: project.client || '',
-        engineer: project.engineer || '',
-        contractNo: project.contractNo || '',
-        contractPeriod: project.contractPeriod || '',
-        projectManager: project.projectManager || '',
-        supervisor: project.supervisor || '',
-        consultantName: project.consultantName || '',
-        clientName: project.clientName || '',
-        logo: project.logo || '',
-        weather: project.weather, // Weather can be undefined
-        lastSynced: project.lastSynced,
-        spreadsheetId: project.spreadsheetId,
-        settings: project.settings,
-        environmentRegistry: project.environmentRegistry || { treesRemoved: 0, treesPlanted: 0, sprinklingLogs: [], treeLogs: [] },
+        // Base fields from current project or incoming update, with defaults
+        id: targetProjectId || `proj-${Date.now()}`,
+        name: project.name || baseProject?.name || '',
+        code: project.code || baseProject?.code || '',
+        location: project.location || baseProject?.location || '',
+        contractor: project.contractor || baseProject?.contractor || '',
+        startDate: project.startDate || baseProject?.startDate || '',
+        endDate: project.endDate || baseProject?.endDate || '',
+        client: project.client || baseProject?.client || '',
+        engineer: project.engineer || baseProject?.engineer || '',
+        contractNo: project.contractNo || baseProject?.contractNo || '',
+        contractPeriod: project.contractPeriod || baseProject?.contractPeriod || '',
+        projectManager: project.projectManager || baseProject?.projectManager || '',
+        supervisor: project.supervisor || baseProject?.supervisor || '',
+        consultantName: project.consultantName || baseProject?.consultantName || '',
+        clientName: project.clientName || baseProject?.clientName || '',
+        logo: project.logo || baseProject?.logo || '',
+        weather: project.weather || baseProject?.weather,
+        lastSynced: project.lastSynced || baseProject?.lastSynced,
+        spreadsheetId: project.spreadsheetId || baseProject?.spreadsheetId,
+        settings: project.settings || baseProject?.settings,
+        environmentRegistry: project.environmentRegistry || baseProject?.environmentRegistry || { treesRemoved: 0, treesPlanted: 0, sprinklingLogs: [], treeLogs: [] },
 
-        // Arrays, ensure they are always arrays
-        boq: project.boq || [],
-        rfis: project.rfis || [],
-        labTests: project.labTests || [],
-        schedule: project.schedule || [],
-        structures: project.structures || [],
-        agencies: project.agencies || [],
-        agencyPayments: project.agencyPayments || [],
-        linearWorks: project.linearWorks || [],
-        inventory: project.inventory || [],
-        inventoryTransactions: project.inventoryTransactions || [],
-        vehicles: project.vehicles || [],
-        vehicleLogs: project.vehicleLogs || [],
-        documents: project.documents || [],
-        sitePhotos: project.sitePhotos || [],
-        dailyReports: project.dailyReports || [],
-        preConstruction: project.preConstruction || [],
-        landParcels: project.landParcels || [],
-        mapOverlays: project.mapOverlays || [],
-        hindrances: project.hindrances || [],
-        ncrs: project.ncrs || [],
-        contractBills: project.contractBills || [],
-        subcontractorBills: project.subcontractorBills || [],
-        measurementSheets: project.measurementSheets || [],
-        staffLocations: project.staffLocations || [],
-        purchaseOrders: project.purchaseOrders || [],
-        agencyMaterials: project.agencyMaterials || [],
-        agencyBills: project.agencyBills || [],
-        subcontractorPayments: project.subcontractorPayments || [],
-        preConstructionTasks: project.preConstructionTasks || [],
-        kmlData: project.kmlData || [],
-        variationOrders: project.variationOrders || [],
-        resources: project.resources || [],
-        resourceAllocations: project.resourceAllocations || [],
-        milestones: project.milestones || [],
-        comments: project.comments || [],
-        checklists: project.checklists || [],
-        defects: project.defects || [],
-        complianceWorkflows: project.complianceWorkflows || [],
-        auditLogs: project.auditLogs || [],
-        structureTemplates: project.structureTemplates || [],
-        accountingIntegrations: project.accountingIntegrations || [],
-        accountingTransactions: project.accountingTransactions || [],
-        personnel: project.personnel || [],
-        fleet: project.fleet || [],
+        // Arrays, ensure they are always arrays and merge if it's an update
+        boq: project.boq || baseProject?.boq || [],
+        rfis: project.rfis || baseProject?.rfis || [],
+        labTests: project.labTests || baseProject?.labTests || [],
+        schedule: project.schedule || baseProject?.schedule || [],
+        structures: project.structures || baseProject?.structures || [],
+        agencies: project.agencies || baseProject?.agencies || [],
+        agencyPayments: project.agencyPayments || baseProject?.agencyPayments || [],
+        linearWorks: project.linearWorks || baseProject?.linearWorks || [],
+        inventory: project.inventory || baseProject?.inventory || [],
+        inventoryTransactions: project.inventoryTransactions || baseProject?.inventoryTransactions || [],
+        vehicles: project.vehicles || baseProject?.vehicles || [],
+        vehicleLogs: project.vehicleLogs || baseProject?.vehicleLogs || [],
+        documents: project.documents || baseProject?.documents || [],
+        sitePhotos: project.sitePhotos || baseProject?.sitePhotos || [],
+        dailyReports: project.dailyReports || baseProject?.dailyReports || [],
+        preConstruction: project.preConstruction || baseProject?.preConstruction || [],
+        landParcels: project.landParcels || baseProject?.landParcels || [],
+        mapOverlays: project.mapOverlays || baseProject?.mapOverlays || [],
+        hindrances: project.hindrances || baseProject?.hindrances || [],
+        ncrs: project.ncrs || baseProject?.ncrs || [],
+        contractBills: project.contractBills || baseProject?.contractBills || [],
+        subcontractorBills: project.subcontractorBills || baseProject?.subcontractorBills || [],
+        measurementSheets: project.measurementSheets || baseProject?.measurementSheets || [],
+        staffLocations: project.staffLocations || baseProject?.staffLocations || [],
+        purchaseOrders: project.purchaseOrders || baseProject?.purchaseOrders || [],
+        agencyMaterials: project.agencyMaterials || baseProject?.agencyMaterials || [],
+        agencyBills: project.agencyBills || baseProject?.agencyBills || [],
+        subcontractorPayments: project.subcontractorPayments || baseProject?.subcontractorPayments || [],
+        preConstructionTasks: project.preConstructionTasks || baseProject?.preConstructionTasks || [],
+        kmlData: project.kmlData || baseProject?.kmlData || [],
+        variationOrders: project.variationOrders || baseProject?.variationOrders || [],
+        resources: project.resources || baseProject?.resources || [],
+        resourceAllocations: project.resourceAllocations || baseProject?.resourceAllocations || [],
+        milestones: project.milestones || baseProject?.milestones || [],
+        comments: project.comments || baseProject?.comments || [],
+        checklists: project.checklists || baseProject?.checklists || [],
+        defects: project.defects || baseProject?.defects || [],
+        complianceWorkflows: project.complianceWorkflows || baseProject?.complianceWorkflows || [],
+        auditLogs: project.auditLogs || baseProject?.auditLogs || [],
+        structureTemplates: project.structureTemplates || baseProject?.structureTemplates || [],
+        accountingIntegrations: project.accountingIntegrations || baseProject?.accountingIntegrations || [],
+        accountingTransactions: project.accountingTransactions || baseProject?.accountingTransactions || [],
+        personnel: project.personnel || baseProject?.personnel || [],
+        fleet: project.fleet || baseProject?.fleet || [],
       };
       
+      // Client-side validation before sending to server
+      if (!completeProjectData.name || !completeProjectData.client) {
+        console.error('[DEBUG] Validation failed in onSaveProject. Missing name or client.', {
+          name: completeProjectData.name,
+          client: completeProjectData.client,
+          received: project,
+          base: baseProject ? { id: baseProject.id, name: baseProject.name, client: baseProject.client } : 'null'
+        });
+        toast.error("Save Blocked", {
+          description: "Project name and employer/client are required fields.",
+        });
+        return;
+      }
+
       // Apply material migration to ensure unified material system is used
       const processedProject: Project = prepareProjectWithMaterials(completeProjectData);
 
-      if (project.id) {
-        backendProject = await apiService.updateProject(project.id, processedProject);
+      console.log('[DEBUG] Sending project to backend. isUpdate:', isUpdate);
+      if (isUpdate) {
+        backendProject = await apiService.updateProject(completeProjectData.id, processedProject);
       } else {
         backendProject = await apiService.createProject(processedProject);
       }
+      console.log('[DEBUG] Backend response received:', backendProject);
 
       startTransition(() => {
         setProjects(prev => {
