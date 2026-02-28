@@ -826,6 +826,7 @@ export interface AppSettings {
   dateFormat?: string;
   backupEnabled?: boolean;
   backupFrequency?: string;
+  defaultLocation?: string; // e.g. "27.7006, 83.4484" for Butwal
   theme?: string; // Added for Appearance tab
   compactMode?: boolean; // Added for Appearance tab
   minPasswordLength?: number; // Added for Security tab

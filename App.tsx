@@ -360,6 +360,7 @@ const App: React.FC = () => {
       vatRate: 13,
       fiscalYearStart: '2024-01-01',
       googleSpreadsheetId: '',
+      defaultLocation: '27.7006, 83.4484', // Butwal, Nepal
       notifications: {
           enableEmail: true,
           enableInApp: true,
@@ -570,6 +571,13 @@ const App: React.FC = () => {
       
       throw error; 
     }
+  };
+
+  const handleUpdateSettings = (newSettings: AppSettings) => {
+    startTransition(() => {
+      setAppSettings(newSettings);
+      localStorage.setItem('roadmaster-settings', JSON.stringify(newSettings));
+    });
   };
 
   const handleSelectProject = (projectId: string) => {
@@ -1034,7 +1042,7 @@ const App: React.FC = () => {
                     ) : (
                       <>
                         {activeTab === 'dashboard' && <Dashboard project={currentProject!} settings={appSettings} onUpdateProject={onSaveProject} onUpdateSettings={(s) => startTransition(() => setAppSettings(s))} />}
-                        {activeTab === 'map' && <MapModule project={currentProject!} onProjectUpdate={onSaveProject} />}
+                        {activeTab === 'map' && <MapModule project={currentProject!} onProjectUpdate={onSaveProject as any} settings={appSettings} />}
                         {activeTab === 'about' && <AboutPage />}
                         {activeTab === 'contact' && <ContactPage />}
                         {activeTab === 'user-management' && <UserManagement />}
@@ -1078,7 +1086,7 @@ const App: React.FC = () => {
                         )}
                         {activeTab === 'documents' && <DocumentationHub project={currentProject!} onProjectUpdate={onSaveProject} userRole={userRole} />}
                         
-                        {activeTab === 'settings' && <SettingsModule settings={appSettings} onUpdate={setAppSettings} />}
+                        {activeTab === 'settings' && <SettingsModule settings={appSettings} onUpdate={handleUpdateSettings} />}
                         {activeTab === 'staff-management' && <StaffManagementModule />}
                       </>
                     )}

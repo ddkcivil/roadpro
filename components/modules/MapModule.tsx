@@ -21,6 +21,7 @@ import {
   Search,
   Ruler,
   Download,
+  Upload,
   Settings,
   Eye,
   EyeOff,
@@ -45,6 +46,7 @@ L.Icon.Default.mergeOptions({
 interface MapModuleProps {
   project: Project;
   onProjectUpdate: (project: Partial<Project>) => void;
+  settings?: AppSettings;
 }
 
 // KML Layer Component
@@ -249,11 +251,12 @@ interface LayerVisibility {
   kml: boolean;
 }
 
-const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate }) => {
+const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, settings }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isRulerActive, setIsRulerActive] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({
     structures: true,
     vehicles: true,
@@ -265,9 +268,39 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate }) => {
     kml: true,
   });
 
-  // Default center (Kathmandu, Nepal) - will be overridden by project location if available
-  const defaultCenter: [number, number] = [27.7172, 85.3240];
+  // Default center (Butwal, Nepal) - will be overridden by settings or project location
+  const defaultCenter: [number, number] = [27.7006, 83.4484];
   const defaultZoom = 13;
+
+  // Handle KML File Upload
+  const handleKMLUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      if (content) {
+        const newKML: KMLData = {
+          id: `kml-${Date.now()}`,
+          name: file.name,
+          content: content,
+          timestamp: Date.now(),
+          visible: true
+        };
+
+        onProjectUpdate({
+          kmlData: [...(project.kmlData || []), newKML]
+        });
+      }
+    };
+    reader.readAsText(file);
+    
+    // Reset input
+    if (event.target) {
+      event.target.value = '';
+    }
+  }, [project.kmlData, onProjectUpdate]);
 
   // Save new drawing to overlays
   const handleSaveDrawing = useCallback((coords: { lat: number, lng: number }[]) => {
@@ -286,21 +319,33 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate }) => {
     setIsDrawing(false);
   }, [project.mapOverlays, onProjectUpdate]);
 
-  // Parse project location if available
-  const mapCenter = useMemo((): [number, number] => {
-    if (project.location) {
-      // Try to parse coordinates from location string
-      const coords = project.location.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
-      if (coords) {
-        const lat = parseFloat(coords[1]);
-        const lng = parseFloat(coords[2]);
-        if (!isNaN(lat) && !isNaN(lng)) {
-          return [lat, lng];
-        }
+  // Parse location string to [lat, lng]
+  const parseLocation = (locStr?: string): [number, number] | null => {
+    if (!locStr) return null;
+    const coords = locStr.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
+    if (coords) {
+      const lat = parseFloat(coords[1]);
+      const lng = parseFloat(coords[2]);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        return [lat, lng];
       }
     }
+    return null;
+  };
+
+  // Parse project location or default from settings
+  const mapCenter = useMemo((): [number, number] => {
+    // 1. Try project location
+    const projectLoc = parseLocation(project.location);
+    if (projectLoc) return projectLoc;
+
+    // 2. Try default location from settings
+    const settingsLoc = parseLocation(settings?.defaultLocation);
+    if (settingsLoc) return settingsLoc;
+
+    // 3. Fallback to Butwal
     return defaultCenter;
-  }, [project.location]);
+  }, [project.location, settings?.defaultLocation]);
 
   // Simulate loading
   useEffect(() => {
@@ -697,6 +742,16 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate }) => {
           </p>
         </div>
         <div className="flex gap-2">
+          <input
+            type="file"
+            accept=".kml"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleKMLUpload}
+          />
+          <Button variant="outline" size="sm" className="font-bold border-2" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="mr-2 h-4 w-4" /> Upload KML
+          </Button>
           <Button variant="outline" size="sm" className="font-bold border-2" onClick={exportGeoJSON}>
             <Download className="mr-2 h-4 w-4" /> Export GeoJSON
           </Button>

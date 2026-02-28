@@ -12,7 +12,7 @@ import { Badge } from '~/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { Slider } from '~/components/ui/slider';
 import { AppSettings } from '../../types';
-import { Settings, Palette, Shield, Cloud, Save, BarChart3, Bell, Activity, Share2, Info, Image as ImageIcon, Mail, AlertCircle } from 'lucide-react';
+import { Settings, Palette, Shield, Cloud, Save, BarChart3, Bell, Activity, Share2, Info, Image as ImageIcon, Mail, AlertCircle, MapPin } from 'lucide-react';
 
 
 interface Props {
@@ -318,12 +318,34 @@ const SettingsModule: React.FC<Props> = ({ settings, onUpdate }) => {
                   </div>
 
                   <div className="mt-6 p-4 bg-blue-50 rounded-md border border-blue-200">
-                      <p className="text-sm font-bold text-blue-900 flex items-center gap={1}">
+                      <p className="text-sm font-bold text-blue-900 flex items-center gap-1">
                           <Settings size={16}/> Auto-Numbering Logic
                       </p>
                       <p className="text-xs text-blue-800 mt-1">
                           RFI and Report numbers are currently auto-generated based on the format: <strong>PREFIX-CODE-SEQUENCE</strong>. 
                       </p>
+                  </div>
+
+                  <Separator className="my-6" />
+
+                  <h6 className="text-lg font-bold mb-2 text-primary">Spatial Configuration</h6>
+                  <p className="text-sm text-gray-500 mb-6">Set the default map view for projects without specific coordinates.</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                          <Label htmlFor="default-location" className="mb-2 block flex items-center gap-2">
+                            <MapPin size={16}/> Default GIS Location (Lat, Lng)
+                          </Label>
+                          <Input 
+                              id="default-location"
+                              placeholder="e.g. 27.7006, 83.4484 (Butwal)"
+                              value={formData.defaultLocation || ''} 
+                              onChange={e => setFormData({...formData, defaultLocation: e.target.value})} 
+                          />
+                          <p className="text-[10px] text-gray-500 mt-1 uppercase font-bold tracking-wider">
+                            Used as fallback when project location is not set.
+                          </p>
+                      </div>
                   </div>
                 </CardContent>
               </Card>
