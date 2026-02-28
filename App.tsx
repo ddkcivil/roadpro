@@ -205,26 +205,27 @@ const App: React.FC = () => {
     return (
       <I18nProvider>
         <NotificationProvider>
-          <ProjectSelector 
-            userName={userName}
-            themeMode={themeMode}
-            setThemeMode={setThemeMode}
-            logout={logout}
-            projects={projects}
-            setSelectedProjectId={setSelectedProjectId}
-            deleteProject={deleteProject}
-            onOpenProjectModal={(p) => { setEditProject(p); setIsProjectModalOpen(true); }}
-            isLoadingProjects={isLoadingProjects}
-            apiError={apiError}
-            fetchProjects={fetchProjects}
-            userRole={userRole}
-          />
-          <ProjectModal 
-            isOpen={isProjectModalOpen} 
-            onClose={() => setIsProjectModalOpen(false)} 
-            onSave={(p) => { saveProject(p); setIsProjectModalOpen(false); }}
-            project={editProject}
-          />
+                      <ProjectSelector 
+                        userName={userName}
+                        themeMode={themeMode}
+                        setThemeMode={setThemeMode}
+                        logout={logout}
+                        projects={projects}
+                        setSelectedProjectId={setSelectedProjectId}
+                        deleteProject={deleteProject}
+                        onOpenProjectModal={(p) => { setEditProject(p); setIsProjectModalOpen(true); }}
+                        isLoadingProjects={isLoadingProjects}
+                        apiError={apiError}
+                        fetchProjects={fetchProjects}
+                        userRole={userRole}
+                      />
+                      <ProjectModal 
+                        open={isProjectModalOpen} 
+                        onClose={() => setIsProjectModalOpen(false)} 
+                        onSave={(p) => { saveProject(p); setIsProjectModalOpen(false); }}
+                        project={editProject}
+                      />
+          
         </NotificationProvider>
       </I18nProvider>
     );
@@ -326,9 +327,12 @@ const App: React.FC = () => {
               </main>
             </div>
 
-            <AIChatModal isOpen={isAIModalOpen} onClose={() => setIsAIModalOpen(false)} project={currentProject!} />
+            {isAIModalOpen && currentProject && (
+              <AIChatModal project={currentProject} onClose={() => setIsAIModalOpen(false)} />
+            )}
+            
             <ProjectModal 
-              isOpen={isProjectModalOpen} 
+              open={isProjectModalOpen} 
               onClose={() => setIsProjectModalOpen(false)} 
               onSave={(p) => { saveProject(p); setIsProjectModalOpen(false); }}
               project={editProject}
