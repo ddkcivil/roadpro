@@ -225,7 +225,7 @@ class RealApiService {
    * Fetches a single project by ID
    */
   async getProject(id: string): Promise<Project> {
-    return this.fetchApi<Project>(`/projects/${id}`, { method: 'GET' }, true);
+    return this.fetchApi<Project>(`/projects?id=${id}`, { method: 'GET' }, true);
   }
 
   /**
@@ -242,7 +242,7 @@ class RealApiService {
    * Updates an existing project
    */
   async updateProject(id: string, projectData: Partial<Project>): Promise<Project> {
-    return this.fetchApi<Project>(`/projects/${id}`, {
+    return this.fetchApi<Project>(`/projects?id=${id}`, {
       method: 'PUT',
       body: JSON.stringify(projectData),
     });
@@ -252,7 +252,7 @@ class RealApiService {
    * Deletes a project
    */
   async deleteProject(id: string): Promise<void> {
-    return this.fetchApi<void>(`/projects/${id}`, {
+    return this.fetchApi<void>(`/projects?id=${id}`, {
       method: 'DELETE',
     });
   }
@@ -270,7 +270,7 @@ class RealApiService {
    * Authenticates a user and returns a JWT token
    */
   async loginUser(email: string, password: string): Promise<{ success: boolean; user?: User; message?: string; csrfToken?: string }> {
-    const result = await this.fetchApi<{ success: boolean; user?: User; message?: string; csrfToken?: string }>('/auth/login', {
+    const result = await this.fetchApi<{ success: boolean; user?: User; message?: string; csrfToken?: string }>('/auth?action=login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
@@ -287,7 +287,7 @@ class RealApiService {
    */
   async refreshToken(): Promise<{ success: boolean; token?: string }> {
     try {
-      const result = await this.fetchApi<{ success: boolean; token?: string }>('/auth/refresh', {
+      const result = await this.fetchApi<{ success: boolean; token?: string }>('/auth?action=refresh', {
         method: 'POST',
       });
       
@@ -309,14 +309,14 @@ class RealApiService {
    * Fetches pending registrations
    */
   async getPendingRegistrations(): Promise<any[]> {
-    return this.fetchApi<any[]>('/pending-registrations', { method: 'GET' }, true);
+    return this.fetchApi<any[]>('/registrations', { method: 'GET' }, true);
   }
 
   /**
    * Submits a new user registration request
    */
   async submitRegistration(data: any): Promise<any> {
-    return this.fetchApi<any>('/pending-registrations', {
+    return this.fetchApi<any>('/registrations', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -326,7 +326,7 @@ class RealApiService {
    * Approves a pending registration
    */
   async approveRegistration(id: string): Promise<User> {
-    return this.fetchApi<User>(`/pending-registrations/${id}/approve`, {
+    return this.fetchApi<User>(`/registrations?id=${id}&action=approve`, {
       method: 'POST',
     });
   }
@@ -335,8 +335,8 @@ class RealApiService {
    * Rejects a pending registration
    */
   async rejectRegistration(id: string): Promise<void> {
-    return this.fetchApi<void>(`/pending-registrations/${id}`, {
-      method: 'DELETE',
+    return this.fetchApi<void>(`/registrations?id=${id}&action=reject`, {
+      method: 'POST',
     });
   }
 
@@ -354,7 +354,7 @@ class RealApiService {
    * Updates an existing user
    */
   async updateUser(id: string, userData: Partial<User>): Promise<User> {
-    return this.fetchApi<User>(`/users/${id}`, {
+    return this.fetchApi<User>(`/users?id=${id}`, {
       method: 'PUT',
       body: JSON.stringify(userData),
     });
@@ -364,7 +364,7 @@ class RealApiService {
    * Deletes a user
    */
   async deleteUser(id: string): Promise<void> {
-    return this.fetchApi<void>(`/users/${id}`, {
+    return this.fetchApi<void>(`/users?id=${id}`, {
       method: 'DELETE',
     });
   }
