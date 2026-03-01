@@ -33,7 +33,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { apiService } from '../../services/api/apiService';
-import { LocalStorageUtils } from '../../utils/data/localStorageUtils';
+import { offlineStorage } from '../../services/database/offlineStorage';
 
 // Types
 interface PerformanceRecord {
@@ -382,54 +382,36 @@ const StaffManagementModule: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Load leave requests
-        let requests: LeaveRequest[] = [];
-        try {
-          const apiRequests = await apiService.getLeaveRequests();
-          requests = apiRequests;
-        } catch (error) {
-          console.warn('API for leave requests failed, falling back to localStorage:', error);
-          const localStorageRequests = localStorage.getItem('staff-leave-requests');
-          requests = localStorageRequests ? JSON.parse(localStorageRequests) : [];
+        setLoading(true);
+        
+        // Load all staff categories from MongoDB
+        const categories = [
+          { key: 'leave-requests', setter: setLeaveRequests, filteredSetter: setFilteredLeaveRequests },
+          { key: 'employees', setter: setEmployees, filteredSetter: setFilteredEmployees },
+          { key: 'performance', setter: setPerformanceRecords, filteredSetter: setFilteredPerformance },
+          { key: 'attendance', setter: setAttendanceRecords, filteredSetter: setFilteredAttendance },
+          { key: 'salaries', setter: setSalaryRecords, filteredSetter: setFilteredSalaries },
+          { key: 'training', setter: setTrainingRecords, filteredSetter: setFilteredTraining },
+          { key: 'evaluations', setter: setEvaluationForms, filteredSetter: setFilteredEvaluations }
+        ];
+
+        for (const cat of categories) {
+          try {
+            const data = await apiService.getStaffData(cat.key);
+            cat.setter(data);
+            cat.filteredSetter(data);
+            
+            // Sync to offlineStorage for offline availability
+            await offlineStorage.setItem(`staff-${cat.key}`, data);
+          } catch (error) {
+            console.warn(`API failed for ${cat.key}, falling back to offlineStorage:`, error);
+            const offlineData = await offlineStorage.getItem<any[]>(`staff-${cat.key}`);
+            if (offlineData) {
+              cat.setter(offlineData);
+              cat.filteredSetter(offlineData);
+            }
+          }
         }
-        setLeaveRequests(requests);
-        setFilteredLeaveRequests(requests);
-
-        // Load employees
-        const empData = localStorage.getItem('staff-employees');        
-        const employeesData = empData ? JSON.parse(empData) : [];
-        setEmployees(employeesData);
-        setFilteredEmployees(employeesData);
-
-        // Load performance records
-        const perfData = localStorage.getItem('staff-performance');
-        const perfRecords = perfData ? JSON.parse(perfData) : [];
-        setPerformanceRecords(perfRecords);
-        setFilteredPerformance(perfRecords);
-
-        // Load attendance records
-        const attData = localStorage.getItem('staff-attendance');
-        const attRecords = attData ? JSON.parse(attData) : [];
-        setAttendanceRecords(attRecords);
-        setFilteredAttendance(attRecords);
-
-        // Load salary records
-        const salData = localStorage.getItem('staff-salaries');
-        const salRecords = salData ? JSON.parse(salData) : [];
-        setSalaryRecords(salRecords);
-        setFilteredSalaries(salRecords);
-
-        // Load training records
-        const trainData = localStorage.getItem('staff-training');
-        const trainRecords = trainData ? JSON.parse(trainData) : [];
-        setTrainingRecords(trainRecords);
-        setFilteredTraining(trainRecords);
-
-        // Load evaluation forms
-        const evalData = localStorage.getItem('staff-evaluations');
-        const evalRecords = evalData ? JSON.parse(evalData) : [];
-        setEvaluationForms(evalRecords);
-        setFilteredEvaluations(evalRecords);
       } catch (error) {
         console.error('Error loading staff data:', error);
       } finally {
@@ -557,16 +539,18 @@ const StaffManagementModule: React.FC = () => {
         updatedAt: new Date().toISOString()
       };
       
-      // Save to localStorage
-      const updatedRequests = [...leaveRequests, leaveRequest];
-      localStorage.setItem('staff-leave-requests', JSON.stringify(updatedRequests));
-      setLeaveRequests(updatedRequests);
-      
-      // Try to save to API
+      // Try to save to API (MongoDB) first
       try {
-        await apiService.createLeaveRequest(leaveRequest);
+        const savedRequest = await apiService.saveStaffData('leave-requests', leaveRequest);
+        const updatedRequests = [...leaveRequests, savedRequest || leaveRequest];
+        setLeaveRequests(updatedRequests);
+        // Sync to offlineStorage
+        await offlineStorage.setItem('staff-leave-requests', updatedRequests);
       } catch (error) {
-        console.warn('API save failed for leave request, using localStorage only:', error);
+        console.warn('API save failed for leave request, falling back to offlineStorage:', error);
+        const updatedRequests = [...leaveRequests, leaveRequest];
+        setLeaveRequests(updatedRequests);
+        await offlineStorage.setItem('staff-leave-requests', updatedRequests);
       }
       
       // Reset form
@@ -584,6 +568,7 @@ const StaffManagementModule: React.FC = () => {
       });
       
       setIsLeaveModalOpen(false);
+      alert('Leave request submitted successfully');
     } catch (error) {
       alert('Failed to submit leave request');
     }
@@ -591,19 +576,23 @@ const StaffManagementModule: React.FC = () => {
 
   const updateLeaveStatus = async (id: string, status: 'Approved' | 'Rejected') => {
     try {
-      const updatedRequests = leaveRequests.map(request => 
-        request.id === id 
-          ? { ...request, status, updatedAt: new Date().toISOString() } 
-          : request
-      );
+      // Find the request to update
+      const requestToUpdate = leaveRequests.find(r => r.id === id);
+      if (!requestToUpdate) return;
+
+      const updatedData = { ...requestToUpdate, status, updatedAt: new Date().toISOString() };
       
-      localStorage.setItem('staff-leave-requests', JSON.stringify(updatedRequests));
-      
-      // Try to update via API
+      // Try API update (MongoDB)
       try {
-        await apiService.updateLeaveRequest(id, { status });
+        await apiService.saveStaffData('leave-requests', updatedData);
+        const updatedRequests = leaveRequests.map(r => r.id === id ? updatedData : r);
+        setLeaveRequests(updatedRequests);
+        await offlineStorage.setItem('staff-leave-requests', updatedRequests);
       } catch (error) {
-        console.warn('API update failed for leave request, using localStorage only:', error);
+        console.warn('API update failed for leave request, falling back to offlineStorage:', error);
+        const updatedRequests = leaveRequests.map(r => r.id === id ? updatedData : r);
+        setLeaveRequests(updatedRequests);
+        await offlineStorage.setItem('staff-leave-requests', updatedRequests);
       }
       
       alert(`Leave request ${status.toLowerCase()} successfully`);
@@ -632,97 +621,112 @@ const StaffManagementModule: React.FC = () => {
     }
   };
 
-  const handleSubmitEmployee = () => {
-    const employee: EmployeeData = {
-      id: `emp-${Date.now()}`,
-      ...newEmployee,
-      joinedDate: new Date().toISOString(),
-      status: 'Active'
-    };
-    
-    const updatedEmployees = [...employees, employee];
-    localStorage.setItem('staff-employees', JSON.stringify(updatedEmployees));
-    setEmployees(updatedEmployees);
-    
-    // Reset form
-    setNewEmployee({
-      employeeName: '',
-      designation: '',
-      department: '',
-      workStation: 'Drainage, Road, Footpath and Road Furniture Works – Tilottama Municipality',
-      gender: '',
-      nationality: '',
-      permanentAddress: '',
-      temporaryAddress: '',
-      dateOfBirth: '',
-      maritalStatus: '',
-      bloodGroup: '',
-      religion: '',
-      personalMobile: '',
-      emailAddress: '',
-      emergencyContactPerson: '',
-      emergencyContactNumber: '',
-      qualifications: [],
-      workExperience: [],
-      bankAccountName: '',
-      bankAccountNumber: '',
-      bankName: '',
-      panNumber: '',
-      nationalId: '',
-      pfNumber: '',
-      pfBranch: '',
-      citNumber: '',
-      citBranch: '',
-      retirementAccount: '',
-      retirementBank: '',
-      ssfNumber: '',
-      citizenshipDocument: 'citizenship',
-      citizenshipIssueDistrict: '',
-      citizenshipIssueOffice: '',
-      citizenshipIssueDate: '',
-      citizenshipNumber: '',
-      drivingLicenseDate: '',
-      drivingLicenseNumber: '',
-      drivingLicenseCategory: '',
-      vehicleType: '',
-      vehicleNumber: '',
-      previousEmployerLetter: false,
-      nomineeName: '',
-      nomineeRelation: '',
-      nomineeContact: '',
-      nomineePermanentAddress: '',
-      nomineeTemporaryAddress: '',
-      nomineeDocument: 'citizenship',
-      nomineeIssueDistrict: '',
-      nomineeIssueOffice: '',
-      nomineeIssueDate: '',
-      nomineeNumber: '',
-      isSingle: false,
-      isMarried: false,
-      numberOfSons: 0,
-      numberOfDaughters: 0,
-      numberOfDependents: 0,
-      employeeSignature: '',
-      signatureDate: '',
-      acceptsICTTerms: false,
-      orientationCompleted: false,
-      introductionToTeam: false,
-      otherOrientation: '',
-      laptopIssued: false,
-      laptopBrand: '',
-      mobileIssued: false,
-      mobileDetails: '',
-      emailIssued: false,
-      hrisAccess: false,
-      basicSalary: '',
-      allowances: '',
-      id: '',
-      joinedDate: '',
-      status: 'Active'
-    });
-    
-    setJoiningStep(0);
-    setIsJoiningModalOpen(false);
+  const handleSubmitEmployee = async () => {
+    try {
+      const employee: EmployeeData = {
+        id: `emp-${Date.now()}`,
+        ...newEmployee,
+        joinedDate: new Date().toISOString(),
+        status: 'Active'
+      };
+      
+      // Try API save (MongoDB)
+      try {
+        const savedEmployee = await apiService.saveStaffData('employees', employee);
+        const updatedEmployees = [...employees, savedEmployee || employee];
+        setEmployees(updatedEmployees);
+        await offlineStorage.setItem('staff-employees', updatedEmployees);
+      } catch (error) {
+        console.warn('API save failed for employee, falling back to offlineStorage:', error);
+        const updatedEmployees = [...employees, employee];
+        setEmployees(updatedEmployees);
+        await offlineStorage.setItem('staff-employees', updatedEmployees);
+      }
+      
+      // Reset form
+      setNewEmployee({
+        employeeName: '',
+        designation: '',
+        department: '',
+        workStation: 'Drainage, Road, Footpath and Road Furniture Works – Tilottama Municipality',
+        gender: '',
+        nationality: '',
+        permanentAddress: '',
+        temporaryAddress: '',
+        dateOfBirth: '',
+        maritalStatus: '',
+        bloodGroup: '',
+        religion: '',
+        personalMobile: '',
+        emailAddress: '',
+        emergencyContactPerson: '',
+        emergencyContactNumber: '',
+        qualifications: [],
+        workExperience: [],
+        bankAccountName: '',
+        bankAccountNumber: '',
+        bankName: '',
+        panNumber: '',
+        nationalId: '',
+        pfNumber: '',
+        pfBranch: '',
+        citNumber: '',
+        citBranch: '',
+        retirementAccount: '',
+        retirementBank: '',
+        ssfNumber: '',
+        citizenshipDocument: 'citizenship',
+        citizenshipIssueDistrict: '',
+        citizenshipIssueOffice: '',
+        citizenshipIssueDate: '',
+        citizenshipNumber: '',
+        drivingLicenseDate: '',
+        drivingLicenseNumber: '',
+        drivingLicenseCategory: '',
+        vehicleType: '',
+        vehicleNumber: '',
+        previousEmployerLetter: false,
+        nomineeName: '',
+        nomineeRelation: '',
+        nomineeContact: '',
+        nomineePermanentAddress: '',
+        nomineeTemporaryAddress: '',
+        nomineeDocument: 'citizenship',
+        nomineeIssueDistrict: '',
+        nomineeIssueOffice: '',
+        nomineeIssueDate: '',
+        nomineeNumber: '',
+        isSingle: false,
+        isMarried: false,
+        numberOfSons: 0,
+        numberOfDaughters: 0,
+        numberOfDependents: 0,
+        employeeSignature: '',
+        signatureDate: '',
+        acceptsICTTerms: false,
+        orientationCompleted: false,
+        introductionToTeam: false,
+        otherOrientation: '',
+        laptopIssued: false,
+        laptopBrand: '',
+        mobileIssued: false,
+        mobileDetails: '',
+        emailIssued: false,
+        hrisAccess: false,
+        basicSalary: '',
+        allowances: '',
+        id: '',
+        joinedDate: '',
+        status: 'Active'
+      });
+      
+      setJoiningStep(0);
+      setIsJoiningModalOpen(false);
+      alert('Employee onboarded successfully');
+    } catch (error) {
+      console.error('Error saving employee:', error);
+      alert('Failed to save employee data. Please try again.');
+    }
   };
 
   const getStatusIcon = (status: string) => {

@@ -372,30 +372,51 @@ class RealApiService {
   // --- Staff Management ---
 
   /**
-   * Fetches all leave requests
+   * Fetches all items for a staff category
+   */
+  async getStaffData(category: string): Promise<any[]> {
+    return this.fetchApi<any[]>(`/staff?category=${category}`, { method: 'GET' }, true);
+  }
+
+  /**
+   * Saves staff item (create or update)
+   */
+  async saveStaffData(category: string, data: any): Promise<any> {
+    const isUpdate = data.id && !data.id.startsWith('temp-');
+    return this.fetchApi<any>(`/staff?category=${category}${isUpdate ? `&id=${data.id}` : ''}`, {
+      method: isUpdate ? 'PUT' : 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Deletes a staff item
+   */
+  async deleteStaffData(category: string, id: string): Promise<void> {
+    return this.fetchApi<void>(`/staff?category=${category}&id=${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Fetches all leave requests (legacy support)
    */
   async getLeaveRequests(): Promise<any[]> {
-    return this.fetchApi<any[]>('/leave-requests', { method: 'GET' }, true);
+    return this.getStaffData('leave-requests');
   }
 
   /**
-   * Creates a new leave request
+   * Creates a new leave request (legacy support)
    */
   async createLeaveRequest(leaveData: any): Promise<any> {
-    return this.fetchApi<any>('/leave-requests', {
-      method: 'POST',
-      body: JSON.stringify(leaveData),
-    });
+    return this.saveStaffData('leave-requests', leaveData);
   }
 
   /**
-   * Updates an existing leave request
+   * Updates an existing leave request (legacy support)
    */
   async updateLeaveRequest(id: string, leaveData: any): Promise<any> {
-    return this.fetchApi<any>(`/leave-requests/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(leaveData),
-    });
+    return this.saveStaffData('leave-requests', { ...leaveData, id });
   }
 
   /**

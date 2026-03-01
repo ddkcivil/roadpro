@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Project, UserRole, Vehicle } from '../../types';
 import QRCodeGenerator from './QRCodeGenerator';
+import { generateUniqueId } from '../../utils/uuidUtils';
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -132,7 +133,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
     } else {
       // Add new asset
       const newAsset: Vehicle = {
-        id: `asset-${Date.now()}`,
+        id: generateUniqueId(),
         name: assetForm.plateNumber || 'Unnamed Asset',
         description: assetForm.type || '',
         category: assetForm.type || 'Equipment',

@@ -821,34 +821,6 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, userRo
                   <SelectItem value="Completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
-            
-              <h4 className="text-lg font-bold mt-3 text-primary">Structural Assets & Works</h4>
-              <Label htmlFor="assigned-works">Assigned Works</Label>
-              <Input
-                id="assigned-works" 
-                value={newSubcontractor.assignedWorks?.join(', ') || ''} 
-                onChange={e => setNewSubcontractor({...newSubcontractor, assignedWorks: e.target.value.split(',').map(work => work.trim()).filter(work => work)})} 
-                placeholder="Enter BOQ item IDs or work descriptions separated by commas"
-              />
-              <p className="text-sm text-muted-foreground">Enter BOQ item IDs or work descriptions separated by commas</p>
-
-              <Label htmlFor="asset-categories">Asset Categories</Label>
-              <Input
-                id="asset-categories" 
-                value={newSubcontractor.assetCategories?.join(', ') || ''} 
-                onChange={e => setNewSubcontractor({...newSubcontractor, assetCategories: e.target.value.split(',').map(cat => cat.trim()).filter(cat => cat)})}
-                placeholder="e.g., Bridges, Culverts, Retaining Walls"
-              />
-              <p className="text-sm text-muted-foreground">e.g., Bridges, Culverts, Retaining Walls</p>
-
-              <Label htmlFor="certifications">Certifications</Label>
-              <Input
-                id="certifications" 
-                value={newSubcontractor.certification?.join(', ') || ''} 
-                onChange={e => setNewSubcontractor({...newSubcontractor, certification: e.target.value.split(',').map(cert => cert.trim()).filter(cert => cert)})}
-                placeholder="e.g., Structural Engineer License, Safety Certification"
-              />
-              <p className="text-sm text-muted-foreground">e.g., Structural Engineer License, Safety Certification</p>
             </div>
           </div>
           <DialogFooter className="bg-slate-50 p-3 flex justify-end gap-2">
