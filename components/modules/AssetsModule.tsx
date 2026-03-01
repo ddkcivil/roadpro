@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { cn } from '~/lib/utils';
 import {
     Package, AlertTriangle, CheckCircle2, TrendingDown, Plus,
     ArrowUpRight, ShoppingCart, History, PackageSearch, Filter,

@@ -22,6 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import NotificationsBadge from './NotificationsBadge';
 import { OfflineIndicator } from '../common/OfflineIndicator';
 import { Project, UserWithPermissions } from '~/types';
+import { cn } from '~/lib/utils';
 
 interface AppHeaderProps {
   setSidebarOpen: (open: boolean) => void;
