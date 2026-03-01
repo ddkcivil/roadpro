@@ -10,6 +10,7 @@ import {
     StructureComponent, StructureWorkLog, LabTest, BOQItem, Subcontractor,
     StructureTemplate
 } from '../../types';
+import { generateUniqueId } from '../../utils/uuidUtils';
 
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '~/components/ui/card';
