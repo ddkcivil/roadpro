@@ -16,7 +16,7 @@ import {
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
 import { Separator } from '~/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { Toggle } from '~/components/ui/toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import NotificationsBadge from './NotificationsBadge';
