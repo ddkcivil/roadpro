@@ -201,11 +201,11 @@ export const chatWithGemini = async (
   // Prepare project summary for enhanced context
   const projectSummary = `
 PROJECT SUMMARY:
-- Total BOQ Value: ${formatCurrency((projectContext.boq || []).reduce((sum, item) => sum + (item.quantity * item.rate), 0) || 0, projectContext.settings)}
-- Overall Progress: ${projectContext.boq?.length ? ((projectContext.boq.reduce((comp, item) => comp + item.completedQuantity, 0) / projectContext.boq.reduce((tot, item) => tot + item.quantity, 0)) * 100).toFixed(2) : '0'}%
-- Active RFIs: ${(projectContext.rfis || []).filter(rfi => rfi.status === 'Open').length} open of ${(projectContext.rfis || []).length} total
-- Upcoming Milestones: ${(projectContext.schedule || []).filter(task => task.status === 'Not Started' && new Date(task.startDate) <= new Date(Date.now() + 7*24*60*60*1000)).length} upcoming
-- Completed Tasks: ${(projectContext.schedule || []).filter(task => task.status === 'Completed').length} of ${(projectContext.schedule || []).length} total
+- Total BOQ Value: ${formatCurrency((projectContext.boq || []).reduce((sum: number, item: BOQItem) => sum + (item.quantity * item.rate), 0) || 0, projectContext.settings)}
+- Overall Progress: ${projectContext.boq?.length ? ((projectContext.boq.reduce((comp: number, item: BOQItem) => comp + item.completedQuantity, 0) / projectContext.boq.reduce((tot: number, item: BOQItem) => tot + item.quantity, 0)) * 100).toFixed(2) : '0'}%
+- Active RFIs: ${(projectContext.rfis || []).filter((rfi: RFI) => rfi.status === 'Open').length} open of ${(projectContext.rfis || []).length} total
+- Upcoming Milestones: ${(projectContext.schedule || []).filter((task: ScheduleTask) => task.status === 'Not Started' && new Date(task.startDate) <= new Date(Date.now() + 7*24*60*60*1000)).length} upcoming
+- Completed Tasks: ${(projectContext.schedule || []).filter((task: ScheduleTask) => task.status === 'Completed').length} of ${(projectContext.schedule || []).length} total
 `;
 
   try {

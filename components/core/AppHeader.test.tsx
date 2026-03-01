@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import AppHeader from './AppHeader';
 import React from 'react';
-import { UserRole } from '~/types';
+import { UserRole } from '../../types';
 
 // Mock the components that are complex or tested elsewhere
 vi.mock('../common/OfflineIndicator', () => ({

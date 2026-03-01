@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, startTransition } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap, LayerGroup, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 import { cn } from '~/lib/utils';
 
-import omnivore from 'leaflet-omnivore';
+import * as omnivore from '@mapbox/leaflet-omnivore';
 import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
 import 'leaflet-geosearch/dist/geosearch.css';
 
@@ -75,59 +75,70 @@ const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
 
     try {
       // 1. Parse KML directly into a leaflet layer
-      kmlLayer = omnivore.kml.parse(kml.content);
-      kmlLayer.addTo(map);
+      // Using a more robust import check for omnivore in ESM environments
+      const omnivoreLib = (omnivore as any).default || omnivore;
+      if (omnivoreLib && omnivoreLib.kml && omnivoreLib.kml.parse) {
+        kmlLayer = omnivoreLib.kml.parse(kml.content);
+        kmlLayer.addTo(map);
 
-      // 2. Extract lines and calculate chainage markers
-      kmlLayer.eachLayer((layer: any) => {
-        if (layer instanceof L.Polyline) {
-          const coords = layer.getLatLngs() as L.LatLng[];
-          if (coords.length < 2) return;
-
-          let totalDist = 0;
-          let lastMarkerDist = 0;
-          const interval = 500; // 500 meters
-
-          // Add start marker (0+000)
-          const startIcon = L.divIcon({
-            className: 'bg-black/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded border border-white whitespace-nowrap shadow-md',
-            html: `${kml.name.split('.')[0]}: 0+000`,
-            iconAnchor: [0, 0]
-          });
-          markers.push(L.marker(coords[0], { icon: startIcon }).addTo(map));
-
-          for (let i = 0; i < coords.length - 1; i++) {
-            const p1 = coords[i];
-            const p2 = coords[i + 1];
-            const segmentDist = p1.distanceTo(p2);
+        // 2. Extract lines and calculate chainage markers
+        kmlLayer.eachLayer((layer: any) => {
+          if (layer instanceof L.Polyline) {
+            const coords = layer.getLatLngs() as L.LatLng[];
+            // Handle nested latlngs for polygons or multi-polylines
+            const flatCoords = Array.isArray(coords[0]) ? (coords as any).flat(Infinity) as L.LatLng[] : coords;
             
-            totalDist += segmentDist;
+            if (flatCoords.length < 2) return;
 
-            // Check if we passed a 500m threshold
-            while (totalDist >= lastMarkerDist + interval) {
-              const markerDist = lastMarkerDist + interval;
-              const fraction = (markerDist - (totalDist - segmentDist)) / segmentDist;
+            let totalDist = 0;
+            let lastMarkerDist = 0;
+            const interval = 500; // 500 meters
+
+            // Add start marker (0+000)
+            const startIcon = L.divIcon({
+              className: 'bg-black/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded border border-white whitespace-nowrap shadow-md',
+              html: `${kml.name.split('.')[0]}: 0+000`,
+              iconAnchor: [0, 0]
+            });
+            markers.push(L.marker(flatCoords[0], { icon: startIcon }).addTo(map));
+
+            for (let i = 0; i < flatCoords.length - 1; i++) {
+              const p1 = flatCoords[i];
+              const p2 = flatCoords[i + 1];
+              if (!p1 || !p2) continue;
               
-              // Interpolate position
-              const lat = p1.lat + (p2.lat - p1.lat) * fraction;
-              const lng = p1.lng + (p2.lng - p1.lng) * fraction;
+              const segmentDist = p1.distanceTo(p2);
               
-              const chainageKm = Math.floor(markerDist / 1000);
-              const chainageM = Math.round(markerDist % 1000);
-              const label = `${kml.name.split('.')[0]}: ${chainageKm}+${chainageM.toString().padStart(3, '0')}`;
+              totalDist += segmentDist;
 
-              const icon = L.divIcon({
-                className: 'bg-white/90 text-black text-[9px] font-bold px-1.5 py-0.5 rounded border border-black/20 shadow-sm whitespace-nowrap',
-                html: label,
-                iconAnchor: [0, 0]
-              });
+              // Check if we passed a 500m threshold
+              while (totalDist >= lastMarkerDist + interval) {
+                const markerDist = lastMarkerDist + interval;
+                const fraction = (markerDist - (totalDist - segmentDist)) / segmentDist;
+                
+                // Interpolate position
+                const lat = p1.lat + (p2.lat - p1.lat) * fraction;
+                const lng = p1.lng + (p2.lng - p1.lng) * fraction;
+                
+                const chainageKm = Math.floor(markerDist / 1000);
+                const chainageM = Math.round(markerDist % 1000);
+                const label = `${kml.name.split('.')[0]}: ${chainageKm}+${chainageM.toString().padStart(3, '0')}`;
 
-              markers.push(L.marker([lat, lng], { icon: icon }).addTo(map));
-              lastMarkerDist = markerDist;
+                const icon = L.divIcon({
+                  className: 'bg-white/90 text-black text-[9px] font-bold px-1.5 py-0.5 rounded border border-black/20 shadow-sm whitespace-nowrap',
+                  html: label,
+                  iconAnchor: [0, 0]
+                });
+
+                markers.push(L.marker([lat, lng], { icon: icon }).addTo(map));
+                lastMarkerDist = markerDist;
+              }
             }
           }
-        }
-      });
+        });
+      } else {
+        console.error('Leaflet-omnivore library not available or incorrectly imported.');
+      }
 
       setChainageMarkers(markers);
 
@@ -345,6 +356,7 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
   const [isRulerActive, setIsRulerActive] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [targetBounds, setTargetBounds] = useState<L.LatLngBounds | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({
     structures: true,
@@ -360,6 +372,52 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
   // Default center (Butwal, Nepal) - will be overridden by settings or project location
   const defaultCenter: [number, number] = [27.7006, 83.4484];
   const defaultZoom = 13;
+
+  // Function to zoom to specific KML alignment
+  const zoomToKML = useCallback((kmlContent: string) => {
+    try {
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(kmlContent, "text/xml");
+      const coordinates = xml.getElementsByTagName("coordinates");
+      const allPoints: L.LatLng[] = [];
+
+      for (let i = 0; i < coordinates.length; i++) {
+        const coordStr = coordinates[i].textContent || "";
+        coordStr.trim().split(/\s+/).forEach((p) => {
+          const [lng, lat] = p.split(",").map(Number);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            allPoints.push(L.latLng(lat, lng));
+          }
+        });
+      }
+
+      if (allPoints.length > 0) {
+        const bounds = L.latLngBounds(allPoints);
+        startTransition(() => {
+          setTargetBounds(bounds);
+        });
+        // Clear target bounds after a short delay so it can be re-triggered
+        setTimeout(() => {
+          startTransition(() => {
+            setTargetBounds(null);
+          });
+        }, 1000);
+      }
+    } catch (error) {
+      console.error("Failed to calculate KML bounds:", error);
+    }
+  }, []);
+
+  // Map Component to handle programmatic zooming
+  const MapController: React.FC<{ bounds: L.LatLngBounds | null }> = ({ bounds }) => {
+    const map = useMap();
+    useEffect(() => {
+      if (bounds) {
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+      }
+    }, [bounds, map]);
+    return null;
+  };
 
   // Handle KML File Upload
   const handleKMLUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -378,8 +436,13 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
           visible: true
         };
 
-        onProjectUpdate({
-          kmlData: [...(project.kmlData || []), newKML]
+        startTransition(() => {
+          onProjectUpdate({
+            kmlData: [...(project.kmlData || []), newKML]
+          });
+          
+          // Auto-zoom to the newly uploaded KML
+          zoomToKML(content);
         });
       }
     };
@@ -389,7 +452,7 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
     if (event.target) {
       event.target.value = '';
     }
-  }, [project.kmlData, onProjectUpdate]);
+  }, [project.kmlData, onProjectUpdate, zoomToKML]);
 
   // Save new drawing to overlays
   const handleSaveDrawing = useCallback((coords: { lat: number, lng: number }[]) => {
@@ -402,8 +465,10 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
       visible: true
     };
     
-    onProjectUpdate({
-      mapOverlays: [...(project.mapOverlays || []), newOverlay]
+    startTransition(() => {
+      onProjectUpdate({
+        mapOverlays: [...(project.mapOverlays || []), newOverlay]
+      });
     });
     setIsDrawing(false);
   }, [project.mapOverlays, onProjectUpdate]);
@@ -444,7 +509,9 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
 
   // Toggle layer visibility
   const toggleLayer = useCallback((layer: keyof LayerVisibility) => {
-    setLayerVisibility(prev => ({ ...prev, [layer]: !prev[layer] }));
+    startTransition(() => {
+      setLayerVisibility(prev => ({ ...prev, [layer]: !prev[layer] }));
+    });
   }, []);
 
   // Find the alignment overlay to use as a reference for chainage mapping
@@ -943,6 +1010,7 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             <MapCenterUpdater center={mapCenter} zoom={defaultZoom} />
+            <MapController bounds={targetBounds} />
             <SearchField />
             
             {layerVisibility.structures && structureMarkers}
@@ -982,7 +1050,7 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
               variant="secondary" 
               size="icon" 
               className="shadow-lg rounded-xl"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
+              onClick={() => startTransition(() => setSidebarOpen(!sidebarOpen))}
               title={sidebarOpen ? "Hide Controls" : "Show Controls"}
             >
               {sidebarOpen ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
@@ -1180,17 +1248,30 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                                   {new Date(kml.timestamp).toLocaleDateString()}
                                 </span>
                               </div>
-                              <Switch 
-                                size="sm"
-                                className="scale-75 origin-right"
-                                checked={kml.visible} 
-                                onCheckedChange={(checked) => {
-                                  const updatedKMLs = project.kmlData?.map(item => 
-                                    item.id === kml.id ? { ...item, visible: checked } : item
-                                  );
-                                  onProjectUpdate({ kmlData: updatedKMLs });
-                                }} 
-                              />
+                              <div className="flex items-center gap-1">
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                                  onClick={() => zoomToKML(kml.content)}
+                                  title="Zoom to alignment"
+                                >
+                                  <Maximize size={12} />
+                                </Button>
+                                <Switch 
+                                  size="sm"
+                                  className="scale-75 origin-right"
+                                  checked={kml.visible} 
+                                  onCheckedChange={(checked) => {
+                                    const updatedKMLs = project.kmlData?.map(item => 
+                                      item.id === kml.id ? { ...item, visible: checked } : item
+                                    );
+                                    startTransition(() => {
+                                      onProjectUpdate({ kmlData: updatedKMLs });
+                                    });
+                                  }} 
+                                />
+                              </div>
                             </div>
                           ))}
                         </div>

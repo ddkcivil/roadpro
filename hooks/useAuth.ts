@@ -35,6 +35,13 @@ export const useAuth = () => {
 
   // Debug effect to track authentication state changes
   useEffect(() => {
+    const handleAuthFailure = () => {
+      console.warn('Persistent auth failure detected via event. Logging out.');
+      setIsAuthenticated(false);
+    };
+
+    window.addEventListener('roadmaster-auth-failure', handleAuthFailure);
+
     console.log('Authentication state checked:', {
       isAuthenticated,
       userRole,
@@ -47,6 +54,10 @@ export const useAuth = () => {
       console.warn('Inconsistent auth state detected: Authenticated but no token. Resetting.');
       logout();
     }
+
+    return () => {
+      window.removeEventListener('roadmaster-auth-failure', handleAuthFailure);
+    };
   }, [isAuthenticated, token, userRole, userName, currentUserId]);
 
   const currentUser = useMemo(() => {
@@ -122,14 +133,13 @@ export const useAuth = () => {
     });
   };
 
-  const logout = (selectedProjectId?: string | any, projectName?: string) => {
+  const logout = async (selectedProjectId?: string | any, projectName?: string) => {
     // Check if called as an event handler
     const actualProjectId = typeof selectedProjectId === 'string' ? selectedProjectId : undefined;
     const actualProjectName = typeof selectedProjectId === 'string' ? projectName : undefined;
-    
-    AuditService.logLogout(currentUser.id, currentUser.name, actualProjectId, actualProjectName);
-    setIsAuthenticated(false);
-    setUserRole(UserRole.PROJECT_MANAGER);
+
+    await AuditService.logLogout(currentUser.id, currentUser.name, actualProjectId, actualProjectName);
+    setIsAuthenticated(false);    setUserRole(UserRole.PROJECT_MANAGER);
     setUserName('');
     setCurrentUserId('u2');
     setToken('');

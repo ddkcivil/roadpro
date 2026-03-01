@@ -68,7 +68,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                   onCheckedChange={() => onFilterChange(group.id, option.value)}
                 >
                   {option.label}
-                </MenuCheckboxItem>
+                </DropdownMenuCheckboxItem>
               ))}
               <DropdownMenuSeparator />
             </React.Fragment>

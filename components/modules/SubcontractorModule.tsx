@@ -316,6 +316,58 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, userRo
     });
   };
 
+  const handleSaveRate = () => {
+    if (!selectedSubId) {
+      showToast('Please select a subcontractor first');
+      return;
+    }
+
+    if (!rateForm.boqItemId) {
+      showToast('Please select a BOQ item');
+      return;
+    }
+
+    if (!rateForm.rate || isNaN(Number(rateForm.rate)) || Number(rateForm.rate) <= 0) {
+      showToast('Please enter a valid positive rate');
+      return;
+    }
+
+    const newRate: SubcontractorRateEntry = {
+      id: `rate-${Date.now()}`,
+      subcontractorId: selectedSubId,
+      boqItemId: rateForm.boqItemId,
+      rate: Number(rateForm.rate),
+      effectiveDate: rateForm.effectiveDate || new Date().toISOString().split('T')[0],
+      status: rateForm.status || 'Active',
+      description: rateForm.description || ''
+    };
+
+    const updatedAgencies = project.agencies?.map(a => {
+      if (a.id === selectedSubId) {
+        return {
+          ...a,
+          rates: [...(a.rates || []), newRate as any] // Cast to any because Agency uses AgencyRateEntry which is similar
+        };
+      }
+      return a;
+    }) || [];
+
+    onProjectUpdate({
+      ...project,
+      agencies: updatedAgencies
+    });
+
+    setIsRatesModalOpen(false);
+    setRateForm({
+      boqItemId: '',
+      rate: 0,
+      effectiveDate: new Date().toISOString().split('T')[0],
+      status: 'Active',
+      description: ''
+    });
+    showToast('Rate added successfully');
+  };
+
   const handleOpenPaymentModal = () => {
     if (!selectedSubId) {
       showToast('Please select a subcontractor first');
@@ -600,6 +652,7 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, userRo
                     <TableCell align="right" className="font-bold">Rate</TableCell>
                     <TableCell className="font-bold">Effective Date</TableCell>
                     <TableCell className="font-bold">Status</TableCell>
+                    <TableCell align="right" className="font-bold">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -626,6 +679,34 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, userRo
                           >
                             {rate.status}
                           </Badge>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-red-500 h-8 w-8"
+                            onClick={() => {
+                              if (window.confirm('Are you sure you want to delete this rate?')) {
+                                const updatedAgencies = project.agencies?.map(a => {
+                                  if (a.id === selectedSubId) {
+                                    return {
+                                      ...a,
+                                      rates: a.rates?.filter(r => r.id !== rate.id)
+                                    };
+                                  }
+                                  return a;
+                                }) || [];
+                                
+                                onProjectUpdate({
+                                  ...project,
+                                  agencies: updatedAgencies
+                                });
+                                showToast('Rate deleted successfully');
+                              }
+                            }}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -764,7 +845,7 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, userRo
                 onChange={e => setNewSubcontractor({...newSubcontractor, address: e.target.value})} 
               />
               
-              <Label htmlFor="contract-value">Contract Value</Label>
+              <Label htmlFor="contract-value">Total Contract Value</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{getCurrencySymbol(settings?.currency || project.settings?.currency)}</span>
                 <Input
@@ -774,7 +855,7 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, userRo
                   onChange={e => setNewSubcontractor({...newSubcontractor, contractValue: Number(e.target.value)})} 
                   min={0} 
                   step={0.01}
-                  className="pl-7" // Adjust padding to make space for the currency symbol
+                  className="pl-7" 
                 />
               </div>
 
@@ -911,6 +992,82 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, userRo
             </Button>
             <Button onClick={handleSavePayment} className="shadow-md hover:shadow-lg">
               <Save className="mr-2 h-4 w-4" />Save Payment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Rate Modal */}
+      <Dialog open={isRatesModalOpen} onOpenChange={() => setIsRatesModalOpen(false)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="font-bold flex items-center gap-1.5">
+              <Calculator className="text-primary" /> Add Item Rate
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="flex flex-col gap-3 mt-1">
+              <Label htmlFor="boq-item">Select BOQ Item</Label>
+              <Select 
+                value={rateForm.boqItemId} 
+                onValueChange={value => setRateForm({...rateForm, boqItemId: value})}
+              >
+                <SelectTrigger id="boq-item">
+                  <SelectValue placeholder="Select item from BOQ" />
+                </SelectTrigger>
+                <SelectContent>
+                  {project.boq.map(item => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.itemNo}: {item.description}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Label htmlFor="rate-value">Agreed Rate</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{getCurrencySymbol(settings?.currency || project.settings?.currency)}</span>
+                <Input
+                  id="rate-value" 
+                  type="number" 
+                  value={rateForm.rate} 
+                  onChange={e => setRateForm({...rateForm, rate: parseFloat(e.target.value) || 0})}
+                  min={0} 
+                  step={0.01}
+                  required 
+                  className="pl-7"
+                />
+              </div>
+
+              <Label htmlFor="effective-date">Effective Date</Label>
+              <div className="relative">
+                <Calendar size={16} className="text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"/>
+                <Input 
+                  id="effective-date" 
+                  type="date" 
+                  value={rateForm.effectiveDate} 
+                  onChange={e => setRateForm({...rateForm, effectiveDate: e.target.value})} 
+                  className="pl-9"
+                />
+              </div>
+
+              <Label htmlFor="rate-description">Description/Notes</Label>
+              <textarea 
+                id="rate-description" 
+                title="Rate Description"
+                placeholder="Specific conditions or variations"
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                value={rateForm.description} 
+                onChange={e => setRateForm({...rateForm, description: e.target.value})} 
+              />
+            </div>
+          </div>
+          <DialogFooter className="bg-slate-50 p-3 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsRatesModalOpen(false)}>
+              <X className="mr-2 h-4 w-4" />Cancel
+            </Button>
+            <Button onClick={handleSaveRate} className="shadow-md hover:shadow-lg">
+              <Save className="mr-2 h-4 w-4" />Save Rate
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -132,7 +132,7 @@ const App: React.FC = () => {
       const registerSW = async () => {
         try {
           if (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-            await navigator.serviceWorker.register('./sw.js');
+            await navigator.serviceWorker.register('/sw.js');
           }
         } catch (error) {
           console.error('SW registration failed: ', error);
@@ -371,7 +371,14 @@ const App: React.FC = () => {
                                 onSendMessage={sendMessage}
                               />
                             )}
-                            {activeTab === 'documents' && <DocumentationHub project={currentProject!} onProjectUpdate={saveProject as any} userRole={userRole} />}
+                            {activeTab === 'documents' && (
+                              <DocumentationHub 
+                                project={currentProject!} 
+                                onProjectUpdate={saveProject as any} 
+                                userRole={userRole} 
+                                onNavigate={handleTabChange}
+                              />
+                            )}
                             {activeTab === 'settings' && <SettingsModule settings={appSettings} onUpdate={updateSettings} />}
                             {activeTab === 'staff-management' && <StaffManagementModule />}
                           </>
@@ -409,8 +416,10 @@ const App: React.FC = () => {
             theme={themeMode}
             toastOptions={{
               className: 'rounded-2xl border-border/50 glass shadow-2xl',
-              descriptionClassName: 'text-xs opacity-70 font-medium',
-              titleClassName: 'font-black tracking-tight',
+              classNames: {
+                title: 'font-black tracking-tight',
+                description: 'text-xs opacity-70 font-medium',
+              }
             }}
           />
         </TooltipProvider>

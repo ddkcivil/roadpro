@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Project, UserRole, DailyWorkItem, StructureAsset, StructureComponent, SitePhoto, InventoryItem } from '../../types';
+import { Project, UserRole, DailyWorkItem, StructureAsset, StructureComponent, SitePhoto, InventoryItem, DailyReport } from '../../types';
+import { useAuth } from '../../hooks/useAuth';
 import { Users, Activity, FileText, Trash2, Plus, Printer, CheckCircle, X, Hammer, Layers, AlertCircle, MapPin, Hash, Info, CloudSun, RefreshCw, Wifi, WifiOff, Calendar, Thermometer, CloudRain, Sun, Cloud, Wind, Eye, User, Truck, Package, HelpCircle } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
@@ -20,6 +21,7 @@ interface Props {
 }
 
 const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
+  const { userName } = useAuth();
   const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
   const [weather, setWeather] = useState('Sunny');
   const [activeTab, setActiveTab] = useState(0);
@@ -44,8 +46,22 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
   const [visitors, setVisitors] = useState([{ id: Date.now().toString(), name: '', organization: '' }]);
   const [materials, setMaterials] = useState([{ id: Date.now().toString(), material: '', stockQty: '', deliverQty: '', consumeQty: '' }]);
   const [remarks, setRemarks] = useState(['']);
-  const [submittedBy, setSubmittedBy] = useState('');
+  const [submittedBy, setSubmittedBy] = useState(userName || '');
   const [receivedBy, setReceivedBy] = useState('');
+
+  // Update submittedBy when userName is available
+  useEffect(() => {
+    if (userName && !submittedBy) {
+      setSubmittedBy(userName);
+    }
+  }, [userName, submittedBy]);
+
+  // Update submittedBy when userName is available
+  useEffect(() => {
+    if (userName && !submittedBy) {
+      setSubmittedBy(userName);
+    }
+  }, [userName, submittedBy]);
 
   // Update online status when it changes
   useEffect(() => {
@@ -108,7 +124,7 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
       };
 
       // Validate work items
-      workItemsToday.forEach((item, index) => {
+      workItemsToday.forEach((item, i) => {
         const itemErrors: any = {};
         if (!item.description?.trim()) {
           itemErrors.description = 'Description is required';
@@ -126,13 +142,66 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
           itemErrors.quantity = 'Quantity must be greater than 0';
           isValid = false;
         }
-        newErrors.workItems[index] = itemErrors;
+        newErrors.workItems[i] = itemErrors;
       });
+
+      if (workItemsToday.length === 0) {
+        alert("Please add at least one work entry.");
+        return;
+      }
 
       setErrors(newErrors);
 
       if (isValid) {
-        alert("Report submitted. Physical progress updated in linked assets and BOQ ledger.");
+        const newReport: DailyReport = {
+          id: `report-${Date.now()}`,
+          date: reportDate,
+          reportNumber: `DPR-${reportDate.replace(/-/g, '')}`,
+          status: 'Submitted',
+          submittedBy: submittedBy,
+          weather: weather,
+          remarks: remarks.filter(r => r.trim()).join('\n'),
+          workToday: workItemsToday,
+          workItems: workItemsToday // Keep both for compatibility
+        };
+
+        // Update project with the new report
+        const updatedReports = [...(project.dailyReports || []), newReport];
+        
+        // Also update the physical progress of the components
+        let updatedStructures = [...(project.structures || [])];
+        
+        workItemsToday.forEach(item => {
+          updatedStructures = updatedStructures.map(s => {
+            if (s.id === item.assetId) {
+              const updatedComponents = s.components.map(c => {
+                if (c.id === item.componentId) {
+                  return {
+                    ...c,
+                    completedQuantity: (c.completedQuantity || 0) + item.quantity,
+                    updatedAt: new Date().toISOString()
+                  };
+                }
+                return c;
+              });
+              return { ...s, components: updatedComponents, updatedAt: new Date().toISOString() };
+            }
+            return s;
+          });
+        });
+
+        onProjectUpdate({
+          ...project,
+          dailyReports: updatedReports,
+          structures: updatedStructures
+        });
+
+        alert("Report submitted successfully! Physical progress has been updated in linked assets.");
+        
+        // Reset form
+        setWorkItemsToday([]);
+        setRemarks(['']);
+        setVisitors([{ id: Date.now().toString(), name: '', organization: '' }]);
       } else {
         alert("Please fix the validation errors before submitting.");
       }
@@ -259,13 +328,15 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
         <Card className="p-6 mb-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                 <div>
-                    <Label htmlFor="report-date">Site Date</Label>
+                    <Label htmlFor="report-date" className={errors.reportDate ? "text-destructive" : ""}>Site Date</Label>
                     <Input
                         id="report-date"
                         type="date"
                         value={reportDate}
                         onChange={e => setReportDate(e.target.value)}
+                        className={errors.reportDate ? "border-destructive" : ""}
                     />
+                    {errors.reportDate && <p className="text-xs text-destructive mt-1">{errors.reportDate}</p>}
                 </div>
                 <div className="flex gap-2">
                     <Select value={weather} onValueChange={setWeather}>
@@ -389,12 +460,12 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                                         <div className="md:col-span-4 space-y-4">
                                             <div>
-                                                <Label>Target Structure</Label>
+                                                <Label className={errors.workItems[i]?.assetId ? "text-destructive" : ""}>Target Structure</Label>
                                                 <Select
                                                     value={item.assetId || ''}
                                                     onValueChange={(value) => updateWorkToday(i, 'assetId', value)}
                                                 >
-                                                    <SelectTrigger>
+                                                    <SelectTrigger className={errors.workItems[i]?.assetId ? "border-destructive" : ""}>
                                                         <SelectValue placeholder="Select structure" />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -403,15 +474,16 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                                                         )}
                                                     </SelectContent>
                                                 </Select>
+                                                {errors.workItems[i]?.assetId && <p className="text-xs text-destructive mt-1">{errors.workItems[i].assetId}</p>}
                                             </div>
                                             <div>
-                                                <Label>Component</Label>
+                                                <Label className={errors.workItems[i]?.componentId ? "text-destructive" : ""}>Component</Label>
                                                 <Select
                                                     value={item.componentId || ''}
                                                     onValueChange={(value) => updateWorkToday(i, 'componentId', value)}
                                                     disabled={!item.assetId}
                                                 >
-                                                    <SelectTrigger>
+                                                    <SelectTrigger className={errors.workItems[i]?.componentId ? "border-destructive" : ""}>
                                                         <SelectValue placeholder="Select component" />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -420,24 +492,29 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                                                         )}
                                                     </SelectContent>
                                                 </Select>
+                                                {errors.workItems[i]?.componentId && <p className="text-xs text-destructive mt-1">{errors.workItems[i].componentId}</p>}
                                             </div>
                                         </div>
                                         <div className="md:col-span-6 space-y-4">
                                             <div>
-                                                <Label>Detailed Work Description</Label>
+                                                <Label className={errors.workItems[i]?.description ? "text-destructive" : ""}>Detailed Work Description</Label>
                                                 <Textarea
                                                     value={item.description}
                                                     onChange={e => updateWorkToday(i, 'description', e.target.value)}
+                                                    className={errors.workItems[i]?.description ? "border-destructive" : ""}
                                                 />
+                                                {errors.workItems[i]?.description && <p className="text-xs text-destructive mt-1">{errors.workItems[i].description}</p>}
                                             </div>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <Label>Qty</Label>
+                                                    <Label className={errors.workItems[i]?.quantity ? "text-destructive" : ""}>Qty</Label>
                                                     <Input
                                                         type="number"
                                                         value={item.quantity}
                                                         onChange={e => updateWorkToday(i, 'quantity', Number(e.target.value))}
+                                                        className={errors.workItems[i]?.quantity ? "border-destructive" : ""}
                                                     />
+                                                    {errors.workItems[i]?.quantity && <p className="text-xs text-destructive mt-1">{errors.workItems[i].quantity}</p>}
                                                 </div>
                                                 <div>
                                                     <Label>Chainage</Label>
@@ -532,18 +609,22 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                         <h4 className="font-semibold mb-4">Submission</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <Label>Submitted By (Contractor)</Label>
+                                <Label className={errors.submittedBy ? "text-destructive" : ""}>Submitted By (Contractor)</Label>
                                 <Input
                                     value={submittedBy}
                                     onChange={e => setSubmittedBy(e.target.value)}
+                                    className={errors.submittedBy ? "border-destructive" : ""}
                                 />
+                                {errors.submittedBy && <p className="text-xs text-destructive mt-1">{errors.submittedBy}</p>}
                             </div>
                             <div>
-                                <Label>Received By (Engineer)</Label>
+                                <Label className={errors.receivedBy ? "text-destructive" : ""}>Received By (Engineer)</Label>
                                 <Input
                                     value={receivedBy}
                                     onChange={e => setReceivedBy(e.target.value)}
+                                    className={errors.receivedBy ? "border-destructive" : ""}
                                 />
+                                {errors.receivedBy && <p className="text-xs text-destructive mt-1">{errors.receivedBy}</p>}
                             </div>
                         </div>
                     </Card>

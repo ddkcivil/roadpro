@@ -1,10 +1,13 @@
-const CACHE_NAME = 'roadmaster-v8';
+const CACHE_NAME = 'roadmaster-v9';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
   '/favicon.ico',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap'
+  '/index.css',
+  '/sql.js/sql-wasm.js',
+  '/sql.js/sql-wasm.wasm',
+  'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap'
 ];
 
 // Install Event - Cache static assets

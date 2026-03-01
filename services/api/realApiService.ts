@@ -87,15 +87,23 @@ class RealApiService {
             this.isRefreshing = false;
             // Retry the original request with the new token
             return this.fetchWithRetry(endpoint, options, retries);
+          } else {
+            this.handleAuthFailure();
           }
         } catch (refreshError) {
           console.error('Failed to refresh token automatically');
+          this.handleAuthFailure();
         } finally {
           this.isRefreshing = false;
         }
       }
 
       if (!response.ok) {
+        // Handle persistent 401s even after refresh attempts
+        if (response.status === 401 && !endpoint.includes('/auth/')) {
+          this.handleAuthFailure();
+        }
+
         // Only retry on 5xx errors
         if (retries > 0 && response.status >= 500) {
           await new Promise(resolve => setTimeout(resolve, 1000));
@@ -121,6 +129,18 @@ class RealApiService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Helper to handle persistent authentication failures
+   */
+  private handleAuthFailure(): void {
+    // Clear local auth state to stop the 401 loop
+    localStorage.removeItem('roadmaster-authenticated');
+    localStorage.removeItem('roadmaster-token');
+    
+    // Dispatch a custom event that useAuth can listen to
+    window.dispatchEvent(new CustomEvent('roadmaster-auth-failure'));
   }
 
   /**

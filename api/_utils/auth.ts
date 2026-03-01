@@ -14,15 +14,15 @@ export const generateToken = (payload: TokenPayload): string => {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 };
 
-export const verifyToken = (token: string): TokenPayload | null => {
+export const verifyToken = (token: string, ignoreExpiration = false): TokenPayload | null => {
   try {
-    return jwt.verify(token, JWT_SECRET) as TokenPayload;
+    return jwt.verify(token, JWT_SECRET, { ignoreExpiration }) as TokenPayload;
   } catch (error) {
     return null;
   }
 };
 
-export const withAuth = (handler: Function) => async (req: VercelRequest, res: VercelResponse) => {
+export const withAuth = (handler: Function, options: { ignoreExpiration?: boolean } = {}) => async (req: VercelRequest, res: VercelResponse) => {
   let token = null;
   const authHeader = req.headers.authorization;
   
@@ -42,7 +42,7 @@ export const withAuth = (handler: Function) => async (req: VercelRequest, res: V
     return res.status(401).json({ error: 'Unauthorized: No token provided' });
   }
 
-  const decoded = verifyToken(token);
+  const decoded = verifyToken(token, options.ignoreExpiration);
 
   if (!decoded) {
     return res.status(401).json({ error: 'Unauthorized: Invalid token' });

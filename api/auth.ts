@@ -117,7 +117,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         console.error('Token refresh failed:', error);
         return res.status(500).json({ error: 'Token refresh failed', details: error.message });
       }
-    })(req, res);
+    }, { ignoreExpiration: true })(req, res);
   }
 
   return res.status(400).json({ error: 'Invalid action' });

@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { useDebounce } from './useDebounce';
 import { AuditService } from '../services/analytics/auditService';
 import { sanitizationUtils } from '../utils/validation/sanitizationUtils';
-import { usePersistedReducer } from './usePersistence';
+import { usePersistedReducer, useAsyncPersistedReducer } from './usePersistence';
 import { useRateLimit } from './useRateLimit';
 
 interface ProjectsState {
@@ -22,20 +22,31 @@ type ProjectsAction =
   | { type: 'FETCH_SUCCESS'; payload: Project[] }
   | { type: 'FETCH_ERROR'; payload: string }
   | { type: 'SET_SELECTED_PROJECT'; payload: string | null }
-  | { type: 'UPDATE_PROJECTS'; payload: Project[] };
+  | { type: 'UPDATE_PROJECTS'; payload: Project[] }
+  | { type: 'HYDRATE'; payload: ProjectsState };
 
 const projectsReducer = (state: ProjectsState, action: ProjectsAction): ProjectsState => {
   switch (action.type) {
+    case 'HYDRATE':
+      const hydratedProjects = (action.payload.projects || []).map(p => prepareProjectWithMaterials(p));
+      return { 
+        ...state, 
+        ...action.payload, 
+        projects: hydratedProjects,
+        isLoading: false 
+      };
     case 'FETCH_START':
       return { ...state, isLoading: true, error: null };
     case 'FETCH_SUCCESS':
-      return { ...state, isLoading: false, projects: action.payload, error: null };
+      const fetchedProjects = (action.payload || []).map(p => prepareProjectWithMaterials(p));
+      return { ...state, isLoading: false, projects: fetchedProjects, error: null };
     case 'FETCH_ERROR':
       return { ...state, isLoading: false, error: action.payload };
     case 'SET_SELECTED_PROJECT':
       return { ...state, selectedProjectId: action.payload };
     case 'UPDATE_PROJECTS':
-      return { ...state, projects: action.payload };
+      const updatedProjects = (action.payload || []).map(p => prepareProjectWithMaterials(p));
+      return { ...state, projects: updatedProjects };
     default:
       return state;
   }
@@ -49,7 +60,7 @@ const INITIAL_STATE: ProjectsState = {
 };
 
 export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
-  const [state, dispatch] = usePersistedReducer(
+  const [state, dispatch, isHydrated] = useAsyncPersistedReducer(
     projectsReducer, 
     INITIAL_STATE, 
     'roadmaster-projects-state'
@@ -65,32 +76,39 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
   }, 1000);
 
   const fetchProjects = async (page = 1) => {
-    dispatch({ type: 'FETCH_START' });
+    startTransition(() => {
+      dispatch({ type: 'FETCH_START' });
+    });
     try {
       const response = await apiService.getProjects(page);
       const fetchedProjects = response.data;
-      dispatch({ type: 'FETCH_SUCCESS', payload: fetchedProjects });
+      startTransition(() => {
+        dispatch({ type: 'FETCH_SUCCESS', payload: fetchedProjects });
+      });
       DataCache.set(getCacheKey('projects'), fetchedProjects, { ttl: 10 * 60 * 1000 });
     } catch (error: any) {
       console.error('Failed to fetch projects from database:', error);
-      dispatch({ type: 'FETCH_ERROR', payload: error.message || 'Failed to connect to the database.' });
+      startTransition(() => {
+        dispatch({ type: 'FETCH_ERROR', payload: error.message || 'Failed to connect to the database.' });
+      });
     }
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && isHydrated) {
       fetchProjects();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isHydrated]);
 
   const currentProject = useMemo(() => {
     if (!state?.projects) return undefined;
-    const project = state.projects.find(p => p.id === state.selectedProjectId);
-    return project ? prepareProjectWithMaterials(project) : undefined;
+    return state.projects.find(p => p.id === state.selectedProjectId);
   }, [state?.projects, state?.selectedProjectId]);
 
   const setSelectedProjectId = (id: string | null) => {
-    dispatch({ type: 'SET_SELECTED_PROJECT', payload: id });
+    startTransition(() => {
+      dispatch({ type: 'SET_SELECTED_PROJECT', payload: id });
+    });
   };
 
   const saveProject = async (project: Partial<Project>) => {
@@ -199,7 +217,9 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
         ? state.projects.map(p => p.id === sanitizedProjectData.id ? sanitizedProjectData : p)
         : [...state.projects, sanitizedProjectData];
       
-      dispatch({ type: 'UPDATE_PROJECTS', payload: optimisticProjects });
+      startTransition(() => {
+        dispatch({ type: 'UPDATE_PROJECTS', payload: optimisticProjects });
+      });
 
       const processedProject: Project = prepareProjectWithMaterials(sanitizedProjectData);
 
@@ -207,7 +227,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
       if (isUpdate) {
         backendProject = await apiService.updateProject(sanitizedProjectData.id, processedProject);
         if (currentUser) {
-          AuditService.logDataModification(
+          await AuditService.logDataModification(
             currentUser.id, 
             currentUser.name, 
             'UPDATE', 
@@ -221,7 +241,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
       } else {
         backendProject = await apiService.createProject(processedProject);
         if (currentUser) {
-          AuditService.logDataModification(
+          await AuditService.logDataModification(
             currentUser.id, 
             currentUser.name, 
             'CREATE', 
@@ -247,7 +267,9 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
         description: `${sanitizedProjectData.name} has been synchronized with the cloud.`,
       });
     } catch (error: any) {
-      dispatch({ type: 'UPDATE_PROJECTS', payload: previousProjects });
+      startTransition(() => {
+        dispatch({ type: 'UPDATE_PROJECTS', payload: previousProjects });
+      });
       
       console.error('[ERROR] Failed to save project to backend:', error);
       const errorMsg = error.response?.data?.details || error.message || 'Unknown server error';
@@ -264,7 +286,9 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
     
     try {
       const updatedProjects = previousProjects.filter(p => p.id !== projectId);
-      dispatch({ type: 'UPDATE_PROJECTS', payload: updatedProjects });
+      startTransition(() => {
+        dispatch({ type: 'UPDATE_PROJECTS', payload: updatedProjects });
+      });
       
       if (state?.selectedProjectId === projectId) {
         setSelectedProjectId(null);
@@ -272,7 +296,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
 
       await apiService.deleteProject(projectId);
       if (currentUser && projectToDelete) {
-        AuditService.logDataModification(
+        await AuditService.logDataModification(
           currentUser.id, 
           currentUser.name, 
           'DELETE', 
@@ -289,7 +313,9 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
         description: "The project has been permanently removed from the database.",
       });
     } catch (error: any) {
-      dispatch({ type: 'UPDATE_PROJECTS', payload: previousProjects });
+      startTransition(() => {
+        dispatch({ type: 'UPDATE_PROJECTS', payload: previousProjects });
+      });
       if (state?.selectedProjectId === null && projectToDelete) {
          setSelectedProjectId(projectId);
       }

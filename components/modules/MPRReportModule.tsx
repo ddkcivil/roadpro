@@ -21,7 +21,8 @@ import {
   MessageSquare, Camera, BookOpen, ChevronDown
 } from 'lucide-react';
 import { Project, UserRole, AppSettings, BOQItem, ScheduleTask, LabTest, NCR, RFI, RFIStatus, StructureAsset, Vehicle, InventoryItem, DailyReport, PreConstructionTask, LandParcel, MapOverlay, EnvironmentRegistry, WeatherInfo } from '../../types';
-import { formatCurrency } from '../../utils/formatting/exportUtils';
+import { formatCurrency, generatePDF, exportToCSV } from '../../utils/formatting/exportUtils';
+import { toast } from 'sonner';
 
 interface Props {
   project: Project;
@@ -34,6 +35,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
   const [reportMonth, setReportMonth] = useState<string>(new Date().toISOString().slice(0, 7)); // YYYY-MM
   const [activeTab, setActiveTab] = useState(0);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [previewPhoto, setPreviewPhoto] = useState<{url: string, caption: string} | null>(null);
 
   if (!project) {
     return (

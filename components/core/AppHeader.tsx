@@ -21,7 +21,7 @@ import { Toggle } from '~/components/ui/toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import NotificationsBadge from './NotificationsBadge';
 import { OfflineIndicator } from '../common/OfflineIndicator';
-import { Project, UserWithPermissions } from '~/types';
+import { Project, UserWithPermissions } from '../../types';
 import { cn } from '~/lib/utils';
 
 interface AppHeaderProps {

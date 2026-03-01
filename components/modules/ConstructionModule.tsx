@@ -11,6 +11,7 @@ import {
     StructureTemplate
 } from '../../types';
 import { generateUniqueId } from '../../utils/uuidUtils';
+import { toast } from 'sonner';
 
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '~/components/ui/card';
@@ -113,20 +114,168 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
   
   const structureTemplates: StructureTemplate[] = project.structureTemplates || [];
   
-  const handleSaveTemplate = () => { console.log('Save template placeholder'); setIsTemplateModalOpen(false); };
-  const handleLoadTemplate = (template: StructureTemplate) => { console.log('Load template placeholder', template); setIsTemplateListOpen(false); };
-  const handleCreateFromTemplate = (template: StructureTemplate) => { console.log('Create from template placeholder', template); setViewMode('CREATE'); setIsTemplateListOpen(false); };
-  const handleDeleteTemplate = (templateId: string) => { console.log('Delete template placeholder', templateId); };
-  const handleOpenLogWork = (comp: StructureComponent) => { console.log('Open log work placeholder', comp); setIsLogWorkOpen(true); };
-  const handleAddComponent = () => { console.log('Add component placeholder'); };
-  const handleUpdateComponent = (index: number, field: keyof StructureComponent, value: any) => { console.log('Update component placeholder'); };
-  const handleRemoveComponent = (index: number) => { console.log('Remove component placeholder'); };
-  const handleCreateStructure = () => { console.log('Create structure placeholder'); setViewMode('LIST'); };
-  const handleSaveWorkLog = () => { console.log('Save work log placeholder'); setIsLogWorkOpen(false); };
-  const handleDeleteWorkLog = (structureId: string, componentId: string, logId: string) => { console.log('Delete work log placeholder'); };
-  const handleEditStructure = (structure: StructureAsset) => { console.log('Edit structure placeholder', structure); setViewMode('EDIT'); };
-  const handleUpdateStructure = () => { console.log('Update structure placeholder'); setViewMode('LIST'); };
-  const handleDeleteStructure = (structureId: string) => { console.log('Delete structure placeholder', structureId); };
+  const handleSaveTemplate = () => {
+    if (!templateName) return;
+    const template: StructureTemplate = {
+      id: generateUniqueId(),
+      name: templateName,
+      description: templateDescription,
+      type: newStructure.type as StructureType,
+      components: (newStructure.components || []).map(c => ({
+        ...c,
+        completedQuantity: 0,
+        verifiedQuantity: 0,
+        workLogs: []
+      }))
+    };
+    onProjectUpdate({
+      ...project,
+      structureTemplates: [...(project.structureTemplates || []), template]
+    });
+    setIsTemplateModalOpen(false);
+    setTemplateName('');
+    setTemplateDescription('');
+    toast.success("Template Saved", { description: "Structure configuration has been saved as a template." });
+  };
+
+  const handleCreateFromTemplate = (template: StructureTemplate) => {
+    setNewStructure({
+      name: `New ${template.name}`,
+      type: template.type,
+      location: '',
+      status: 'Not Started',
+      components: template.components.map(c => ({ ...c, id: generateUniqueId() })),
+      subcontractorId: '',
+      chainage: ''
+    });
+    setViewMode('CREATE');
+    setIsTemplateListOpen(false);
+  };
+
+  const handleDeleteTemplate = (templateId: string) => {
+    onProjectUpdate({
+      ...project,
+      structureTemplates: (project.structureTemplates || []).filter(t => t.id !== templateId)
+    });
+    toast.success("Template Deleted");
+  };
+
+  const handleOpenLogWork = (comp: StructureComponent) => {
+    setCurrentLogComponent(comp);
+    setLogForm({
+      date: new Date().toISOString().split('T')[0],
+      quantity: 0,
+      rate: 0,
+      remarks: '',
+      boqItemId: comp.boqItemId || '',
+      subcontractorId: selectedStructure?.subcontractorId || '',
+      rfiId: '',
+      labTestId: ''
+    });
+    setIsLogWorkOpen(true);
+  };
+
+  const handleAddComponent = () => {
+    const component: StructureComponent = {
+      id: generateUniqueId(),
+      name: '',
+      unit: '',
+      totalQuantity: 0,
+      completedQuantity: 0,
+      verifiedQuantity: 0,
+      workLogs: []
+    };
+    setNewStructure(prev => ({
+      ...prev,
+      components: [...(prev.components || []), component]
+    }));
+  };
+
+  const handleUpdateComponent = (index: number, field: keyof StructureComponent, value: any) => {
+    const updatedComponents = [...(newStructure.components || [])];
+    updatedComponents[index] = { ...updatedComponents[index], [field]: value };
+    setNewStructure(prev => ({ ...prev, components: updatedComponents }));
+  };
+
+  const handleRemoveComponent = (index: number) => {
+    const updatedComponents = (newStructure.components || []).filter((_, i) => i !== index);
+    setNewStructure(prev => ({ ...prev, components: updatedComponents }));
+  };
+
+  const handleCreateStructure = () => {
+    if (!newStructure.name || !newStructure.type) {
+      toast.error("Required Fields Missing", { description: "Please provide a name and classification." });
+      return;
+    }
+    const structure: StructureAsset = {
+      ...(newStructure as StructureAsset),
+      id: generateUniqueId(),
+      components: newStructure.components || [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    onProjectUpdate({
+      ...project,
+      structures: [...(project.structures || []), structure]
+    });
+    setViewMode('LIST');
+    setNewStructure({ name: '', type: 'Box Culvert', components: [], status: 'Not Started' });
+    toast.success("Asset Registered", { description: "New structural asset has been added to the registry." });
+  };
+
+  const handleUpdateStructure = () => {
+    if (!editingStructure) return;
+    const updatedStructures = (project.structures || []).map(s => 
+      s.id === editingStructure.id ? { ...s, ...newStructure, updatedAt: new Date().toISOString() } : s
+    );
+    onProjectUpdate({ ...project, structures: updatedStructures as StructureAsset[] });
+    setViewMode('LIST');
+    setEditingStructure(null);
+    toast.success("Asset Updated");
+  };
+
+  const handleEditStructure = (structure: StructureAsset) => {
+    setEditingStructure(structure);
+    setNewStructure({ ...structure });
+    setViewMode('EDIT');
+  };
+
+  const handleDeleteStructure = (structureId: string) => {
+    onProjectUpdate({
+      ...project,
+      structures: (project.structures || []).filter(s => s.id !== structureId)
+    });
+    toast.success("Asset Removed");
+  };
+
+  const handleSaveWorkLog = () => {
+    if (!currentLogComponent || !selectedStructure) return;
+    
+    const newLog = {
+      ...logForm,
+      id: generateUniqueId(),
+      timestamp: Date.now()
+    };
+
+    const updatedComponents = selectedStructure.components.map(comp => {
+      if (comp.id === currentLogComponent.id) {
+        return {
+          ...comp,
+          completedQuantity: comp.completedQuantity + logForm.quantity,
+          workLogs: [...(comp.workLogs || []), newLog]
+        };
+      }
+      return comp;
+    });
+
+    const updatedStructures = project.structures?.map(s => 
+      s.id === selectedStructure.id ? { ...s, components: updatedComponents, updatedAt: new Date().toISOString() } : s
+    );
+
+    onProjectUpdate({ ...project, structures: updatedStructures });
+    setIsLogWorkOpen(false);
+    toast.success("Work Logged", { description: "Measurement book has been updated." });
+  };
 
 
   if (viewMode === 'CREATE' || viewMode === 'EDIT') {

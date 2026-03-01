@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { Project, UserRole, ProjectDocument, SitePhoto, DailyReport } from '../../types';
 import { ocrService } from '../../services/ai/ocrService';
 import { analyzeSitePhoto } from '../../services/ai/geminiService';
@@ -75,9 +75,10 @@ interface Props {
   project: Project;
   userRole: UserRole;
   onProjectUpdate: (project: Project) => void;
+  onNavigate?: (tab: string) => void;
 }
 
-const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
+const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate, onNavigate }) => {
   const [activeTab, setActiveTab] = useState("documents");
 
   if (!project) {
@@ -131,6 +132,38 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate 
   const PHOTO_CATEGORIES = ['General', 'Earthwork', 'Structures', 'Pavement', 'Safety'];
 
   // === EFFECTS ===
+  const [blobUrls, setBlobUrls] = useState<Record<string, string>>({});
+
+  const getFileUrl = useCallback((doc: ProjectDocument): string => {
+    if (!doc.fileUrl) return '';
+    
+    // If it's already a blob URL we managed, return it
+    if (blobUrls[doc.id]) return blobUrls[doc.id];
+    
+    // If it's a data URL, convert to blob once and store it
+    if (doc.fileUrl.startsWith('data:')) {
+      try {
+        const base64 = doc.fileUrl;
+        const byteString = atob(base64.split(',')[1]);
+        const mimeString = base64.split(',')[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+        const blob = new Blob([ab], { type: mimeString });
+        const url = URL.createObjectURL(blob);
+        setBlobUrls(prev => ({ ...prev, [doc.id]: url }));
+        return url;
+      } catch (error) {
+        console.error('Error converting base64 to blob URL:', error);
+        return doc.fileUrl;
+      }
+    }
+    
+    return doc.fileUrl;
+  }, [blobUrls]);
+
   useEffect(() => {
     // Load PDF components dynamically
     const loadPdfComponents = async () => {
@@ -140,7 +173,8 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate 
         Page = pdfModule.Page;
         pdfjs = pdfModule.pdfjs;
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
+          // Use unpkg as it's more reliable for specific versioned worker files
+          pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
         }
       } catch (error) {
         console.warn('Failed to load PDF components:', error);
@@ -157,8 +191,15 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate 
     return () => {
       window.removeEventListener('online', handleOnlineStatusChange);
       window.removeEventListener('offline', handleOnlineStatusChange);
+      
+      // Cleanup blob URLs created by this component instance
+      Object.values(blobUrls).forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
     };
-  }, []);
+  }, []); // Only run on mount/unmount
 
   // === COMPUTED VALUES ===
   const filteredDocuments = useMemo(() => {
@@ -337,7 +378,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate 
           <Button variant="outline" onClick={() => setIsPhotoModalOpen(true)}>
             <Camera className="mr-2 h-4 w-4" /> Add Photo
           </Button>
-          <Button onClick={() => setActiveTab("daily-reports")}>
+          <Button onClick={() => onNavigate ? onNavigate('daily-reports') : setActiveTab("daily-reports")}>
             <FileText className="mr-2 h-4 w-4" /> New Daily Report
           </Button>
         </div>
@@ -560,7 +601,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate 
                 <h2 className="text-lg font-bold">Daily Site Reports</h2>
                 <p className="text-sm text-muted-foreground">Track daily activities, resources, and progress.</p>
               </div>
-              <Button onClick={() => alert('New daily report functionality not yet implemented.')}>
+              <Button onClick={() => onNavigate ? onNavigate('daily-reports') : setActiveTab("daily-reports")}>
                 <Plus className="mr-2 h-4 w-4" /> New Report
               </Button>
             </div>
@@ -739,7 +780,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate 
                 {(previewDoc.type === 'application/pdf' || previewDoc.fileUrl.toLowerCase().endsWith('.pdf')) ? (
                   <div className="flex-1 flex items-center justify-center">
                     <Document
-                      file={previewDoc.fileUrl}
+                      file={getFileUrl(previewDoc)}
                       loading={<div className="text-center text-muted-foreground">Loading PDF...</div>}
                       error={
                         <div className="flex flex-col items-center justify-center p-4 text-destructive">
@@ -757,7 +798,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate 
                   </div>
                 ) : (previewDoc.type?.includes('image') || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => previewDoc.fileUrl.toLowerCase().endsWith(ext))) ? (
                   <img
-                    src={previewDoc.fileUrl}
+                    src={getFileUrl(previewDoc)}
                     alt="Document Preview"
                     className="max-w-full max-h-full object-contain rounded-lg"
                   />

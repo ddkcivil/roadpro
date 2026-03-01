@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { Project, UserRole, ProjectDocument, ContractBill, DocumentVersion, Comment } from '../../types';
 import { ocrService } from '../../services/ai/ocrService';
 import { 
@@ -81,13 +81,23 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
     }
   };
 
-  const getFileUrl = (doc: ProjectDocument): string => {
+  const [blobUrls, setBlobUrls] = useState<Record<string, string>>({});
+
+  const getFileUrl = useCallback((doc: ProjectDocument): string => {
     if (!doc.fileUrl) return '';
+    
+    // If it's already a blob URL we managed, return it
+    if (blobUrls[doc.id]) return blobUrls[doc.id];
+    
+    // If it's a data URL, convert to blob once and store it
     if (doc.fileUrl.startsWith('data:')) {
-      return base64ToBlobUrl(doc.fileUrl);
+      const url = base64ToBlobUrl(doc.fileUrl);
+      setBlobUrls(prev => ({ ...prev, [doc.id]: url }));
+      return url;
     }
+    
     return doc.fileUrl;
-  };
+  }, [blobUrls]);
 
   useEffect(() => {
     const loadPdfComponents = async () => {
@@ -97,7 +107,8 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
         Page = pdfModule.Page;
         pdfjs = pdfModule.pdfjs;
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
+          // Use unpkg as it's more reliable for specific versioned worker files
+          pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
         }
       } catch (error) {
         console.warn('Failed to load PDF components:', error);
@@ -108,16 +119,14 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
     loadPdfComponents();
 
     return () => {
-      project.documents?.forEach(doc => {
-        if (doc.fileUrl && doc.fileUrl.startsWith('blob:')) {
-          URL.revokeObjectURL(doc.fileUrl);
+      // Only cleanup blob URLs created by this component instance when it unmounts
+      Object.values(blobUrls).forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
         }
       });
-      if (previewDoc?.fileUrl && previewDoc.fileUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(previewDoc.fileUrl);
-      }
     };
-  }, [project.documents]);
+  }, []); // Only run on mount/unmount
 
   const [activeFolder, setActiveFolder] = useState('General');
   const [searchTerm, setSearchTerm] = useState('');
@@ -700,15 +709,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                             </div>
                           }
                           onLoadSuccess={onDocumentLoadSuccess}
-                          onError={() => {
-                            if (previewDoc.fileUrl?.startsWith('blob:')) {
-                              const updatedDocs = (project.documents || []).map(doc =>
-                                doc.id === previewDoc.id ? { ...doc, status: 'Unavailable', fileUrl: undefined } : doc
-                              );
-                              onProjectUpdate({ ...project, documents: updatedDocs });
-                              setPreviewDoc(prev => prev ? { ...prev, status: 'Unavailable', fileUrl: undefined } : null);
-                            }
-                          }}
+                          onError={(error) => console.error('PDF Load Error:', error)}
                         >
                           <Page pageNumber={currentPageState} scale={scaleState} renderTextLayer={false} renderAnnotationLayer={false} />
                         </Document>

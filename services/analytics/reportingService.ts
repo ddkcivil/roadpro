@@ -96,9 +96,9 @@ export class ReportingService {
     let totalDays = 0;
     let countedRfis = 0;
     rfis.forEach(r => {
-      if (r.status !== RFIStatus.OPEN && r.responseDate) {
+      if (r.status !== RFIStatus.OPEN && 'responseDate' in r && r.responseDate) {
         const start = new Date(r.date);
-        const end = new Date(r.responseDate);
+        const end = new Date(r.responseDate as string);
         const diff = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
         totalDays += diff;
         countedRfis++;

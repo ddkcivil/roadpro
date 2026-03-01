@@ -117,7 +117,7 @@ const Login: React.FC<Props> = ({ onLogin }) => {
               role 
             });
             
-            AuditService.logLogin(userWithPermissions.id, userWithPermissions.name);
+            await AuditService.logLogin(userWithPermissions.id, userWithPermissions.name);
             onLogin(role, name, token, userId);
         } else {
             setMessage({ type: 'destructive', text: authResult.message || 'Invalid email or password.' });

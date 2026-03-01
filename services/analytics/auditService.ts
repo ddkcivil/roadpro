@@ -1,7 +1,9 @@
 import { AuditLog, User, Project } from '../../types';
+import { offlineStorage } from '../database/offlineStorage';
 
 /**
  * Service for handling audit logging of user actions and system events
+ * Uses IndexedDB (via offlineStorage) to avoid localStorage quota limits.
  */
 export class AuditService {
   private static readonly STORAGE_KEY = 'audit_logs';
@@ -9,7 +11,7 @@ export class AuditService {
   /**
    * Logs an event to the audit trail
    */
-  static logEvent(
+  static async logEvent(
     userId: string,
     userName: string,
     action: AuditLog['action'],
@@ -20,7 +22,7 @@ export class AuditService {
     newValue?: any,
     severity: AuditLog['severity'] = 'INFO',
     metadata?: Record<string, any>
-  ): void {
+  ): Promise<void> {
     const auditLog: AuditLog = {
       id: `audit-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       timestamp: new Date().toISOString(),
@@ -40,33 +42,25 @@ export class AuditService {
       }
     };
 
-    // Store in localStorage
-    const logs = this.getAuditLogs();
-    logs.unshift(auditLog); // Add to the beginning
-    
-    // Keep only the last 1000 logs to prevent storage overflow
-    const trimmedLogs = logs.slice(0, 1000);
-    
     try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(trimmedLogs));
+      // Store in IndexedDB
+      const logs = await this.getAuditLogs();
+      logs.unshift(auditLog); // Add to the beginning
+      
+      // Keep only the last 2000 logs (Increased from 1000 since IndexedDB has more space)
+      const trimmedLogs = logs.slice(0, 2000);
+      
+      await offlineStorage.setItem(this.STORAGE_KEY, trimmedLogs);
     } catch (error) {
-      console.error('Failed to save audit logs to localStorage (likely circular structure or quota exceeded):', error);
-      // Try again with a safer approach for the last log
-      try {
-        const saferLog = { ...auditLog, oldValue: '[Circular]', newValue: '[Circular]', metadata: { ...auditLog.metadata, error: 'Circular reference removed' } };
-        const saferLogs = [saferLog, ...logs.slice(1, 1000)];
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(saferLogs));
-      } catch (innerError) {
-        console.error('Even safe storage failed:', innerError);
-      }
+      console.error('Failed to save audit logs to IndexedDB:', error);
     }
   }
 
   /**
    * Logs a user login event
    */
-  static logLogin(userId: string, userName: string, projectId?: string, projectName?: string): void {
-    this.logEvent(
+  static async logLogin(userId: string, userName: string, projectId?: string, projectName?: string): Promise<void> {
+    await this.logEvent(
       userId,
       userName,
       'LOGIN' as AuditLog['action'],
@@ -83,8 +77,8 @@ export class AuditService {
   /**
    * Logs a user logout event
    */
-  static logLogout(userId: string, userName: string, projectId?: string, projectName?: string): void {
-    this.logEvent(
+  static async logLogout(userId: string, userName: string, projectId?: string, projectName?: string): Promise<void> {
+    await this.logEvent(
       userId,
       userName,
       'LOGOUT' as AuditLog['action'],
@@ -101,7 +95,7 @@ export class AuditService {
   /**
    * Logs a data modification event
    */
-  static logDataModification(
+  static async logDataModification(
     userId: string,
     userName: string,
     action: 'CREATE' | 'UPDATE' | 'DELETE',
@@ -112,8 +106,8 @@ export class AuditService {
     newValue?: any,
     projectId?: string,
     projectName?: string
-  ): void {
-    this.logEvent(
+  ): Promise<void> {
+    await this.logEvent(
       userId,
       userName,
       action,
@@ -130,7 +124,7 @@ export class AuditService {
   /**
    * Logs a sensitive operation
    */
-  static logSensitiveOperation(
+  static async logSensitiveOperation(
     userId: string,
     userName: string,
     operation: string,
@@ -138,8 +132,8 @@ export class AuditService {
     entityId: string,
     entityName?: string,
     details?: any
-  ): void {
-    this.logEvent(
+  ): Promise<void> {
+    await this.logEvent(
       userId,
       userName,
       operation as AuditLog['action'],
@@ -156,7 +150,7 @@ export class AuditService {
   /**
    * Gets audit logs with optional filters
    */
-  static getAuditLogs(
+  static async getAuditLogs(
     filters?: {
       userId?: string;
       action?: AuditLog['action'];
@@ -166,9 +160,9 @@ export class AuditService {
       severity?: AuditLog['severity'];
       projectId?: string;
     }
-  ): AuditLog[] {
-    const stored = localStorage.getItem(this.STORAGE_KEY);
-    let logs: AuditLog[] = stored ? JSON.parse(stored) : [];
+  ): Promise<AuditLog[]> {
+    const stored = await offlineStorage.getItem<AuditLog[]>(this.STORAGE_KEY);
+    let logs: AuditLog[] = stored || [];
 
     if (filters) {
       logs = logs.filter(log => {
@@ -204,42 +198,41 @@ export class AuditService {
   /**
    * Exports audit logs as JSON
    */
-  static exportLogs(filters?: Parameters<typeof this.getAuditLogs>[0]): string {
-    const logs = this.getAuditLogs(filters);
+  static async exportLogs(filters?: Parameters<typeof this.getAuditLogs>[0]): Promise<string> {
+    const logs = await this.getAuditLogs(filters);
     return JSON.stringify(logs, null, 2);
   }
 
   /**
    * Clears old audit logs (keeps only recent ones)
    */
-  static cleanupOldLogs(keepDays: number = 90): void {
+  static async cleanupOldLogs(keepDays: number = 180): Promise<void> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - keepDays);
 
-    const stored = localStorage.getItem(this.STORAGE_KEY);
-    if (!stored) return;
+    const logs = await this.getAuditLogs();
+    if (!logs.length) return;
 
-    const logs: AuditLog[] = JSON.parse(stored);
     const filteredLogs = logs.filter(log => {
       const logDate = new Date(log.timestamp);
       return logDate >= cutoffDate;
     });
 
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filteredLogs));
+    await offlineStorage.setItem(this.STORAGE_KEY, filteredLogs);
   }
 
   /**
    * Gets audit log statistics
    */
-  static getLogStatistics(): {
+  static async getLogStatistics(): Promise<{
     total: number;
     byAction: Record<string, number>;
     bySeverity: Record<string, number>;
     byUser: Record<string, number>;
     byEntityType: Record<string, number>;
     last30Days: number;
-  } {
-    const logs = this.getAuditLogs();
+  }> {
+    const logs = await this.getAuditLogs();
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 

@@ -44,7 +44,7 @@ describe('App Integration', () => {
   it('renders login page when not authenticated', () => {
     render(<App />);
     expect(screen.getByText(/Sign In/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderIcon ? screen.getByPlaceholderIcon('email@example.com') : screen.getByLabelText(/Email/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText ? screen.getByPlaceholderText('email@example.com') : screen.getByLabelText(/Email/i)).toBeInTheDocument();
   });
 
   it('renders project selector when authenticated but no project selected', async () => {
