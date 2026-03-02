@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense, startTransition, useCallback } from 'react';
-import { Loader2, Database } from 'lucide-react';
+import { Loader2, Database, Mail, Info } from 'lucide-react';
 import { Project, User } from './types';
 import { LocalStorageUtils } from './utils/data/localStorageUtils';
 import { getNavigationGroups } from './config/navigation';
@@ -409,6 +409,35 @@ const App: React.FC = () => {
               onNavigate={handleTabChange}
               userRole={userRole}
             />
+
+            {/* Floating Info Buttons */}
+            <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={() => handleTabChange('about')}
+                      className="w-12 h-12 rounded-full shadow-2xl bg-indigo-600 hover:bg-indigo-700 text-white p-0 flex items-center justify-center border-2 border-white/20 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150"
+                    >
+                      <Info className="h-6 w-6" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="font-bold">About RoadMaster</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={() => handleTabChange('contact')}
+                      className="w-12 h-12 rounded-full shadow-2xl bg-emerald-600 hover:bg-emerald-700 text-white p-0 flex items-center justify-center border-2 border-white/20 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-500"
+                    >
+                      <Mail className="h-6 w-6" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="font-bold">Contact Support</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
           <Toaster 
             position="bottom-right" 
