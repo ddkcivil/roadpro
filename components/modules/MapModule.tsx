@@ -787,11 +787,11 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
               <h3 className="font-bold text-lg border-b pb-1 mb-2">{vehicle.name || vehicle.plateNumber}</h3>
               <div className="space-y-1">
                 <p className="text-sm flex justify-between">
-                  <span className="text-gray-500">Type:</span>
+                  <span className="text-gray-500">Asset Type:</span>
                   <span className="font-medium">{vehicle.type}</span>
                 </p>
                 <p className="text-sm flex justify-between">
-                  <span className="text-gray-500">Driver:</span>
+                  <span className="text-gray-500">Operator/Driver:</span>
                   <span className="font-medium">{vehicle.driver}</span>
                 </p>
                 <p className="text-sm flex justify-between">
@@ -1185,8 +1185,8 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                             <Truck size={16} />
                           </div>
                           <div>
-                            <Label className="font-bold text-sm text-slate-700">Fleet Tracking</Label>
-                            <p className="text-[10px] text-muted-foreground uppercase">Live Vehicle GPS</p>
+                            <Label className="font-bold text-sm text-slate-700">Assets & Equipment</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Machinery & Vehicles</p>
                           </div>
                         </div>
                         <Switch 
@@ -1378,11 +1378,11 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                     <AccordionContent className="pt-2 pb-4">
                       <div className="grid grid-cols-2 gap-2">
                         <div className="bg-slate-50 p-2 rounded-lg border">
-                          <p className="text-[10px] text-slate-500 font-bold uppercase">Structures</p>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">Fixed Assets</p>
                           <p className="text-xl font-black">{project.structures?.length || 0}</p>
                         </div>
                         <div className="bg-slate-50 p-2 rounded-lg border">
-                          <p className="text-[10px] text-slate-500 font-bold uppercase">Vehicles</p>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">Mobile Assets</p>
                           <p className="text-xl font-black">{project.vehicles?.length || 0}</p>
                         </div>
                         <div className="bg-slate-50 p-2 rounded-lg border">
