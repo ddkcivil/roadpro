@@ -329,8 +329,8 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
 
   const handleSavePayment = () => {
     // Validation
-    if (!selectedAgencyId) {
-      showSnackbar('Please select an agency first', 'error');
+    if (!paymentForm.agencyId) {
+      showSnackbar('Please select a vendor / agency', 'error');
       return;
     }
     
@@ -351,7 +351,7 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
 
     const newPayment: AgencyPayment = {
       id: `pay-${Date.now()}`,
-      agencyId: selectedAgencyId,
+      agencyId: paymentForm.agencyId,
       date: paymentForm.date,
       amount: Number(paymentForm.amount),
       reference: paymentForm.reference,
@@ -371,18 +371,20 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
       amount: 0,
       reference: '',
       type: 'Bill Payment',
-      description: ''
+      description: '',
+      agencyId: selectedAgencyId || ''
     });
   };
 
   const handleOpenPaymentModal = () => {
-    if (!selectedAgencyId) {
-      showSnackbar('Please select an agency first', 'error');
-      return;
-    }
     setPaymentForm({
       ...paymentForm,
-      agencyId: selectedAgencyId
+      agencyId: selectedAgencyId || '',
+      date: new Date().toISOString().split('T')[0],
+      amount: 0,
+      reference: '',
+      type: 'Bill Payment',
+      description: ''
     });
     setIsPaymentModalOpen(true);
   };
@@ -815,9 +817,22 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Add Payment</DialogTitle>
-            <DialogDescription>Record a payment to the selected agency.</DialogDescription>
+            <DialogDescription>Record a payment to a vendor or agency.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="payment-agency" className="text-right">Vendor/Agency</Label>
+              <Select value={paymentForm.agencyId} onValueChange={(value) => setPaymentForm({...paymentForm, agencyId: value})}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select Vendor/Agency" />
+                </SelectTrigger>
+                <SelectContent>
+                  {agencies.concat(subcontractors).map(a => (
+                    <SelectItem key={a.id} value={a.id}>{a.name} ({a.trade})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="payment-date" className="text-right">Date</Label>
               <Input id="payment-date" type="date" value={paymentForm.date} onChange={e => setPaymentForm({...paymentForm, date: e.target.value})} className="col-span-3" />

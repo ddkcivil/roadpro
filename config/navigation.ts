@@ -69,7 +69,7 @@ export const getNavigationGroups = (currentUser: User | UserWithPermissions): Na
         { id: 'ocr-extraction', label: 'Chandra OCR', icon: Eye }
     ]},
     { title: 'Partners', items: [
-        { id: 'agencies', label: 'Agencies', icon: Briefcase },
+        { id: 'agencies', label: 'Vendors & Agencies', icon: Briefcase },
         { id: 'subcontractors', label: 'Subcontractors', icon: Briefcase },
         { id: 'subcontractor-billing', label: 'Subcontractor Billing', icon: CreditCard }
     ]},
