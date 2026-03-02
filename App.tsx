@@ -189,7 +189,9 @@ const App: React.FC = () => {
   }, []);
 
   const handleSaveProject = useCallback((project: Partial<Project>) => {
-    saveProject(project);
+    startTransition(() => {
+      saveProject(project);
+    });
   }, [saveProject]);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editProject, setEditProject] = useState<Partial<Project> | null>(null);
@@ -241,8 +243,8 @@ const App: React.FC = () => {
               setThemeMode={setThemeMode}
               logout={logout}
               projects={projects}
-              setSelectedProjectId={setSelectedProjectId}
-              deleteProject={deleteProject}
+              setSelectedProjectId={(id) => startTransition(() => setSelectedProjectId(id))}
+              deleteProject={(id) => startTransition(() => deleteProject(id))}
               onOpenProjectModal={(p) => { setEditProject(p); setIsProjectModalOpen(true); }}
               isLoadingProjects={isLoadingProjects}
               apiError={apiError}
