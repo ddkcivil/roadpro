@@ -62,9 +62,9 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
     const searchLower = searchTerm.toLowerCase();
     const subcontractor = subcontractors.find(s => s.id === bill.subcontractorId);
     return (
-      bill.description.toLowerCase().includes(searchLower) ||
-      (subcontractor?.name.toLowerCase().includes(searchLower) || false) ||
-      bill.billNumber?.toLowerCase().includes(searchLower)
+      (bill.description || '').toLowerCase().includes(searchLower) ||
+      (subcontractor?.name || '').toLowerCase().includes(searchLower) ||
+      (bill.billNumber || '').toLowerCase().includes(searchLower)
     );
   });
 
