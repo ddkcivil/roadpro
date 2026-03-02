@@ -1,6 +1,6 @@
 import { Project, User, Message } from '../../types';
 import { sqliteService } from './sqliteService';
-import { LocalStorageUtils } from '../data/localStorageUtils';
+import { LocalStorageUtils } from '../../utils/data/localStorageUtils';
 
 export class DataSyncService {
   // Sync users from localStorage to SQLite
