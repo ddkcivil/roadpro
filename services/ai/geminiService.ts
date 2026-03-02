@@ -138,12 +138,6 @@ export const chatWithGemini = async (
 
     return result.response.text();
   }).catch(err => {
-    // Return a graceful "Mock" response if the real AI is totally blocked
-    if (err.message.includes("capacity")) {
-      return "I'm currently at my free-tier limit. While I wait for my quota to reset, I can tell you that I've indexed " + 
-             (projectContext.boq?.length || 0) + " items in your BOQ and " + 
-             (projectContext.schedule?.length || 0) + " tasks in your schedule. Please try again in 1-2 minutes!";
-    }
     return `Connection issue: ${err.message}`;
   });
 };

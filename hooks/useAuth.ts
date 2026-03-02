@@ -99,19 +99,8 @@ export const useAuth = () => {
         setCurrentUserId(userId);
         localStorage.setItem('roadmaster-current-user-id', userId);
       } else {
-        // Fallback for mock login
-        const users = LocalStorageUtils.getUsers();
-        let fallbackUserId = 'u2'; 
-        
-        if ((role as any) === UserRole.ADMIN) {
-          const adminUser = users.find((u: User) => (u.role as any) === UserRole.ADMIN);
-          fallbackUserId = adminUser ? adminUser.id : 'admin-001';
-        } else {
-          fallbackUserId = users.find((u: User) => (u.role as any) === role)?.id || fallbackUserId;
-        }
-        
-        setCurrentUserId(fallbackUserId);
-        localStorage.setItem('roadmaster-current-user-id', fallbackUserId);
+        console.error('Login failed: No user ID provided');
+        setIsAuthenticated(false);
       }
     });
   };
