@@ -34,7 +34,7 @@ import DataAnalysisModule from './components/core/DataAnalysisModule';
 // Shadcn UI components
 import { Button } from '~/components/ui/button';
 import { Toaster } from 'sonner';
-import { TooltipProvider } from '~/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 
 
 // Lazy-loaded components

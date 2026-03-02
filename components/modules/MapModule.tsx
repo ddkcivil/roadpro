@@ -36,7 +36,8 @@ import {
   Minimize,
   ChevronLeft,
   ChevronRight,
-  BarChart3
+  BarChart3,
+  Trash2
 } from 'lucide-react';
 import { cn } from '~/lib/utils';
 
@@ -423,6 +424,15 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
     linearWorks: true,
     kml: true,
   });
+
+  const handleDeleteKML = useCallback((id: string) => {
+    if (window.confirm("Remove this KML alignment? This will free up storage space.")) {
+      const updatedKMLs = (project.kmlData || []).filter(item => item.id !== id);
+      startTransition(() => {
+        onProjectUpdate({ kmlData: updatedKMLs });
+      });
+    }
+  }, [project.kmlData, onProjectUpdate]);
 
   // Default center (Butwal, Nepal) - will be overridden by settings or project location
   const defaultCenter: [number, number] = [27.7006, 83.4484];
@@ -1322,6 +1332,15 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                                   title="Zoom to alignment"
                                 >
                                   <Maximize size={12} />
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-6 w-6 p-0 text-destructive hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => handleDeleteKML(kml.id)}
+                                  title="Delete alignment"
+                                >
+                                  <Trash2 size={12} />
                                 </Button>
                                 <Switch 
                                   size="sm"
