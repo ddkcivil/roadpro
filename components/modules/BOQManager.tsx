@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Edit, Trash2, Plus, Save, X, Search } from 'lucide-react';
+import { Edit, Trash2, Plus, Save, X, Search, CheckCircle2 } from 'lucide-react';
 import { Project, AppSettings, UserRole, BOQItem } from '../../types';
 import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
 
@@ -147,6 +147,17 @@ const BOQManager: React.FC<BOQManagerProps> = ({
     setSearchTerm(e.target.value);
   };
 
+  const handleCertifyCompletion = (item: BOQItem) => {
+    if (window.confirm(`Certify 100% completion for item ${item.itemNo}?`)) {
+      const totalQty = item.quantity + (item.variationQuantity || 0);
+      const updatedBoq = project.boq.map(b =>
+        b.id === item.id ? { ...b, completedQuantity: totalQty, status: 'Completed' as const } : b
+      );
+      onProjectUpdate({ ...project, boq: updatedBoq });
+      toast.success(`Item ${item.itemNo} certified as completed.`);
+    }
+  };
+
   const filteredBoq = useMemo(() => {
     if (!project.boq) return [];
     if (!searchTerm) return project.boq;
@@ -209,6 +220,20 @@ const BOQManager: React.FC<BOQManagerProps> = ({
                     <TableCell className="text-right">{item.variationQuantity?.toLocaleString() || '0'}</TableCell>
                     <TableCell className="text-center">
                       <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="text-green-600 hover:text-green-700" 
+                              onClick={() => handleCertifyCompletion(item)}
+                              disabled={item.completedQuantity >= (item.quantity + (item.variationQuantity || 0))}
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Certify 100% Completion</TooltipContent>
+                        </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button variant="ghost" size="icon" onClick={() => handleEditClick(item)}>

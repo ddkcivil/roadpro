@@ -1,7 +1,7 @@
 import React, { useState, useMemo, ChangeEvent } from 'react';
 import { 
     Plus, Search, Receipt, FileDiff, Save, X, BarChart4, FileSpreadsheet, Upload,
-    Maximize2, Minimize2, Users, CreditCard, DollarSign, TrendingUp, AlertTriangle, CheckCircle, Trash2
+    Maximize2, Minimize2, Users, CreditCard, DollarSign, TrendingUp, AlertTriangle, CheckCircle, CheckCircle2, Trash2
 } from 'lucide-react';
 import { Project, UserRole, AppSettings, BOQItem, VariationOrder, VariationItem, MeasurementSheet, MeasurementSheetEntry } from '../../types';
 import * as XLSX from 'xlsx';
@@ -248,6 +248,41 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
         toast.success("MB Entry Saved & Approved");
     };
 
+    const handleCertifyMB = (sheet: MeasurementSheet) => {
+        if (sheet.status === 'Certified') {
+            toast.info("This MB record is already certified.");
+            return;
+        }
+
+        if (window.confirm(`Are you sure you want to certify MB record ${sheet.sheetNumber}? This will update BOQ completed quantities.`)) {
+            // 1. Update the MB sheet status
+            const updatedSheets = project.measurementSheets.map(s => 
+                s.id === sheet.id ? { ...s, status: 'Certified' as any } : s
+            );
+
+            // 2. Update BOQ items based on entries in this sheet
+            const updatedBoq = [...project.boq];
+            sheet.entries.forEach(entry => {
+                const boqIdx = updatedBoq.findIndex(b => b.id === entry.boqItemId);
+                if (boqIdx !== -1) {
+                    updatedBoq[boqIdx] = {
+                        ...updatedBoq[boqIdx],
+                        completedQuantity: (updatedBoq[boqIdx].completedQuantity || 0) + entry.quantity,
+                        status: 'Executing'
+                    };
+                }
+            });
+
+            onProjectUpdate({ 
+                ...project, 
+                measurementSheets: updatedSheets,
+                boq: updatedBoq
+            });
+            
+            toast.success(`MB Record ${sheet.sheetNumber} certified and BOQ updated.`);
+        }
+    };
+
     const financialSummary = useMemo(() => {
         const boqItems = project.boq || [];
         const vatRate = settings?.vatRate || 13;
@@ -367,14 +402,28 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                                             <TableCell>{sheet.title}</TableCell>
                                             <TableCell>{sheet.date}</TableCell>
                                             <TableCell className="text-right font-bold">{sheet.totalAmount.toLocaleString()}</TableCell>
-                                            <TableCell className="text-center"><Badge variant="default">{sheet.status}</Badge></TableCell>
+                                            <TableCell className="text-center"><Badge variant={sheet.status === 'Certified' ? 'success' : 'default' as any}>{sheet.status}</Badge></TableCell>
                                             <TableCell className="text-right">
-                                                <Button variant="ghost" size="icon" onClick={() => {
-                                                    const updated = (project.measurementSheets || []).filter(s => s.id !== sheet.id);
-                                                    onProjectUpdate({ ...project, measurementSheets: updated });
-                                                }}>
-                                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                                </Button>
+                                                <div className="flex justify-end gap-1">
+                                                    {sheet.status !== 'Certified' && (
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button variant="ghost" size="icon" onClick={() => handleCertifyMB(sheet)}>
+                                                                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Certify & Update BOQ</TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    )}
+                                                    <Button variant="ghost" size="icon" onClick={() => {
+                                                        const updated = (project.measurementSheets || []).filter(s => s.id !== sheet.id);
+                                                        onProjectUpdate({ ...project, measurementSheets: updated });
+                                                    }}>
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     )) : (
