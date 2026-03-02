@@ -25,8 +25,11 @@ async function runWithFallback(task: (model: any) => Promise<any>): Promise<any>
       return await task(model);
     } catch (error: any) {
       lastError = error;
-      if (error.message?.includes('404') || error.message?.includes('not found')) {
-        console.warn(`Gemini Model ${modelName} unavailable (404), trying fallback...`);
+      const isQuotaError = error.message?.includes('429') || error.message?.includes('quota');
+      const isNotFoundError = error.message?.includes('404') || error.message?.includes('not found');
+      
+      if (isNotFoundError || isQuotaError) {
+        console.warn(`Gemini Model ${modelName} unavailable (${isQuotaError ? '429 Quota' : '404 Not Found'}), trying fallback...`);
         continue;
       }
       throw error;
