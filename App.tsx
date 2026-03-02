@@ -113,7 +113,7 @@ const App: React.FC = () => {
   } = useMessages(currentUser);
 
   useKeyboardShortcuts({
-    onToggleSidebar: () => setIsSidebarCollapsed(prev => !prev),
+    onToggleSidebar: () => startTransition(() => setIsSidebarCollapsed(prev => !prev)),
     onOpenProjectSwitcher: () => setSelectedProjectId(null),
   });
 
@@ -272,9 +272,9 @@ const App: React.FC = () => {
             
             <AppSidebar 
               isSidebarCollapsed={isSidebarCollapsed}
-              setIsSidebarCollapsed={setIsSidebarCollapsed}
+              setIsSidebarCollapsed={(collapsed) => startTransition(() => setIsSidebarCollapsed(collapsed))}
               sidebarOpen={sidebarOpen}
-              setSidebarOpen={setSidebarOpen}
+              setSidebarOpen={(open) => startTransition(() => setSidebarOpen(open))}
               activeTab={activeTab}
               setActiveTab={handleTabChange}
               navGroups={navGroups}
@@ -286,14 +286,14 @@ const App: React.FC = () => {
 
             <div id="main-content" className="flex-1 flex flex-col min-w-0 relative m-4 ml-0 rounded-[2rem] glass overflow-hidden border-none shadow-2xl">
               <AppHeader 
-                setSidebarOpen={setSidebarOpen}
+                setSidebarOpen={(open) => startTransition(() => setSidebarOpen(open))}
                 isSidebarCollapsed={isSidebarCollapsed}
-                setIsSidebarCollapsed={setIsSidebarCollapsed}
+                setIsSidebarCollapsed={(collapsed) => startTransition(() => setIsSidebarCollapsed(collapsed))}
                 currentProject={currentProject}
-                setSelectedProjectId={setSelectedProjectId}
+                setSelectedProjectId={(id) => startTransition(() => setSelectedProjectId(id))}
                 themeMode={themeMode}
                 setThemeMode={setThemeMode}
-                setIsAIModalOpen={setIsAIModalOpen}
+                setIsAIModalOpen={(open) => startTransition(() => setIsAIModalOpen(open))}
                 currentUser={currentUser}
               />
 
@@ -392,13 +392,13 @@ const App: React.FC = () => {
             </div>
 
             {isAIModalOpen && currentProject && (
-              <AIChatModal project={currentProject} onClose={() => setIsAIModalOpen(false)} />
+              <AIChatModal project={currentProject} onClose={() => startTransition(() => setIsAIModalOpen(false))} />
             )}
             
             <ProjectModal 
               open={isProjectModalOpen} 
-              onClose={() => setIsProjectModalOpen(false)} 
-              onSave={(p) => { handleSaveProject(p); setIsProjectModalOpen(false); }}
+              onClose={() => startTransition(() => setIsProjectModalOpen(false))} 
+              onSave={(p) => { handleSaveProject(p); startTransition(() => setIsProjectModalOpen(false)); }}
               project={editProject}
             />
             
