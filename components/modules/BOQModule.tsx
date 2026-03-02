@@ -273,10 +273,12 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                 }
             });
 
-            onProjectUpdate({ 
-                ...project, 
-                measurementSheets: updatedSheets,
-                boq: updatedBoq
+            startTransition(() => {
+                onProjectUpdate({ 
+                    ...project, 
+                    measurementSheets: updatedSheets,
+                    boq: updatedBoq
+                });
             });
             
             toast.success(`MB Record ${sheet.sheetNumber} certified and BOQ updated.`);

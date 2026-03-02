@@ -283,7 +283,9 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
       } : s
     );
 
-    onProjectUpdate({ ...project, structures: updatedStructures });
+    startTransition(() => {
+      onProjectUpdate({ ...project, structures: updatedStructures });
+    });
     setIsLogWorkOpen(false);
     toast.success("Work Logged", { description: "Physical progress has been updated." });
   };
@@ -308,7 +310,9 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
         } : s
       );
 
-      onProjectUpdate({ ...project, structures: updatedStructures });
+      startTransition(() => {
+        onProjectUpdate({ ...project, structures: updatedStructures });
+      });
       toast.success("Structure Certified", { description: "Marked as 100% complete." });
     }
   };

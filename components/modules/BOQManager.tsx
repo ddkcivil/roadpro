@@ -79,7 +79,9 @@ const BOQManager: React.FC<BOQManagerProps> = ({
       const updatedBoq = project.boq.map(item =>
         item.id === editingItem.id ? editingItem : item
       );
-      onProjectUpdate({ ...project, boq: updatedBoq });
+      startTransition(() => {
+        onProjectUpdate({ ...project, boq: updatedBoq });
+      });
       setIsEditModalOpen(false);
       setEditingItem(null);
     }
@@ -117,7 +119,9 @@ const BOQManager: React.FC<BOQManagerProps> = ({
         completedQuantity: 0,
         variationQuantity: 0,
       };
-      onProjectUpdate({ ...project, boq: [...(project.boq || []), newBoqItem] });
+      startTransition(() => {
+        onProjectUpdate({ ...project, boq: [...(project.boq || []), newBoqItem] });
+      });
       setIsNewItemModalOpen(false);
       setNewItem({ // Reset form
         itemNo: '', description: '', unit: '', quantity: 0, rate: 0,
@@ -138,7 +142,9 @@ const BOQManager: React.FC<BOQManagerProps> = ({
     if (window.confirm('Are you sure you want to delete this BOQ item?')) {
       if (project) {
         const updatedBoq = project.boq.filter(item => item.id !== itemId);
-        onProjectUpdate({ ...project, boq: updatedBoq });
+        startTransition(() => {
+          onProjectUpdate({ ...project, boq: updatedBoq });
+        });
       }
     }
   };
@@ -153,7 +159,9 @@ const BOQManager: React.FC<BOQManagerProps> = ({
       const updatedBoq = project.boq.map(b =>
         b.id === item.id ? { ...b, completedQuantity: totalQty, status: 'Completed' as const } : b
       );
-      onProjectUpdate({ ...project, boq: updatedBoq });
+      startTransition(() => {
+        onProjectUpdate({ ...project, boq: updatedBoq });
+      });
       toast.success(`Item ${item.itemNo} certified as completed.`);
     }
   };

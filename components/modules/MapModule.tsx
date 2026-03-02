@@ -1314,7 +1314,9 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                                       const updatedKMLs = project.kmlData?.map(item => 
                                         item.id === kml.id ? { ...item, visible: true } : item
                                       );
-                                      onProjectUpdate({ kmlData: updatedKMLs });
+                                      startTransition(() => {
+                                        onProjectUpdate({ kmlData: updatedKMLs });
+                                      });
                                     }
                                   }}
                                   title="Zoom to alignment"

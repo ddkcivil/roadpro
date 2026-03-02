@@ -221,9 +221,11 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
       status: billForm.status || 'Draft'
     } as SubcontractorBill;
 
-    onProjectUpdate({
-      ...project,
-      subcontractorBills: [...(project.subcontractorBills || []), finalBill]
+    startTransition(() => {
+      onProjectUpdate({
+        ...project,
+        subcontractorBills: [...(project.subcontractorBills || []), finalBill]
+      });
     });
 
     setIsBillModalOpen(false);
@@ -233,9 +235,11 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
 
   const handleDeleteBill = (id: string) => {
     if (window.confirm('Delete this bill permanently?')) {
-      onProjectUpdate({
-        ...project,
-        subcontractorBills: bills.filter(b => b.id !== id)
+      startTransition(() => {
+        onProjectUpdate({
+          ...project,
+          subcontractorBills: bills.filter(b => b.id !== id)
+        });
       });
       if (selectedSubBillId === id) setSelectedSubBillId(null);
       toast.success('Bill deleted.');
