@@ -25,7 +25,8 @@ import {
   Clock, CheckCircle, TrendingUp, DollarSign, 
   Sun, Wind, Droplets,
   Layers, Sparkles, FileText,
-  FileDown, Settings, GripVertical, ChevronDown, ChevronUp, ShieldCheck, AlertTriangle, Info, Check, ClipboardCheck
+  FileDown, Settings, GripVertical, ChevronDown, ChevronUp, ShieldCheck, AlertTriangle, Info, Check, ClipboardCheck,
+  ChevronRight
 } from 'lucide-react';
 
 import { Button } from '~/components/ui/button';
@@ -35,6 +36,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Checkbox } from '~/components/ui/checkbox';
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
+import { Separator } from '~/components/ui/separator';
 import { cn } from '~/lib/utils';
 import { motion } from 'framer-motion';
 
