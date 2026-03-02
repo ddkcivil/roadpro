@@ -202,9 +202,9 @@ const BOQManager: React.FC<BOQManagerProps> = ({
                     <TableCell>{item.itemNo}</TableCell>
                     <TableCell>{item.description}</TableCell>
                     <TableCell>{item.unit}</TableCell>
-                    <TableCell className="text-right">{item.quantity.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">{item.rate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                    <TableCell className="text-right">{(item.quantity * item.rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-right">{(item.quantity || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{(item.rate || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-right">{((item.quantity || 0) * (item.rate || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                     <TableCell className="text-right">{item.completedQuantity?.toLocaleString() || '0'}</TableCell>
                     <TableCell className="text-right">{item.variationQuantity?.toLocaleString() || '0'}</TableCell>
                     <TableCell className="text-center">

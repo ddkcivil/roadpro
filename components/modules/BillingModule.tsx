@@ -381,7 +381,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                             </div>
                                             <div>
                                                 <p className="font-semibold">{b.billNumber}</p>
-                                                <p className="text-sm text-green-600 font-bold">{currency}{b.totalAmountPayable.toLocaleString()}</p>
+                                                <p className="text-sm text-green-600 font-bold">{currency}{(b.totalAmountPayable || 0).toLocaleString() || '0'}</p>
                                             </div>
                                         </div>
                                     </Button>
@@ -411,7 +411,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                                 <div>
                                                     <p className="font-semibold">{b.billNumber}</p>
                                                     <p className="text-xs text-primary">{subcontractor?.name || 'Unknown'}</p>
-                                                    <p className="text-sm text-green-600 font-bold">{currency}{b.netAmount.toLocaleString()}</p>
+                                                    <p className="text-sm text-green-600 font-bold">{currency}{b.netAmount.toLocaleString() || '0'}</p>
                                                 </div>
                                             </div>
                                         </Button>
@@ -591,7 +591,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                     <h3 className="text-lg font-bold text-primary">Review & Adjust Work Quantities</h3>
                                     <div className="flex items-center space-x-2">
                                         <p className="text-sm font-bold">IPC TOTAL:</p>
-                                        <p className="text-xl font-bold text-primary">{currency}{currentIpcSummary.billAmountGross.toLocaleString()}</p>
+                                        <p className="text-xl font-bold text-primary">{currency}{currentIpcSummary.billAmountGross.toLocaleString() || '0'}</p>
                                     </div>
                                 </div>
 
@@ -615,8 +615,8 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                                     <TableCell className="font-bold text-xs">{item.itemNo}</TableCell>
                                                     <TableCell className="text-xs">{item.description.slice(0, 60)}...</TableCell>
                                                     <TableCell>{item.unit}</TableCell>
-                                                    <TableCell className="text-right">{item.rate.toLocaleString()}</TableCell>
-                                                    <TableCell className="text-right bg-muted/30">{item.previousQuantity.toLocaleString()}</TableCell>
+                                                    <TableCell className="text-right">{item.rate.toLocaleString() || '0'}</TableCell>
+                                                    <TableCell className="text-right bg-muted/30">{item.previousQuantity.toLocaleString() || '0'}</TableCell>
                                                     <TableCell className="text-right bg-indigo-50/30">
                                                         <Input 
                                                             type="number"
@@ -627,10 +627,10 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                                     </TableCell>
                                                     <TableCell className="text-right">
                                                         <p className={`font-bold ${item.uptoDateQuantity > item.contractQuantity ? 'text-red-500' : ''}`}>
-                                                            {item.uptoDateQuantity.toLocaleString()}
+                                                            {item.uptoDateQuantity.toLocaleString() || '0'}
                                                         </p>
                                                     </TableCell>
-                                                    <TableCell className="text-right font-bold">{item.currentAmount.toLocaleString()}</TableCell>
+                                                    <TableCell className="text-right font-bold">{item.currentAmount.toLocaleString() || '0'}</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
@@ -657,20 +657,20 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                         <CardContent className="space-y-3 p-4">
                                             <div className="flex justify-between">
                                                 <p className="opacity-80">Current Gross Work:</p>
-                                                <p className="font-bold">{currency}{currentIpcSummary.billAmountGross.toLocaleString()}</p>
+                                                <p className="font-bold">{currency}{currentIpcSummary.billAmountGross.toLocaleString() || '0'}</p>
                                             </div>
                                             <div className="flex justify-between">
                                                 <p className="opacity-80">VAT (13%):</p>
-                                                <p className="font-bold">{currency}{currentIpcSummary.vatAmount.toLocaleString()}</p>
+                                                <p className="font-bold">{currency}{currentIpcSummary.vatAmount.toLocaleString() || '0'}</p>
                                             </div>
                                             <div className="flex justify-between">
                                                 <p className="opacity-80">Retention (5%):</p>
-                                                <p className="font-bold">-{currency}{currentIpcSummary.retentionAmount.toLocaleString()}</p>
+                                                <p className="font-bold">-{currency}{currentIpcSummary.retentionAmount.toLocaleString() || '0'}</p>
                                             </div>
                                             <Separator className="bg-primary" />
                                             <div className="flex justify-between pt-1">
                                                 <p className="text-lg font-bold">NET PAYABLE:</p>
-                                                <p className="text-lg font-bold text-green-300">{currency}{currentIpcSummary.totalAmountPayable.toLocaleString()}</p>
+                                                <p className="text-lg font-bold text-green-300">{currency}{currentIpcSummary.totalAmountPayable.toLocaleString() || '0'}</p>
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -820,7 +820,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                     <h3 className="text-lg font-bold text-primary">Review & Adjust Bill Quantities</h3>
                                     <div className="flex items-center space-x-2">
                                         <p className="text-sm font-bold">BILL TOTAL:</p>
-                                        <p className="text-xl font-bold text-amber-700">{currency}{currentSubcontractorBillSummary.grossAmount.toLocaleString()}</p>
+                                        <p className="text-xl font-bold text-amber-700">{currency}{currentSubcontractorBillSummary.grossAmount.toLocaleString() || '0'}</p>
                                     </div>
                                 </div>
 
@@ -842,7 +842,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                                     <TableCell className="font-bold text-xs">{item.itemNo}</TableCell>
                                                     <TableCell className="text-xs">{item.description.slice(0, 60)}...</TableCell>
                                                     <TableCell>{item.unit}</TableCell>
-                                                    <TableCell className="text-right">{item.rate.toLocaleString()}</TableCell>
+                                                    <TableCell className="text-right">{item.rate.toLocaleString() || '0'}</TableCell>
                                                     <TableCell className="text-right bg-amber-50/20">
                                                         <Input 
                                                             type="number" 
@@ -851,7 +851,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                                             className="w-[90px] text-right text-amber-700 font-bold"
                                                         />
                                                     </TableCell>
-                                                    <TableCell className="text-right font-bold">{item.currentAmount.toLocaleString()}</TableCell>
+                                                    <TableCell className="text-right font-bold">{item.currentAmount.toLocaleString() || '0'}</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
@@ -874,16 +874,16 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                         <CardContent className="space-y-3 p-4">
                                             <div className="flex justify-between">
                                                 <p className="opacity-80">Gross Amount:</p>
-                                                <p className="font-bold">{currency}{currentSubcontractorBillSummary.grossAmount.toLocaleString()}</p>
+                                                <p className="font-bold">{currency}{currentSubcontractorBillSummary.grossAmount.toLocaleString() || '0'}</p>
                                             </div>
                                             <div className="flex justify-between">
                                                 <p className="opacity-80">Retention ({subcontractorBillForm.retentionPercent}%):</p>
-                                                <p className="font-bold">-{currency}{currentSubcontractorBillSummary.retentionAmount.toLocaleString()}</p>
+                                                <p className="font-bold">-{currency}{currentSubcontractorBillSummary.retentionAmount.toLocaleString() || '0'}</p>
                                             </div>
                                             <Separator className="bg-amber-700" />
                                             <div className="flex justify-between pt-1">
                                                 <p className="text-lg font-bold">NET PAYABLE:</p>
-                                                <p className="text-lg font-bold text-green-300">{currency}{currentSubcontractorBillSummary.netAmount.toLocaleString()}</p>
+                                                <p className="text-lg font-bold text-green-300">{currency}{currentSubcontractorBillSummary.netAmount.toLocaleString() || '0'}</p>
                                             </div>
                                         </CardContent>
                                     </Card>
