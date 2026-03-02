@@ -93,10 +93,6 @@ export const getNavigationGroups = (currentUser: User | UserWithPermissions): Na
         { id: 'lab', label: 'Material Testing', icon: Scale },
         { id: 'environment', label: 'EMP Compliance', icon: Trees },
         { id: 'data-analysis', label: 'Data Analysis', icon: BarChart3 }
-    ]},
-    { title: 'Information', items: [
-        { id: 'about', label: 'About', icon: HardHat },
-        { id: 'contact', label: 'Contact', icon: Mail }
     ]}
   ];
 };

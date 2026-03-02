@@ -25,7 +25,7 @@ export const analyzeSitePhoto = async (photoBase64: string, category: string): P
     const ai = getAIClient();
     if (!ai) return "AI Service Unavailable. Please check your configuration.";
 
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-pro' });
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `You are a construction site auditor.
     Analyze this site photo from a road project. The photo is categorized as "${category}".
@@ -70,7 +70,7 @@ export const analyzeProjectStatus = async (
   const ai = getAIClient();
   if (!ai) return "AI Service Unavailable: Missing API Key.";
 
-  const model = ai.getGenerativeModel({ model: 'gemini-1.5-pro' });
+  const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
   // Validate inputs
   if (!boq || !rfis || !schedule) {
@@ -126,8 +126,8 @@ export const chatWithGemini = async (
   const ai = getAIClient();
   if (!ai) return "AI Service Unavailable. Please ensure VITE_GEMINI_API_KEY is set in your environment.";
 
-  // Default to gemini-1.5-pro for all requests to ensure maximum compatibility and speed
-  let modelName = 'gemini-1.5-pro';
+  // Default to gemini-1.5-flash for all requests to ensure maximum compatibility and speed
+  let modelName = 'gemini-1.5-flash';
 
   const model = ai.getGenerativeModel({ model: modelName });
 
@@ -253,7 +253,7 @@ export const draftLetter = async (topic: string, recipient: string, useSearch: b
   const ai = getAIClient();
   if (!ai) return "AI Service Unavailable.";
 
-  const model = ai.getGenerativeModel({ model: 'gemini-1.5-pro' });
+  const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
   const prompt = `
     Draft a formal construction project correspondence letter.
