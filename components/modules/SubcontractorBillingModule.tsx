@@ -32,6 +32,8 @@ interface Props {
 const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate, userRole }) => {
   const [activeTab, setActiveTab] = useState("0");
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
+  const [isManualItemModalOpen, setIsManualItemModalOpen] = useState(false);
+  const [selectedBoqId, setSelectedBoqId] = useState<string>('');
   const [createStep, setCreateStep] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubBillId, setSelectedSubBillId] = useState<string | null>(null);
@@ -161,6 +163,48 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
       return item;
     });
     setBillForm({ ...billForm, items: updatedItems });
+  };
+
+  const handleAddManualItem = () => {
+    if (!selectedBoqId) return;
+    
+    const boqItem = project.boq.find(b => b.id === selectedBoqId);
+    if (!boqItem) return;
+
+    // Check if item already exists in bill
+    if (billForm.items?.some(i => i.boqItemId === selectedBoqId)) {
+      toast.error("Item already added to this bill.");
+      return;
+    }
+
+    // Check for specific sub rate
+    const sub = subcontractors.find(s => s.id === billForm.subcontractorId);
+    const subRate = sub?.rates?.find(r => (r as any).boqItemId === selectedBoqId)?.rate || boqItem.rate;
+
+    const newItem: BillItem = {
+      id: `sbi-${Date.now()}-${selectedBoqId}`,
+      boqItemId: selectedBoqId,
+      itemNo: boqItem.itemNo,
+      description: boqItem.description,
+      unit: boqItem.unit,
+      contractQuantity: boqItem.quantity,
+      rate: subRate,
+      previousQuantity: 0,
+      currentQuantity: 0,
+      uptoDateQuantity: 0,
+      previousAmount: 0,
+      currentAmount: 0,
+      uptoDateAmount: 0
+    };
+
+    setBillForm(prev => ({
+      ...prev,
+      items: [...(prev.items || []), newItem]
+    }));
+    
+    setIsManualItemModalOpen(false);
+    setSelectedBoqId('');
+    toast.success(`Item ${boqItem.itemNo} added to bill.`);
   };
 
   const handleSaveBill = () => {
@@ -526,10 +570,18 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
                       {(!billForm.items || billForm.items.length === 0) && (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center py-10">
-                            <Button variant="outline" onClick={() => {
-                              // Logic to add a manual item from BOQ
-                              toast.info("Add manual item logic here");
-                            }}><Plus size={16} className="mr-2"/> Add Manual Line Item</Button>
+                            <Button variant="outline" onClick={() => setIsManualItemModalOpen(true)}>
+                              <Plus size={16} className="mr-2"/> Add Manual Line Item
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {billForm.items && billForm.items.length > 0 && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-4 bg-slate-50/50">
+                            <Button variant="ghost" size="sm" onClick={() => setIsManualItemModalOpen(true)} className="text-amber-700 font-bold">
+                              <Plus size={14} className="mr-1"/> Add Another BOQ Item
+                            </Button>
                           </TableCell>
                         </TableRow>
                       )}
@@ -610,6 +662,37 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
                 </Button>
               </>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual Item Selection Modal */}
+      <Dialog open={isManualItemModalOpen} onOpenChange={setIsManualItemModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add BOQ Item to Bill</DialogTitle>
+            <DialogDescription>Select an item from the project BOQ to include in this bill.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Select BOQ Item</Label>
+              <Select value={selectedBoqId} onValueChange={setSelectedBoqId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Search item..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <ScrollArea className="h-[200px]">
+                    {project.boq.map(item => (
+                      <SelectItem key={item.id} value={item.id}>[{item.itemNo}] {item.description.substring(0, 50)}...</SelectItem>
+                    ))}
+                  </ScrollArea>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsManualItemModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleAddManualItem} disabled={!selectedBoqId} className="bg-amber-600 hover:bg-amber-700">Add to Bill</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
