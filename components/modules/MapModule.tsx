@@ -75,7 +75,7 @@ const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
     const fallbackLayers: L.Layer[] = [];
 
     try {
-      // 1. Parse KML directly into a leaflet layer
+      // 1. Try leaflet-omnivore first
       const omnivoreLib = (omnivore as any).default || omnivore;
       let hasFeatures = false;
 
@@ -83,92 +83,86 @@ const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
         try {
           kmlLayer = omnivoreLib.kml.parse(kml.content);
           
-          // Apply default styling to GeoJSON
-          if (kmlLayer && (kmlLayer as any).setStyle) {
-            (kmlLayer as any).setStyle({
-              color: '#4f46e5',
-              weight: 4,
-              opacity: 0.8,
-              lineJoin: 'round'
-            });
-          }
-
           if (kmlLayer) {
             kmlLayer.addTo(map);
 
-            // 2. Extract lines and calculate chainage markers
             kmlLayer.eachLayer((layer: any) => {
               hasFeatures = true;
-              if (layer instanceof L.Polyline) {
-                // Ensure individual lines are styled too
-                if (layer.setStyle) {
-                  layer.setStyle({ color: '#4f46e5', weight: 4, opacity: 0.8 });
-                }
+              
+              // Apply styling
+              if (layer.setStyle) {
+                layer.setStyle({ color: '#4f46e5', weight: 4, opacity: 0.8 });
+              }
 
+              // Extract coordinates for chainage markers if it's a line
+              if (layer instanceof L.Polyline && !(layer instanceof L.Polygon)) {
                 const coords = layer.getLatLngs() as L.LatLng[];
                 const flatCoords = Array.isArray(coords[0]) ? (coords as any).flat(Infinity) as L.LatLng[] : coords;
                 
-                if (flatCoords.length < 2) return;
-
-                let totalDist = 0;
-                let lastMarkerDist = 0;
-                const interval = 500; 
-
-                const startIcon = L.divIcon({
-                  className: 'bg-black/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded border border-white whitespace-nowrap shadow-md',
-                  html: `${kml.name.split('.')[0]}: 0+000`,
-                  iconAnchor: [0, 0]
-                });
-                markers.push(L.marker(flatCoords[0], { icon: startIcon }).addTo(map));
-
-                for (let i = 0; i < flatCoords.length - 1; i++) {
-                  const p1 = flatCoords[i];
-                  const p2 = flatCoords[i + 1];
-                  if (!p1 || !p2) continue;
-                  const segmentDist = p1.distanceTo(p2);
-                  totalDist += segmentDist;
-
-                  while (totalDist >= lastMarkerDist + interval) {
-                    const markerDist = lastMarkerDist + interval;
-                    const fraction = (markerDist - (totalDist - segmentDist)) / segmentDist;
-                    const lat = p1.lat + (p2.lat - p1.lat) * fraction;
-                    const lng = p1.lng + (p2.lng - p1.lng) * fraction;
-                    
-                    const chainageKm = Math.floor(markerDist / 1000);
-                    const chainageM = Math.round(markerDist % 1000);
-                    const label = `${kml.name.split('.')[0]}: ${chainageKm}+${chainageM.toString().padStart(3, '0')}`;
-
-                    const icon = L.divIcon({
-                      className: 'bg-white/90 text-black text-[9px] font-bold px-1.5 py-0.5 rounded border border-black/20 shadow-sm whitespace-nowrap',
-                      html: label,
+                if (flatCoords.length >= 2) {
+                  // Add start marker
+                  markers.push(L.marker(flatCoords[0], { 
+                    icon: L.divIcon({
+                      className: 'bg-black/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded border border-white whitespace-nowrap shadow-md',
+                      html: `${kml.name.split('.')[0]}: 0+000`,
                       iconAnchor: [0, 0]
-                    });
+                    }) 
+                  }).addTo(map));
 
-                    markers.push(L.marker([lat, lng], { icon: icon }).addTo(map));
-                    lastMarkerDist = markerDist;
+                  // Add intermediate markers
+                  let totalDist = 0;
+                  let lastMarkerDist = 0;
+                  const interval = 500; 
+
+                  for (let i = 0; i < flatCoords.length - 1; i++) {
+                    const p1 = flatCoords[i];
+                    const p2 = flatCoords[i + 1];
+                    if (!p1 || !p2) continue;
+                    const segmentDist = p1.distanceTo(p2);
+                    totalDist += segmentDist;
+
+                    while (totalDist >= lastMarkerDist + interval) {
+                      const markerDist = lastMarkerDist + interval;
+                      const fraction = (markerDist - (totalDist - segmentDist)) / segmentDist;
+                      const lat = p1.lat + (p2.lat - p1.lat) * fraction;
+                      const lng = p1.lng + (p2.lng - p1.lng) * fraction;
+                      
+                      const chainageKm = Math.floor(markerDist / 1000);
+                      const chainageM = Math.round(markerDist % 1000);
+                      
+                      markers.push(L.marker([lat, lng], { 
+                        icon: L.divIcon({
+                          className: 'bg-white/90 text-black text-[9px] font-bold px-1.5 py-0.5 rounded border border-black/20 shadow-sm whitespace-nowrap',
+                          html: `${kml.name.split('.')[0]}: ${chainageKm}+${chainageM.toString().padStart(3, '0')}`,
+                          iconAnchor: [0, 0]
+                        }) 
+                      }).addTo(map));
+                      lastMarkerDist = markerDist;
+                    }
                   }
                 }
               }
             });
           }
         } catch (e) {
-          console.warn("Omnivore parsing failed, using fallback", e);
+          console.warn("Omnivore failed", e);
         }
       }
 
-      // 3. Fallback: Manual Parsing if omnivore failed or found no features
+      // 2. Manual Fallback: Search for all coordinates tags
       if (!hasFeatures) {
         const parser = new DOMParser();
         const xml = parser.parseFromString(kml.content, "text/xml");
-        const coordinates = xml.getElementsByTagName("coordinates");
+        const coordTags = xml.getElementsByTagName("coordinates");
         
-        for (let i = 0; i < coordinates.length; i++) {
-          const coordStr = coordinates[i].textContent || "";
+        for (let i = 0; i < coordTags.length; i++) {
+          const coordStr = coordTags[i].textContent || "";
           const points: L.LatLng[] = [];
           
-          // Split by space, newline, or tab
-          coordStr.trim().split(/[\s\n\r]+/).forEach((p) => {
-            const parts = p.split(",");
+          // Split by whitespace
+          const pairs = coordStr.trim().split(/\s+/);
+          pairs.forEach((pair) => {
+            const parts = pair.split(",");
             if (parts.length >= 2) {
               const lng = parseFloat(parts[0]);
               const lat = parseFloat(parts[1]);
@@ -179,27 +173,26 @@ const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
           });
 
           if (points.length >= 2) {
-            const line = L.polyline(points, {
-              color: '#4f46e5',
-              weight: 4,
-              opacity: 0.8,
-              lineJoin: 'round'
-            }).addTo(map);
+            const line = L.polyline(points, { color: '#4f46e5', weight: 4, opacity: 0.8 }).addTo(map);
             fallbackLayers.push(line);
-
-            // Start marker
-            const startIcon = L.divIcon({
-              className: 'bg-black/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded border border-white whitespace-nowrap shadow-md',
-              html: `${kml.name.split('.')[0]}: 0+000`,
-              iconAnchor: [0, 0]
-            });
-            markers.push(L.marker(points[0], { icon: startIcon }).addTo(map));
+            
+            // Add start marker for fallback
+            markers.push(L.marker(points[0], { 
+              icon: L.divIcon({
+                className: 'bg-black/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded border border-white whitespace-nowrap shadow-md',
+                html: `${kml.name.split('.')[0]}: 0+000`,
+                iconAnchor: [0, 0]
+              }) 
+            }).addTo(map));
+          } else if (points.length === 1) {
+            // It's a point feature
+            markers.push(L.marker(points[0]).addTo(map));
           }
         }
       }
 
     } catch (error) {
-      console.error(`Failed to parse KML: ${kml.name}`, error);
+      console.error("KML Layer Error:", error);
     }
 
     return () => {
@@ -489,6 +482,13 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (!file.name.toLowerCase().endsWith('.kml')) {
+      toast.error("Invalid File", { description: "Please upload a .kml file." });
+      return;
+    }
+
+    const uploadToast = toast.loading(`Uploading ${file.name}...`);
+
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
@@ -501,15 +501,20 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
           visible: true
         };
 
-        startTransition(() => {
-          onProjectUpdate({
-            kmlData: [...(project.kmlData || []), newKML]
-          });
-          
-          // Auto-zoom to the newly uploaded KML
-          zoomToKML(content);
+        onProjectUpdate({
+          kmlData: [...(project.kmlData || []), newKML]
         });
+        
+        // Auto-zoom to the newly uploaded KML
+        setTimeout(() => zoomToKML(content), 500);
+        
+        toast.dismiss(uploadToast);
+        toast.success("KML Uploaded", { description: `${file.name} is now available on the map.` });
       }
+    };
+    reader.onerror = () => {
+      toast.dismiss(uploadToast);
+      toast.error("Upload Failed", { description: "Could not read the KML file." });
     };
     reader.readAsText(file);
     

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, startTransition, useCallback } from 'react';
+import { useEffect, useMemo, startTransition, useCallback, useRef } from 'react';
 import { Project } from '../types';
 import { apiService } from '../services/api/apiService';
 import { DataCache, getCacheKey } from '../utils/data/cacheUtils';
@@ -123,16 +123,12 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
     }
   };
 
-  const debouncedBackendSave = useMemo(
-    () => {
-      let timeout: any;
-      return (data: Project, base: Project | undefined, isUp: boolean) => {
-        if (timeout) clearTimeout(timeout);
-        timeout = setTimeout(() => performActualSave(data, base, isUp), 2000);
-      };
-    },
-    [currentUser, state.projects]
-  );
+  const saveTimeoutRef = useRef<any>(null);
+
+  const debouncedBackendSave = useCallback((data: Project, base: Project | undefined, isUp: boolean) => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => performActualSave(data, base, isUp), 2000);
+  }, [performActualSave]);
 
   const fetchProjects = async (page = 1) => {
     startTransition(() => {
