@@ -251,6 +251,11 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
   const handleSaveWorkLog = () => {
     if (!currentLogComponent || !selectedStructure) return;
     
+    if (logForm.quantity <= 0) {
+      toast.error("Invalid Quantity", { description: "Please enter a positive quantity." });
+      return;
+    }
+
     const newLog = {
       ...logForm,
       id: generateUniqueId(),
@@ -259,9 +264,10 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
 
     const updatedComponents = selectedStructure.components.map(comp => {
       if (comp.id === currentLogComponent.id) {
+        const newCompletedQty = comp.completedQuantity + logForm.quantity;
         return {
           ...comp,
-          completedQuantity: comp.completedQuantity + logForm.quantity,
+          completedQuantity: newCompletedQty,
           workLogs: [...(comp.workLogs || []), newLog]
         };
       }
@@ -269,12 +275,42 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
     });
 
     const updatedStructures = project.structures?.map(s => 
-      s.id === selectedStructure.id ? { ...s, components: updatedComponents, updatedAt: new Date().toISOString() } : s
+      s.id === selectedStructure.id ? { 
+        ...s, 
+        components: updatedComponents, 
+        status: s.status === 'Not Started' ? 'In Progress' : s.status,
+        updatedAt: new Date().toISOString() 
+      } : s
     );
 
     onProjectUpdate({ ...project, structures: updatedStructures });
     setIsLogWorkOpen(false);
-    toast.success("Work Logged", { description: "Measurement book has been updated." });
+    toast.success("Work Logged", { description: "Physical progress has been updated." });
+  };
+
+  const handleCertifyStructure = () => {
+    if (!selectedStructure) return;
+
+    if (window.confirm(`Are you sure you want to certify 100% completion for ${selectedStructure.name}?`)) {
+      const updatedComponents = selectedStructure.components.map(comp => ({
+        ...comp,
+        completedQuantity: comp.totalQuantity,
+        verifiedQuantity: comp.totalQuantity
+      }));
+
+      const updatedStructures = project.structures?.map(s => 
+        s.id === selectedStructure.id ? { 
+          ...s, 
+          components: updatedComponents, 
+          status: 'Completed' as const,
+          completionDate: new Date().toISOString().split('T')[0],
+          updatedAt: new Date().toISOString() 
+        } : s
+      );
+
+      onProjectUpdate({ ...project, structures: updatedStructures });
+      toast.success("Structure Certified", { description: "Marked as 100% complete." });
+    }
   };
 
 
@@ -431,9 +467,11 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate, userRol
                       <Button variant="outline" onClick={() => setIsMbRecordsOpen(true)}>
                           <History className="mr-2 h-4 w-4" /> MB Records
                       </Button>
-                      <Button onClick={() => { /* Certify completion logic */ }}>
-                          <CheckCircle2 className="mr-2 h-4 w-4" /> Certify Completion
-                      </Button>
+                      {selectedStructure.status !== 'Completed' && (
+                        <Button onClick={handleCertifyStructure} className="bg-emerald-600 hover:bg-emerald-700">
+                            <CheckCircle2 className="mr-2 h-4 w-4" /> Certify Completion
+                        </Button>
+                      )}
                   </div>
               </div>
 
