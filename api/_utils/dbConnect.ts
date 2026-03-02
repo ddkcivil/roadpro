@@ -1,4 +1,5 @@
 import mongoose, { Schema, Model, Document } from 'mongoose';
+import bcrypt from 'bcrypt';
 
 // Use MongoDB for both development and production
 const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
@@ -208,6 +209,30 @@ const Project = mongoose.models.Project || mongoose.model<IProject>('Project', p
 
 let cachedConnection: any = null;
 
+/**
+ * Seeds an initial admin user if none exist
+ */
+async function seedInitialAdmin(UserModel: Model<IUser>) {
+  try {
+    const userCount = await UserModel.countDocuments();
+    if (userCount === 0) {
+      console.log('No users found in database. Seeding initial admin...');
+      const hashedPassword = await bcrypt.hash('admin123', 10);
+      await UserModel.create({
+        id: 'admin-001',
+        name: 'System Administrator',
+        email: 'admin@roadmaster.os',
+        password: hashedPassword,
+        role: 'ADMIN',
+        avatar: 'https://ui-avatars.com/api/?name=Admin&background=random'
+      });
+      console.log('Initial admin created: admin@roadmaster.os / admin123');
+    }
+  } catch (error) {
+    console.error('Failed to seed initial admin:', error);
+  }
+}
+
 export async function connectToDatabase() {
   if (cachedConnection) {
     return { User, PendingRegistration, Project, mongoose };
@@ -218,6 +243,10 @@ export async function connectToDatabase() {
       serverSelectionTimeoutMS: 5000, // Timeout after 5 seconds
     });
     console.log('MongoDB connection has been established successfully.');
+    
+    // Seed initial admin if needed
+    await seedInitialAdmin(User);
+    
     cachedConnection = true;
     return { User, PendingRegistration, Project, mongoose };
   } catch (error) {
