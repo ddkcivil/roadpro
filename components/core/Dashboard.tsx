@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 
 import { Button } from '~/components/ui/button';
+import { Badge } from '~/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
 import { Checkbox } from '~/components/ui/checkbox';
@@ -51,7 +52,24 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateProj
 
   const stats = useMemo(() => {
     if (!project || !project.boq) return { earnedValue: 0, totalPlannedValue: 0, actualCost: 0, spi: 0, cpi: 0, physPercent: 0, rfiOpen: 0, rfiClosed: 0, rfiOverdue: 0 };
-    const totalPlannedValue = project.boq.reduce((acc, item) => acc + (item.quantity * item.rate), 0);
+    
+    // a = Sum of Ps(units)
+    const provisionalSum = project.boq
+        .filter(item => item.unit?.toUpperCase() === 'PS')
+        .reduce((acc, item) => acc + (item.quantity * item.rate), 0);
+        
+    // b = Sum other than ps(unit)
+    const amountWithoutPS = project.boq
+        .filter(item => item.unit?.toUpperCase() !== 'PS')
+        .reduce((acc, item) => acc + (item.quantity * item.rate), 0);
+        
+    // c = vat * sum other than ps
+    const vatRate = settings?.vatRate || 13;
+    const vatAmount = amountWithoutPS * (vatRate / 100);
+    
+    // totalPlannedValue (Contract Value) = a + b + c
+    const totalPlannedValue = provisionalSum + amountWithoutPS + vatAmount;
+
     const earnedValue = project.boq.reduce((acc, item) => acc + (item.completedQuantity * item.rate), 0);
     const actualCost = (project.subcontractorPayments || []).reduce((acc, p) => acc + p.amount, 0);
     const startDate = new Date(project.startDate);

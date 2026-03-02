@@ -32,7 +32,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
     try {
       const { User } = await connectToDatabase();
-      const { name, email, phone, role, password } = req.body;
+      const { name, email, phone, role, password, avatar } = req.body;
 
       if (!name || !email || !password) {
         return res.status(400).json({ error: 'Name, email and password are required' });
@@ -49,7 +49,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         phone: phone || undefined,
         role: role || 'SITE_ENGINEER',
         password: hashedPassword,
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
+        avatar: avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
       });
 
       const userData = user.toObject();
@@ -68,7 +68,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
     try {
       const { User } = await connectToDatabase();
-      const { name, email, phone, role } = req.body;
+      const { name, email, phone, role, avatar } = req.body;
 
       if (!name || !email || !role) {
         return res.status(400).json({ error: 'Name, email, and role are required' });
@@ -86,6 +86,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       user.email = email.toLowerCase();
       user.phone = phone || undefined;
       user.role = role;
+      if (avatar) user.avatar = avatar;
       await user.save();
 
       const userData = user.toObject();

@@ -57,8 +57,19 @@ export class PredictiveAnalyticsService {
    * Predicts potential cost overruns
    */
   async predictCosts(project: Project): Promise<CostPrediction> {
-    // Calculate baseline cost from BOQ
-    const baselineCost = project.boq.reduce((sum, item) => sum + item.amount, 0);
+    // Calculate baseline cost from BOQ using contract value formula
+    const provisionalSum = project.boq
+      .filter(item => item.unit?.toUpperCase() === 'PS')
+      .reduce((sum, item) => sum + item.amount, 0);
+      
+    const amountWithoutPS = project.boq
+      .filter(item => item.unit?.toUpperCase() !== 'PS')
+      .reduce((sum, item) => sum + item.amount, 0);
+      
+    const vatRate = project.settings?.vatRate || 13;
+    const vatAmount = amountWithoutPS * (vatRate / 100);
+    
+    const baselineCost = provisionalSum + amountWithoutPS + vatAmount;
     
     // Analyze various cost factors
     const riskFactors = [];
@@ -143,11 +154,27 @@ export class PredictiveAnalyticsService {
     
     const spi = plannedValue > 0 ? earnedValue / plannedValue : 1.0;
     
-    // Calculate CPI (Cost Performance Index)
-    const plannedCost = project.boq.reduce((sum, item) => sum + item.amount, 0);
+    // Calculate CPI (Cost Performance Index) using contract value logic
+    const provisionalSum = project.boq
+      .filter(item => item.unit?.toUpperCase() === 'PS')
+      .reduce((sum, item) => sum + item.amount, 0);
+      
+    const amountWithoutPS = project.boq
+      .filter(item => item.unit?.toUpperCase() !== 'PS')
+      .reduce((sum, item) => sum + item.amount, 0);
+      
+    const vatRate = project.settings?.vatRate || 13;
+    const vatAmount = amountWithoutPS * (vatRate / 100);
+    const plannedCost = provisionalSum + amountWithoutPS + vatAmount;
+
     const actualCost = project.boq.reduce((sum, item) => {
       const completedRatio = item.completedQuantity / item.quantity;
-      return sum + (item.amount * completedRatio);
+      const baseAmount = item.amount * completedRatio;
+      // Add VAT if not PS
+      if (item.unit?.toUpperCase() !== 'PS') {
+        return sum + baseAmount * (1 + vatRate / 100);
+      }
+      return sum + baseAmount;
     }, 0);
     
     const cpi = actualCost > 0 ? earnedValue / actualCost : 1.0;

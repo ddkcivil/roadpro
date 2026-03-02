@@ -72,8 +72,10 @@ const UserManagement: React.FC = () => {
         name: newUser.name,
         email: newUser.email,
         phone: newUser.phone,
-        role: newUser.role
-      });
+        role: newUser.role,
+        avatar: previewUrl || undefined,
+        password: 'ChangeMe123!' // Default password for new users created by admin
+      } as any);
       
       setUsers(prev => [...prev, user]);
       setIsModalOpen(false);
@@ -104,7 +106,8 @@ const UserManagement: React.FC = () => {
           name: (editingUser.name ?? '').toString(),
           email: (editingUser.email ?? '').toString(),
           phone: editingUser.phone ?? '',
-          role: editingUser.role
+          role: editingUser.role,
+          avatar: previewUrl || editingUser.avatar
       });
 
       const updatedUsers = users.map(user =>

@@ -250,20 +250,32 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
 
     const financialSummary = useMemo(() => {
         const boqItems = project.boq || [];
-        const originalValue = boqItems.reduce((acc, item) => acc + (item.quantity * item.rate), 0);
-        const currentCompletedValue = boqItems.reduce((acc, item) => acc + (item.completedQuantity * item.rate), 0);
-        const provisionalSum = 0;
-        const amountWithoutPS = originalValue - provisionalSum;
+        
+        // a = Sum of Ps(units)
+        const provisionalSum = boqItems
+            .filter(item => item.unit?.toUpperCase() === 'PS')
+            .reduce((acc, item) => acc + (item.quantity * item.rate), 0);
+            
+        // b = Sum other than ps(unit)
+        const amountWithoutPS = boqItems
+            .filter(item => item.unit?.toUpperCase() !== 'PS')
+            .reduce((acc, item) => acc + (item.quantity * item.rate), 0);
+            
+        // c = vat * sum other than ps
         const vatRate = settings?.vatRate || 13;
         const vatAmount = amountWithoutPS * (vatRate / 100);
-        const totalContractValue = amountWithoutPS + vatAmount + provisionalSum;
+        
+        // contract value = a + b + c
+        const totalContractValue = provisionalSum + amountWithoutPS + vatAmount;
+        const currentCompletedValue = boqItems.reduce((acc, item) => acc + (item.completedQuantity * item.rate), 0);
         
         return { 
-            original: originalValue, 
+            original: totalContractValue, 
             completed: currentCompletedValue, 
-            percent: originalValue > 0 ? (currentCompletedValue / originalValue) * 100 : 0,
-            amountWithPS: originalValue,
+            percent: totalContractValue > 0 ? (currentCompletedValue / totalContractValue) * 100 : 0,
+            amountWithPS: totalContractValue,
             amountWithoutPS: amountWithoutPS,
+            provisionalSum: provisionalSum,
             vatAmount: vatAmount,
             totalContractValue: totalContractValue
         };
