@@ -12,7 +12,13 @@ const getAIClient = () => {
 };
 
 // Robust fallback list to handle varied model availability
-const MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-pro'];
+const MODELS = [
+  'gemini-2.0-flash', 
+  'gemini-1.5-flash', 
+  'gemini-1.5-pro', 
+  'gemini-1.5-flash-8b', 
+  'gemini-1.0-pro'
+];
 
 async function runWithFallback(task: (model: any) => Promise<any>): Promise<any> {
   const ai = getAIClient();
