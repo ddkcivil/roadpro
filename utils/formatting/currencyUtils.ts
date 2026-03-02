@@ -19,15 +19,15 @@ const CURRENCY_CONFIGS: Record<string, CurrencyConfig> = {
 /**
  * Get currency configuration by currency code
  */
-export function getCurrencyConfig(currencyCode: string = 'USD'): CurrencyConfig {
-  return CURRENCY_CONFIGS[currencyCode] || CURRENCY_CONFIGS['USD'];
+export function getCurrencyConfig(currencyCode: string = 'NPR'): CurrencyConfig {
+  return CURRENCY_CONFIGS[currencyCode] || CURRENCY_CONFIGS['NPR'];
 }
 
 /**
  * Get currency symbol by currency code
  */
 export function getCurrencySymbol(currencyCode?: string): string {
-  return getCurrencyConfig(currencyCode || 'USD').symbol;
+  return getCurrencyConfig(currencyCode || 'NPR').symbol;
 }
 
 /**

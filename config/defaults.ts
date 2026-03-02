@@ -2,7 +2,7 @@ import { AppSettings } from '../types';
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   companyName: 'RoadMaster Pro',
-  currency: 'USD',
+  currency: 'NPR',
   vatRate: 13,
   fiscalYearStart: '2024-01-01',
   googleSpreadsheetId: '',
