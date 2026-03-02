@@ -35,6 +35,7 @@ import { Checkbox } from '~/components/ui/checkbox';
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { cn } from '~/lib/utils';
+import { motion } from 'framer-motion';
 
 interface Props {
   project: Project;
@@ -44,7 +45,7 @@ interface Props {
   isLoading?: boolean;
 }
 
-const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpdateSettings, isLoading = false }) => {
+const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateProject, onUpdateSettings, isLoading = false }) => {
   const [showWidgetSettings, setShowWidgetSettings] = useState(false);
   const [activeChart, setActiveChart] = useState<'periodic' | 'scumulative'>('scumulative');
 
@@ -151,38 +152,53 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
 
   return (
     <TooltipProvider>
-      <div className="space-y-8 animate-in fade-in duration-700">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 relative">
-          <div className="absolute -left-4 top-0 w-1 h-12 bg-primary rounded-full opacity-50" />
+      <div className="p-4 md:p-8 space-y-8 animate-in fade-in duration-700 min-h-full">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative pb-2">
           <div>
-            <p className="text-[10px] font-black text-primary tracking-[0.4em] uppercase mb-1 opacity-70">INTELLIGENCE HUB</p>
-            <h1 className="text-4xl font-black tracking-tighter text-foreground drop-shadow-sm">
-              Operations Center
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-2 mb-2"
+            >
+              <span className="h-1 w-8 bg-primary rounded-full" />
+              <p className="text-[10px] font-black text-primary tracking-[0.4em] uppercase opacity-70">Strategic Overview</p>
+            </motion.div>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-foreground">
+              Command <span className="text-muted-foreground/40">Center</span>
             </h1>
           </div>
-          <div className="flex shrink-0 flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <Button variant="outline" onClick={() => generateProjectSummaryPDF(project)} className="w-full sm:w-auto rounded-2xl border-border/40 bg-background/50 backdrop-blur hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all duration-300 font-bold">
-              <FileDown className="mr-2 h-4 w-4" />
-              Project Report
+          
+          <div className="flex items-center gap-3 bg-muted/30 p-1.5 rounded-[1.5rem] border border-border/40 backdrop-blur-md">
+            <Button 
+              variant="ghost" 
+              onClick={() => generateProjectSummaryPDF(project)} 
+              className="rounded-xl font-bold h-10 px-5 hover:bg-background transition-all duration-300"
+            >
+              <FileDown className="mr-2 h-4 w-4 opacity-60" />
+              Export Intel
             </Button>
+            
             <Dialog open={showWidgetSettings} onOpenChange={setShowWidgetSettings}>
               <DialogTrigger asChild>
-                <Button variant="secondary" className="w-full sm:w-auto rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 font-bold">
+                <Button className="rounded-xl grad-primary text-white shadow-lg shadow-primary/20 h-10 px-5 font-bold border-none active:scale-95 transition-all">
                   <Settings className="mr-2 h-4 w-4" />
-                  Customize
+                  Configure
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px] rounded-3xl border-border/40 glass">
+              <DialogContent className="rounded-[2rem] glass sm:max-w-[400px]">
                 <DialogHeader>
-                  <DialogTitle className="text-xl font-black tracking-tight">Configure Dashboard</DialogTitle>
-                  <DialogDescription className="font-medium">Select which operational indicators are visible.</DialogDescription>
+                  <DialogTitle className="text-2xl font-black tracking-tight">Display Units</DialogTitle>
+                  <DialogDescription className="font-medium text-muted-foreground">Toggle visibility of operational modules.</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-3 py-6">
                   {settings.dashboardWidgets?.sort((a, b) => a.position - b.position).map((widget) => (
-                    <div key={widget.id} className="flex items-center space-x-4 p-4 rounded-2xl border border-border/40 hover:bg-muted/50 transition-all duration-300 group">
-                      <GripVertical className="h-5 w-5 text-muted-foreground/40 group-hover:text-primary transition-colors cursor-grab" />
+                    <div key={widget.id} className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40 transition-all hover:bg-muted/40">
+                      <div className="flex items-center gap-3">
+                        <GripVertical className="h-4 w-4 text-muted-foreground/30" />
+                        <span className="text-sm font-bold">{widget.title}</span>
+                      </div>
                       <Checkbox
-                        id={`widget-${widget.id}`}
                         checked={widget.visible}
                         onCheckedChange={(checked) => {
                           const updatedWidgets = settings.dashboardWidgets?.map(w =>
@@ -190,182 +206,219 @@ const Dashboard: React.FC<Props> = ({ project, settings, onUpdateProject, onUpda
                           ) || [];
                           onUpdateSettings({ ...settings, dashboardWidgets: updatedWidgets });
                         }}
-                        className="rounded-lg h-5 w-5 border-2"
+                        className="rounded-lg h-5 w-5"
                       />
-                      <label htmlFor={`widget-${widget.id}`} className="text-sm font-bold flex-1 cursor-pointer select-none">
-                        {widget.title}
-                      </label>
                     </div>
                   ))}
                 </div>
                 <DialogFooter>
-                  <Button onClick={() => setShowWidgetSettings(false)} className="w-full rounded-2xl h-12 font-black tracking-tight shadow-xl shadow-primary/20">Save Configuration</Button>
+                  <Button onClick={() => setShowWidgetSettings(false)} className="w-full rounded-2xl h-12 font-black grad-primary border-none shadow-xl shadow-primary/20">Save Matrix</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
         </div>
 
-        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard title="Schedule Index" value={stats.spi.toFixed(2)} icon={Clock} color="primary" trend="+2.4%" isLoading={isLoading} />
-            <StatCard title="Cost Index" value={stats.cpi.toFixed(2)} icon={DollarSign} color="success" trend="+0.8%" isLoading={isLoading} />
-            <StatCard title="Portfolio Value" value={`${currency}${(stats.earnedValue / 1000000).toFixed(1)}M`} icon={TrendingUp} color="warning" isLoading={isLoading} trend="+4.5%" />
-            <StatCard title="Execution Progress" value={`${stats.physPercent.toFixed(0)}%`} icon={CheckCircle} color="info" trend="+1.2%" isLoading={isLoading} />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <Card className="lg:col-span-8 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl border-border/40 shadow-xl rounded-[2rem] overflow-hidden">
-                <CardHeader className="flex flex-row items-center justify-between py-6 px-8 border-b border-border/40">
-                    <CardTitle className="flex items-center gap-3 text-xs font-black uppercase tracking-[0.3em] text-muted-foreground/80">
-                      <div className="w-2 h-2 rounded-full bg-primary" />
-                      Execution Metrics
-                    </CardTitle>
-                    <ToggleGroup type="single" size="sm" variant="outline" value={activeChart} onValueChange={(value: 'periodic' | 'scumulative') => value && setActiveChart(value)} className="bg-muted/40 p-1 rounded-xl border border-border/40">
-                        <ToggleGroupItem value="periodic" className="text-[10px] font-black tracking-widest rounded-lg h-8 px-4 data-[state=on]:bg-background data-[state=on]:shadow-sm border-none transition-all">PERIODIC</ToggleGroupItem>
-                        <ToggleGroupItem value="scumulative" className="text-[10px] font-black tracking-widest rounded-lg h-8 px-4 data-[state=on]:bg-background data-[state=on]:shadow-sm border-none transition-all">S-CURVE</ToggleGroupItem>
-                    </ToggleGroup>
-                </CardHeader>
-                <CardContent className="h-80 pt-10 px-6 pb-6">
-                    <ResponsiveContainer width="100%" height="100%">
-                        {activeChart === 'scumulative' ? (
-                            <LineChart data={sCurveData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
-                                <CartesianGrid strokeDasharray="8 8" stroke="hsl(var(--border))" vertical={false} opacity={0.3} />
-                                <XAxis dataKey="name" stroke="hsl(var(--foreground))" opacity={0.5} fontSize={10} tickLine={false} axisLine={false} fontBold="900" dy={10} />
-                                <YAxis stroke="hsl(var(--foreground))" opacity={0.5} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(value) => `${currency}${value/1000}k`} dx={-10} />
-                                <RechartsTooltip 
-                                  contentStyle={{ 
-                                    borderRadius: '20px', 
-                                    border: '1px solid hsl(var(--border))', 
-                                    backgroundColor: 'rgba(var(--background), 0.8)', 
-                                    backdropFilter: 'blur(12px)',
-                                    boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
-                                    padding: '12px 16px'
-                                  }}
-                                  itemStyle={{ fontSize: '12px', fontWeight: '900', color: 'hsl(var(--foreground))' }}
-                                />
-                                <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.7, paddingBottom: '30px' }} />
-                                <Line type="monotone" name="Planned" dataKey="Cumulative Planned" stroke="hsl(var(--muted-foreground))" strokeWidth={4} dot={false} strokeOpacity={0.2} />
-                                <Line type="monotone" name="Earned" dataKey="Cumulative Earned" stroke="hsl(var(--primary))" strokeWidth={4} dot={{ r: 6, fill: 'hsl(var(--primary))', stroke: 'hsl(var(--background))', strokeWidth: 3 }} activeDot={{ r: 8, strokeWidth: 0, shadow: '0 0 20px hsl(var(--primary))' }} />
-                            </LineChart>
-                        ) : (
-                            <BarChart data={financialChartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
-                                <CartesianGrid strokeDasharray="8 8" stroke="hsl(var(--border))" vertical={false} opacity={0.3} />
-                                <XAxis dataKey="name" stroke="hsl(var(--foreground))" opacity={0.5} fontSize={10} tickLine={false} axisLine={false} dy={10} fontBold="900" />
-                                <YAxis stroke="hsl(var(--foreground))" opacity={0.5} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(value) => `${currency}${value/1000}k`} dx={-10} />
-                                <RechartsTooltip 
-                                  contentStyle={{ 
-                                    borderRadius: '20px', 
-                                    border: '1px solid hsl(var(--border))', 
-                                    backgroundColor: 'rgba(var(--background), 0.8)', 
-                                    backdropFilter: 'blur(12px)',
-                                    boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
-                                    padding: '12px 16px'
-                                  }}
-                                />
-                                <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.7, paddingBottom: '30px' }} />
-                                <Bar dataKey="Planned Value" name="Planned" fill="hsl(var(--muted))" radius={[8, 8, 0, 0]} fillOpacity={0.4} />
-                                <Bar dataKey="Earned Value" name="Actual" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-                            </BarChart>
-                        )}
-                    </ResponsiveContainer>
-                </CardContent>
-            </Card>
-
-            <Card className="lg:col-span-4 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl border-border/40 shadow-xl rounded-[2rem] overflow-hidden">
-                <CardHeader className="py-6 px-8 border-b border-border/40">
-                    <CardTitle className="flex items-center gap-3 text-xs font-black uppercase tracking-[0.3em] text-muted-foreground/80">
-                      <div className="w-2 h-2 rounded-full bg-violet-500" />
-                      Work Breakdown
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="h-80 flex flex-col items-center justify-center p-6">
-                    <div className="relative w-full h-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                          {boqCategoryData.length > 0 ? (
-                              <PieChart>
-                                  <Pie
-                                      data={boqCategoryData}
-                                      cx="50%"
-                                      cy="50%"
-                                      innerRadius={70}
-                                      outerRadius={100}
-                                      paddingAngle={8}
-                                      dataKey="value"
-                                      nameKey="name"
-                                      stroke="none"
-                                  >
-                                      {boqCategoryData.map((entry, index) => (
-                                          <Cell key={`cell-${index}`} fill={
-                                              ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'][index % 5]
-                                          } className="transition-all duration-500 hover:opacity-80" />
-                                      ))}
-                                  </Pie>
-                                  <RechartsTooltip 
-                                    formatter={(value) => [`${currency}${Number(value).toLocaleString()}`, 'Earned']}
-                                    contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', padding: '12px 16px' }}
-                                  />
-                              </PieChart>
-                          ) : (
-                              <div className="flex flex-col items-center justify-center h-full opacity-20">
-                                <Layers size={48} className="mb-4" />
-                                <p className="text-xs font-black uppercase tracking-[0.2em]">Matrix Void</p>
-                              </div>
-                          )}
-                      </ResponsiveContainer>
-                      {boqCategoryData.length > 0 && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total</span>
-                          <span className="text-xl font-black text-foreground">{currency}{(stats.earnedValue / 1000000).toFixed(1)}M</span>
-                        </div>
-                      )}
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-4">
-            <WeatherWidget />
-          </div>
-          <div className="lg:col-span-8">
-            <Card className="h-full bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl border-border/40 shadow-xl rounded-[2rem] overflow-hidden">
-              <CardHeader className="py-6 px-8 border-b border-border/40">
-                <CardTitle className="flex items-center gap-3 text-xs font-black uppercase tracking-[0.3em] text-muted-foreground/80">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                  Quality Assurance (RFI)
+        {/* Bento Grid Main Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-12 grid-rows-auto gap-6 pb-12">
+          
+          {/* Main S-Curve Card - Large Bento Piece */}
+          <Card className="md:col-span-4 lg:col-span-8 row-span-2 rounded-[2.5rem] glass-card overflow-hidden group border-none relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <CardHeader className="flex flex-row items-center justify-between py-8 px-10 border-b border-white/5">
+              <div>
+                <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full grad-primary shadow-[0_0_10px_rgba(79,70,229,0.5)]" />
+                  Physical vs Financial S-Curve
                 </CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-6 p-8">
-                <div className="group flex flex-col items-center justify-center p-8 rounded-3xl bg-blue-500/5 border border-blue-500/10 hover:bg-blue-500/10 hover:border-blue-500/20 transition-all duration-500">
-                  <div className="p-4 rounded-2xl bg-blue-500/10 mb-4 group-hover:scale-110 group-hover:rotate-6 transition-transform">
-                    <Info className="w-8 h-8 text-blue-500" />
-                  </div>
-                  <p className="text-4xl font-black text-blue-600 dark:text-blue-400">{stats.rfiOpen}</p>
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-500/70 mt-2">Pending</p>
-                </div>
-                
-                <div className="group flex flex-col items-center justify-center p-8 rounded-3xl bg-amber-500/5 border border-amber-500/10 hover:bg-amber-500/10 hover:border-amber-500/20 transition-all duration-500">
-                  <div className="p-4 rounded-2xl bg-amber-500/10 mb-4 group-hover:scale-110 group-hover:rotate-6 transition-transform">
-                    <AlertTriangle className="w-8 h-8 text-amber-500" />
-                  </div>
-                  <p className="text-4xl font-black text-amber-600 dark:text-amber-400">{stats.rfiOverdue}</p>
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-500/70 mt-2">Overdue</p>
-                </div>
-                
-                <div className="group flex flex-col items-center justify-center p-8 rounded-3xl bg-emerald-500/5 border border-emerald-500/10 hover:bg-emerald-500/10 hover:border-emerald-500/20 transition-all duration-500">
-                  <div className="p-4 rounded-2xl bg-emerald-500/10 mb-4 group-hover:scale-110 group-hover:rotate-6 transition-transform">
-                    <Check className="w-8 h-8 text-emerald-500" />
-                  </div>
-                  <p className="text-4xl font-black text-emerald-600 dark:text-emerald-400">{stats.rfiClosed}</p>
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-600/70 mt-2">Resolved</p>
-                </div>
-              </CardContent>
+                <p className="text-xs font-medium text-muted-foreground/60 mt-1">Real-time cumulative execution tracking</p>
+              </div>
+              <ToggleGroup type="single" value={activeChart} onValueChange={(val: any) => val && setActiveChart(val)} className="bg-muted/30 p-1 rounded-2xl border border-border/40 backdrop-blur-sm">
+                <ToggleGroupItem value="periodic" className="text-[10px] font-black tracking-widest rounded-xl h-9 px-5 data-[state=on]:bg-white dark:data-[state=on]:bg-slate-950 data-[state=on]:shadow-xl transition-all">PERIODIC</ToggleGroupItem>
+                <ToggleGroupItem value="scumulative" className="text-[10px] font-black tracking-widest rounded-xl h-9 px-5 data-[state=on]:bg-white dark:data-[state=on]:bg-slate-950 data-[state=on]:shadow-xl transition-all">CUMULATIVE</ToggleGroupItem>
+              </ToggleGroup>
+            </CardHeader>
+            <CardContent className="h-[400px] pt-12 px-8 pb-8">
+              <ResponsiveContainer width="100%" height="100%">
+                {activeChart === 'scumulative' ? (
+                  <LineChart data={sCurveData}>
+                    <defs>
+                      <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="12 12" stroke="currentColor" vertical={false} opacity={0.05} />
+                    <XAxis dataKey="name" stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} fontBold="900" dy={15} />
+                    <YAxis stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${currency}${v/1000}k`} dx={-15} />
+                    <RechartsTooltip 
+                      contentStyle={{ 
+                        borderRadius: '24px', 
+                        border: '1px solid rgba(255,255,255,0.1)', 
+                        backgroundColor: 'rgba(15,23,42,0.9)', 
+                        backdropFilter: 'blur(20px)',
+                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+                        padding: '16px 20px'
+                      }}
+                      itemStyle={{ fontSize: '12px', fontWeight: '900', color: '#fff' }}
+                    />
+                    <Line type="monotone" name="Planned" dataKey="Cumulative Planned" stroke="currentColor" strokeWidth={4} dot={false} strokeOpacity={0.1} />
+                    <Line type="monotone" name="Earned" dataKey="Cumulative Earned" stroke="hsl(var(--primary))" strokeWidth={6} dot={{ r: 0 }} activeDot={{ r: 8, strokeWidth: 0, shadow: '0 0 30px hsl(var(--primary))' }} />
+                  </LineChart>
+                ) : (
+                  <BarChart data={financialChartData}>
+                    <CartesianGrid strokeDasharray="12 12" stroke="currentColor" vertical={false} opacity={0.05} />
+                    <XAxis dataKey="name" stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} fontBold="900" dy={15} />
+                    <YAxis stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${currency}${v/1000}k`} dx={-15} />
+                    <RechartsTooltip contentStyle={{ borderRadius: '24px', border: 'none', backgroundColor: 'rgba(15,23,42,0.9)', backdropFilter: 'blur(20px)' }} />
+                    <Bar dataKey="Planned Value" name="Planned" fill="currentColor" opacity={0.1} radius={[12, 12, 0, 0]} />
+                    <Bar dataKey="Earned Value" name="Actual" fill="hsl(var(--primary))" radius={[12, 12, 0, 0]} shadow="0 10px 20px rgba(79,70,229,0.3)" />
+                  </BarChart>
+                )}
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* KPI Mini-Cards - Vertical Stack */}
+          <div className="md:col-span-4 lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
+            <Card className="rounded-[2rem] glass-card border-none p-8 flex flex-col justify-between overflow-hidden relative group">
+              <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-all duration-700" />
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 mb-1">Schedule Variance</p>
+                <h3 className="text-xs font-black uppercase tracking-tighter text-foreground mb-4 flex items-center gap-2">
+                  <Clock className="w-3 h-3 text-primary" />
+                  Efficiency Index
+                </h3>
+                <div className="text-5xl font-black tracking-tighter text-primary">{stats.spi.toFixed(2)}</div>
+              </div>
+              <div className="mt-6 flex items-center justify-between">
+                <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border-none px-3 py-1 rounded-full font-black text-[10px]">OPTIMAL (+2.4%)</Badge>
+                <TrendingUp size={16} className="text-emerald-500" />
+              </div>
+            </Card>
+
+            <Card className="rounded-[2rem] glass-card border-none p-8 flex flex-col justify-between overflow-hidden relative group">
+              <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-violet-500/10 rounded-full blur-3xl group-hover:bg-violet-500/20 transition-all duration-700" />
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 mb-1">Budget Burn</p>
+                <h3 className="text-xs font-black uppercase tracking-tighter text-foreground mb-4 flex items-center gap-2">
+                  <DollarSign className="w-3 h-3 text-violet-500" />
+                  Cost Performance
+                </h3>
+                <div className="text-5xl font-black tracking-tighter text-violet-500">{stats.cpi.toFixed(2)}</div>
+              </div>
+              <div className="mt-6 flex items-center justify-between">
+                <Badge className="bg-violet-500/10 text-violet-500 hover:bg-violet-500/20 border-none px-3 py-1 rounded-full font-black text-[10px]">UNDER BUDGET</Badge>
+                <ShieldCheck size={16} className="text-violet-500" />
+              </div>
             </Card>
           </div>
+
+          {/* Quality Assurance Bento Piece */}
+          <Card className="md:col-span-4 lg:col-span-4 rounded-[2.5rem] glass-card border-none overflow-hidden group">
+            <CardHeader className="py-8 px-10 border-b border-white/5">
+              <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                QA/QC Matrix
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-10 space-y-8">
+              <div className="flex items-center justify-between group/item">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover/item:scale-110 transition-transform">
+                    <Info size={20} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-foreground">{stats.rfiOpen}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active RFIs</p>
+                  </div>
+                </div>
+                <ChevronRight size={14} className="text-muted-foreground/30" />
+              </div>
+              
+              <div className="flex items-center justify-between group/item">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 group-hover/item:scale-110 transition-transform">
+                    <AlertTriangle size={20} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-foreground">{stats.rfiOverdue}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Late Responses</p>
+                  </div>
+                </div>
+                <ChevronRight size={14} className="text-muted-foreground/30" />
+              </div>
+
+              <Separator className="opacity-10" />
+
+              <div className="pt-4">
+                <div className="flex justify-between items-end mb-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Compliance Rating</p>
+                  <span className="text-xs font-black text-emerald-500">98.2%</span>
+                </div>
+                <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: '98.2%' }}
+                    className="h-full grad-primary"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Financial Distribution Bento Piece */}
+          <Card className="md:col-span-4 lg:col-span-5 rounded-[2.5rem] glass-card border-none overflow-hidden">
+            <CardHeader className="py-8 px-10 border-b border-white/5">
+              <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
+                Work Done Breakdown
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-[300px] flex flex-col items-center justify-center p-8">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={boqCategoryData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={65}
+                    outerRadius={95}
+                    paddingAngle={10}
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    {boqCategoryData.map((_, index) => (
+                      <Cell key={index} fill={['#4f46e5', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'][index % 5]} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip contentStyle={{ borderRadius: '20px', border: 'none', backgroundColor: '#0f172a', color: '#fff' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Site Intelligence Piece */}
+          <Card className="md:col-span-4 lg:col-span-3 rounded-[2.5rem] grad-slate text-white border-none p-10 flex flex-col justify-between relative overflow-hidden shadow-2xl">
+            <div className="absolute bottom-[-40px] right-[-40px] w-48 h-48 bg-white/5 rounded-full blur-3xl" />
+            <div className="relative z-10">
+              <Sparkles className="text-amber-400 mb-6" size={32} />
+              <h3 className="text-2xl font-black tracking-tight leading-tight">Site <br />Intelligence</h3>
+              <p className="text-xs font-medium text-white/60 mt-4 leading-relaxed">
+                Project AI has analyzed <span className="text-white font-bold">124</span> data points today. No critical bottlenecks detected in current workflow.
+              </p>
+            </div>
+            <Button variant="ghost" className="relative z-10 w-full mt-8 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-black text-[10px] uppercase tracking-widest border-none">
+              Analyze Deeply
+            </Button>
+          </Card>
+
         </div>
       </div>
     </TooltipProvider>
   );
-};
+});
+
+Dashboard.displayName = 'Dashboard';
 
 export default Dashboard;

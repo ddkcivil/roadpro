@@ -39,7 +39,7 @@ const groupColors: Record<string, string> = {
   'Administration': 'text-slate-500',
 };
 
-const AppSidebar: React.FC<AppSidebarProps> = memo(({
+const AppSidebar: React.FC<AppSidebarProps> = React.memo(({
   isSidebarCollapsed,
   setIsSidebarCollapsed,
   sidebarOpen,
@@ -116,65 +116,76 @@ const AppSidebar: React.FC<AppSidebarProps> = memo(({
       {/* Desktop Sidebar (Persistent & Collapsible) */}
       <aside 
         className={cn(
-          "hidden lg:flex flex-col border-r border-border/40 bg-background/60 dark:bg-slate-950/60 backdrop-blur-2xl transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] shrink-0 h-screen z-20 shadow-2xl",
+          "hidden lg:flex flex-col m-4 rounded-[2rem] glass transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] shrink-0 h-[calc(100vh-2rem)] z-20 shadow-2xl relative overflow-hidden",
           isSidebarCollapsed ? "w-20" : "w-72"
         )}
       >
-        <div className="h-16 flex items-center px-6 border-b border-border/40 shrink-0 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
+        
+        <div className="h-20 flex items-center px-6 border-b border-white/10 shrink-0 overflow-hidden">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 grad-primary rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/25 shrink-0 active-glow">
-              <HardHat size={20} strokeWidth={2.5} className="text-white" />
+            <div className="w-11 h-11 grad-primary rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/25 shrink-0 active-glow">
+              <HardHat size={22} strokeWidth={2.5} className="text-white" />
             </div>
             {!isSidebarCollapsed && (
-              <motion.span 
+              <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="font-black text-xl tracking-tighter text-foreground whitespace-nowrap"
+                className="flex flex-col"
               >
-                RoadMaster<span className="text-primary italic">Pro</span>
-              </motion.span>
+                <span className="font-black text-xl tracking-tighter text-foreground whitespace-nowrap leading-none">
+                  RoadMaster<span className="text-primary italic">Pro</span>
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-1">Infrastructure OS</span>
+              </motion.div>
             )}
           </div>
         </div>
 
-        <ScrollArea className="flex-1 px-4 py-6">
+        <ScrollArea className="flex-1 px-3 py-6">
           <nav className="space-y-8">
             {navGroups.map(group => (
               <div key={group.title}>
                 {!isSidebarCollapsed ? (
                   <h3 className={cn(
-                    "text-[10px] font-black uppercase tracking-[0.25em] mb-4 px-3 opacity-60", 
+                    "text-[10px] font-black uppercase tracking-[0.25em] mb-4 px-4 opacity-40", 
                     groupColors[group.title] || "text-muted-foreground"
                   )}>
                     {group.title}
                   </h3>
                 ) : (
                   <div className="flex justify-center mb-5">
-                    <div className={cn("w-2 h-2 rounded-full shadow-sm", groupColors[group.title]?.replace('text-', 'bg-') || "bg-slate-300")} />
+                    <div className={cn("w-1.5 h-1.5 rounded-full shadow-sm", groupColors[group.title]?.replace('text-', 'bg-') || "bg-slate-300")} />
                   </div>
                 )}
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   {group.items.map(item => (
                     <Tooltip key={item.id} delayDuration={0}>
                       <TooltipTrigger asChild>
                         <motion.div
-                          whileHover={isSidebarCollapsed ? { scale: 1.05 } : { x: 4 }}
-                          whileTap={{ scale: 0.98 }}
+                          whileHover={{ x: isSidebarCollapsed ? 0 : 4 }}
+                          whileTap={{ scale: 0.97 }}
                         >
                           <Button
-                            variant={activeTab === item.id ? "secondary" : "ghost"}
+                            variant="ghost"
                             className={cn(
-                              "w-full justify-start h-11 rounded-2xl transition-all duration-300",
+                              "w-full justify-start h-11 rounded-xl transition-all duration-300 relative overflow-hidden group",
                               isSidebarCollapsed ? "px-0 justify-center w-12 mx-auto" : "gap-4 px-4",
                               activeTab === item.id 
-                                ? "bg-primary text-primary-foreground shadow-xl shadow-primary/30 font-bold" 
-                                : "hover:bg-primary/10 hover:text-primary font-semibold text-foreground/80 dark:text-foreground/70"
+                                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 font-bold" 
+                                : "hover:bg-white/10 dark:hover:bg-white/5 font-semibold text-foreground/70"
                             )}
                             onClick={() => setActiveTab(item.id)}
                           >
+                            {activeTab === item.id && (
+                              <motion.div 
+                                layoutId="active-pill"
+                                className="absolute left-0 w-1 h-6 bg-white rounded-full"
+                              />
+                            )}
                             <item.icon className={cn(
                               "h-[1.1rem] w-[1.1rem] shrink-0 transition-all duration-300", 
-                              activeTab === item.id ? "scale-110 opacity-100" : "opacity-60"
+                              activeTab === item.id ? "scale-110 opacity-100" : "opacity-50 group-hover:opacity-100"
                             )} />
                             {!isSidebarCollapsed && <span className="truncate text-sm tracking-tight">{item.label}</span>}
                           </Button>
@@ -193,36 +204,32 @@ const AppSidebar: React.FC<AppSidebarProps> = memo(({
           </nav>
         </ScrollArea>
 
-        <div className="p-5 border-t border-border/40 bg-muted/20 dark:bg-slate-900/10">
-          <div className="space-y-2">
-            <motion.div whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }}>
-              <Button 
-                variant="ghost" 
-                className={cn(
-                  "w-full justify-start rounded-2xl h-11 transition-all duration-300 font-bold", 
-                  isSidebarCollapsed ? "px-0 justify-center w-12 mx-auto" : "gap-4 px-4",
-                  activeTab === 'settings' ? "bg-background shadow-md border border-border/40" : "text-foreground/70"
-                )}
-                onClick={() => setActiveTab('settings')}
-              >
-                <Settings className="h-[1.1rem] w-[1.1rem] shrink-0 opacity-60" />
-                {!isSidebarCollapsed && <span className="text-sm tracking-tight">System Settings</span>}
-              </Button>
-            </motion.div>
+        <div className="p-4 border-t border-white/10 bg-white/5 dark:bg-black/20">
+          <div className="space-y-1">
+            <Button 
+              variant="ghost" 
+              className={cn(
+                "w-full justify-start rounded-xl h-11 transition-all duration-300 font-bold", 
+                isSidebarCollapsed ? "px-0 justify-center w-12 mx-auto" : "gap-4 px-4",
+                activeTab === 'settings' ? "bg-white/10 shadow-sm" : "text-foreground/60"
+              )}
+              onClick={() => setActiveTab('settings')}
+            >
+              <Settings className="h-[1.1rem] w-[1.1rem] shrink-0 opacity-50" />
+              {!isSidebarCollapsed && <span className="text-sm tracking-tight">Settings</span>}
+            </Button>
             
-            <motion.div whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }}>
-              <Button 
-                variant="ghost" 
-                className={cn(
-                  "w-full justify-start text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 rounded-2xl h-11 transition-all duration-300 font-black", 
-                  isSidebarCollapsed ? "px-0 justify-center w-12 mx-auto" : "gap-4 px-4 shadow-sm border border-rose-500/10"
-                )}
-                onClick={() => logout(selectedProjectId || undefined, projectName)}
-              >
-                <LogOut className="h-[1.1rem] w-[1.1rem] shrink-0" />
-                {!isSidebarCollapsed && <span className="text-sm tracking-tighter uppercase">Terminate Session</span>}
-              </Button>
-            </motion.div>
+            <Button 
+              variant="ghost" 
+              className={cn(
+                "w-full justify-start text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 rounded-xl h-11 transition-all duration-300 font-black", 
+                isSidebarCollapsed ? "px-0 justify-center w-12 mx-auto" : "gap-4 px-4"
+              )}
+              onClick={() => logout(selectedProjectId || undefined, projectName)}
+            >
+              <LogOut className="h-[1.1rem] w-[1.1rem] shrink-0" />
+              {!isSidebarCollapsed && <span className="text-sm tracking-tighter uppercase">Logout</span>}
+            </Button>
           </div>
         </div>
       </aside>

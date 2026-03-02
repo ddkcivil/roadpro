@@ -1,4 +1,4 @@
-import { useEffect, useMemo, startTransition } from 'react';
+import { useEffect, useMemo, startTransition, useCallback } from 'react';
 import { Project } from '../types';
 import { apiService } from '../services/api/apiService';
 import { DataCache, getCacheKey } from '../utils/data/cacheUtils';
@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { useDebounce } from './useDebounce';
 import { AuditService } from '../services/analytics/auditService';
 import { sanitizationUtils } from '../utils/validation/sanitizationUtils';
-import { usePersistedReducer, useAsyncPersistedReducer } from './usePersistence';
+import { useAsyncPersistedReducer } from './usePersistence';
 import { useRateLimit } from './useRateLimit';
 
 interface ProjectsState {
@@ -66,14 +66,73 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
     'roadmaster-projects-state'
   );
 
-  const { checkLimit, remainingTime } = useRateLimit({
-    limit: 10,
-    windowMs: 60000 // 10 saves per minute
-  });
-
   const debouncedCacheSync = useDebounce((updatedProjects: Project[]) => {
     DataCache.set(getCacheKey('projects'), updatedProjects, { ttl: 10 * 60 * 1000 });
   }, 1000);
+
+  const performActualSave = async (completeProjectData: Project, baseProject: Project | undefined, isUpdate: boolean) => {
+    try {
+      const processedProject: Project = prepareProjectWithMaterials(completeProjectData);
+
+      let backendProject: Project;
+      if (isUpdate) {
+        backendProject = await apiService.updateProject(completeProjectData.id, processedProject);
+        if (currentUser) {
+          await AuditService.logDataModification(
+            currentUser.id, 
+            currentUser.name, 
+            'UPDATE', 
+            'project', 
+            backendProject.id, 
+            backendProject.name,
+            baseProject,
+            backendProject
+          );
+        }
+      } else {
+        backendProject = await apiService.createProject(processedProject);
+        if (currentUser) {
+          await AuditService.logDataModification(
+            currentUser.id, 
+            currentUser.name, 
+            'CREATE', 
+            'project', 
+            backendProject.id, 
+            backendProject.name,
+            undefined,
+            backendProject
+          );
+        }
+      }
+
+      startTransition(() => {
+        const finalProjects = state.projects.map(p => p.id === (isUpdate ? backendProject.id : completeProjectData.id) ? backendProject : p);
+        dispatch({ type: 'UPDATE_PROJECTS', payload: finalProjects });
+        debouncedCacheSync(finalProjects);
+      });
+
+      toast.success(isUpdate ? "Project Updated" : "Project Created", {
+        description: `${completeProjectData.name} has been synchronized with the cloud.`,
+      });
+    } catch (error: any) {
+      console.error('[ERROR] Failed to save project to backend:', error);
+      const errorMsg = error.response?.data?.details || error.message || 'Unknown server error';
+      toast.error("Cloud Sync Failed", {
+        description: `Changes kept locally but failed to sync: ${errorMsg}`,
+      });
+    }
+  };
+
+  const debouncedBackendSave = useMemo(
+    () => {
+      let timeout: any;
+      return (data: Project, base: Project | undefined, isUp: boolean) => {
+        if (timeout) clearTimeout(timeout);
+        timeout = setTimeout(() => performActualSave(data, base, isUp), 2000);
+      };
+    },
+    [currentUser, state.projects]
+  );
 
   const fetchProjects = async (page = 1) => {
     startTransition(() => {
@@ -105,184 +164,48 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
     return state.projects.find(p => p.id === state.selectedProjectId);
   }, [state?.projects, state?.selectedProjectId]);
 
-  const setSelectedProjectId = (id: string | null) => {
+  const setSelectedProjectId = useCallback((id: string | null) => {
     startTransition(() => {
       dispatch({ type: 'SET_SELECTED_PROJECT', payload: id });
     });
-  };
+  }, []);
 
-  const saveProject = async (project: Partial<Project>) => {
-    if (!checkLimit()) {
-      toast.warning("Rate limit exceeded", {
-        description: `Please wait ${Math.ceil(remainingTime)} seconds before saving again.`
-      });
+  const saveProject = useCallback(async (project: Partial<Project>) => {
+    const targetProjectId = project.id || state.selectedProjectId;
+    const isUpdate = !!targetProjectId;
+    
+    const baseProject = state.projects.find(p => p.id === targetProjectId);
+
+    const completeProjectData: Project = {
+      ...baseProject,
+      ...project,
+      id: targetProjectId || `proj-${Date.now()}`,
+      updatedAt: new Date().toISOString(),
+    } as Project;
+
+    if (!completeProjectData.name || !completeProjectData.client) {
+      toast.error("Save Blocked", { description: "Project name and employer/client are required." });
       return;
     }
 
-    const previousProjects = [...state.projects];
-    try {
-      const targetProjectId = project.id || currentProject?.id;
-      const isUpdate = !!targetProjectId;
-      
-      const baseProject = project.id 
-        ? state.projects.find(p => p.id === project.id) 
-        : currentProject;
+    const sanitizedProjectData = sanitizationUtils.sanitizeObject(completeProjectData);
 
-      // Basic Conflict Check
-      if (isUpdate && baseProject?.updatedAt && project.updatedAt) {
-        if (new Date(baseProject.updatedAt) > new Date(project.updatedAt)) {
-          console.warn('Potential conflict detected: Local version might be older than last sync.');
-        }
-      }
+    // Optimistic UI Update - Instant feedback for user
+    const optimisticProjects = isUpdate 
+      ? state.projects.map(p => p.id === sanitizedProjectData.id ? sanitizedProjectData : p)
+      : [...state.projects, sanitizedProjectData];
+    
+    startTransition(() => {
+      dispatch({ type: 'UPDATE_PROJECTS', payload: optimisticProjects });
+    });
 
-      const completeProjectData: Project = {
-        id: targetProjectId || `proj-${Date.now()}`,
-        name: project.name || baseProject?.name || '',
-        code: project.code || baseProject?.code || '',
-        location: project.location || baseProject?.location || '',
-        contractor: project.contractor || baseProject?.contractor || '',
-        startDate: project.startDate || baseProject?.startDate || '',
-        endDate: project.endDate || baseProject?.endDate || '',
-        client: project.client || baseProject?.client || '',
-        engineer: project.engineer || baseProject?.engineer || '',
-        contractNo: project.contractNo || baseProject?.contractNo || '',
-        contractPeriod: project.contractPeriod || baseProject?.contractPeriod || '',
-        projectManager: project.projectManager || baseProject?.projectManager || '',
-        supervisor: project.supervisor || baseProject?.supervisor || '',
-        consultantName: project.consultantName || baseProject?.consultantName || '',
-        clientName: project.clientName || baseProject?.clientName || '',
-        logo: project.logo || baseProject?.logo || '',
-        weather: project.weather || baseProject?.weather,
-        lastSynced: project.lastSynced || baseProject?.lastSynced,
-        spreadsheetId: project.spreadsheetId || baseProject?.spreadsheetId,
-        settings: project.settings || baseProject?.settings,
-        updatedAt: new Date().toISOString(),
-        environmentRegistry: project.environmentRegistry || baseProject?.environmentRegistry || { treesRemoved: 0, treesPlanted: 0, sprinklingLogs: [], treeLogs: [] },
-        boq: project.boq || baseProject?.boq || [],
-        rfis: project.rfis || baseProject?.rfis || [],
-        labTests: project.labTests || baseProject?.labTests || [],
-        schedule: project.schedule || baseProject?.schedule || [],
-        structures: project.structures || baseProject?.structures || [],
-        agencies: project.agencies || baseProject?.agencies || [],
-        agencyPayments: project.agencyPayments || baseProject?.agencyPayments || [],
-        linearWorks: project.linearWorks || baseProject?.linearWorks || [],
-        inventory: project.inventory || baseProject?.inventory || [],
-        inventoryTransactions: project.inventoryTransactions || baseProject?.inventoryTransactions || [],
-        vehicles: project.vehicles || baseProject?.vehicles || [],
-        vehicleLogs: project.vehicleLogs || baseProject?.vehicleLogs || [],
-        documents: project.documents || baseProject?.documents || [],
-        sitePhotos: project.sitePhotos || baseProject?.sitePhotos || [],
-        dailyReports: project.dailyReports || baseProject?.dailyReports || [],
-        preConstruction: project.preConstruction || baseProject?.preConstruction || [],
-        landParcels: project.landParcels || baseProject?.landParcels || [],
-        mapOverlays: project.mapOverlays || baseProject?.mapOverlays || [],
-        hindrances: project.hindrances || baseProject?.hindrances || [],
-        ncrs: project.ncrs || baseProject?.ncrs || [],
-        contractBills: project.contractBills || baseProject?.contractBills || [],
-        subcontractorBills: project.subcontractorBills || baseProject?.subcontractorBills || [],
-        measurementSheets: project.measurementSheets || baseProject?.measurementSheets || [],
-        staffLocations: project.staffLocations || baseProject?.staffLocations || [],
-        purchaseOrders: project.purchaseOrders || baseProject?.purchaseOrders || [],
-        agencyMaterials: project.agencyMaterials || baseProject?.agencyMaterials || [],
-        agencyBills: project.agencyBills || baseProject?.agencyBills || [],
-        subcontractorPayments: project.subcontractorPayments || baseProject?.subcontractorPayments || [],
-        preConstructionTasks: project.preConstructionTasks || baseProject?.preConstructionTasks || [],
-        kmlData: project.kmlData || baseProject?.kmlData || [],
-        variationOrders: project.variationOrders || baseProject?.variationOrders || [],
-        resources: project.resources || baseProject?.resources || [],
-        resourceAllocations: project.resourceAllocations || baseProject?.resourceAllocations || [],
-        milestones: project.milestones || baseProject?.milestones || [],
-        comments: project.comments || baseProject?.comments || [],
-        checklists: project.checklists || baseProject?.checklists || [],
-        defects: project.defects || baseProject?.defects || [],
-        complianceWorkflows: project.complianceWorkflows || baseProject?.complianceWorkflows || [],
-        auditLogs: project.auditLogs || baseProject?.auditLogs || [],
-        structureTemplates: project.structureTemplates || baseProject?.structureTemplates || [],
-        accountingIntegrations: project.accountingIntegrations || baseProject?.accountingIntegrations || [],
-        accountingTransactions: project.accountingTransactions || baseProject?.accountingTransactions || [],
-        personnel: project.personnel || baseProject?.personnel || [],
-        fleet: project.fleet || baseProject?.fleet || [],
-      };
-
-      if (!completeProjectData.name || !completeProjectData.client) {
-        toast.error("Save Blocked", {
-          description: "Project name and employer/client are required fields.",
-        });
-        return;
-      }
-
-      const sanitizedProjectData = sanitizationUtils.sanitizeObject(completeProjectData);
-
-      const optimisticProjects = isUpdate 
-        ? state.projects.map(p => p.id === sanitizedProjectData.id ? sanitizedProjectData : p)
-        : [...state.projects, sanitizedProjectData];
-      
-      startTransition(() => {
-        dispatch({ type: 'UPDATE_PROJECTS', payload: optimisticProjects });
-      });
-
-      const processedProject: Project = prepareProjectWithMaterials(sanitizedProjectData);
-
-      let backendProject: Project;
-      if (isUpdate) {
-        backendProject = await apiService.updateProject(sanitizedProjectData.id, processedProject);
-        if (currentUser) {
-          await AuditService.logDataModification(
-            currentUser.id, 
-            currentUser.name, 
-            'UPDATE', 
-            'project', 
-            backendProject.id, 
-            backendProject.name,
-            baseProject,
-            backendProject
-          );
-        }
-      } else {
-        backendProject = await apiService.createProject(processedProject);
-        if (currentUser) {
-          await AuditService.logDataModification(
-            currentUser.id, 
-            currentUser.name, 
-            'CREATE', 
-            'project', 
-            backendProject.id, 
-            backendProject.name,
-            undefined,
-            backendProject
-          );
-        }
-      }
-
-      startTransition(() => {
-        const finalProjects = isUpdate 
-          ? state.projects.map(p => p.id === backendProject.id ? backendProject : p)
-          : optimisticProjects.map(p => p.id === sanitizedProjectData.id ? backendProject : p);
-        
-        dispatch({ type: 'UPDATE_PROJECTS', payload: finalProjects });
-        debouncedCacheSync(finalProjects);
-      });
-
-      toast.success(isUpdate ? "Project Updated" : "Project Created", {
-        description: `${sanitizedProjectData.name} has been synchronized with the cloud.`,
-      });
-    } catch (error: any) {
-      startTransition(() => {
-        dispatch({ type: 'UPDATE_PROJECTS', payload: previousProjects });
-      });
-      
-      console.error('[ERROR] Failed to save project to backend:', error);
-      const errorMsg = error.response?.data?.details || error.message || 'Unknown server error';
-      toast.error("Save Failed", {
-        description: `Rollback applied. Server responded with: ${errorMsg}`,
-      });
-      throw error;
-    }
-  };
+    // Background debounced backend save
+    debouncedBackendSave(sanitizedProjectData, baseProject, isUpdate);
+  }, [state.projects, state.selectedProjectId, debouncedBackendSave]);
 
   const deleteProject = async (projectId: string) => {
-    const previousProjects = state?.projects ? [...state.projects] : [];
-    const projectToDelete = state?.projects?.find(p => p.id === projectId);
+    const previousProjects = [...state.projects];
+    const projectToDelete = state.projects.find(p => p.id === projectId);
     
     try {
       const updatedProjects = previousProjects.filter(p => p.id !== projectId);
@@ -290,7 +213,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
         dispatch({ type: 'UPDATE_PROJECTS', payload: updatedProjects });
       });
       
-      if (state?.selectedProjectId === projectId) {
+      if (state.selectedProjectId === projectId) {
         setSelectedProjectId(null);
       }
 
@@ -316,7 +239,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
       startTransition(() => {
         dispatch({ type: 'UPDATE_PROJECTS', payload: previousProjects });
       });
-      if (state?.selectedProjectId === null && projectToDelete) {
+      if (state.selectedProjectId === null && projectToDelete) {
          setSelectedProjectId(projectId);
       }
       

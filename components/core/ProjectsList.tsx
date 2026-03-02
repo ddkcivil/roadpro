@@ -263,7 +263,7 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
                   </div>
                 ) : (
                   <CardGrid columns={3}>
-                    {filteredGridProjects.map(project => {
+                    {filteredGridProjects.map((project, index) => {
                         const physProgress = calculateProgress(project.boq);
                         const timeProgress = calculateTimeProgress(project.startDate, project.endDate);
                         const duration = calculateDuration(project.startDate, project.endDate);

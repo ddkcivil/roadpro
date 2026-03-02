@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, lazy, Suspense, startTransition } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense, startTransition, useCallback } from 'react';
 import { Loader2, Database } from 'lucide-react';
 import { Project, User } from './types';
 import { LocalStorageUtils } from './utils/data/localStorageUtils';
@@ -182,11 +182,15 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
 
-  const handleTabChange = (tab: string) => {
+  const handleTabChange = useCallback((tab: string) => {
     startTransition(() => {
       setActiveTab(tab);
     });
-  };
+  }, []);
+
+  const handleSaveProject = useCallback((project: Partial<Project>) => {
+    saveProject(project);
+  }, [saveProject]);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editProject, setEditProject] = useState<Partial<Project> | null>(null);
   
@@ -263,14 +267,8 @@ const App: React.FC = () => {
     <I18nProvider>
       <NotificationProvider>
         <TooltipProvider>
-          <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans antialiased text-slate-900 dark:text-slate-100 transition-colors duration-500 relative">
-            {/* Decorative background elements */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
-              <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-[120px] animate-pulse" />
-              <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-[120px] animate-pulse" />
-              <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-emerald-500/5 dark:bg-emerald-500/5 rounded-full blur-[100px]" />
-            </div>
-
+          <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans antialiased text-slate-900 dark:text-slate-100 transition-colors duration-500 relative mesh-gradient">
+            
             <AppSidebar 
               isSidebarCollapsed={isSidebarCollapsed}
               setIsSidebarCollapsed={setIsSidebarCollapsed}
@@ -285,7 +283,7 @@ const App: React.FC = () => {
               projectName={currentProject?.name}
             />
 
-            <div id="main-content" className="flex-1 flex flex-col min-w-0 relative">
+            <div id="main-content" className="flex-1 flex flex-col min-w-0 relative m-4 ml-0 rounded-[2rem] glass overflow-hidden border-none shadow-2xl">
               <AppHeader 
                 setSidebarOpen={setSidebarOpen}
                 isSidebarCollapsed={isSidebarCollapsed}
@@ -298,90 +296,92 @@ const App: React.FC = () => {
                 currentUser={currentUser}
               />
 
-              <main className="flex-1 p-4 overflow-auto bg-slate-50">
+              <main className="flex-1 overflow-auto bg-transparent custom-scrollbar">
                 <ErrorBoundary>
                   <AnimatePresence mode="wait">
                     <PageTransition key={activeTab}>
-                      <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+                      <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin opacity-20" /></div>}>
                         {!currentProject && !['about', 'contact', 'user-management', 'user-registration', 'settings'].includes(activeTab) ? (
-                          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                            <Database className="h-12 w-12 mb-4 opacity-20" />
-                            <p className="text-lg font-medium">Please re-select a project.</p>
-                            <Button variant="outline" className="mt-4" onClick={() => setSelectedProjectId(null)}>Portfolio</Button>
+                          <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-40">
+                            <Database className="h-16 w-16 mb-6" />
+                            <p className="text-xl font-black tracking-tighter uppercase">Project Context Missing</p>
+                            <Button variant="ghost" className="mt-6 rounded-xl font-bold border border-border/40" onClick={() => setSelectedProjectId(null)}>Return to Portfolio</Button>
                           </div>
                         ) : (
-                          <>
-                                                    {activeTab === 'dashboard' && (
-                                                      <ErrorBoundary>
-                                                        <Suspense fallback={<DashboardSkeleton />}>
-                                                          <Dashboard project={currentProject!} settings={appSettings} onUpdateProject={saveProject} onUpdateSettings={updateSettings} isLoading={isLoadingProjects} />
-                                                        </Suspense>
-                                                      </ErrorBoundary>
-                                                    )}
+                          <div className="min-h-full">
+                            {activeTab === 'dashboard' && (
+                              <ErrorBoundary>
+                                <Suspense fallback={<DashboardSkeleton />}>
+                                  <Dashboard project={currentProject!} settings={appSettings} onUpdateProject={handleSaveProject} onUpdateSettings={updateSettings} isLoading={isLoadingProjects} />
+                                </Suspense>
+                              </ErrorBoundary>
+                            )}
                             
                             {activeTab === 'map' && (
                               <ErrorBoundary>
-                                <MapModule project={currentProject!} onProjectUpdate={saveProject as any} settings={appSettings} />
+                                <MapModule project={currentProject!} onProjectUpdate={handleSaveProject as any} settings={appSettings} />
                               </ErrorBoundary>
                             )}
-                                                    {activeTab === 'about' && <AboutPage />}
-                                                    {activeTab === 'contact' && <ContactPage />}
-                                                    {activeTab === 'user-management' && (
-                                                      <ProtectedTab permission={Permission.USER_READ}>
-                                                        <UserManagement />
-                                                      </ProtectedTab>
-                                                    )}
-                                                    {activeTab === 'user-registration' && (
-                                                      <ProtectedTab permission={Permission.USER_CREATE}>
-                                                        <UserRegistration />
-                                                      </ProtectedTab>
-                                                    )}
-                                                    {activeTab === 'boq' && <BOQModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={saveProject as any} />}
                             
-                            {activeTab === 'billing' && <BillingModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={saveProject as any} />}
-                            {activeTab === 'variations' && <VariationModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={saveProject as any} />}
-                            {activeTab === 'financials' && <FinancialManagementHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={saveProject as any} />}
-                            {activeTab === 'ocr-extraction' && <ChandraOCRAnalyzer />}
-                            {activeTab === 'agencies' && <AgencyModule project={currentProject!} onProjectUpdate={saveProject as any} userRole={userRole} settings={appSettings} />}
-                            {activeTab === 'subcontractors' && <SubcontractorModule project={currentProject!} userRole={userRole} onProjectUpdate={saveProject as any} />}
-                            {activeTab === 'subcontractor-billing' && <SubcontractorBillingModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={saveProject as any} />}
-                            {activeTab === 'schedule' && <ScheduleModule project={currentProject!} onProjectUpdate={saveProject as any} userRole={userRole} />}
-                            {activeTab === 'construction' && <ConstructionModule project={currentProject!} onProjectUpdate={saveProject as any} userRole={userRole} />}
-                            {activeTab === 'linear-works' && <LinearWorksModule project={currentProject!} onProjectUpdate={saveProject as any} userRole={userRole} />}
-                            {activeTab === 'site-photos' && <SitePhotosModule project={currentProject!} onProjectUpdate={saveProject as any} userRole={userRole} />}
-                            {activeTab === 'daily-reports' && <DailyReportModule project={currentProject!} userRole={userRole} onProjectUpdate={saveProject as any} />}
-                            {activeTab === 'pre-construction' && <PreConstructionModule project={currentProject!} onProjectUpdate={saveProject as any} />}
-                            {activeTab === 'reports-analytics' && <ReportsAnalyticsHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={saveProject as any} />}
-                            {activeTab === 'mpr-report' && <MPRReportModule project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={saveProject as any} />}
-                            {activeTab === 'rfis' && <RFIModule project={currentProject!} userRole={userRole} onProjectUpdate={saveProject as any} />}
-                            {activeTab === 'materials-hub' && <MaterialManagementModule project={currentProject!} userRole={userRole} onProjectUpdate={saveProject as any} />}
-                            {activeTab === 'assets' && <AssetsModule project={currentProject!} onProjectUpdate={saveProject as any} userRole={userRole} />}
-                            {activeTab === 'fleet' && <FleetModule project={currentProject!} onProjectUpdate={saveProject as any} userRole={userRole} />}
-                            {activeTab === 'resource-matrix' && <ResourceMatrixModule project={currentProject!} onProjectUpdate={saveProject as any} />}
-                            {activeTab === 'quality' && <QualityHub project={currentProject!} userRole={userRole} onProjectUpdate={saveProject as any} />}
-                            {activeTab === 'lab' && <LabModule project={currentProject!} userRole={userRole} onProjectUpdate={saveProject as any} />}
-                            {activeTab === 'environment' && <EnvironmentModule project={currentProject!} onProjectUpdate={saveProject as any} />}
-                            {activeTab === 'data-analysis' && <DataAnalysisModule />}
-                            {activeTab === 'messages' && (
-                              <MessagesModule 
-                                currentUser={currentUser}
-                                users={users}
-                                messages={messages}
-                                projectId={selectedProjectId || currentProject?.id || ''}
-                                onSendMessage={sendMessage}
-                              />
-                            )}
-                            {activeTab === 'documents' && (
-                              <DocumentationHub 
-                                project={currentProject!} 
-                                onProjectUpdate={saveProject as any} 
-                                userRole={userRole} 
-                                onNavigate={handleTabChange}
-                              />
-                            )}
-                            {activeTab === 'settings' && <SettingsModule settings={appSettings} onUpdate={updateSettings} />}
-                            {activeTab === 'staff-management' && <StaffManagementModule />}
-                          </>
+                            <div className="px-4 md:px-8 pb-8">
+                              {activeTab === 'about' && <AboutPage />}
+                              {activeTab === 'contact' && <ContactPage />}
+                              {activeTab === 'user-management' && (
+                                <ProtectedTab permission={Permission.USER_READ}>
+                                  <UserManagement />
+                                </ProtectedTab>
+                              )}
+                              {activeTab === 'user-registration' && (
+                                <ProtectedTab permission={Permission.USER_CREATE}>
+                                  <UserRegistration />
+                                </ProtectedTab>
+                              )}
+                              {activeTab === 'boq' && <BOQModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                              {activeTab === 'billing' && <BillingModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                              {activeTab === 'variations' && <VariationModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                              {activeTab === 'financials' && <FinancialManagementHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={handleSaveProject as any} />}
+                              {activeTab === 'ocr-extraction' && <ChandraOCRAnalyzer />}
+                              {activeTab === 'agencies' && <AgencyModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} settings={appSettings} />}
+                              {activeTab === 'subcontractors' && <SubcontractorModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                              {activeTab === 'subcontractor-billing' && <SubcontractorBillingModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                              {activeTab === 'schedule' && <ScheduleModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
+                              {activeTab === 'construction' && <ConstructionModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
+                              {activeTab === 'linear-works' && <LinearWorksModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
+                              {activeTab === 'site-photos' && <SitePhotosModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
+                              {activeTab === 'daily-reports' && <DailyReportModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                              {activeTab === 'pre-construction' && <PreConstructionModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
+                              {activeTab === 'reports-analytics' && <ReportsAnalyticsHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={handleSaveProject as any} />}
+                              {activeTab === 'mpr-report' && <MPRReportModule project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={handleSaveProject as any} />}
+                              {activeTab === 'rfis' && <RFIModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                              {activeTab === 'materials-hub' && <MaterialManagementModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                              {activeTab === 'assets' && <AssetsModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
+                              {activeTab === 'fleet' && <FleetModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
+                              {activeTab === 'resource-matrix' && <ResourceMatrixModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
+                              {activeTab === 'quality' && <QualityHub project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                              {activeTab === 'lab' && <LabModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                              {activeTab === 'environment' && <EnvironmentModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
+                              {activeTab === 'data-analysis' && <DataAnalysisModule />}
+                              {activeTab === 'messages' && (
+                                <MessagesModule 
+                                  currentUser={currentUser}
+                                  users={users}
+                                  messages={messages}
+                                  projectId={selectedProjectId || currentProject?.id || ''}
+                                  onSendMessage={sendMessage}
+                                />
+                              )}
+                              {activeTab === 'documents' && (
+                                <DocumentationHub 
+                                  project={currentProject!} 
+                                  onProjectUpdate={handleSaveProject as any} 
+                                  userRole={userRole} 
+                                  onNavigate={handleTabChange}
+                                />
+                              )}
+                              {activeTab === 'settings' && <SettingsModule settings={appSettings} onUpdate={updateSettings} />}
+                              {activeTab === 'staff-management' && <StaffManagementModule />}
+                            </div>
+                          </div>
                         )}
                       </Suspense>
                     </PageTransition>
@@ -397,7 +397,7 @@ const App: React.FC = () => {
             <ProjectModal 
               open={isProjectModalOpen} 
               onClose={() => setIsProjectModalOpen(false)} 
-              onSave={(p) => { saveProject(p); setIsProjectModalOpen(false); }}
+              onSave={(p) => { handleSaveProject(p); setIsProjectModalOpen(false); }}
               project={editProject}
             />
             
