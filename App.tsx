@@ -193,22 +193,20 @@ const App: React.FC = () => {
   }, [saveProject]);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editProject, setEditProject] = useState<Partial<Project> | null>(null);
-  import { Project, User } from './types';
-  import { LocalStorageUtils } from './utils/data/localStorageUtils';
-  ...
-    const [users, setUsers] = useState<User[]>(() => {
-      return LocalStorageUtils.getUsers();
-    });
+  
+  const [users, setUsers] = useState<User[]>(() => {
+    return LocalStorageUtils.getUsers();
+  });
 
-    const fetchUsers = async () => {
-      try {
-        const fetchedUsers = await apiService.getUsers();
-        setUsers(fetchedUsers);
-        LocalStorageUtils.setUsers(fetchedUsers);
-      } catch (error) {
-        console.error('Failed to fetch users:', error);
-      }
-    };
+  const fetchUsers = async () => {
+    try {
+      const fetchedUsers = await apiService.getUsers();
+      setUsers(fetchedUsers);
+      LocalStorageUtils.setUsers(fetchedUsers);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    }
+  };
 
   useEffect(() => {
     if (isAuthenticated) {
