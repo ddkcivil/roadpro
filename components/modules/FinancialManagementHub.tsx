@@ -104,23 +104,47 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
   // === FINANCIAL CALCULATIONS ===
   const financialStats = useMemo(() => {
     const boqItems = project.boq || [];
-    const originalContract = boqItems.reduce((acc, item) => acc + (item.quantity * item.rate), 0);
-    const variations = boqItems.reduce((acc, item) => acc + ((item.variationQuantity || 0) * item.rate), 0);
-    const revisedContract = originalContract + variations;
+    const vatRate = settings?.vatRate || 13;
     
-    const totalBilled = contractBills.reduce((acc, bill) => acc + (bill.totalAmount || 0), 0);
+    // --- Original Contract Calculation (a + b + c) ---
+    const originalPS = boqItems
+        .filter(item => item.unit?.toUpperCase() === 'PS')
+        .reduce((acc, item) => acc + (item.quantity * item.rate), 0);
+        
+    const originalNonPS = boqItems
+        .filter(item => item.unit?.toUpperCase() !== 'PS')
+        .reduce((acc, item) => acc + (item.quantity * item.rate), 0);
+        
+    const originalVAT = originalNonPS * (vatRate / 100);
+    const originalContractValue = originalPS + originalNonPS + originalVAT;
+
+    // --- Revised Contract Calculation (a_rev + b_rev + c_rev) ---
+    const revisedPS = boqItems
+        .filter(item => item.unit?.toUpperCase() === 'PS')
+        .reduce((acc, item) => acc + ((item.quantity + (item.variationQuantity || 0)) * item.rate), 0);
+        
+    const revisedNonPS = boqItems
+        .filter(item => item.unit?.toUpperCase() !== 'PS')
+        .reduce((acc, item) => acc + ((item.quantity + (item.variationQuantity || 0)) * item.rate), 0);
+        
+    const revisedVAT = revisedNonPS * (vatRate / 100);
+    const revisedContractValue = revisedPS + revisedNonPS + revisedVAT;
+
+    const variationsValue = revisedContractValue - originalContractValue;
+    
+    const totalBilled = contractBills.reduce((acc, bill) => acc + (bill.totalAmountPayable || 0), 0);
     const totalSubBilled = subcontractorBills.reduce((acc, bill) => acc + (bill.netAmount || 0), 0);
     
     return {
-      originalContract,
-      variations,
-      revisedContract,
+      originalContract: originalContractValue,
+      variations: variationsValue,
+      revisedContract: revisedContractValue,
       totalBilled,
       totalSubBilled,
-      balanceToBill: revisedContract - totalBilled,
-      paymentPercentage: revisedContract > 0 ? (totalBilled / revisedContract) * 100 : 0
+      balanceToBill: revisedContractValue - totalBilled,
+      paymentPercentage: revisedContractValue > 0 ? (totalBilled / revisedContractValue) * 100 : 0
     };
-  }, [project.boq, contractBills, subcontractorBills]);
+  }, [project.boq, settings, contractBills, subcontractorBills]);
   
   const voStats = useMemo(() => ({
     total: variationOrders.length,

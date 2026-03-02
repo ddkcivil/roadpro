@@ -65,11 +65,47 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
     
     const financialSummary = useMemo(() => {
         const boqItems = project?.boq || [];
-        const original = boqItems.reduce((acc, item) => acc + (item.quantity * item.rate), 0);
-        const variation = boqItems.reduce((acc, item) => acc + ((item.variationQuantity || 0) * item.rate), 0);
-        const revised = original + variation;
-        return { original, variation, revised, percent: original > 0 ? (variation / original) * 100 : 0 };
-    }, [project?.boq]);
+        const vatRate = settings?.vatRate || 13;
+        
+        // --- Original Contract Calculation (a + b + c) ---
+        // a = Sum of Ps(units)
+        const originalPS = boqItems
+            .filter(item => item.unit?.toUpperCase() === 'PS')
+            .reduce((acc, item) => acc + (item.quantity * item.rate), 0);
+            
+        // b = Sum other than ps(unit)
+        const originalNonPS = boqItems
+            .filter(item => item.unit?.toUpperCase() !== 'PS')
+            .reduce((acc, item) => acc + (item.quantity * item.rate), 0);
+            
+        // c = vat * b
+        const originalVAT = originalNonPS * (vatRate / 100);
+        const originalTotal = originalPS + originalNonPS + originalVAT;
+
+        // --- Revised Contract Calculation (a_rev + b_rev + c_rev) ---
+        // a_rev = Sum of Ps with variations
+        const revisedPS = boqItems
+            .filter(item => item.unit?.toUpperCase() === 'PS')
+            .reduce((acc, item) => acc + ((item.quantity + (item.variationQuantity || 0)) * item.rate), 0);
+            
+        // b_rev = Sum non-Ps with variations
+        const revisedNonPS = boqItems
+            .filter(item => item.unit?.toUpperCase() !== 'PS')
+            .reduce((acc, item) => acc + ((item.quantity + (item.variationQuantity || 0)) * item.rate), 0);
+            
+        // c_rev = vat * b_rev
+        const revisedVAT = revisedNonPS * (vatRate / 100);
+        const revisedTotal = revisedPS + revisedNonPS + revisedVAT;
+
+        const variationImpact = revisedTotal - originalTotal;
+        
+        return { 
+            original: originalTotal, 
+            variation: variationImpact, 
+            revised: revisedTotal, 
+            percent: originalTotal > 0 ? (variationImpact / originalTotal) * 100 : 0 
+        };
+    }, [project?.boq, settings]);
 
     const viewingVO = useMemo(() => variationOrders.find(v => v.id === selectedVoId), [selectedVoId, variationOrders]);
 

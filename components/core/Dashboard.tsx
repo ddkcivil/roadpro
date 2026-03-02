@@ -58,12 +58,12 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateProj
     // a = Sum of Ps(units)
     const provisionalSum = project.boq
         .filter(item => item.unit?.toUpperCase() === 'PS')
-        .reduce((acc, item) => acc + (item.quantity * item.rate), 0);
+        .reduce((acc, item) => acc + ((item.quantity + (item.variationQuantity || 0)) * item.rate), 0);
         
     // b = Sum other than ps(unit)
     const amountWithoutPS = project.boq
         .filter(item => item.unit?.toUpperCase() !== 'PS')
-        .reduce((acc, item) => acc + (item.quantity * item.rate), 0);
+        .reduce((acc, item) => acc + ((item.quantity + (item.variationQuantity || 0)) * item.rate), 0);
         
     // c = vat * sum other than ps
     const vatRate = settings?.vatRate || 13;
@@ -116,7 +116,7 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateProj
         if (!monthlyData[month]) {
           monthlyData[month] = { planned: 0, earned: 0 };
         }
-        monthlyData[month].planned += item.quantity * item.rate;
+        monthlyData[month].planned += (item.quantity + (item.variationQuantity || 0)) * item.rate;
         monthlyData[month].earned += item.completedQuantity * item.rate;
       });
       return Object.entries(monthlyData).map(([month, values]) => ({

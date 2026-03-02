@@ -250,34 +250,45 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
 
     const financialSummary = useMemo(() => {
         const boqItems = project.boq || [];
+        const vatRate = settings?.vatRate || 13;
         
-        // a = Sum of Ps(units)
-        const provisionalSum = boqItems
+        // --- Original Contract Calculation (a + b + c) ---
+        const originalPS = boqItems
             .filter(item => item.unit?.toUpperCase() === 'PS')
             .reduce((acc, item) => acc + (item.quantity * item.rate), 0);
             
-        // b = Sum other than ps(unit)
-        const amountWithoutPS = boqItems
+        const originalNonPS = boqItems
             .filter(item => item.unit?.toUpperCase() !== 'PS')
             .reduce((acc, item) => acc + (item.quantity * item.rate), 0);
             
-        // c = vat * sum other than ps
-        const vatRate = settings?.vatRate || 13;
-        const vatAmount = amountWithoutPS * (vatRate / 100);
-        
-        // contract value = a + b + c
-        const totalContractValue = provisionalSum + amountWithoutPS + vatAmount;
+        const originalVAT = originalNonPS * (vatRate / 100);
+        const originalTotal = originalPS + originalNonPS + originalVAT;
+
+        // --- Revised Contract Calculation (a_rev + b_rev + c_rev) ---
+        const revisedPS = boqItems
+            .filter(item => item.unit?.toUpperCase() === 'PS')
+            .reduce((acc, item) => acc + ((item.quantity + (item.variationQuantity || 0)) * item.rate), 0);
+            
+        const revisedNonPS = boqItems
+            .filter(item => item.unit?.toUpperCase() !== 'PS')
+            .reduce((acc, item) => acc + ((item.quantity + (item.variationQuantity || 0)) * item.rate), 0);
+            
+        const revisedVAT = revisedNonPS * (vatRate / 100);
+        const revisedTotal = revisedPS + revisedNonPS + revisedVAT;
+
         const currentCompletedValue = boqItems.reduce((acc, item) => acc + (item.completedQuantity * item.rate), 0);
         
         return { 
-            original: totalContractValue, 
+            original: originalTotal, 
+            revised: revisedTotal,
+            variation: revisedTotal - originalTotal,
             completed: currentCompletedValue, 
-            percent: totalContractValue > 0 ? (currentCompletedValue / totalContractValue) * 100 : 0,
-            amountWithPS: totalContractValue,
-            amountWithoutPS: amountWithoutPS,
-            provisionalSum: provisionalSum,
-            vatAmount: vatAmount,
-            totalContractValue: totalContractValue
+            percent: revisedTotal > 0 ? (currentCompletedValue / revisedTotal) * 100 : 0,
+            amountWithPS: revisedTotal,
+            amountWithoutPS: revisedNonPS,
+            provisionalSum: revisedPS,
+            vatAmount: revisedVAT,
+            totalContractValue: revisedTotal
         };
     }, [project.boq, settings]);
 
