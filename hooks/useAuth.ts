@@ -3,6 +3,7 @@ import { UserRole, User, UserWithPermissions } from '../types';
 import { PermissionsService } from '../services/auth/permissionsService';
 import { AuditService } from '../services/analytics/auditService';
 import { encryptionUtils } from '../utils/data/encryptionUtils';
+import { LocalStorageUtils } from '../utils/data/localStorageUtils';
 
 export const useAuth = () => {
   const [userRole, setUserRole] = useState<UserRole>(() => {
@@ -42,14 +43,6 @@ export const useAuth = () => {
 
     window.addEventListener('roadmaster-auth-failure', handleAuthFailure);
 
-    console.log('Authentication state checked:', {
-      isAuthenticated,
-      userRole,
-      userName,
-      currentUserId,
-      hasToken: !!token
-    });
-
     if (localStorage.getItem('roadmaster-authenticated') === 'true' && !token) {
       console.warn('Inconsistent auth state detected: Authenticated but no token. Resetting.');
       logout();
@@ -61,15 +54,8 @@ export const useAuth = () => {
   }, [isAuthenticated, token, userRole, userName, currentUserId]);
 
   const currentUser = useMemo(() => {
-    // Get users from localStorage, fallback to empty array
-    const savedUsers = localStorage.getItem('roadmaster-users');
-    let users: User[] = savedUsers ? JSON.parse(savedUsers) : [];
-
-    // Initialize with empty array if no data exists
-    if (!savedUsers) {
-      users = [];
-      localStorage.setItem('roadmaster-users', JSON.stringify(users));
-    }
+    // Get users from LocalStorageUtils
+    const users = LocalStorageUtils.getUsers();
     
     // Find user by ID or use a default user
     let user = users.find((u: User) => u.id === currentUserId);
@@ -114,10 +100,7 @@ export const useAuth = () => {
         localStorage.setItem('roadmaster-current-user-id', userId);
       } else {
         // Fallback for mock login
-        // Get users from localStorage
-        const savedUsers = localStorage.getItem('roadmaster-users');
-        let users: User[] = savedUsers ? JSON.parse(savedUsers) : [];
-
+        const users = LocalStorageUtils.getUsers();
         let fallbackUserId = 'u2'; 
         
         if ((role as any) === UserRole.ADMIN) {

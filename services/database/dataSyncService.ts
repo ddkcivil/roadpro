@@ -1,13 +1,13 @@
 import { Project, User, Message } from '../../types';
 import { sqliteService } from './sqliteService';
+import { LocalStorageUtils } from '../data/localStorageUtils';
 
 export class DataSyncService {
   // Sync users from localStorage to SQLite
   static async syncUsersToSQLite(): Promise<void> {
     try {
-      const usersJson = localStorage.getItem('roadmaster-users');
-      if (usersJson) {
-        const users: User[] = JSON.parse(usersJson);
+      const users = LocalStorageUtils.getUsers();
+      if (users && users.length > 0) {
         for (const user of users) {
           await sqliteService.insert('users', {
             id: user.id,
@@ -27,9 +27,8 @@ export class DataSyncService {
   // Sync projects from localStorage to SQLite
   static async syncProjectsToSQLite(): Promise<void> {
     try {
-      const projectsJson = localStorage.getItem('roadmaster-projects');
-      if (projectsJson) {
-        const projects: Project[] = JSON.parse(projectsJson);
+      const projects = LocalStorageUtils.getProjects();
+      if (projects && projects.length > 0) {
         for (const project of projects) {
           await sqliteService.insert('projects', {
             id: project.id,
@@ -81,9 +80,8 @@ export class DataSyncService {
   // Sync messages from localStorage to SQLite
   static async syncMessagesToSQLite(): Promise<void> {
     try {
-      const messagesJson = localStorage.getItem('roadmaster-messages');
-      if (messagesJson) {
-        const messages: Message[] = JSON.parse(messagesJson);
+      const messages = LocalStorageUtils.getMessages();
+      if (messages && messages.length > 0) {
         for (const message of messages) {
           await sqliteService.insert('messages', {
             id: message.id,
@@ -104,11 +102,11 @@ export class DataSyncService {
   // Sync settings from localStorage to SQLite
   static async syncSettingsToSQLite(): Promise<void> {
     try {
-      const settingsJson = localStorage.getItem('roadmaster-settings');
-      if (settingsJson) {
+      const settings = LocalStorageUtils.getSettings();
+      if (settings) {
         await sqliteService.insert('settings', {
           key: 'app_settings',
-          value: settingsJson || '{}'
+          value: JSON.stringify(settings)
         });
       }
     } catch (error) {
@@ -136,7 +134,7 @@ export class DataSyncService {
         role: user.role,
         avatar: user.avatar
       }));
-      localStorage.setItem('roadmaster-users', JSON.stringify(userObjects));
+      LocalStorageUtils.setUsers(userObjects);
     } catch (error) {
       console.error('Error syncing users from SQLite:', error);
     }
@@ -186,7 +184,7 @@ export class DataSyncService {
         spreadsheetId: project.spreadsheet_id,
         settings: JSON.parse(project.settings || '{}')
       }));
-      localStorage.setItem('roadmaster-projects', JSON.stringify(projectObjects));
+      LocalStorageUtils.setProjects(projectObjects);
     } catch (error) {
       console.error('Error syncing projects from SQLite:', error);
     }
@@ -205,7 +203,7 @@ export class DataSyncService {
         read: Boolean(message.read_status),
         projectId: message.project_id
       }));
-      localStorage.setItem('roadmaster-messages', JSON.stringify(messageObjects));
+      LocalStorageUtils.setMessages(messageObjects);
     } catch (error) {
       console.error('Error syncing messages from SQLite:', error);
     }
@@ -216,7 +214,7 @@ export class DataSyncService {
     try {
       const settings = await sqliteService.select('settings', [], 'key = ?', ['app_settings']);
       if (settings.length > 0) {
-        localStorage.setItem('roadmaster-settings', settings[0].value);
+        LocalStorageUtils.setSettings(JSON.parse(settings[0].value));
       }
     } catch (error) {
       console.error('Error syncing settings from SQLite:', error);
@@ -248,9 +246,8 @@ export class DataSyncService {
       return projectsWithStats;
     } catch (error) {
       console.error('Error getting projects with analytics:', error);
-      // Fallback to localStorage if SQLite fails
-      const projectsJson = localStorage.getItem('roadmaster-projects');
-      return projectsJson ? JSON.parse(projectsJson) : [];
+      // Fallback to LocalStorageUtils if SQLite fails
+      return LocalStorageUtils.getProjects();
     }
   }
 

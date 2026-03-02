@@ -66,24 +66,33 @@ const safeSet = <T>(key: string, data: T, maxRecords?: number): boolean => {
     // If we have too many records, trim them (keep most recent)
     if (maxRecords && Array.isArray(data) && data.length > maxRecords) {
       dataToStore = data.slice(-maxRecords) as unknown as T;
-      console.warn(`Trimmed ${key} from ${(data as unknown[]).length} to ${maxRecords} records to prevent quota overflow`);
     }
     
     localStorage.setItem(key, JSON.stringify(dataToStore));
     return true;
   } catch (error) {
-    if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-      console.error(`Quota exceeded for ${key}. Attempting to clear old data...`);
+    if (error instanceof DOMException && (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+      console.error(`Quota exceeded for ${key}. Clearing space...`);
       
-      // Try to clear old data and retry once
-      if (isNearQuota()) {
-        LocalStorageUtils.clearOldStaffData();
-        try {
-          localStorage.setItem(key, JSON.stringify(data));
-          console.warn(`Successfully saved ${key} after clearing old data`);
-          return true;
-        } catch (retryError) {
-          console.error(`Failed to save ${key} even after clearing old data:`, retryError);
+      // Proactive cleanup
+      LocalStorageUtils.clearOldStaffData();
+      
+      // If it's still users causing issue, we might need to strip avatars from everyone except current user?
+      // Or just try one more time after cleanup
+      try {
+        localStorage.setItem(key, JSON.stringify(data));
+        return true;
+      } catch (retryError) {
+        console.error(`Emergency: Still failing to save ${key}. Removing avatars to save space...`);
+        // If it's users, try to save without avatars as last resort
+        if (key === LOCAL_STORAGE_KEYS.USERS && Array.isArray(data)) {
+          const noAvatars = data.map((u: any) => ({ ...u, avatar: null }));
+          try {
+            localStorage.setItem(key, JSON.stringify(noAvatars));
+            return true;
+          } catch (finalError) {
+            console.error("Critical: Failed even without avatars", finalError);
+          }
         }
       }
     }

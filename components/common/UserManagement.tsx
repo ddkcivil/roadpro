@@ -20,6 +20,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
 import { Checkbox } from '~/components/ui/checkbox';
+import { compressImage } from '../../utils/data/imageUtils';
 
 
 
@@ -148,7 +149,17 @@ const UserManagement: React.FC = () => {
     if (file) {
       setAvatarFile(file);
       const reader = new FileReader();
-      reader.onloadend = () => { setPreviewUrl(reader.result as string); };
+      reader.onloadend = async () => { 
+        const base64 = reader.result as string;
+        try {
+          // Compress image to save space in localStorage/MongoDB
+          const compressed = await compressImage(base64, 200, 200, 0.6);
+          setPreviewUrl(compressed); 
+        } catch (err) {
+          console.error("Compression failed, using original", err);
+          setPreviewUrl(base64);
+        }
+      };
       reader.readAsDataURL(file);
     }
   };
