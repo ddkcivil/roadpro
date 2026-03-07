@@ -79,12 +79,19 @@ const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
       const omnivoreLib = (omnivore as any).default || omnivore;
       let hasFeatures = false;
 
-      if (omnivoreLib && omnivoreLib.kml && omnivoreLib.kml.parse) {
+      if (omnivoreLib && omnivoreLib.kml) {
         try {
-          kmlLayer = omnivoreLib.kml.parse(kml.content);
+          // Use parseStr for raw XML string content
+          if (omnivoreLib.kml.parseStr) {
+            kmlLayer = omnivoreLib.kml.parseStr(kml.content);
+          } else {
+            // Fallback to parse if parseStr is missing
+            kmlLayer = omnivoreLib.kml.parse(kml.content);
+          }
           
           if (kmlLayer) {
             kmlLayer.addTo(map);
+            console.log(`KML Layer "${kml.name}" added successfully via omnivore.`);
 
             kmlLayer.eachLayer((layer: any) => {
               hasFeatures = true;
