@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { ErrorSummary } from '~/components/ui/error-summary';
 
-import { Project, RFI, UserRole, RFIStatus, ScheduleTask, Checklist, ChecklistItem } from '../../types';
+import { Project, RFI, UserRole, RFIStatus, ScheduleTask, Checklist, ChecklistItem, UserWithPermissions } from '../../types';
 import { 
     Plus, Eye, Edit2, History, X, ShieldCheck, FileText, Printer, 
     Clock, Lock, CheckCircle2, XCircle, FileSearch, CalendarPlus, 
@@ -30,6 +30,7 @@ import {
 import StatCard from '../core/StatCard';
 import { cn } from '~/lib/utils';
 import { Textarea } from '~/components/ui/textarea';
+import { AuditService } from '~/services/analytics/auditService';
 
 const rfiSchema = z.object({
   location: z.string().regex(/^\d+\+\d{3}\s+(LHS|RHS|Both|Both Sides|L|R)$/i, "Required format: 'Chainage + Side' (e.g., 12+400 RHS)"),
@@ -42,10 +43,11 @@ const rfiSchema = z.object({
 interface Props {
   project: Project;
   userRole: UserRole;
+  currentUser?: UserWithPermissions;
   onProjectUpdate: (project: Project) => void;
 }
 
-const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
+const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectUpdate }) => {
     const [viewMode, setViewMode] = useState<'LIST' | 'UPDATE' | 'CHECKLIST_LIST' | 'CHECKLIST_UPDATE'>('LIST');
     const [formData, setFormData] = useState<Partial<RFI>>({});
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -240,14 +242,54 @@ const RFIModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
             : [...project.rfis, newRFI];
 
         onProjectUpdate({ ...project, rfis: updatedRFIs });
+        
+        // Log to audit trail
+        if (currentUser) {
+            AuditService.logDataModification(
+                currentUser.id,
+                currentUser.name,
+                formData.id ? 'UPDATE' : 'CREATE',
+                'rfi',
+                newRFI.id,
+                newRFI.rfiNumber,
+                existingRfi,
+                newRFI,
+                project.id,
+                project.name
+            );
+            toast.success("Audit Log Committed", { 
+                description: `Successfully ${formData.id ? 'updated' : 'created'} ${newRFI.rfiNumber} in system registry.`
+            });
+        }
+
         setViewMode('LIST');
         setFormData({});
     };
 
     const handleDelete = (rfiId: string) => {
+        const rfiToDelete = project.rfis.find(r => r.id === rfiId);
         if (window.confirm('Are you sure you want to delete this RFI?')) {
             const updatedRFIs = project.rfis.filter(r => r.id !== rfiId);
             onProjectUpdate({ ...project, rfis: updatedRFIs });
+
+            // Log deletion to audit trail
+            if (currentUser && rfiToDelete) {
+                AuditService.logDataModification(
+                    currentUser.id,
+                    currentUser.name,
+                    'DELETE',
+                    'rfi',
+                    rfiToDelete.id,
+                    rfiToDelete.rfiNumber,
+                    rfiToDelete,
+                    null,
+                    project.id,
+                    project.name
+                );
+                toast.error("Audit Log Committed", { 
+                    description: `Successfully deleted ${rfiToDelete.rfiNumber} from system registry.`
+                });
+            }
         }
     };
 

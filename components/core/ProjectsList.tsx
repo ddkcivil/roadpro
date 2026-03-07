@@ -81,7 +81,7 @@ const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, on
 
   const filteredGridProjects = useMemo(() => {
     return projects.filter(p => 
-      p.name.toLowerCase().includes(gridSearchTerm.toLowerCase()) ||
+      p.name?.toLowerCase().includes(gridSearchTerm.toLowerCase()) ||
       p.code?.toLowerCase().includes(gridSearchTerm.toLowerCase()) ||
       p.client?.toLowerCase().includes(gridSearchTerm.toLowerCase())
     );

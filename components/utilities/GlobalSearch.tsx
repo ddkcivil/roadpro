@@ -110,7 +110,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
 
     // 1. Search Projects
     projects.forEach(p => {
-      if (p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q)) {
+      if (p.name?.toLowerCase().includes(q) || p.code?.toLowerCase().includes(q)) {
         searchResults.push({
           id: p.id,
           title: p.name,
@@ -126,7 +126,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
     if (currentProject) {
       // Structures
       currentProject.structures?.forEach(s => {
-        if (s.name.toLowerCase().includes(q)) {
+        if (s.name?.toLowerCase().includes(q)) {
           searchResults.push({
             id: s.id,
             title: s.name,
@@ -141,7 +141,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
 
       // RFIs
       currentProject.rfis?.forEach(r => {
-        if (r.subject?.toLowerCase().includes(q) || r.rfiNo.toLowerCase().includes(q)) {
+        if (r.subject?.toLowerCase().includes(q) || r.rfiNo?.toLowerCase().includes(q)) {
           searchResults.push({
             id: r.id,
             title: r.rfiNo,
@@ -156,7 +156,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
 
       // Vehicles
       currentProject.vehicles?.forEach(v => {
-        if (v.name.toLowerCase().includes(q) || v.plateNumber.toLowerCase().includes(q)) {
+        if (v.name?.toLowerCase().includes(q) || v.plateNumber?.toLowerCase().includes(q)) {
           searchResults.push({
             id: v.id,
             title: v.name || v.plateNumber,
@@ -171,7 +171,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
 
       // Documents
       currentProject.documents?.forEach(d => {
-        if (d.name.toLowerCase().includes(q)) {
+        if (d.name?.toLowerCase().includes(q)) {
           searchResults.push({
             id: d.id,
             title: d.name,

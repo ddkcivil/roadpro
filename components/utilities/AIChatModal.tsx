@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Bot, Send, Paperclip, Zap, Image as ImageIcon, Video, Loader2, Sparkles, FileText } from 'lucide-react';
-import { chatWithGemini, ChatMessage, isAIServiceAvailable } from '../../services/ai/geminiService';
+import { X, Bot, Send, Paperclip, Zap, Image as ImageIcon, Video, Loader2, Sparkles, FileText, Settings2 } from 'lucide-react';
+import { chatWithGemini, ChatMessage, isAIServiceAvailable as isGeminiAvailable } from '../../services/ai/geminiService';
+import { chatWithDeepSeek, isDeepSeekAvailable } from '../../services/ai/deepseekService';
 import { Project } from '../../types';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
@@ -12,6 +13,14 @@ import { Switch } from '~/components/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { cn } from '~/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 
 interface Props {
   project: Project;
@@ -23,6 +32,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFastMode, setIsFastMode] = useState(false);
+  const [aiProvider, setAIProvider] = useState<'deepseek' | 'gemini'>(isDeepSeekAvailable() ? 'deepseek' : 'gemini');
 
   // File Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -130,7 +140,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
     if ((!userText && !attachment) || isLoading) return;
 
     // Convert blob URL to base64 for storage in message history
-    let attachmentData = attachment ? await new Promise((resolve) => {
+    let attachmentData = attachment ? await new Promise<string>((resolve) => {
         const reader = new FileReader();
         reader.onloadend = () => {
             const base64String = reader.result as string;
@@ -160,7 +170,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
     let base64Data = '';
     if (attachment) {
         try {
-            base64Data = await new Promise((resolve) => {
+            base64Data = await new Promise<string>((resolve) => {
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     const base64String = reader.result as string;
@@ -175,13 +185,28 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
     }
 
     // 3. Call AI Service
-    const responseText = await chatWithGemini(
-        userText || (attachment ? "Analyze this attachment." : ""), // Fallback text if empty
-        newHistory,
-        project,
-        attachment ? { mimeType: attachment.file.type, data: base64Data } : undefined,
-        isFastMode
-    );
+    let responseText = "";
+    try {
+        if (aiProvider === 'deepseek') {
+            responseText = await chatWithDeepSeek(
+                userText || (attachment ? "Analyze this attachment." : ""), 
+                newHistory,
+                project,
+                attachment ? { mimeType: attachment.file.type, data: base64Data } : undefined,
+                isFastMode
+            );
+        } else {
+            responseText = await chatWithGemini(
+                userText || (attachment ? "Analyze this attachment." : ""), 
+                newHistory,
+                project,
+                attachment ? { mimeType: attachment.file.type, data: base64Data } : undefined,
+                isFastMode
+            );
+        }
+    } catch (err: any) {
+        responseText = `Error: ${err.message || "Failed to get AI response"}`;
+    }
 
     // 4. Update UI with AI Response
     setMessages(prev => [...prev, { role: 'model', text: responseText }]);
@@ -242,6 +267,8 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
       );
   };
 
+  const isServiceAvailable = aiProvider === 'deepseek' ? isDeepSeekAvailable() : isGeminiAvailable();
+
   return (
     <div
       ref={modalRef}
@@ -257,31 +284,60 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
       >
 
         {/* Header */}
-        <div className="bg-gradient-to-br from-[#667eea] to-[#764ba2] p-4 flex items-center justify-between text-white shrink-0" id="chat-modal-title">
+        <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] p-4 flex items-center justify-between text-white shrink-0" id="chat-modal-title">
           <div className="flex items-center gap-3">
-            <div className="bg-white/20 p-2 rounded-full backdrop-blur-md border border-white/20">
-                <Bot size={24} />
+            <div className="bg-white/10 p-2 rounded-full backdrop-blur-md border border-white/20">
+                <Bot size={24} className="text-blue-400" />
             </div>
             <div>
                 <h6 className="font-bold leading-tight">RoadMaster AI</h6>
-                <div className="text-[10px] text-white/70 flex items-center gap-1">
-                    Powered by Gemini {isFastMode ? 'Flash Lite' : '3.0 Pro'}
+                <div className="text-[10px] text-white/70 flex items-center gap-2">
+                    {aiProvider === 'deepseek' ? 'DeepSeek V3/R1' : 'Gemini 3.0 Pro'}
+                    <Badge variant="outline" className="text-[8px] h-3 px-1 border-white/20 text-white/60">
+                        {isFastMode ? 'High Speed' : 'High Performance'}
+                    </Badge>
                 </div>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Switch
-                    id="fast-mode"
-                    checked={isFastMode}
-                    onCheckedChange={setIsFastMode}
-                />
-                <Label htmlFor="fast-mode" className="text-[10px] font-medium text-white flex items-center gap-1 cursor-pointer">
-                    <Zap size={12} className={cn(isFastMode ? "text-yellow-400" : "text-inherit")} />
-                    Fast Mode
-                </Label>
-              </div>
+              <DropdownMenu>
+                  <TooltipProvider>
+                      <Tooltip>
+                          <TooltipTrigger asChild>
+                              <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 h-9 w-9 rounded-lg">
+                                      <Settings2 size={18} />
+                                  </Button>
+                              </DropdownMenuTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>AI Provider Settings</TooltipContent>
+                      </Tooltip>
+                  </TooltipProvider>
+                  <DropdownMenuContent align="end" className="w-56 rounded-xl">
+                      <DropdownMenuLabel>AI Intelligence Provider</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setAIProvider('deepseek')} className="flex items-center justify-between">
+                          <span>DeepSeek (Cost-Efficient)</span>
+                          {aiProvider === 'deepseek' && <Zap size={14} className="text-primary fill-primary" />}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setAIProvider('gemini')} className="flex items-center justify-between">
+                          <span>Google Gemini (Multimodal)</span>
+                          {aiProvider === 'gemini' && <Zap size={14} className="text-primary fill-primary" />}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <div className="px-2 py-1.5 flex items-center justify-between">
+                          <Label htmlFor="fast-mode-dropdown" className="text-xs cursor-pointer">Fast Mode</Label>
+                          <Switch
+                              id="fast-mode-dropdown"
+                              checked={isFastMode}
+                              onCheckedChange={setIsFastMode}
+                              size="sm"
+                          />
+                      </div>
+                  </DropdownMenuContent>
+              </DropdownMenu>
+
               <Button
                   onClick={onClose}
                   variant="ghost"
@@ -295,12 +351,14 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
 
         {/* Chat Area */}
         <div className="flex-1 overflow-y-auto p-4 bg-slate-50 flex flex-col gap-4">
-            {!isAIServiceAvailable() && (
+            {!isServiceAvailable && (
                 <Alert variant="destructive" className="mb-2">
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>AI Service Unavailable</AlertTitle>
+                    <AlertTitle>AI Provider Connection Required</AlertTitle>
                     <AlertDescription>
-                        The Gemini API key is missing. Please add VITE_GEMINI_API_KEY to your .env file.
+                        {aiProvider === 'deepseek' 
+                          ? "DeepSeek API key is missing. Add VITE_DEEPSEEK_API_KEY to your .env file." 
+                          : "Gemini API key is missing. Add VITE_GEMINI_API_KEY to your .env file."}
                     </AlertDescription>
                 </Alert>
             )}
@@ -447,16 +505,16 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="Ask about schedule, or upload RFI PDF..."
+                        placeholder={aiProvider === 'deepseek' ? "Ask DeepSeek about the project..." : "Ask about schedule, or upload RFI PDF..."}
                         className="flex-1 bg-transparent outline-none text-sm p-0"
                         autoFocus
-                        aria-label="Ask about schedule or upload RFI PDF"
+                        aria-label="Ask AI about your project"
                     />
                 </div>
 
                 <Button
                     type="submit"
-                    disabled={isLoading || (!input.trim() && !attachment) || !isAIServiceAvailable()}
+                    disabled={isLoading || (!input.trim() && !attachment) || !isServiceAvailable}
                     className="h-11 w-11 shrink-0 rounded-xl shadow-lg transition-transform active:scale-95"
                     size="icon"
                 >
@@ -465,7 +523,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
             </form>
             <div className="text-center mt-2">
                 <span className="text-[10px] text-muted-foreground">
-                    AI can make mistakes. Verify important project information.
+                    DeepSeek provides high-reasoning output. Verify important project details.
                 </span>
             </div>
         </div>

@@ -1,21 +1,16 @@
 import mongoose, { Schema, Model, Document } from 'mongoose';
 import bcrypt from 'bcrypt';
 
-// Use MongoDB for both development and production
-const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/roadpro';
 
-let mongoUri: string;
+/**
+ * Global is used here to maintain a cached connection across hot reloads
+ * in development and serverless function invocations in production.
+ */
+let cached = (global as any).mongoose;
 
-if (isProduction) {
-  const uri = process.env.MONGODB_URI || process.env.MONGO_URI;
-  if (!uri) {
-    console.error('MONGODB_URI or MONGO_URI environment variable is not defined for production!');
-    throw new Error('MONGODB_URI or MONGO_URI environment variable is not defined!');
-  }
-  mongoUri = uri;
-} else {
-  // Development: Use local MongoDB
-  mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/roadpro';
+if (!cached) {
+  cached = (global as any).mongoose = { conn: null, promise: null };
 }
 
 // Define interfaces
@@ -115,9 +110,9 @@ export interface IProject extends Document {
 
 // Define schemas
 const userSchema = new Schema<IUser>({
-  id: { type: String, required: true, unique: true },
+  id: { type: String, required: true, unique: true, index: true },
   name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
+  email: { type: String, required: true, unique: true, index: true },
   phone: String,
   password: { type: String, required: true },
   role: { type: String, required: true },
@@ -125,18 +120,18 @@ const userSchema = new Schema<IUser>({
 }, { timestamps: true });
 
 const pendingRegistrationSchema = new Schema<IPendingRegistration>({
-  id: { type: String, required: true, unique: true },
+  id: { type: String, required: true, unique: true, index: true },
   name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
+  email: { type: String, required: true, unique: true, index: true },
   phone: String,
   requestedRole: { type: String, required: true },
   status: { type: String, default: 'pending' },
 }, { timestamps: true });
 
 const projectSchema = new Schema<IProject>({
-  id: { type: String, required: true, unique: true },
-  name: { type: String, required: true },
-  code: String,
+  id: { type: String, required: true, unique: true, index: true },
+  name: { type: String, required: true, index: true },
+  code: { type: String, index: true },
   location: String,
   contractor: String,
   startDate: { type: Schema.Types.Mixed },
@@ -147,7 +142,7 @@ const projectSchema = new Schema<IProject>({
   consultantName: String,
   clientName: String,
   logo: String,
-  client: { type: String, required: true },
+  client: { type: String, required: true, index: true },
   engineer: String,
   contractNo: String,
   boq: { type: Schema.Types.Mixed, default: [] },
@@ -207,8 +202,6 @@ const User = mongoose.models.User || mongoose.model<IUser>('User', userSchema);
 const PendingRegistration = mongoose.models.PendingRegistration || mongoose.model<IPendingRegistration>('PendingRegistration', pendingRegistrationSchema);
 const Project = mongoose.models.Project || mongoose.model<IProject>('Project', projectSchema);
 
-let cachedConnection: any = null;
-
 /**
  * Seeds an initial admin user if none exist
  */
@@ -234,23 +227,35 @@ async function seedInitialAdmin(UserModel: Model<IUser>) {
 }
 
 export async function connectToDatabase() {
-  if (cachedConnection) {
-    return { User, PendingRegistration, Project, mongoose };
+  if (cached.conn) {
+    return { User, PendingRegistration, Project, mongoose: cached.conn };
+  }
+
+  if (!cached.promise) {
+    const opts = {
+      bufferCommands: false,
+      serverSelectionTimeoutMS: 5000,
+      maxPoolSize: 10, // Recommended for serverless
+    };
+
+    console.log('Connecting to MongoDB...');
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+      console.log('MongoDB connected successfully.');
+      return mongoose;
+    });
   }
 
   try {
-    await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 5000, // Timeout after 5 seconds
-    });
-    console.log('MongoDB connection has been established successfully.');
+    cached.conn = await cached.promise;
     
-    // Seed initial admin if needed
+    // Seed initial admin if needed (only on first connection)
     await seedInitialAdmin(User);
     
-    cachedConnection = true;
-    return { User, PendingRegistration, Project, mongoose };
-  } catch (error) {
-    console.error('Unable to connect to MongoDB:', error);
-    throw error;
+  } catch (e) {
+    cached.promise = null;
+    console.error('MongoDB connection error:', e);
+    throw e;
   }
+
+  return { User, PendingRegistration, Project, mongoose: cached.conn };
 }

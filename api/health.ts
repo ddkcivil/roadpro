@@ -11,9 +11,11 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
 
   try {
     const envVars = Object.keys(process.env);
-    const hasUri = envVars.includes('MONGODB_URI') || envVars.includes('MONGO_URI');
+    const hasMongoUri = envVars.includes('MONGODB_URI') || envVars.includes('MONGO_URI');
+    const hasDeepSeek = envVars.includes('VITE_DEEPSEEK_API_KEY');
+    const hasGemini = envVars.includes('VITE_GEMINI_API_KEY');
     
-    console.log('Environment variables check:', { hasUri });
+    console.log('Environment variables check:', { hasMongoUri, hasDeepSeek, hasGemini });
 
     const { mongoose } = await connectToDatabase();
     const state = mongoose.connection.readyState;
@@ -25,13 +27,17 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
         timestamp: new Date().toISOString(),
         database: 'connected (MongoDB)',
         nodeVersion: process.version,
-        envCheck: { hasUri }
+        envCheck: { 
+            hasMongoUri, 
+            hasDeepSeek, 
+            hasGemini 
+        }
       });
     } else {
       res.status(500).json({ 
         error: 'Database not connected', 
         currentState: states[state] || 'unknown',
-        envCheck: { hasUri }
+        envCheck: { hasMongoUri }
       });
     }
   } catch (error: any) {
@@ -43,4 +49,3 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
     });
   }
 })
-

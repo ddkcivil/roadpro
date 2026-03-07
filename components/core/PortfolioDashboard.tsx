@@ -84,9 +84,9 @@ const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onS
 
   // Filter projects based on search
   const filteredProjects = projects.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.code.toLowerCase().includes(searchTerm.toLowerCase())
+    p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.client?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Handle deleting a project
