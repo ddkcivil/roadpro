@@ -406,6 +406,16 @@ const LinearReferenceView: React.FC<{ info: { lineName: string, chainage: string
   );
 };
 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
+... (rest of imports) ...
+
 const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, settings }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -414,6 +424,12 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [targetBounds, setTargetBounds] = useState<L.LatLngBounds | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  
+  // States for non-blocking delete confirmation
+  const [isDeletingKML, setIsDeletingKML] = useState(false);
+  const [kmlToDelete, setKmlToDelete] = useState<string | null>(null);
+  const [isPendingDelete, startDeleteTransition] = React.useTransition();
+
   const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({
     structures: true,
     vehicles: true,
@@ -425,14 +441,52 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
     kml: true,
   });
 
+  const confirmDeleteKML = useCallback(() => {
+    if (!kmlToDelete) return;
+    
+    startDeleteTransition(() => {
+      const updatedKMLs = (project.kmlData || []).filter(item => item.id !== kmlToDelete);
+      onProjectUpdate({ kmlData: updatedKMLs });
+      setIsDeletingKML(false);
+      setKmlToDelete(null);
+    });
+  }, [project.kmlData, onProjectUpdate, kmlToDelete]);
+
   const handleDeleteKML = useCallback((id: string) => {
-    if (window.confirm("Remove this KML alignment? This will free up storage space.")) {
-      const updatedKMLs = (project.kmlData || []).filter(item => item.id !== id);
-      startTransition(() => {
-        onProjectUpdate({ kmlData: updatedKMLs });
-      });
-    }
-  }, [project.kmlData, onProjectUpdate]);
+    setKmlToDelete(id);
+    setIsDeletingKML(true);
+  }, []);
+
+... (rest of the component) ...
+
+  return (
+    <div className={cn(
+      "flex flex-col h-full bg-background transition-all duration-300",
+      isFullscreen && "fixed inset-0 z-50 p-4"
+    )}>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeletingKML} onOpenChange={setIsDeletingKML}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove KML Alignment?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete the alignment data for this project and free up local storage space. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeletingKML(false)} disabled={isPendingDelete}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDeleteKML} disabled={isPendingDelete}>
+              {isPendingDelete ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              Confirm Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <div className="flex items-center justify-between mb-4 shrink-0">
+...
 
   // Default center (Butwal, Nepal) - will be overridden by settings or project location
   const defaultCenter: [number, number] = [27.7006, 83.4484];
