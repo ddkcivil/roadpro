@@ -38,7 +38,6 @@ export const chatWithPuter = async (
     
     If the user provides an attachment, note that currently I can only process text descriptions of attachments unless the system extracts data from them first.`;
 
-    // Puter's chat API expects an array of messages or a single string
     const messages = [
       { role: 'system', content: systemInstruction },
       ...history.map(msg => ({
@@ -50,9 +49,7 @@ export const chatWithPuter = async (
     // Add current message
     let content = currentMessage;
     if (attachment) {
-        content += `
-
-[Attachment Attached: ${attachment.mimeType}. Note: AI currently processing text-based metadata for this attachment.]`;
+        content += `\n\n[Attachment Attached: ${attachment.mimeType}. Note: AI currently processing text-based metadata for this attachment.]`;
     }
     
     messages.push({ role: 'user', content });
@@ -60,11 +57,25 @@ export const chatWithPuter = async (
     // Puter AI Chat call
     const response = await window.puter.ai.chat(messages, { model: model });
     
-    // Puter returns the response string directly or an object with message
     return typeof response === 'string' ? response : response.message.content;
 
   } catch (err: any) {
     console.error("Puter AI Error:", err);
     return `Puter AI Connection issue: ${err.message || "Unknown error"}`;
   }
+};
+
+/**
+ * Perform reasoning-based analysis using Puter's DeepSeek
+ */
+export const analyzeWithPuter = async (prompt: string, isFastMode: boolean = false): Promise<string> => {
+    if (!isPuterAvailable()) return "Puter AI Unavailable.";
+    
+    try {
+        const model = isFastMode ? 'deepseek-v3' : 'deepseek-r1';
+        const response = await window.puter.ai.chat(prompt, { model: model });
+        return typeof response === 'string' ? response : response.message.content;
+    } catch (err: any) {
+        throw new Error(`Puter Analysis failed: ${err.message}`);
+    }
 };

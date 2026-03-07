@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { BOQItem, RFI, ScheduleTask } from '../../types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
 import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
+import { isPuterAvailable, analyzeWithPuter } from './puterService';
 
 const getAIClient = () => {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
@@ -61,12 +62,24 @@ async function runWithFallback(task: (model: any) => Promise<any>): Promise<any>
 }
 
 export const isAIServiceAvailable = (): boolean => {
+  if (isPuterAvailable()) return true;
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   return !!(apiKey && apiKey.trim() && apiKey !== 'your_api_key_here');
 };
 
 export const analyzeSitePhoto = async (photoBase64: string, category: string): Promise<string> => {
-    if (!isAIServiceAvailable()) return "AI Service Unavailable: API Key not configured.";
+    // Site photo analysis REQUIRES vision, which Puter (DeepSeek) currently doesn't support directly via simple chat
+    // So we use Gemini first, and if it fails, we tell the user.
+    
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    const hasGemini = !!(apiKey && apiKey.trim() && apiKey !== 'your_api_key_here');
+
+    if (!hasGemini) {
+        if (isPuterAvailable()) {
+            return "Note: DeepSeek (Puter) is active but currently supports text analysis only. For visual photo analysis, please configure a Gemini API key.";
+        }
+        return "AI Service Unavailable: API Key not configured.";
+    }
     
     return runWithFallback(async (model) => {
       const prompt = `Analyze this site photo from a road project. Category: "${category}". Identify progress and safety issues.`;
@@ -80,7 +93,12 @@ export const analyzeSitePhoto = async (photoBase64: string, category: string): P
           }]
       });
       return result.response.text();
-    }).catch(err => `Analysis failed: ${err.message}`);
+    }).catch(err => {
+        if (isPuterAvailable()) {
+            return `Gemini Vision failed (${err.message}). DeepSeek is available for text chat but cannot see this photo.`;
+        }
+        return `Analysis failed: ${err.message}`;
+    });
 };
 
 export const analyzeProjectStatus = async (
@@ -89,10 +107,19 @@ export const analyzeProjectStatus = async (
   schedule: ScheduleTask[],
   userQuery: string
 ): Promise<string> => {
+  const context = `Analyze project: BOQ items: ${boq.length}, Open RFIs: ${rfis.filter(r => r.status === 'Open').length}. Query: ${userQuery}`;
+  
+  if (isPuterAvailable()) {
+      try {
+          return await analyzeWithPuter(context);
+      } catch (e) {
+          console.warn("Puter analysis failed, trying Gemini...", e);
+      }
+  }
+
   if (!isAIServiceAvailable()) return "AI Service Unavailable.";
 
   return runWithFallback(async (model) => {
-    const context = `Analyze project: BOQ items: ${boq.length}, Open RFIs: ${rfis.filter(r => r.status === 'Open').length}. Query: ${userQuery}`;
     const result = await model.generateContent(context);
     return result.response.text();
   }).catch(() => "Project analysis currently unavailable due to high traffic.");
@@ -109,7 +136,7 @@ export const chatWithGemini = async (
   projectContext: any,
   attachment?: { mimeType: string; data: string }
 ): Promise<string> => {
-  if (!isAIServiceAvailable()) return "Please configure your Gemini API Key in the environment settings to use the chatbot.";
+  if (!isAIServiceAvailable()) return "Please configure your Gemini API Key or ensure Puter.js is loaded.";
 
   return runWithFallback(async (model) => {
     const systemInstruction = `You are RoadMaster AI for project: ${projectContext.name}. Provide technical advice. Currency: ${getCurrencySymbol(projectContext.settings?.currency)}`;
@@ -143,10 +170,19 @@ export const chatWithGemini = async (
 };
 
 export const draftLetter = async (topic: string, recipient: string, useSearch: boolean = false): Promise<string> => {
+  const prompt = `Draft FIDIC-style letter for topic: ${topic}, Recipient: ${recipient}.`;
+
+  if (isPuterAvailable()) {
+      try {
+          return await analyzeWithPuter(prompt);
+      } catch (e) {
+          console.warn("Puter drafting failed, trying Gemini...", e);
+      }
+  }
+
   if (!isAIServiceAvailable()) return "AI Service Unavailable.";
 
   return runWithFallback(async (model) => {
-    const prompt = `Draft FIDIC-style letter for topic: ${topic}, Recipient: ${recipient}.`;
     const result = await model.generateContent(prompt);
     return result.response.text();
   }).catch(() => "Drafting service temporarily unavailable.");
