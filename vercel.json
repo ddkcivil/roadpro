@@ -8,8 +8,7 @@
     }
   },
   "headers": [
-...
-
+    {
       "source": "/sw.js",
       "headers": [
         {
