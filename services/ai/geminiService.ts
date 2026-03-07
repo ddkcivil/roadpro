@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { BOQItem, RFI, ScheduleTask } from '../../types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
 import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
-import { isPuterAvailable, analyzeWithPuter } from './puterService';
+import { isPuterAvailable, analyzeWithPuter, analyzeSitePhotoWithPuter } from './puterService';
 
 const getAIClient = () => {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
@@ -68,37 +68,41 @@ export const isAIServiceAvailable = (): boolean => {
 };
 
 export const analyzeSitePhoto = async (photoBase64: string, category: string): Promise<string> => {
-    // Site photo analysis REQUIRES vision, which Puter (DeepSeek) currently doesn't support directly via simple chat
-    // So we use Gemini first, and if it fails, we tell the user.
-    
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     const hasGemini = !!(apiKey && apiKey.trim() && apiKey !== 'your_api_key_here');
 
-    if (!hasGemini) {
-        if (isPuterAvailable()) {
-            return "Note: DeepSeek (Puter) is active but currently supports text analysis only. For visual photo analysis, please configure a Gemini API key.";
+    // If Gemini is available, try it first
+    if (hasGemini) {
+        try {
+            return await runWithFallback(async (model) => {
+                const prompt = `Analyze this site photo from a road project. Category: "${category}". Identify progress and safety issues.`;
+                const result = await model.generateContent({
+                    contents: [{
+                        role: 'user',
+                        parts: [
+                            { inlineData: { mimeType: 'image/jpeg', data: photoBase64.replace(/^data:image\/\w+;base64,/, "") } },
+                            { text: prompt }
+                        ]
+                    }]
+                });
+                return result.response.text();
+            });
+        } catch (err: any) {
+            console.warn("Gemini Vision failed, trying Puter fallback...", err.message);
+            // If Gemini fails, proceed to Puter fallback below
         }
-        return "AI Service Unavailable: API Key not configured.";
+    }
+
+    // Fallback to Puter (which might use gpt-4o-mini or similar)
+    if (isPuterAvailable()) {
+        try {
+            return await analyzeSitePhotoWithPuter(photoBase64, category);
+        } catch (puterErr: any) {
+            return `Analysis failed: Both Gemini and Puter services unavailable. (${puterErr.message})`;
+        }
     }
     
-    return runWithFallback(async (model) => {
-      const prompt = `Analyze this site photo from a road project. Category: "${category}". Identify progress and safety issues.`;
-      const result = await model.generateContent({
-          contents: [{
-              role: 'user',
-              parts: [
-                  { inlineData: { mimeType: 'image/jpeg', data: photoBase64.replace(/^data:image\/\w+;base64,/, "") } },
-                  { text: prompt }
-              ]
-          }]
-      });
-      return result.response.text();
-    }).catch(err => {
-        if (isPuterAvailable()) {
-            return `Gemini Vision failed (${err.message}). DeepSeek is available for text chat but cannot see this photo.`;
-        }
-        return `Analysis failed: ${err.message}`;
-    });
+    return "AI Service Unavailable: Neither Gemini API Key nor Puter.js are available.";
 };
 
 export const analyzeProjectStatus = async (
