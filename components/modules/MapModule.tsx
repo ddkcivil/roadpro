@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, startTransition } fro
 import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap, LayerGroup, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Project, StructureAsset, Vehicle, StaffLocation, LandParcel, MapOverlay, SitePhoto, LinearWorkLog, KMLData } from '../../types';
+import { Project, StructureAsset, Vehicle, StaffLocation, LandParcel, MapOverlay, SitePhoto, LinearWorkLog, KMLData, AppSettings } from '../../types';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Badge } from '~/components/ui/badge';
@@ -40,10 +40,20 @@ import {
   Trash2
 } from 'lucide-react';
 import { cn } from '~/lib/utils';
+import { toast } from 'sonner';
 
 import * as omnivore from '@mapbox/leaflet-omnivore';
 import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
 import 'leaflet-geosearch/dist/geosearch.css';
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
 
 // Fix for default markers in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -406,16 +416,6 @@ const LinearReferenceView: React.FC<{ info: { lineName: string, chainage: string
   );
 };
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "~/components/ui/dialog";
-... (rest of imports) ...
-
 const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, settings }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -456,37 +456,6 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
     setKmlToDelete(id);
     setIsDeletingKML(true);
   }, []);
-
-... (rest of the component) ...
-
-  return (
-    <div className={cn(
-      "flex flex-col h-full bg-background transition-all duration-300",
-      isFullscreen && "fixed inset-0 z-50 p-4"
-    )}>
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeletingKML} onOpenChange={setIsDeletingKML}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Remove KML Alignment?</DialogTitle>
-            <DialogDescription>
-              This will permanently delete the alignment data for this project and free up local storage space. This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeletingKML(false)} disabled={isPendingDelete}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmDeleteKML} disabled={isPendingDelete}>
-              {isPendingDelete ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-              Confirm Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <div className="flex items-center justify-between mb-4 shrink-0">
-...
 
   // Default center (Butwal, Nepal) - will be overridden by settings or project location
   const defaultCenter: [number, number] = [27.7006, 83.4484];
@@ -1091,6 +1060,27 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
       "flex flex-col h-full bg-background transition-all duration-300",
       isFullscreen && "fixed inset-0 z-50 p-4"
     )}>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeletingKML} onOpenChange={setIsDeletingKML}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove KML Alignment?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete the alignment data for this project and free up local storage space. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeletingKML(false)} disabled={isPendingDelete}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDeleteKML} disabled={isPendingDelete}>
+              {isPendingDelete ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              Confirm Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex items-center justify-between mb-4 shrink-0">
         <div>
           <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
