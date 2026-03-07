@@ -80,104 +80,32 @@ const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
   useEffect(() => {
     if (!kml.visible || !kml.content) return;
 
+    console.log(`[GIS] Rendering KML: ${kml.name}`);
+
     let kmlLayer: L.Layer | null = null;
     const markers: L.Layer[] = [];
     const fallbackLayers: L.Layer[] = [];
 
     try {
-      // 1. Try leaflet-omnivore first
-      const omnivoreLib = (omnivore as any).default || omnivore;
-      let hasFeatures = false;
+      // 1. Manual Parsing (Highly reliable since zoomToKML uses it)
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(kml.content, "text/xml");
+      const placemarks = xml.getElementsByTagName("Placemark");
+      
+      console.log(`[GIS] Found ${placemarks.length} Placemarks in ${kml.name}`);
+      
+      let hasManualFeatures = false;
 
-      if (omnivoreLib && omnivoreLib.kml) {
-        try {
-          // Use parseStr for raw XML string content
-          if (omnivoreLib.kml.parseStr) {
-            kmlLayer = omnivoreLib.kml.parseStr(kml.content);
-          } else {
-            // Fallback to parse if parseStr is missing
-            kmlLayer = omnivoreLib.kml.parse(kml.content);
-          }
-          
-          if (kmlLayer) {
-            kmlLayer.addTo(map);
-            console.log(`KML Layer "${kml.name}" added successfully via omnivore.`);
-
-            kmlLayer.eachLayer((layer: any) => {
-              hasFeatures = true;
-              
-              // Apply styling
-              if (layer.setStyle) {
-                layer.setStyle({ color: '#4f46e5', weight: 4, opacity: 0.8 });
-              }
-
-              // Extract coordinates for chainage markers if it's a line
-              if (layer instanceof L.Polyline && !(layer instanceof L.Polygon)) {
-                const coords = layer.getLatLngs() as L.LatLng[];
-                const flatCoords = Array.isArray(coords[0]) ? (coords as any).flat(Infinity) as L.LatLng[] : coords;
-                
-                if (flatCoords.length >= 2) {
-                  // Add start marker
-                  markers.push(L.marker(flatCoords[0], { 
-                    icon: L.divIcon({
-                      className: 'bg-black/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded border border-white whitespace-nowrap shadow-md',
-                      html: `${kml.name.split('.')[0]}: 0+000`,
-                      iconAnchor: [0, 0]
-                    }) 
-                  }).addTo(map));
-
-                  // Add intermediate markers
-                  let totalDist = 0;
-                  let lastMarkerDist = 0;
-                  const interval = 500; 
-
-                  for (let i = 0; i < flatCoords.length - 1; i++) {
-                    const p1 = flatCoords[i];
-                    const p2 = flatCoords[i + 1];
-                    if (!p1 || !p2) continue;
-                    const segmentDist = p1.distanceTo(p2);
-                    totalDist += segmentDist;
-
-                    while (totalDist >= lastMarkerDist + interval) {
-                      const markerDist = lastMarkerDist + interval;
-                      const fraction = (markerDist - (totalDist - segmentDist)) / segmentDist;
-                      const lat = p1.lat + (p2.lat - p1.lat) * fraction;
-                      const lng = p1.lng + (p2.lng - p1.lng) * fraction;
-                      
-                      const chainageKm = Math.floor(markerDist / 1000);
-                      const chainageM = Math.round(markerDist % 1000);
-                      
-                      markers.push(L.marker([lat, lng], { 
-                        icon: L.divIcon({
-                          className: 'bg-white/90 text-black text-[9px] font-bold px-1.5 py-0.5 rounded border border-black/20 shadow-sm whitespace-nowrap',
-                          html: `${kml.name.split('.')[0]}: ${chainageKm}+${chainageM.toString().padStart(3, '0')}`,
-                          iconAnchor: [0, 0]
-                        }) 
-                      }).addTo(map));
-                      lastMarkerDist = markerDist;
-                    }
-                  }
-                }
-              }
-            });
-          }
-        } catch (e) {
-          console.warn("Omnivore failed", e);
-        }
-      }
-
-      // 2. Manual Fallback: Search for all coordinates tags
-      if (!hasFeatures) {
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(kml.content, "text/xml");
-        const coordTags = xml.getElementsByTagName("coordinates");
+      for (let i = 0; i < placemarks.length; i++) {
+        const placemark = placemarks[i];
+        const coordTags = placemark.getElementsByTagName("coordinates");
         
-        for (let i = 0; i < coordTags.length; i++) {
-          const coordStr = coordTags[i].textContent || "";
+        for (let j = 0; j < coordTags.length; j++) {
+          const coordStr = coordTags[j].textContent || "";
           const points: L.LatLng[] = [];
           
-          // Split by whitespace
-          const pairs = coordStr.trim().split(/\s+/);
+          // Robust splitting: handle spaces, tabs, and newlines
+          const pairs = coordStr.trim().split(/[\s\n\r]+/);
           pairs.forEach((pair) => {
             const parts = pair.split(",");
             if (parts.length >= 2) {
@@ -190,29 +118,58 @@ const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
           });
 
           if (points.length >= 2) {
-            const line = L.polyline(points, { color: '#4f46e5', weight: 4, opacity: 0.8 }).addTo(map);
+            hasManualFeatures = true;
+            const line = L.polyline(points, { 
+              color: '#4f46e5', 
+              weight: 5, 
+              opacity: 0.9,
+              lineJoin: 'round'
+            }).addTo(map);
             fallbackLayers.push(line);
             
-            // Add start marker for fallback
-            markers.push(L.marker(points[0], { 
-              icon: L.divIcon({
-                className: 'bg-black/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded border border-white whitespace-nowrap shadow-md',
-                html: `${kml.name.split('.')[0]}: 0+000`,
-                iconAnchor: [0, 0]
-              }) 
-            }).addTo(map));
+            // Add chainage markers
+            addChainageMarkers(map, points, kml.name, markers);
           } else if (points.length === 1) {
-            // It's a point feature
-            markers.push(L.marker(points[0]).addTo(map));
+            hasManualFeatures = true;
+            const marker = L.marker(points[0]).addTo(map);
+            fallbackLayers.push(marker);
+          }
+        }
+      }
+
+      // 2. Try leaflet-omnivore only if manual parsing didn't find coordinate tags
+      if (!hasManualFeatures) {
+        console.log(`[GIS] Falling back to omnivore for ${kml.name}`);
+        const omnivoreLib = (omnivore as any).default || omnivore;
+        if (omnivoreLib && omnivoreLib.kml) {
+          const parseFn = omnivoreLib.kml.parseStr || omnivoreLib.kml.parse;
+          if (parseFn) {
+            kmlLayer = parseFn(kml.content);
+            if (kmlLayer) {
+              kmlLayer.addTo(map);
+              kmlLayer.eachLayer((layer: any) => {
+                if (layer.setStyle) {
+                  layer.setStyle({ color: '#4f46e5', weight: 5, opacity: 0.9 });
+                }
+                if (layer instanceof L.Polyline && !(layer instanceof L.Polygon)) {
+                  const coords = layer.getLatLngs() as L.LatLng[];
+                  const flatCoords = Array.isArray(coords[0]) ? (coords as any).flat(Infinity) as L.LatLng[] : coords;
+                  if (flatCoords.length >= 2) {
+                    addChainageMarkers(map, flatCoords, kml.name, markers);
+                  }
+                }
+              });
+            }
           }
         }
       }
 
     } catch (error) {
-      console.error("KML Layer Error:", error);
+      console.error(`[GIS] Critical Error in KML Layer "${kml.name}":`, error);
     }
 
     return () => {
+      console.log(`[GIS] Cleaning up KML: ${kml.name}`);
       if (kmlLayer) map.removeLayer(kmlLayer);
       markers.forEach(m => map.removeLayer(m));
       fallbackLayers.forEach(l => map.removeLayer(l));
@@ -220,6 +177,84 @@ const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
   }, [kml, map]);
 
   return null;
+};
+
+/**
+ * Helper to add chainage markers along a path with high visibility
+ */
+function addChainageMarkers(map: L.Map, points: L.LatLng[], name: string, markers: L.Layer[]) {
+  if (points.length < 2) return;
+
+  const prefix = name.split('.')[0];
+
+  // Add start marker
+  const startMarker = L.marker(points[0], { 
+    icon: L.divIcon({
+      className: 'custom-chainage-marker',
+      html: `<div style="background: black; color: white; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 99px; border: 2px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); white-space: nowrap;">${prefix}: 0+000</div>`,
+      iconAnchor: [0, 12],
+      iconSize: [0, 0] // Ensures Leaflet doesn't restrict the div size
+    }),
+    zIndexOffset: 1000
+  }).addTo(map);
+  markers.push(startMarker);
+
+  // Add intermediate markers
+  let totalDist = 0;
+  let lastMarkerDist = 0;
+  const interval = 500; // 500m intervals
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    if (!p1 || !p2) continue;
+    const segmentDist = p1.distanceTo(p2);
+    totalDist += segmentDist;
+
+    while (totalDist >= lastMarkerDist + interval) {
+      const markerDist = lastMarkerDist + interval;
+      const fraction = (markerDist - (totalDist - segmentDist)) / segmentDist;
+      const lat = p1.lat + (p2.lat - p1.lat) * fraction;
+      const lng = p1.lng + (p2.lng - p1.lng) * fraction;
+      
+      const chainageKm = Math.floor(markerDist / 1000);
+      const chainageM = Math.round(markerDist % 1000);
+      
+      const marker = L.marker([lat, lng], { 
+        icon: L.divIcon({
+          className: 'custom-chainage-marker',
+          html: `<div style="background: white; color: #1e1b4b; font-size: 9px; font-weight: 900; padding: 1px 6px; border-radius: 4px; border: 1px solid #e0e7ff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); white-space: nowrap;">${prefix}: ${chainageKm}+${chainageM.toString().padStart(3, '0')}</div>`,
+          iconAnchor: [0, 12],
+          iconSize: [0, 0]
+        }),
+        zIndexOffset: 900
+      }).addTo(map);
+      markers.push(marker);
+      lastMarkerDist = markerDist;
+    }
+  }
+}
+
+// Custom icons for different markers
+const createCustomIcon = (color: string, icon: string) => {
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="
+      background-color: ${color};
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      font-size: 16px;
+    ">${icon}</div>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32],
+  });
 };
 
 // Search Field Component
@@ -676,28 +711,6 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
 
     return points;
   }, [alignmentOverlay]);
-
-  // Custom icons for different markers
-  const createCustomIcon = (color: string, icon: string) => {
-    return L.divIcon({
-      className: 'custom-marker',
-      html: `<div style="
-        background-color: ${color};
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 3px solid white;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        font-size: 16px;
-      ">${icon}</div>`,
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32],
-    });
-  };
 
   // Extract active KML lines for linear referencing monitoring
   const activeKMLLines = useMemo(() => {
