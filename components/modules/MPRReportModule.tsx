@@ -1,42 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '~/components/ui/dialog';
+import { Card, CardContent } from '~/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
-import { Select as ShadcnSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { Table as ShadcnTable, TableBody as ShadcnTableBody, TableCell as ShadcnTableCell, TableHead as ShadcnTableHead, TableHeader as ShadcnTableHeader, TableRow as ShadcnTableRow } from '~/components/ui/table';
 import { Tabs as ShadcnTabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Alert as ShadcnAlert, AlertDescription } from '~/components/ui/alert';
 import { Badge } from '~/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import { Separator } from '~/components/ui/separator';
 import { ScrollArea } from '~/components/ui/scroll-area';
 import { cn } from '~/lib/utils';
 
 import {
-  FileText, Calendar, Users, HardHat, FileSpreadsheet, TrendingUp,
-  CheckCircle, AlertTriangle, MapPin, Image as ImageIcon,
-  Receipt, Shield, Trees, FileSignature,
-  MessageSquare, Camera, BookOpen, ChevronDown
+  FileText, Calendar, Users, FileSpreadsheet, TrendingUp,
+  AlertTriangle, Shield, BookOpen, ChevronDown
 } from 'lucide-react';
-import { Project, UserRole, AppSettings, BOQItem, ScheduleTask, LabTest, NCR, RFI, RFIStatus, StructureAsset, Vehicle, InventoryItem, DailyReport, PreConstructionTask, LandParcel, MapOverlay, EnvironmentRegistry, WeatherInfo } from '../../types';
-import { formatCurrency, generatePDF, exportToCSV } from '../../utils/formatting/exportUtils';
+import { Project, AppSettings, RFIStatus } from '../../types';
+import { formatCurrency } from '../../utils/formatting/exportUtils';
+import { generateMPRPDF } from '../../utils/formatting/mprPDFGenerator';
 import { toast } from 'sonner';
 
 interface Props {
   project: Project;
-  userRole: UserRole;
   settings: AppSettings;
-  onProjectUpdate: (project: Project) => void;
 }
 
-const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, userRole }) => {
+const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
   const [reportMonth, setReportMonth] = useState<string>(new Date().toISOString().slice(0, 7)); // YYYY-MM
   const [activeTab, setActiveTab] = useState(0);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [previewPhoto, setPreviewPhoto] = useState<{url: string, caption: string} | null>(null);
 
   if (!project) {
     return (
@@ -71,18 +65,16 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
     setIsExportDialogOpen(true);
   };
 
-  const handleExport = () => {
-    toast.success("MPR Exported", { description: `Report for ${reportMonth} has been generated.` });
-    setIsExportDialogOpen(false);
-  };
-
-  const getWeatherData = () => {
-    if (!project.weather) return null;
-    return project.weather as WeatherInfo;
-  };
-
-  const getEnvironmentalData = () => {
-    return project.environmentRegistry as EnvironmentRegistry || null;
+  const handleExport = async () => {
+    try {
+      // Generate the MPR PDF
+      await generateMPRPDF(project, reportMonth, settings);
+      toast.success("MPR Exported", { description: `Report for ${reportMonth} has been generated and downloaded.` });
+      setIsExportDialogOpen(false);
+    } catch (error) {
+      console.error('Error generating MPR PDF:', error);
+      toast.error("Export Failed", { description: "There was an error generating the MPR PDF. Please try again." });
+    }
   };
 
   const calculateTimeProgress = (start?: string, end?: string) => {
@@ -335,15 +327,14 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                       <div className="flex-1">
                         <p className="text-xs text-muted-foreground">Planned vs Actual</p>
                         <div className="flex items-center gap-2 mt-2">
-                          <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
-                            <div
-                              className={cn("h-full bg-primary")}
-                              style={{ width: `${(physicalProgress.planned * 100).toFixed(1)}%` }}
-                            />
-                          </div>
-                          <p className="text-xs">{(physicalProgress.planned * 100).toFixed(1)}%</p>
+                        <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div
+                            className={cn("h-full bg-primary")}
+                            style={{ width: `${(physicalProgress.planned * 100).toFixed(1)}%` }}
+                          />
                         </div>
-                      </div>
+                        <p className="text-xs">{(physicalProgress.planned * 100).toFixed(1)}%</p>
+                        </div>                      </div>
                     </div>
 
                     <div className="mt-4">
@@ -483,10 +474,10 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                           <div key={index} className="flex-1 flex flex-col items-center">
                             <div
                               className={cn(
-                                "w-full rounded",
+                                "w-full rounded h-[var(--bar-height)]",
                                 item.completedQuantity === item.quantity ? "bg-green-500" : "bg-primary"
                               )}
-                              style={{ height: `${(item.completedQuantity / item.quantity) * 100}%` }}
+                              style={{ "--bar-height": `${(item.completedQuantity / item.quantity) * 100}%` } as React.CSSProperties}
                               title={`${item.description}: ${(item.completedQuantity / item.quantity) * 100}%`}
                             />
                             <p className="text-xs mt-2 text-center">{item.itemNo}</p>

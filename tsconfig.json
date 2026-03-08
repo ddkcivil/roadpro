@@ -31,8 +31,26 @@
       "~/components/*": [
         "./components/*"
       ],
+      "~/contexts/*": [
+        "./contexts/*"
+      ],
+      "~/hooks/*": [
+        "./hooks/*"
+      ],
+      "~/services/*": [
+        "./services/*"
+      ],
+      "~/utils/*": [
+        "./utils/*"
+      ],
       "~/lib/*": [
         "./lib/*"
+      ],
+      "~/config/*": [
+        "./config/*"
+      ],
+      "~/types": [
+        "./types.ts"
       ]
     },
     "allowImportingTsExtensions": true,

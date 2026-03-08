@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { User, Message } from '../../types';
-import { Send, Search, MoreVertical, Hash, User as UserIcon, Check, CheckCheck, MessageCircle, Mail, Phone, Paperclip, FileText, HardHat } from 'lucide-react';
+import { Send, Search, MoreVertical, Hash, Check, CheckCheck, MessageCircle, Mail, Phone, Paperclip, FileText, HardHat } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
@@ -14,7 +14,6 @@ import * as ReactWindow from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
 const List = (ReactWindow as any).FixedSizeList || ReactWindow.FixedSizeList;
-const TypedAutoSizer = AutoSizer as any;
 
 interface Props {
   currentUser: User | null;
@@ -28,7 +27,7 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
   const [activeChatId, setActiveChatId] = useState<string>('general');
   const [inputText, setInputText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const listRef = useRef<List>(null);
+  const listRef = useRef<any>(null);
 
   // Helper to get user details
   const getUser = useCallback((id: string) => (users || []).find(u => u.id === id), [users]);
@@ -135,12 +134,15 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
         <div className="flex w-80 flex-col border-r bg-muted/40">
             <div className="p-4 border-b">
                 <h2 className="text-2xl font-bold text-foreground mb-3">Messages</h2>
-                <Input 
-                    placeholder="Search people..." 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    icon={<Search className="h-4 w-4 text-muted-foreground" />} // Assuming Input can take an icon prop
-                />
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Search people..." 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9"
+                    />
+                </div>
             </div>
 
             <ScrollArea className="flex-1">

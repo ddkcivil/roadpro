@@ -1,16 +1,14 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { Project, UserRole, Agency, AgencyPayment, AgencyRateEntry, BOQItem, AgencyMaterial, AgencyBill, AgencyBillItem, AppSettings } from '../../types';
+import React, { useState } from 'react';
+import { Project, UserRole, Agency, AgencyPayment, AppSettings } from '../../types';
 import { 
-  Briefcase, FileText, Calendar, MapPin, TrendingUp, Clock, Activity, 
-  Plus, Save, X, Edit, Trash2, CheckCircle2, Calculator, Package,
-  DollarSign, Navigation, Eye, Upload, Search, Users, CreditCard
+  Briefcase, Plus, Edit, Trash2, 
+  Eye, CreditCard
 } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
-import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
 
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card, CardContent } from '~/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
@@ -19,18 +17,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import { Badge } from '~/components/ui/badge';
-import { Separator } from '~/components/ui/separator';
-import { Alert, AlertDescription } from '~/components/ui/alert';
-import { Textarea } from '~/components/ui/textarea';
-import { cn } from '~/lib/utils';
 import { useToast } from '~/components/ui/use-toast';
-import { ScrollArea } from '~/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
-
-
-// NOTE: This is a refactored version of the AgencyModule component.
-// The original logic has been temporarily removed to facilitate the UI migration.
-// It will be re-implemented in subsequent steps.
 
 interface Props {
   project: Project;
@@ -44,11 +32,7 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
   const [isAgencyModalOpen, setIsAgencyModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [isRatesModalOpen, setIsRatesModalOpen] = useState(false);
-  const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
-  const [isBillModalOpen, setIsBillModalOpen] = useState(false);
   const [selectedAgencyId, setSelectedAgencyId] = useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -86,47 +70,6 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
     description: ''
   });
 
-  const [rateForm, setRateForm] = useState<Partial<AgencyRateEntry>>({
-    materialId: '',
-    rate: 0,
-    effectiveDate: new Date().toISOString().split('T')[0],
-    status: 'Active',
-    description: ''
-  });
-
-  const [materialForm, setMaterialForm] = useState<Partial<AgencyMaterial>>({
-    materialName: '',
-    quantity: 1,
-    unit: '',
-    rate: 0,
-    receivedDate: new Date().toISOString().split('T')[0],
-    status: 'Ordered',
-    remarks: '',
-    orderedDate: new Date().toISOString().split('T')[0],
-    expectedDeliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    deliveryLocation: '',
-    transportMode: '',
-    deliveryCharges: 0,
-    taxAmount: 0
-  });
-
-  const [billForm, setBillForm] = useState<Partial<AgencyBill>>({
-    billNumber: '',
-    date: new Date().toISOString().split('T')[0],
-    periodFrom: new Date().toISOString().split('T')[0],
-    periodTo: new Date().toISOString().split('T')[0],
-    items: [],
-    grossAmount: 0,
-    netAmount: 0,
-    status: 'Draft',
-    description: ''
-  });
-
-  const selectedAgency = agencies.concat(subcontractors).find(a => a.id === selectedAgencyId);
-  const selectedAgencyRates = selectedAgency?.rates || [];
-  const selectedAgencyMaterials = project.agencyMaterials?.filter(m => m.agencyId === selectedAgencyId) || [];
-  const selectedAgencyBills = project.agencyBills?.filter(b => b.agencyId === selectedAgencyId) || [];
-
   const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'success') => {
     toast({
         title: severity === 'error' ? 'Error' : severity === 'warning' ? 'Warning' : 'Info',
@@ -157,7 +100,6 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
       deliveryLeadTime: 7,
       avatar: ''
     });
-    setAvatarFile(null);
     setPreviewUrl(null);
     setIsAgencyModalOpen(true);
   };
@@ -323,7 +265,6 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
       deliveryLeadTime: 7,
       avatar: ''
     });
-    setAvatarFile(null);
     setPreviewUrl(null);
   };
 
@@ -387,246 +328,6 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
       description: ''
     });
     setIsPaymentModalOpen(true);
-  };
-
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSaveRate = () => {
-    if (!selectedAgencyId) {
-      showSnackbar('Please select a vendor first', 'error');
-      return;
-    }
-    
-    if (!rateForm.materialId) {
-      showSnackbar('Please select a material', 'error');
-      return;
-    }
-    
-    if (rateForm.rate === undefined || rateForm.rate < 0) {
-      showSnackbar('Please enter a valid rate', 'error');
-      return;
-    }
-    
-    if (!rateForm.effectiveDate) {
-      showSnackbar('Please select an effective date', 'error');
-      return;
-    }
-    
-    const newRate: AgencyRateEntry = {
-      id: `rate-${Date.now()}`,
-      agencyId: selectedAgencyId,
-      materialId: rateForm.materialId!,
-      rate: rateForm.rate,
-      effectiveDate: rateForm.effectiveDate,
-      expiryDate: rateForm.expiryDate,
-      description: rateForm.description,
-      status: rateForm.status || 'Active'
-    };
-    
-    const updatedAgencies = project.agencies?.map(agency => {
-      if (agency.id === selectedAgencyId) {
-        const updatedRates = [...(agency.rates || []), newRate];
-        return { ...agency, rates: updatedRates };
-      }
-      return agency;
-    }) || [];
-    
-    onProjectUpdate({
-      ...project,
-      agencies: updatedAgencies
-    });
-    
-    setIsRatesModalOpen(false);
-    setRateForm({
-      materialId: '',
-      rate: 0,
-      effectiveDate: new Date().toISOString().split('T')[0],
-      status: 'Active',
-      description: ''
-    });
-    showSnackbar('Rate saved successfully', 'success');
-  };
-
-  const handleSaveMaterial = () => {
-    if (!selectedAgencyId) {
-      showSnackbar('Please select a vendor first', 'error');
-      return;
-    }
-    
-    if (!materialForm.materialName?.trim()) {
-      showSnackbar('Please enter material name', 'error');
-      return;
-    }
-    
-    if (materialForm.quantity === undefined || materialForm.quantity <= 0) {
-      showSnackbar('Please enter a valid quantity', 'error');
-      return;
-    }
-    
-    if (materialForm.rate === undefined || materialForm.rate < 0) {
-      showSnackbar('Please enter a valid rate', 'error');
-      return;
-    }
-    
-    if (!materialForm.unit?.trim()) {
-      showSnackbar('Please enter unit', 'error');
-      return;
-    }
-    
-    const subtotal = materialForm.quantity * materialForm.rate;
-    const taxAmount = materialForm.taxAmount || 0;
-    const deliveryCharges = materialForm.deliveryCharges || 0;
-    const totalAmount = subtotal + taxAmount + deliveryCharges;
-    
-    const newMaterial: AgencyMaterial = {
-      id: `mat-${Date.now()}`,
-      name: materialForm.materialName || '', // Required by BaseResource
-      description: materialForm.remarks || '', // Map remarks to description
-      category: '', // Could be enhanced to use material categories
-      unit: materialForm.unit || 'unit', // Required by BaseResource
-      quantity: materialForm.quantity || 0, // Required by BaseResource
-      location: materialForm.deliveryLocation || 'Vendor', // Required by BaseResource
-      status: materialForm.status || 'Ordered', // Required by BaseResource
-      lastUpdated: new Date().toISOString().split('T')[0], // Required by BaseResource
-      agencyId: selectedAgencyId,
-      materialName: materialForm.materialName,
-      rate: materialForm.rate,
-      totalAmount: totalAmount,
-      receivedDate: materialForm.receivedDate || new Date().toISOString().split('T')[0],
-      invoiceNumber: materialForm.invoiceNumber,
-      remarks: materialForm.remarks,
-      orderedDate: materialForm.orderedDate,
-      expectedDeliveryDate: materialForm.expectedDeliveryDate,
-      deliveryLocation: materialForm.deliveryLocation,
-      transportMode: materialForm.transportMode,
-      deliveryCharges: deliveryCharges,
-      taxAmount: taxAmount,
-      batchNumber: materialForm.batchNumber,
-      expiryDate: materialForm.expiryDate,
-      qualityCertification: materialForm.qualityCertification,
-      supplierInvoiceRef: materialForm.supplierInvoiceRef
-    };
-    
-    onProjectUpdate({
-      ...project,
-      agencyMaterials: [...(project.agencyMaterials || []), newMaterial]
-    });
-    
-    setIsMaterialModalOpen(false);
-    setMaterialForm({
-      materialName: '',
-      quantity: 1,
-      unit: '',
-      rate: 0,
-      receivedDate: new Date().toISOString().split('T')[0],
-      status: 'Ordered',
-      remarks: '',
-      orderedDate: new Date().toISOString().split('T')[0],
-      expectedDeliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      deliveryLocation: '',
-      transportMode: '',
-      deliveryCharges: 0,
-      taxAmount: 0
-    });
-    showSnackbar('Material saved successfully', 'success');
-  };
-
-  const handleSaveBill = () => {
-    if (!selectedAgencyId) {
-      showSnackbar('Please select a vendor first', 'error');
-      return;
-    }
-    
-    if (!billForm.billNumber?.trim()) {
-      showSnackbar('Please enter bill number', 'error');
-      return;
-    }
-    
-    if (!billForm.date) {
-      showSnackbar('Please select bill date', 'error');
-      return;
-    }
-    
-    if (billForm.grossAmount === undefined || billForm.grossAmount < 0) {
-      showSnackbar('Gross amount cannot be negative', 'error');
-      return;
-    }
-    
-    if (billForm.netAmount === undefined || billForm.netAmount < 0) {
-      showSnackbar('Net amount cannot be negative', 'error');
-      return;
-    }
-    
-    const newBill: AgencyBill = {
-      id: `bill-${Date.now()}`,
-      agencyId: selectedAgencyId,
-      billNumber: billForm.billNumber,
-      date: billForm.date,
-      periodFrom: billForm.periodFrom || billForm.date,
-      periodTo: billForm.periodTo || billForm.date,
-      items: billForm.items || [],
-      grossAmount: billForm.grossAmount,
-      taxAmount: billForm.taxAmount,
-      netAmount: billForm.netAmount,
-      status: billForm.status || 'Draft',
-      description: billForm.description
-    };
-    
-    onProjectUpdate({
-      ...project,
-      agencyBills: [...(project.agencyBills || []), newBill]
-    });
-    
-    setIsBillModalOpen(false);
-    setBillForm({
-      billNumber: '',
-      date: new Date().toISOString().split('T')[0],
-      periodFrom: new Date().toISOString().split('T')[0],
-      periodTo: new Date().toISOString().split('T')[0],
-      items: [],
-      grossAmount: 0,
-      netAmount: 0,
-      status: 'Draft',
-      description: ''
-    });
-    showSnackbar('Bill saved successfully', 'success');
-  };
-
-  const calculateAgencySummary = (agencyId: string) => {
-    const agencyPaymentsForAgency = agencyPayments.filter(p => p.agencyId === agencyId);
-    const totalPaid = agencyPaymentsForAgency.reduce((sum, p) => sum + p.amount, 0);
-    const pendingPayments = agencyPaymentsForAgency.filter(p => p.status === 'Draft').reduce((sum, p) => sum + p.amount, 0);
-
-    // Calculate amounts based on rates for this agency
-    const agency = agencies.concat(subcontractors).find(a => a.id === agencyId);
-    const agencyRates = agency?.rates || [];
-
-    // Calculate total contract value based on rates
-    const totalContractValue = agencyRates.reduce((sum, rate) => {
-      const boqItem = project.boq.find(b => b.id === rate.materialId);
-      if (boqItem) {
-        // Using the rate from the agency's specific rate entry
-        return sum + (boqItem.quantity * rate.rate);
-      }
-      return sum;
-    }, 0);
-
-    return {
-      totalPaid,
-      pendingPayments,
-      netAmount: totalPaid - pendingPayments,
-      totalContractValueBasedOnRates: totalContractValue
-    };
   };
 
   return (

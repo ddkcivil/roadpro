@@ -5,14 +5,13 @@ import { Switch } from '~/components/ui/switch';
 import { Label } from '~/components/ui/label';
 import { Separator } from '~/components/ui/separator';
 import { Bell, Mail, Smartphone, Globe, ShieldAlert, CheckCircle2, Info, AlertTriangle } from 'lucide-react';
-import { Button } from '~/components/ui/button';
 
 export const NotificationSettings: React.FC = () => {
   const { preferences, updatePreferences, requestPushPermission } = useNotifications();
 
   const toggleType = (type: NotificationType) => {
     const newTypes = preferences.types.includes(type)
-      ? preferences.types.filter(t => t !== type)
+      ? preferences.types.filter((t: NotificationType) => t !== type)
       : [...preferences.types, type];
     updatePreferences({ types: newTypes });
   };
@@ -23,7 +22,7 @@ export const NotificationSettings: React.FC = () => {
       return;
     }
     const newChannels = preferences.channels.includes(channel)
-      ? preferences.channels.filter(c => c !== channel)
+      ? preferences.channels.filter((c: NotificationChannel) => c !== channel)
       : [...preferences.channels, channel];
     updatePreferences({ channels: newChannels });
   };

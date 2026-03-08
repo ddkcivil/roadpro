@@ -530,11 +530,105 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
 
                     {/* SUPPLIERS TAB */}
                     {activeTab === "1" && (
-                        <div>
-                            <h3 className="text-lg font-semibold mb-4">Supplier Rate Management</h3>
-                            <p className="text-muted-foreground">
-                                Manage supplier rates for materials in the Materials tab.
-                            </p>
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h3 className="text-lg font-bold">Vendor Rate Directory</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        Comparison of material rates across all registered suppliers and agencies.
+                                    </p>
+                                </div>
+                                <Button variant="outline" onClick={() => setActiveTab("0")}>
+                                    <Package size={16} className="mr-2" />
+                                    View by Material
+                                </Button>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-6">
+                                {agencies.length === 0 ? (
+                                    <div className="py-12 text-center border-2 border-dashed rounded-2xl">
+                                        <Truck size={40} className="mx-auto text-muted-foreground mb-3 opacity-20" />
+                                        <p className="text-muted-foreground">No vendors or agencies registered in this project.</p>
+                                        <p className="text-xs text-muted-foreground mt-1">Add them in the 'Vendors & Agencies' module.</p>
+                                    </div>
+                                ) : (
+                                    agencies.map(agency => {
+                                        // Find all materials supplied by this agency
+                                        const suppliedMaterials = materials.filter(m => m.supplierId === agency.id);
+                                        const rateEntries = (agency.rates || []);
+
+                                        return (
+                                            <Card key={agency.id} className="overflow-hidden border-border/50">
+                                                <CardHeader className="bg-muted/30 py-3 px-4 border-b">
+                                                    <div className="flex justify-between items-center">
+                                                        <div className="flex items-center gap-3">
+                                                            <Avatar className="h-8 w-8">
+                                                                <AvatarFallback>{agency.name.charAt(0)}</AvatarFallback>
+                                                            </Avatar>
+                                                            <div>
+                                                                <CardTitle className="text-sm font-bold">{agency.name}</CardTitle>
+                                                                <p className="text-[10px] text-muted-foreground uppercase font-black">{agency.trade}</p>
+                                                            </div>
+                                                        </div>
+                                                        <Badge variant="outline" className="text-[10px]">{agency.status}</Badge>
+                                                    </div>
+                                                </CardHeader>
+                                                <CardContent className="p-0">
+                                                    <Table>
+                                                        <TableHeader className="bg-muted/10">
+                                                            <TableRow>
+                                                                <TableHead className="h-8 text-[10px] font-bold uppercase">Material</TableHead>
+                                                                <TableHead className="h-8 text-[10px] font-bold uppercase text-right">Current Rate</TableHead>
+                                                                <TableHead className="h-8 text-[10px] font-bold uppercase">Effective Date</TableHead>
+                                                                <TableHead className="h-8 text-[10px] font-bold uppercase">Status</TableHead>
+                                                                <TableHead className="h-8 text-[10px] font-bold uppercase text-right">Action</TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {suppliedMaterials.length === 0 && rateEntries.length === 0 ? (
+                                                                <TableRow>
+                                                                    <TableCell colSpan={5} className="text-center py-4 text-xs text-muted-foreground italic">
+                                                                        No rates defined for this vendor.
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ) : (
+                                                                <>
+                                                                    {materials.map(mat => {
+                                                                        const matRate = rateEntries.find(r => r.materialId === mat.id);
+                                                                        if (!matRate && mat.supplierId !== agency.id) return null;
+                                                                        
+                                                                        return (
+                                                                            <TableRow key={`${agency.id}-${mat.id}`} className="text-xs">
+                                                                                <TableCell className="font-bold">{mat.name}</TableCell>
+                                                                                <TableCell className="text-right font-mono text-primary font-bold">
+                                                                                    {formatCurrency(matRate?.rate || mat.supplierRate || 0)}
+                                                                                </TableCell>
+                                                                                <TableCell className="text-muted-foreground">
+                                                                                    {matRate?.effectiveDate || mat.lastUpdated}
+                                                                                </TableCell>
+                                                                                <TableCell>
+                                                                                    <Badge variant="outline" className="text-[9px] h-4 scale-90 origin-left">
+                                                                                        {matRate?.status || 'Active'}
+                                                                                    </Badge>
+                                                                                </TableCell>
+                                                                                <TableCell className="text-right">
+                                                                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleAddRate(mat.id)}>
+                                                                                        <Edit size={12} />
+                                                                                    </Button>
+                                                                                </TableCell>
+                                                                            </TableRow>
+                                                                        );
+                                                                    })}
+                                                                </>
+                                                            )}
+                                                        </TableBody>
+                                                    </Table>
+                                                </CardContent>
+                                            </Card>
+                                        );
+                                    })
+                                )}
+                            </div>
                         </div>
                     )}
 
