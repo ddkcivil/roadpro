@@ -523,12 +523,75 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
               </div>
             </TabsContent>
 
+            <TabsContent value="3" className="p-6 m-0 focus-visible:outline-none">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Card className="rounded-3xl lg:col-span-1">
+                  <CardContent className="p-6">
+                    <h2 className="text-lg font-black mb-4 flex items-center gap-2">
+                      <Users size={20} className="text-primary" /> Personnel
+                    </h2>
+                    <div className="space-y-4">
+                      {[
+                        { role: 'Project Manager', name: project.projectManager || 'Not Assigned' },
+                        { role: 'Site Engineer', name: project.engineer || 'Not Assigned' },
+                        { role: 'Site Supervisor', name: project.supervisor || 'Not Assigned' },
+                      ].map((person, i) => (
+                        <div key={i} className="flex justify-between items-center border-b pb-2 last:border-0">
+                          <span className="text-xs font-bold text-muted-foreground uppercase">{person.role}</span>
+                          <span className="text-sm font-bold">{person.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-3xl lg:col-span-1">
+                  <CardContent className="p-6">
+                    <h2 className="text-lg font-black mb-4 flex items-center gap-2">
+                      <Shield size={20} className="text-primary" /> Equipment
+                    </h2>
+                    <div className="space-y-3">
+                      {!project.vehicles || project.vehicles.length === 0 ? (
+                        <p className="text-sm text-muted-foreground italic">No equipment records.</p>
+                      ) : (
+                        project.vehicles.slice(0, 5).map((vehicle, i) => (
+                          <div key={i} className="flex items-center gap-3 p-2 bg-muted/50 rounded-xl">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-bold truncate">{vehicle.type}</p>
+                              <p className="text-[10px] text-muted-foreground">{vehicle.plateNumber}</p>
+                            </div>
+                            <Badge variant="outline" className="text-[10px]">{vehicle.status}</Badge>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-3xl lg:col-span-1">
+                  <CardContent className="p-6">
+                    <h2 className="text-lg font-black mb-4 flex items-center gap-2">
+                      <FileSpreadsheet size={20} className="text-primary" /> Materials
+                    </h2>
+                    <div className="space-y-3">
+                      {(project.materials || []).slice(0, 5).map((material, i) => (
+                        <div key={i} className="flex justify-between items-center text-xs">
+                          <span className="font-bold">{material.name}</span>
+                          <span className="text-muted-foreground">{material.quantity} {material.unit}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
             <TabsContent value="4" className="p-6 m-0 focus-visible:outline-none">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card className="rounded-3xl">
                   <CardContent className="p-6">
                     <h2 className="text-lg font-black mb-4 flex items-center gap-2">
-                      <Shield size={20} className="text-primary" /> Safety Status
+                      <Shield size={20} className="text-primary" /> Safety & Quality
                     </h2>
 
                     <div className="grid grid-cols-2 gap-4 mb-4">
@@ -547,6 +610,67 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
                     </div>
                   </CardContent>
                 </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="5" className="p-6 m-0 focus-visible:outline-none">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card className="rounded-3xl">
+                  <CardContent className="p-6">
+                    <h2 className="text-lg font-black mb-4 flex items-center gap-2">
+                      <Shield size={20} className="text-primary" /> Environmental Status
+                    </h2>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-muted rounded-2xl text-center">
+                        <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Trees Removed</p>
+                        <p className="text-3xl font-black text-red-600">{project.environmentRegistry?.treesRemoved || 0}</p>
+                      </div>
+                      <div className="p-4 bg-muted rounded-2xl text-center">
+                        <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Trees Planted</p>
+                        <p className="text-3xl font-black text-green-600">{project.environmentRegistry?.treesPlanted || 0}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="6" className="p-6 m-0 focus-visible:outline-none">
+              <Card className="rounded-3xl max-w-2xl mx-auto">
+                <CardContent className="p-8">
+                  <h2 className="text-xl font-black mb-8 text-center uppercase">Endorsement</h2>
+                  <div className="grid grid-cols-2 gap-12 mt-12">
+                    <div className="border-t pt-4 text-center">
+                      <p className="font-bold text-sm">Contractor</p>
+                    </div>
+                    <div className="border-t pt-4 text-center">
+                      <p className="font-bold text-sm">Consultant</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="7" className="p-6 m-0 focus-visible:outline-none">
+              <Card className="rounded-3xl">
+                <CardContent className="p-6">
+                  <h2 className="text-lg font-black mb-4">Project Issues</h2>
+                  <p className="text-sm text-muted-foreground italic">No critical issues reported for this period.</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="8" className="p-6 m-0 focus-visible:outline-none">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {(!project.sitePhotos || project.sitePhotos.length === 0) ? (
+                  <p className="col-span-full text-center py-12 text-muted-foreground italic">No photos available.</p>
+                ) : (
+                  project.sitePhotos.map((photo, i) => (
+                    <div key={i} className="aspect-square rounded-2xl overflow-hidden border">
+                      <img src={photo.url} alt={photo.caption} className="w-full h-full object-cover" />
+                    </div>
+                  ))
+                )}
               </div>
             </TabsContent>
           </ScrollArea>
