@@ -1,4 +1,4 @@
-import { Project, ScheduleTask, StructureAsset, Vehicle, LabTest, RFI, NCR, WeatherInfo, User } from '../../types';
+import { Project, ScheduleTask, User } from '../../types';
 
 // Interface for scheduling recommendations
 export interface SchedulingRecommendation {
@@ -37,13 +37,13 @@ export class AISchedulingService {
    */
   async generateSchedulingRecommendations(project: Project, currentUser?: User): Promise<SchedulingRecommendation[]> {
     const recommendations: SchedulingRecommendation[] = [];
-    
+
     // Analyze each task for optimal scheduling
     for (const task of project.schedule) {
-      const recommendation = await this.analyzeTaskScheduling(task, project, currentUser);
+      const recommendation = await this.analyzeTaskScheduling(task, project);
       recommendations.push(recommendation);
     }
-    
+
     // Sort recommendations by priority and urgency
     return recommendations.sort((a, b) => {
       // Prioritize high-confidence recommendations
@@ -58,34 +58,31 @@ export class AISchedulingService {
   /**
    * Analyzes a single task for scheduling optimization
    */
-  private async analyzeTaskScheduling(task: ScheduleTask, project: Project, currentUser?: User): Promise<SchedulingRecommendation> {
-    // Get current date
-    const currentDate = new Date();
-    
+  private async analyzeTaskScheduling(task: ScheduleTask, project: Project): Promise<SchedulingRecommendation> {
     // Analyze dependencies
     const dependencyIssues = this.analyzeDependencies(task, project);
-    
+
     // Analyze resource availability
     const resourceAnalysis = this.analyzeResourceAvailability(task, project);
-    
+
     // Analyze weather considerations
     const weatherAnalysis = this.analyzeWeatherForTask(task, project);
-    
+
     // Analyze quality requirements
     const qualityAnalysis = this.analyzeQualityRequirements(task, project);
-    
+
     // Calculate optimal start date considering all factors
     let optimalDate = new Date(task.startDate);
-    
+
     // Adjust for dependencies
     if (dependencyIssues.pendingDependencies.length > 0) {
       // Find latest dependency completion date
-      const latestDepCompletion = this.getLatestDependencyCompletion(dependencyIssues.pendingDependencies, project);
+      const latestDepCompletion = this.getLatestDependencyCompletion(dependencyIssues.pendingDependencies);
       if (latestDepCompletion && latestDepCompletion > optimalDate) {
         optimalDate = latestDepCompletion;
       }
     }
-    
+
     // Adjust for weather unsuitability
     if (!weatherAnalysis.suitableForWeather && weatherAnalysis.bestAlternativeDate) {
       const altDate = new Date(weatherAnalysis.bestAlternativeDate);
@@ -93,13 +90,13 @@ export class AISchedulingService {
         optimalDate = altDate;
       }
     }
-    
+
     // Consider resource availability
-    const resourceAvailDate = this.getNextResourceAvailableDate(resourceAnalysis.unavailableResources, project);
+    const resourceAvailDate = this.getNextResourceAvailableDate(resourceAnalysis.unavailableResources);
     if (resourceAvailDate && resourceAvailDate > optimalDate) {
       optimalDate = resourceAvailDate;
     }
-    
+
     // Prepare reasons for recommendation
     const reasons = [];
     if (dependencyIssues.pendingDependencies.length > 0) {
@@ -114,17 +111,17 @@ export class AISchedulingService {
     if (qualityAnalysis.requiresTesting) {
       reasons.push(`Quality tests required after completion`);
     }
-    
+
     // Calculate confidence based on available data
     let confidence = 80; // Base confidence
     if (dependencyIssues.pendingDependencies.length > 0) confidence -= 10;
     if (!weatherAnalysis.suitableForWeather) confidence -= 15;
     if (resourceAnalysis.unavailableResources.length > 0) confidence -= 10;
     if (project.weather?.impactOnSchedule !== 'None') confidence -= 5;
-    
+
     // Generate alternatives
     const alternatives = this.generateAlternativeSchedulingOptions(task, project, optimalDate);
-    
+
     return {
       taskId: task.id,
       taskName: task.name,
@@ -144,7 +141,7 @@ export class AISchedulingService {
   private analyzeDependencies(task: ScheduleTask, project: Project) {
     const pendingDependencies = [];
     const satisfiedDependencies = [];
-    
+
     for (const dependency of task.dependencies) {
       const depTask = project.schedule.find(t => t.id === dependency.taskId);
       if (depTask) {
@@ -155,7 +152,7 @@ export class AISchedulingService {
         }
       }
     }
-    
+
     return { pendingDependencies, satisfiedDependencies };
   }
 
@@ -166,16 +163,16 @@ export class AISchedulingService {
     // Extract resource requirements from task description or linked BOQ items
     const requiredResources = this.extractResourceRequirements(task, project);
     const unavailableResources = [];
-    
+
     // Check if required resources are available
     for (const resource of requiredResources) {
       // This is simplified - in a real system, you'd check resource allocation databases
-      const isAvailable = this.isResourceAvailable(resource, task.startDate, task.endDate, project);
+      const isAvailable = this.isResourceAvailable(resource);
       if (!isAvailable) {
         unavailableResources.push(resource);
       }
     }
-    
+
     return { requiredResources, unavailableResources };
   }
 
@@ -185,7 +182,7 @@ export class AISchedulingService {
   private extractResourceRequirements(task: ScheduleTask, project: Project): string[] {
     // Simplified extraction - in reality, this would parse task descriptions and linked BOQ items
     const resources: string[] = [];
-    
+
     // If task is linked to a BOQ item, get materials from there
     if (task.boqItemId) {
       const boqItem = project.boq.find(b => b.id === task.boqItemId);
@@ -193,7 +190,7 @@ export class AISchedulingService {
         resources.push(`${boqItem.description} materials`);
       }
     }
-    
+
     // Add common construction resources based on task type
     if (task.name.toLowerCase().includes('excavation') || task.name.toLowerCase().includes('earthwork')) {
       resources.push('Excavators', 'Dump trucks', 'Operators');
@@ -202,14 +199,14 @@ export class AISchedulingService {
     } else if (task.name.toLowerCase().includes('steel')) {
       resources.push('Steel fixers', 'Crane', 'Welders');
     }
-    
+
     return resources;
   }
 
   /**
    * Checks if a resource is available during the required period
    */
-  private isResourceAvailable(resource: string, startDate: string, endDate: string, project: Project): boolean {
+  private isResourceAvailable(_resource: string): boolean {
     // Simplified check - in reality, this would check resource allocation schedules
     // For now, assume resources are available unless there's a clear conflict
     return true;
@@ -222,16 +219,16 @@ export class AISchedulingService {
     let suitableForWeather = true;
     let bestAlternativeDate: string | null = null;
     let considerations = '';
-    
+
     if (project.weather) {
       // Outdoor tasks are more sensitive to weather
       const isOutdoorTask = this.isOutdoorTask(task);
-      
+
       if (isOutdoorTask) {
         if (project.weather.impactOnSchedule === 'Severe') {
           suitableForWeather = false;
           considerations = 'Severe weather conditions make outdoor work inadvisable';
-          
+
           // Look for better weather forecast in the coming days
           const forecast = project.weather.forecast;
           if (forecast) {
@@ -253,7 +250,7 @@ export class AISchedulingService {
         considerations = 'Weather conditions suitable for indoor work';
       }
     }
-    
+
     return { suitableForWeather, bestAlternativeDate, considerations };
   }
 
@@ -266,7 +263,7 @@ export class AISchedulingService {
       'excavation', 'backfill', 'grading', 'paving', 'concreting', 'foundation', 
       'erection', 'installation', 'landscaping', 'drainage', 'utility', 'fencing'
     ];
-    
+
     return outdoorKeywords.some(keyword => 
       task.name.toLowerCase().includes(keyword)
     );
@@ -277,28 +274,28 @@ export class AISchedulingService {
    */
   private analyzeQualityRequirements(task: ScheduleTask, project: Project) {
     // Determine if this task requires quality testing
-    const requiresTesting = this.doesTaskRequireTesting(task, project);
-    
+    const requiresTesting = this.doesTaskRequireTesting(task);
+
     // Identify related lab tests that may be needed
     const relatedTests = project.labTests.filter(test => 
       test.location.includes(task.name) || 
       test.componentId === task.id ||
       test.assetId
     );
-    
+
     return { requiresTesting, relatedTests };
   }
 
   /**
    * Determines if a task requires quality testing
    */
-  private doesTaskRequireTesting(task: ScheduleTask, project: Project): boolean {
+  private doesTaskRequireTesting(task: ScheduleTask): boolean {
     // Tasks that typically require testing
     const testingKeywords = [
       'concrete', 'steel', 'material', 'foundation', 'structural', 
       'asphalt', 'compaction', 'density', 'strength'
     ];
-    
+
     return testingKeywords.some(keyword => 
       task.name.toLowerCase().includes(keyword)
     );
@@ -307,28 +304,28 @@ export class AISchedulingService {
   /**
    * Gets the latest completion date among dependencies
    */
-  private getLatestDependencyCompletion(dependencies: ScheduleTask[], project: Project): Date | null {
+  private getLatestDependencyCompletion(dependencies: ScheduleTask[]): Date | null {
     if (dependencies.length === 0) return null;
-    
+
     let latestDate: Date | null = null;
-    
+
     for (const dep of dependencies) {
       const depEndDate = new Date(dep.endDate);
       if (!latestDate || depEndDate > latestDate) {
         latestDate = depEndDate;
       }
     }
-    
+
     return latestDate;
   }
 
   /**
    * Gets next available date for unavailable resources
    */
-  private getNextResourceAvailableDate(unavailableResources: string[], project: Project): Date | null {
+  private getNextResourceAvailableDate(unavailableResources: string[]): Date | null {
     // Simplified - in reality, this would check resource calendars
     if (unavailableResources.length === 0) return null;
-    
+
     // Return current date + 2 days as a simple solution
     const nextAvailable = new Date();
     nextAvailable.setDate(nextAvailable.getDate() + 2);
@@ -340,7 +337,7 @@ export class AISchedulingService {
    */
   private generateAlternativeSchedulingOptions(task: ScheduleTask, project: Project, optimalDate: Date): AlternativeSchedulingOption[] {
     const alternatives: AlternativeSchedulingOption[] = [];
-    
+
     // Option 1: Original planned date
     const originalDate = new Date(task.startDate);
     const originalScore = this.calculateSchedulingScore(task, project, originalDate);
@@ -350,7 +347,7 @@ export class AISchedulingService {
       reasons: ['Original planned date'],
       constraints: []
     });
-    
+
     // Option 2: Optimal recommended date
     const optimalScore = this.calculateSchedulingScore(task, project, optimalDate);
     alternatives.push({
@@ -359,7 +356,7 @@ export class AISchedulingService {
       reasons: ['Optimal date based on all factors'],
       constraints: []
     });
-    
+
     // Option 3: Next week if optimal is far
     const nextWeek = new Date(optimalDate);
     nextWeek.setDate(nextWeek.getDate() + 7);
@@ -370,7 +367,7 @@ export class AISchedulingService {
       reasons: ['Next week option'],
       constraints: []
     });
-    
+
     // Sort by score descending
     return alternatives.sort((a, b) => b.score - a.score);
   }
@@ -378,9 +375,9 @@ export class AISchedulingService {
   /**
    * Calculates a scheduling score based on various factors
    */
-  private calculateSchedulingScore(task: ScheduleTask, project: Project, date: Date): number {
+  private calculateSchedulingScore(task: ScheduleTask, project: Project, _date: Date): number {
     let score = 100; // Base score
-    
+
     // Deduct points for weather unsuitability
     if (project.weather) {
       if (this.isOutdoorTask(task)) {
@@ -391,15 +388,15 @@ export class AISchedulingService {
         }
       }
     }
-    
+
     // Deduct points for resource unavailability
     const resources = this.analyzeResourceAvailability(task, project);
     score -= resources.unavailableResources.length * 10;
-    
+
     // Deduct points for dependency conflicts
     const deps = this.analyzeDependencies(task, project);
     score -= deps.pendingDependencies.length * 15;
-    
+
     // Ensure score doesn't go below 0
     return Math.max(0, score);
   }
@@ -409,10 +406,10 @@ export class AISchedulingService {
    */
   private calculatePriorityAdjustment(task: ScheduleTask, project: Project): number {
     let adjustment = 0;
-    
+
     // Increase priority if task is on critical path
     if (task.isCritical) adjustment += 1;
-    
+
     // Increase priority if dependent tasks are waiting
     const dependentTasks = project.schedule.filter(t => 
       t.dependencies.some(d => d.taskId === task.id)
@@ -420,14 +417,14 @@ export class AISchedulingService {
     if (dependentTasks.length > 0) {
       adjustment += Math.min(dependentTasks.length, 2); // Max +2 adjustment
     }
-    
+
     // Decrease priority if task has been delayed before
     const now = new Date();
     const originalEnd = new Date(task.endDate);
     if (now > originalEnd && task.status !== 'Completed') {
       adjustment -= 1; // Delayed tasks may need reprioritization
     }
-    
+
     // Limit adjustment to -2 to +2 range
     return Math.max(-2, Math.min(2, adjustment));
   }
@@ -447,25 +444,25 @@ export class AISchedulingService {
     // This is a simplified optimization - a full implementation would use more complex algorithms
     const optimizedTasks = [...project.schedule];
     const recommendations: string[] = [];
-    
+
     // Identify tasks that could be fast-tracked
     const parallelizableTasks = this.identifyParallelizableTasks(project);
     if (parallelizableTasks.length > 0) {
       recommendations.push(`Consider running ${parallelizableTasks.length} tasks in parallel to reduce project duration`);
     }
-    
+
     // Identify tasks that could be rescheduled for better resource utilization
     const resourceConflictTasks = this.identifyResourceConflicts(project);
     if (resourceConflictTasks.length > 0) {
       recommendations.push(`Reschedule ${resourceConflictTasks.length} tasks to reduce resource conflicts`);
     }
-    
+
     // Identify weather-sensitive tasks that could be moved
     const weatherSensitiveTasks = this.identifyWeatherSensitiveTasks(project);
     if (weatherSensitiveTasks.length > 0) {
       recommendations.push(`Reschedule weather-sensitive tasks to optimal weather periods`);
     }
-    
+
     return {
       optimizedTasks,
       expectedImprovements: {

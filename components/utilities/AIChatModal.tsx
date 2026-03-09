@@ -1,12 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Bot, Send, Paperclip, Zap, Image as ImageIcon, Video, Loader2, Sparkles, FileText, Settings2 } from 'lucide-react';
+import { X, Bot, Send, Paperclip, Zap, Video, Loader2, Sparkles, FileText, Settings2 } from 'lucide-react';
 import { chatWithGemini, ChatMessage, isAIServiceAvailable as isGeminiAvailable } from '../../services/ai/geminiService';
 import { chatWithDeepSeek, isDeepSeekAvailable } from '../../services/ai/deepseekService';
 import { chatWithPuter, isPuterAvailable } from '../../services/ai/puterService';
 import { Project } from '../../types';
 import { Button } from '~/components/ui/button';
-import { Input } from '~/components/ui/input';
-import { Avatar, AvatarFallback } from '~/components/ui/avatar';
 import { Badge } from '~/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { Label } from '~/components/ui/label';
@@ -348,7 +346,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                               id="fast-mode-dropdown"
                               checked={isFastMode}
                               onCheckedChange={setIsFastMode}
-                              size="sm"
+                              className="scale-75"
                           />
                       </div>
                   </DropdownMenuContent>

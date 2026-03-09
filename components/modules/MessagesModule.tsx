@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { User, Message } from '../../types';
 import { Send, Search, MoreVertical, Hash, Check, CheckCheck, MessageCircle, Mail, Phone, Paperclip, FileText, HardHat } from 'lucide-react';
+import { cn } from '~/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
@@ -57,8 +58,8 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
 
     return (
       <div style={style} className="px-6 py-1">
-        <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-            <div className={`flex max-w-[85%] gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+        <div className={cn("flex", isMe ? 'justify-end' : 'justify-start')}>
+            <div className={cn("flex max-w-[85%] gap-2", isMe ? 'flex-row-reverse' : 'flex-row')}>
                 {!isMe && (
                     <div className="w-8 shrink-0">
                       {showHeader && (

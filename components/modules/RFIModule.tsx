@@ -1,32 +1,27 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card, CardContent } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '~/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { Badge } from '~/components/ui/badge';
 import { Separator } from '~/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
-import { Checkbox } from '~/components/ui/checkbox';
-import { Switch } from '~/components/ui/switch';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { Progress } from '~/components/ui/progress';
 import { ScrollArea } from '~/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { ErrorSummary } from '~/components/ui/error-summary';
 
-import { Project, RFI, UserRole, RFIStatus, ScheduleTask, Checklist, ChecklistItem, UserWithPermissions } from '../../types';
+import { Project, RFI, UserRole, RFIStatus, UserWithPermissions } from '../../types';
 import { 
-    Plus, Eye, Edit2, History, X, ShieldCheck, FileText, Printer, 
-    Clock, Lock, CheckCircle2, XCircle, FileSearch, CalendarPlus, 
-    Link as LinkIcon, ExternalLink, Calendar, MapPin, BarChart2,
-    MessageSquare, User as UserIcon, Circle, Filter, CheckCircle, Trash2,
-    ClipboardList, AlertTriangle, ChevronDown
+    Plus, Eye, Edit2, X, FileText, 
+    Clock, CheckCircle2, XCircle, FileSearch, 
+    MapPin, CheckCircle, Trash2,
+    ClipboardList, AlertTriangle, ChevronDown, Filter, User as UserIcon, Lock
 } from 'lucide-react';
 import StatCard from '../core/StatCard';
 import { cn } from '~/lib/utils';
@@ -52,8 +47,6 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
     const [viewMode, setViewMode] = useState<'LIST' | 'UPDATE' | 'CHECKLIST_LIST' | 'CHECKLIST_UPDATE'>('LIST');
     const [formData, setFormData] = useState<Partial<RFI>>({});
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [selectedRfiForDetail, setSelectedRfiForDetail] = useState<RFI | null>(null);
-    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [taskFilter, setTaskFilter] = useState<string>('all');
     const [tabIndex, setTabIndex] = useState("0");
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -182,7 +175,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
         } catch (err) {
             if (err instanceof z.ZodError) {
                 const newErrors: Record<string, string> = {};
-                err.errors.forEach((e) => {
+                err.issues.forEach((e: z.ZodIssue) => {
                     if (e.path[0]) newErrors[e.path[0].toString()] = e.message;
                 });
                 setErrors(newErrors);
@@ -379,7 +372,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                 </div>
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                     <Select value={taskFilter} onValueChange={setTaskFilter}>
-                        <SelectTrigger id="activity-filter" className="w-full sm:w-[220px] h-10 border-border/50">
+                        <SelectTrigger id="activity-filter" className="w-full sm:w-[220px] h-10 border-border/50" aria-label="Filter by Activity">
                             <Filter size={14} className="mr-2" />
                             <SelectValue placeholder="Filter by Activity" />
                         </SelectTrigger>

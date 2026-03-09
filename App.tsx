@@ -344,10 +344,10 @@ const App: React.FC = () => {
                               {activeTab === 'ocr-extraction' && <ChandraOCRAnalyzer />}
                               {activeTab === 'agencies' && <AgencyModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} settings={appSettings} />}
                               {activeTab === 'subcontractors' && <SubcontractorModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
-                              {activeTab === 'subcontractor-billing' && <SubcontractorBillingModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                              {activeTab === 'subcontractor-billing' && <SubcontractorBillingModule project={currentProject!} settings={appSettings} onProjectUpdate={handleSaveProject as any} />}
                               {activeTab === 'schedule' && <ScheduleModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
-                              {activeTab === 'construction' && <ConstructionModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
-                              {activeTab === 'linear-works' && <LinearWorksModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
+                              {activeTab === 'construction' && <ConstructionModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
+                              {activeTab === 'linear-works' && <LinearWorksModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
                               {activeTab === 'site-photos' && <SitePhotosModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
                               {activeTab === 'daily-reports' && <DailyReportModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
                               {activeTab === 'pre-construction' && <PreConstructionModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
@@ -356,7 +356,7 @@ const App: React.FC = () => {
                               {activeTab === 'rfis' && <RFIModule project={currentProject!} userRole={userRole} currentUser={currentUser} onProjectUpdate={handleSaveProject as any} />}
                               {activeTab === 'materials-hub' && <MaterialManagementModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
                               {activeTab === 'assets' && <AssetsModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
-                              {activeTab === 'fleet' && <FleetModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
+                              {activeTab === 'fleet' && <FleetModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
                               {activeTab === 'resource-matrix' && <ResourceMatrixModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
                               {activeTab === 'quality' && <QualityHub project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
                               {activeTab === 'lab' && <LabModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
@@ -407,7 +407,6 @@ const App: React.FC = () => {
               currentProject={currentProject}
               onSelectProject={(id) => setSelectedProjectId(id)}
               onNavigate={handleTabChange}
-              userRole={userRole}
             />
 
             {/* Floating Info Buttons */}

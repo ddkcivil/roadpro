@@ -1,31 +1,23 @@
 import React, { useState, useMemo } from 'react';
-import { Project, UserRole, LinearWorkLog } from '../../types';
+import { Project, LinearWorkLog } from '../../types';
 import { 
-    Plus, Trash2, Layers, MapPin, History, Filter, 
-    TrendingUp, Ruler, Navigation, ShieldCheck, 
-    Construction, Waves, Footprints, Grid2X2
+    Plus, Trash2, Layers, History, Filter, 
+    Ruler, ShieldCheck, 
+    Waves, Footprints, Grid2X2
 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Progress } from '~/components/ui/progress';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { toast } from 'sonner';
-
-const ArrowRightIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-slate-300">
-        <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
-    </svg>
-);
 
 interface Props {
   project: Project;
-  userRole: UserRole;
   onProjectUpdate: (project: Project) => void;
 }
 
@@ -38,12 +30,12 @@ const LINEAR_CATEGORIES = [
 
 const WORK_LAYERS: Record<string, string[]> = {
     'Pavement': ['Embankment', 'Subgrade', 'GSB', 'WMM', 'Prime Coat', 'Tack Coat', 'DBM', 'BC', 'Concrete Pavement'],
-    'Drainage': ['Trench Excavation', 'PCC Bedding', 'Wall Construction', 'Cover Slab', 'Finishing / Plastering'],
+    'Drainage': ['Trench Evaluation', 'PCC Bedding', 'Wall Construction', 'Cover Slab', 'Finishing / Plastering'],
     'Footpath': ['Subgrade Prep', 'Granular Base', 'Kerb Stone Fixing', 'Tactile Pavers', 'Interlocking Blocks'],
     'Median': ['Curb Casting', 'Soil Filling', 'Landscape Preparation', 'W-Beam Barrier']
 };
 
-const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) => {
+const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
   const [activeCategory, setActiveCategory] = useState('Pavement');
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [newLog, setNewLog] = useState<Partial<LinearWorkLog>>({ 

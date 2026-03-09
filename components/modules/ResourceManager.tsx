@@ -1,35 +1,30 @@
 
 import React, { useState, useMemo } from 'react';
-import { Project, UserRole, InventoryItem, PurchaseOrder, POItem } from '../../types';
-import { getAutofillSuggestions, checkForDuplicates } from '../../utils/data/autofillUtils';
+import { Project, InventoryItem, PurchaseOrder, POItem } from '../../types';
+import { checkForDuplicates } from '../../utils/data/autofillUtils';
 import { 
-    Package, AlertTriangle, CheckCircle2, TrendingDown, Plus, 
-    ArrowUpRight, ShoppingCart, History, PackageSearch, Filter,
-    FileText, Truck, CreditCard, ChevronRight, Calculator,
-    PlusCircle, Trash2, Save, X, Printer, Edit
+    Package, AlertTriangle, CheckCircle2, TrendingDown,
+    ShoppingCart, History, Filter,
+    FileText, Truck,
+    Trash2, Save, X, Printer, Edit
 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
-import { Progress } from '~/components/ui/progress';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { toast } from 'sonner';
 import { Badge } from '~/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
-import { Checkbox } from '~/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 
 interface Props {
   project: Project;
-  userRole: UserRole;
   onProjectUpdate: (project: Project) => void;
 }
 
-const ResourceManager: React.FC<Props> = ({ project, onProjectUpdate, userRole }) => {
+const ResourceManager: React.FC<Props> = ({ project, onProjectUpdate }) => {
   const [activeTab, setActiveTab] = useState('inventory');
   const [isPoModalOpen, setIsPoModalOpen] = useState(false);
   const [isPoDetailOpen, setIsPoDetailOpen] = useState(false);
@@ -43,21 +38,6 @@ const ResourceManager: React.FC<Props> = ({ project, onProjectUpdate, userRole }
     location: 'Warehouse'
   });
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  
-  // Helper function to map between itemName and name fields
-  const mapInventoryItemToForm = (item: InventoryItem) => ({
-    id: item.id,
-    itemName: item.itemName || item.name, // Use itemName if available, fallback to name
-    quantity: item.quantity,
-    unit: item.unit,
-    reorderLevel: item.reorderLevel,
-    location: item.location
-  });
-
-  const mapFormToInventoryItem = (form: Partial<InventoryItem>): Partial<InventoryItem> => ({
-    ...form,
-    name: form.itemName, // Set name to match itemName for BaseResource compatibility
-  });
   
   // New PO State
   const [poForm, setPoForm] = useState<Partial<PurchaseOrder>>({

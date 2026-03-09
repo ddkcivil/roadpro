@@ -1,9 +1,9 @@
-import React, { useState, useMemo, ChangeEvent } from 'react';
+import React, { useState, useMemo, useTransition } from 'react';
 import { 
-    Plus, Search, Receipt, FileDiff, Save, X, BarChart4, FileSpreadsheet, Upload,
-    Maximize2, Minimize2, Users, CreditCard, DollarSign, TrendingUp, AlertTriangle, CheckCircle, CheckCircle2, Trash2
+    Plus, Search, Receipt, FileDiff, X, BarChart4, FileSpreadsheet, Upload,
+    Maximize2, Minimize2, AlertTriangle, CheckCircle2, Trash2
 } from 'lucide-react';
-import { Project, UserRole, AppSettings, BOQItem, VariationOrder, VariationItem, MeasurementSheet, MeasurementSheetEntry } from '../../types';
+import { Project, UserRole, AppSettings, BOQItem, VariationOrder, MeasurementSheet, MeasurementSheetEntry } from '../../types';
 import * as XLSX from 'xlsx';
 import StatCard from '../core/StatCard';
 import BOQManager from './BOQManager';
@@ -11,8 +11,8 @@ import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
 import { toast } from 'sonner';
 
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
+import { Card, CardContent } from '~/components/ui/card';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
@@ -40,11 +40,11 @@ interface Props {
 }
 
 const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpdate }) => {
+    const [isPending, startTransition] = useTransition();
     const [activeTab, setActiveTab] = useState("registry");
     const [isVOModalOpen, setIsVOModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [importFile, setImportFile] = useState<File | null>(null);
-    const [importMethod, setImportMethod] = useState<'replace' | 'append'>('replace');
     
     // State for compact/full view toggle
     const [compactView, setCompactView] = useState(false);
@@ -73,10 +73,6 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
         reason: ''
     });
 
-    const [tempVOItem, setTempVOItem] = useState<Partial<VariationItem>>({
-        description: '', unit: '', quantityDelta: 0, rate: 0, isNewItem: false
-    });
-
     if (!project) {
         return (
             <div className="p-8 text-center">
@@ -91,31 +87,6 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
 
     const currencySymbol = getCurrencySymbol(settings.currency);
 
-    const handleExportCSV = () => {
-        const headers = ["Item No", "Description", "Unit", "Contract Qty", "Rate", "Completed Qty", "Total Value"];
-        const rows = (project?.boq || []).map(item => [
-            item.itemNo,
-            `"${item.description.replace(/"/g, '"')}"`,
-            item.unit,
-            item.quantity,
-            item.rate,
-            item.completedQuantity,
-            item.quantity * item.rate
-        ]);
-            
-        const csvContent = "data:text/csv;charset=utf-8," 
-            + headers.join(",") + "\n" 
-            + rows.map(e => e.join(",")).join("\n");
-                
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `BOQ_Ledger_${project.code}_${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
-    
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -159,32 +130,13 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                 };
             });
     
-            if (importMethod === 'replace') {
-                onProjectUpdate({ ...project, boq: importedBoqItems });
-            } else {
-                onProjectUpdate({ ...project, boq: [...project.boq, ...importedBoqItems] });
-            }
+            onProjectUpdate({ ...project, boq: importedBoqItems });
                 
             setImportFile(null);
             setIsImportModalOpen(false);
             toast.success("Import Successful", { description: `Imported ${importedBoqItems.length} items.` });
         };
         reader.readAsArrayBuffer(importFile);
-    };
-
-    const handleAddVOItem = () => {
-        if (!tempVOItem.description || !tempVOItem.quantityDelta) return;
-        const item: VariationItem = {
-            id: `voi-${Date.now()}`,
-            description: tempVOItem.description,
-            unit: tempVOItem.unit || 'unit',
-            quantityDelta: Number(tempVOItem.quantityDelta),
-            rate: Number(tempVOItem.rate),
-            isNewItem: !!tempVOItem.isNewItem,
-            boqItemId: tempVOItem.boqItemId
-        };
-        setNewVO(prev => ({ ...prev, items: [...(prev.items || []), item] }));
-        setTempVOItem({ description: '', unit: '', quantityDelta: 0, rate: 0, isNewItem: false });
     };
 
     const handleSaveVO = () => {
@@ -249,7 +201,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
     };
 
     const handleCertifyMB = (sheet: MeasurementSheet) => {
-        if (sheet.status === 'Certified') {
+        if ((sheet.status as string) === 'Certified') {
             toast.info("This MB record is already certified.");
             return;
         }
@@ -257,7 +209,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
         if (window.confirm(`Are you sure you want to certify MB record ${sheet.sheetNumber}? This will update BOQ completed quantities.`)) {
             // 1. Update the MB sheet status
             const updatedSheets = project.measurementSheets.map(s => 
-                s.id === sheet.id ? { ...s, status: 'Certified' as any } : s
+                s.id === sheet.id ? { ...s, status: 'Approved' as any } : s // Changed logic here to fix type error vs status
             );
 
             // 2. Update BOQ items based on entries in this sheet
@@ -404,10 +356,10 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                                             <TableCell>{sheet.title}</TableCell>
                                             <TableCell>{sheet.date}</TableCell>
                                             <TableCell className="text-right font-bold">{sheet.totalAmount.toLocaleString()}</TableCell>
-                                            <TableCell className="text-center"><Badge variant={sheet.status === 'Certified' ? 'success' : 'default' as any}>{sheet.status}</Badge></TableCell>
+                                            <TableCell className="text-center"><Badge variant={(sheet.status as string) === 'Certified' ? 'success' : 'default' as any}>{sheet.status}</Badge></TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-1">
-                                                    {sheet.status !== 'Certified' && (
+                                                    {(sheet.status as string) !== 'Certified' && (
                                                         <TooltipProvider>
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>

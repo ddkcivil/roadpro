@@ -1,14 +1,13 @@
-import React, { useState, useMemo } from 'react';
-import { Edit, Trash2, Plus, Save, X, Search, CheckCircle2 } from 'lucide-react';
+import React, { useState, useMemo, useTransition } from 'react';
+import { Edit, Trash2, Plus, Search, CheckCircle2 } from 'lucide-react';
 import { Project, AppSettings, UserRole, BOQItem } from '../../types';
 import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
 
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
+import { Card, CardContent } from '~/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import {
   Table,
   TableBody,
@@ -19,6 +18,7 @@ import {
 } from "~/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { cn } from '~/lib/utils';
+import { toast } from 'sonner';
 
 // NOTE: This is a refactored version of the BOQManager component.
 // The original logic has been temporarily removed to facilitate the UI migration.
@@ -39,6 +39,7 @@ const BOQManager: React.FC<BOQManagerProps> = ({
   onProjectUpdate,
   compactView = false
 }) => {
+  const [isPending, startTransition] = useTransition();
   const currencySymbol = getCurrencySymbol(settings.currency);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -186,13 +187,15 @@ const BOQManager: React.FC<BOQManagerProps> = ({
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">BOQ Registry</h2>
         <div className="flex items-center gap-2">
-          <Input
-            placeholder="Search BOQ..."
-            value={searchTerm}
-            onChange={handleSearchChange}
-            className="w-64"
-            icon={<Search className="h-4 w-4 text-muted-foreground" />}
-          />
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search BOQ..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              className="w-64 pl-10"
+            />
+          </div>
           <Button onClick={handleAddNewItemClick}>
             <Plus className="mr-2 h-4 w-4" /> Add New Item
           </Button>

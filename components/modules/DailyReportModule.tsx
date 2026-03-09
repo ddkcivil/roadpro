@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Project, UserRole, DailyWorkItem, StructureAsset, StructureComponent, SitePhoto, InventoryItem, DailyReport } from '../../types';
+import React, { useState, useEffect } from 'react';
+import { Project, UserRole, DailyWorkItem, DailyReport } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
-import { Users, Activity, FileText, Trash2, Plus, Printer, CheckCircle, X, Hammer, Layers, AlertCircle, MapPin, Hash, Info, CloudSun, RefreshCw, Wifi, WifiOff, Calendar, Thermometer, CloudRain, Sun, Cloud, Wind, Eye, User, Truck, Package, HelpCircle } from 'lucide-react';
+import { Activity, FileText, Trash2, Plus, Printer, CheckCircle, Info, CloudSun, Wifi, User, Users, AlertCircle } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
@@ -9,15 +9,26 @@ import { Label } from '~/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
-import { Badge } from '~/components/ui/badge';
 import { Textarea } from '~/components/ui/textarea';
 
 interface Props {
   project: Project;
   userRole: UserRole;
   onProjectUpdate: (project: Project) => void;
+}
+
+interface ValidationError {
+  reportDate: string;
+  submittedBy: string;
+  receivedBy: string;
+  workItems: Array<{
+    assetId?: string;
+    componentId?: string;
+    description?: string;
+    quantity?: string;
+  }>;
 }
 
 const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
@@ -29,7 +40,7 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
   const [isFetchingWeather, setIsFetchingWeather] = useState(false);
 
   // Validation states
-  const [errors, setErrors] = useState({
+  const [errors, setErrors] = useState<ValidationError>({
     reportDate: '',
     submittedBy: '',
     receivedBy: '',
@@ -37,14 +48,12 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
   });
 
   const [workItemsToday, setWorkItemsToday] = useState<DailyWorkItem[]>([]);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   // Additional fields for Daily Site Report
-  const [rainfall, setRainfall] = useState('');
-  const [temperatureMin, setTemperatureMin] = useState('');
-  const [temperatureMax, setTemperatureMax] = useState('');
+  const [rainfall] = useState('');
+  const [temperatureMin] = useState('');
+  const [temperatureMax] = useState('');
   const [visitors, setVisitors] = useState([{ id: Date.now().toString(), name: '', organization: '' }]);
-  const [materials, setMaterials] = useState([{ id: Date.now().toString(), material: '', stockQty: '', deliverQty: '', consumeQty: '' }]);
   const [remarks, setRemarks] = useState(['']);
   const [submittedBy, setSubmittedBy] = useState(userName || '');
   const [receivedBy, setReceivedBy] = useState('');
@@ -56,38 +65,14 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
     }
   }, [userName, submittedBy]);
 
-  // Update submittedBy when userName is available
-  useEffect(() => {
-    if (userName && !submittedBy) {
-      setSubmittedBy(userName);
-    }
-  }, [userName, submittedBy]);
-
-  // Update online status when it changes
-  useEffect(() => {
-    const handleOnlineStatusChange = () => {
-      setIsOnline(navigator.onLine);
-    };
-
-    window.addEventListener('online', handleOnlineStatusChange);
-    window.addEventListener('offline', handleOnlineStatusChange);
-
-    return () => {
-      window.removeEventListener('online', handleOnlineStatusChange);
-      window.removeEventListener('offline', handleOnlineStatusChange);
-    };
-  }, []);
-
   const handleAddWorkToday = () => {
-      const newWorkItem = { id: Date.now().toString(), location: '', quantity: 0, description: '' };
+      const newWorkItem: DailyWorkItem = { id: Date.now().toString(), location: '', quantity: 0, description: '' };
       setWorkItemsToday([...workItemsToday, newWorkItem]);
   };
 
   const handleFetchWeather = async () => {
       setIsFetchingWeather(true);
       try {
-          const lat = project.staffLocations?.[0]?.latitude || 27.6600;
-          const lng = project.staffLocations?.[0]?.longitude || 83.4650;
           // Mock weather fetch for now
           setWeather('Sunny');
       } finally {
@@ -95,7 +80,7 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
       }
   };
 
-  const updateWorkToday = (index: number, field: string, value: any) => {
+  const updateWorkToday = (index: number, field: keyof DailyWorkItem, value: any) => {
       const updated = [...workItemsToday];
       updated[index] = { ...updated[index], [field]: value };
       setWorkItemsToday(updated);
@@ -116,7 +101,7 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
       e?.preventDefault();
       // Validate required fields
       let isValid = true;
-      const newErrors = {
+      const newErrors: ValidationError = {
         reportDate: reportDate ? '' : 'Report date is required',
         submittedBy: submittedBy ? '' : 'Submitted by is required',
         receivedBy: receivedBy ? '' : 'Received by is required',
@@ -161,8 +146,7 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
           submittedBy: submittedBy,
           weather: weather,
           remarks: remarks.filter(r => r.trim()).join('\n'),
-          workToday: workItemsToday,
-          workItems: workItemsToday // Keep both for compatibility
+          workToday: workItemsToday
         };
 
         // Update project with the new report
@@ -178,13 +162,13 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                 if (c.id === item.componentId) {
                   return {
                     ...c,
-                    completedQuantity: (c.completedQuantity || 0) + item.quantity,
-                    updatedAt: new Date().toISOString()
+                    completedQuantity: (c.completedQuantity || 0) + (item.quantity || 0),
+                    lastUpdated: new Date().toISOString()
                   };
                 }
                 return c;
               });
-              return { ...s, components: updatedComponents, updatedAt: new Date().toISOString() };
+              return { ...s, components: updatedComponents, lastUpdated: new Date().toISOString() };
             }
             return s;
           });
@@ -273,7 +257,7 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {workItemsToday.map((item, i) => {
+                                        {workItemsToday.map((item) => {
                                             const asset = project.structures?.find(s => s.id === item.assetId);
                                             const component = asset?.components.find(c => c.id === item.componentId);
                                             return (

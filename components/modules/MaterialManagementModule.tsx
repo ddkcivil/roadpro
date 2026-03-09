@@ -3,21 +3,21 @@ import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '~/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 import { Badge } from '~/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
-import { Separator } from '~/components/ui/separator';
 import { Textarea } from '~/components/ui/textarea';
 import {
     Package, Truck, Calculator, TrendingUp, AlertTriangle,
-    CheckCircle, Plus, Edit, Trash2, Search, Filter, X, Save,
-    History, BarChart3, ShoppingCart, Warehouse
+    Plus, Edit, Trash2, Search, Filter, X, Save,
+    BarChart3, Eye
 } from 'lucide-react';
-import { Project, UserRole, Material, Agency } from '../../types';
+import { Project, UserRole, Material } from '../../types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
+import { Avatar, AvatarFallback } from '~/components/ui/avatar';
 
 interface Props {
     project: Project;
@@ -31,7 +31,6 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
     const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
     const [isRateModalOpen, setIsRateModalOpen] = useState(false);
     const [editingMaterialId, setEditingMaterialId] = useState<string | null>(null);
-    const [editingRateId, setEditingRateId] = useState<string | null>(null);
 
     // Material form state
     const [materialForm, setMaterialForm] = useState<Partial<Material>>({
@@ -126,44 +125,16 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
             const updatedMaterials = materials.map(material =>
                 material.id === editingMaterialId
                     ? {
-                        id: material.id, // Preserve the original ID
-                        name: materialForm.name || material.name,
-                        description: materialForm.description,
-                        category: materialForm.category || material.category,
-                        unit: materialForm.unit || material.unit,
-                        quantity: materialForm.quantity || material.quantity || 0,
-                        location: materialForm.location || material.location || 'Warehouse',
-                        status: status as 'Available' | 'Low Stock' | 'Out of Stock' | 'Discontinued',
+                        ...material,
+                        ...materialForm,
+                        id: material.id, // Preserve original ID
+                        status: status as any,
                         lastUpdated: new Date().toISOString().split('T')[0],
                         availableQuantity,
-                        unitCost: materialForm.unitCost || material.unitCost || 0,
-                        totalValue,
-                        reorderLevel: materialForm.reorderLevel || material.reorderLevel || 10,
-                        maxStockLevel: materialForm.maxStockLevel,
-                        criticality: materialForm.criticality || material.criticality || 'Medium',
-                        notes: materialForm.notes,
-                        tags: materialForm.tags,
-                        // LogisticsFields
-                        deliveryLocation: materialForm.deliveryLocation,
-                        transportMode: materialForm.transportMode,
-                        driverName: materialForm.driverName,
-                        vehicleNumber: materialForm.vehicleNumber,
-                        deliveryCharges: materialForm.deliveryCharges,
-                        taxAmount: materialForm.taxAmount,
-                        batchNumber: materialForm.batchNumber,
-                        expiryDate: materialForm.expiryDate,
-                        qualityCertification: materialForm.qualityCertification,
-                        supplierInvoiceRef: materialForm.supplierInvoiceRef,
-                        orderedDate: materialForm.orderedDate,
-                        expectedDeliveryDate: materialForm.expectedDeliveryDate,
-                        deliveryDate: materialForm.deliveryDate,
-                        // SupplierInfo
-                        supplierId: materialForm.supplierId,
-                        supplierName: materialForm.supplierName,
-                        supplierRate: materialForm.supplierRate
+                        totalValue
                     }
                     : material
-            );
+            ) as Material[];
 
             onProjectUpdate({
                 ...project,
@@ -179,7 +150,7 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
                 unit: materialForm.unit || '',
                 quantity: materialForm.quantity || 0,
                 location: materialForm.location || 'Warehouse',
-                status: status as 'Available' | 'Low Stock' | 'Out of Stock' | 'Discontinued',
+                status: status as any,
                 lastUpdated: new Date().toISOString().split('T')[0],
                 availableQuantity,
                 unitCost: materialForm.unitCost || 0,
@@ -189,20 +160,6 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
                 criticality: materialForm.criticality || 'Medium',
                 notes: materialForm.notes,
                 tags: materialForm.tags,
-                // LogisticsFields
-                deliveryLocation: materialForm.deliveryLocation,
-                transportMode: materialForm.transportMode,
-                driverName: materialForm.driverName,
-                vehicleNumber: materialForm.vehicleNumber,
-                deliveryCharges: materialForm.deliveryCharges,
-                taxAmount: materialForm.taxAmount,
-                batchNumber: materialForm.batchNumber,
-                expiryDate: materialForm.expiryDate,
-                qualityCertification: materialForm.qualityCertification,
-                supplierInvoiceRef: materialForm.supplierInvoiceRef,
-                orderedDate: materialForm.orderedDate,
-                expectedDeliveryDate: materialForm.expectedDeliveryDate,
-                deliveryDate: materialForm.deliveryDate,
                 // SupplierInfo
                 supplierId: materialForm.supplierId,
                 supplierName: materialForm.supplierName,
@@ -240,7 +197,6 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
             effectiveDate: new Date().toISOString().split('T')[0],
             description: ''
         });
-        setEditingRateId(null);
         setIsRateModalOpen(true);
     };
 
@@ -273,7 +229,7 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
                 };
             }
             return material;
-        });
+        }) as Material[];
 
         onProjectUpdate({
             ...project,
@@ -288,7 +244,6 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
             effectiveDate: new Date().toISOString().split('T')[0],
             description: ''
         });
-        setEditingRateId(null);
     };
 
     return (
@@ -302,13 +257,15 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
                         Unified system for material inventory and supplier rate management
                     </p>
                 </div>
-                <Button
-                    onClick={handleAddMaterial}
-                    className="px-4 py-2 font-bold rounded-lg"
-                >
-                    <Plus size={18} className="mr-2" />
-                    Add Material
-                </Button>
+                {userRole !== UserRole.SUPERVISOR && (
+                    <Button
+                        onClick={handleAddMaterial}
+                        className="px-4 py-2 font-bold rounded-lg"
+                    >
+                        <Plus size={18} className="mr-2" />
+                        Add Material
+                    </Button>
+                )}
             </div>
 
             <Card className="rounded-xl overflow-hidden mb-6">
@@ -341,6 +298,7 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         className="pl-10"
+                                        aria-label="Search materials"
                                     />
                                 </div>
                                 <Button variant="outline">
@@ -398,7 +356,7 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
                                             <TrendingUp size={16} className="text-blue-600" />
                                         </div>
                                         <div className="text-2xl font-bold text-blue-600">
-                                            {formatCurrency(materialStats.totalValue)}
+                                            {formatCurrency(materialStats.totalValue, project.settings)}
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -443,10 +401,10 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {formatCurrency(material.unitCost || 0)}
+                                                    {formatCurrency(material.unitCost || 0, project.settings)}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {formatCurrency(material.totalValue || 0)}
+                                                    {formatCurrency(material.totalValue || 0, project.settings)}
                                                 </TableCell>
                                                 <TableCell>
                                                     <div>{material.location}</div>
@@ -461,54 +419,61 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex gap-1 justify-end">
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="outline"
-                                                                        onClick={() => handleAddRate(material.id)}
-                                                                    >
-                                                                        <Calculator size={16} />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>Manage Rates</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="outline"
-                                                                        onClick={() => handleEditMaterial(material)}
-                                                                    >
-                                                                        <Edit size={16} />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>Edit</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="outline"
-                                                                        onClick={() => handleDeleteMaterial(material.id)}
-                                                                    >
-                                                                        <Trash2 size={16} />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>Delete</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
+                                                        {userRole !== UserRole.SUPERVISOR && (
+                                                            <>
+                                                                <TooltipProvider>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="outline"
+                                                                                onClick={() => handleAddRate(material.id)}
+                                                                            >
+                                                                                <Calculator size={16} />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>Manage Rates</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
+                                                                <TooltipProvider>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="outline"
+                                                                                onClick={() => handleEditMaterial(material)}
+                                                                            >
+                                                                                <Edit size={16} />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>Edit</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
+                                                                <TooltipProvider>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="outline"
+                                                                                onClick={() => handleDeleteMaterial(material.id)}
+                                                                            >
+                                                                                <Trash2 size={16} />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            <p>Delete</p>
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
+                                                            </>
+                                                        )}
+                                                        <Button variant="ghost" size="sm" title="View Details">
+                                                            <Eye size={16} />
+                                                        </Button>
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
@@ -520,7 +485,7 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
                                     <div className="py-16 text-center">
                                         <Package size={48} className="text-muted-foreground mx-auto mb-4" />
                                         <p className="text-muted-foreground">
-                                            No materials found. Add your first material to get started.
+                                            No materials found.
                                         </p>
                                     </div>
                                 )}
@@ -549,12 +514,9 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
                                     <div className="py-12 text-center border-2 border-dashed rounded-2xl">
                                         <Truck size={40} className="mx-auto text-muted-foreground mb-3 opacity-20" />
                                         <p className="text-muted-foreground">No vendors or agencies registered in this project.</p>
-                                        <p className="text-xs text-muted-foreground mt-1">Add them in the 'Vendors & Agencies' module.</p>
                                     </div>
                                 ) : (
                                     agencies.map(agency => {
-                                        // Find all materials supplied by this agency
-                                        const suppliedMaterials = materials.filter(m => m.supplierId === agency.id);
                                         const rateEntries = (agency.rates || []);
 
                                         return (
@@ -585,7 +547,7 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
                                                             </TableRow>
                                                         </TableHeader>
                                                         <TableBody>
-                                                            {suppliedMaterials.length === 0 && rateEntries.length === 0 ? (
+                                                            {rateEntries.length === 0 ? (
                                                                 <TableRow>
                                                                     <TableCell colSpan={5} className="text-center py-4 text-xs text-muted-foreground italic">
                                                                         No rates defined for this vendor.
@@ -593,27 +555,27 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
                                                                 </TableRow>
                                                             ) : (
                                                                 <>
-                                                                    {materials.map(mat => {
-                                                                        const matRate = rateEntries.find(r => r.materialId === mat.id);
-                                                                        if (!matRate && mat.supplierId !== agency.id) return null;
+                                                                    {rateEntries.map(matRate => {
+                                                                        const mat = materials.find(m => m.id === matRate.materialId);
+                                                                        if (!mat) return null;
                                                                         
                                                                         return (
-                                                                            <TableRow key={`${agency.id}-${mat.id}`} className="text-xs">
+                                                                            <TableRow key={matRate.id} className="text-xs">
                                                                                 <TableCell className="font-bold">{mat.name}</TableCell>
                                                                                 <TableCell className="text-right font-mono text-primary font-bold">
-                                                                                    {formatCurrency(matRate?.rate || mat.supplierRate || 0)}
+                                                                                    {formatCurrency(matRate.rate, project.settings)}
                                                                                 </TableCell>
                                                                                 <TableCell className="text-muted-foreground">
-                                                                                    {matRate?.effectiveDate || mat.lastUpdated}
+                                                                                    {matRate.effectiveDate}
                                                                                 </TableCell>
                                                                                 <TableCell>
                                                                                     <Badge variant="outline" className="text-[9px] h-4 scale-90 origin-left">
-                                                                                        {matRate?.status || 'Active'}
+                                                                                        {matRate.status}
                                                                                     </Badge>
                                                                                 </TableCell>
                                                                                 <TableCell className="text-right">
-                                                                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleAddRate(mat.id)}>
-                                                                                        <Edit size={12} />
+                                                                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                                                                                        <Eye size={12} />
                                                                                     </Button>
                                                                                 </TableCell>
                                                                             </TableRow>
@@ -646,13 +608,13 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
 
             {/* MATERIAL MODAL */}
             <Dialog open={isMaterialModalOpen} onOpenChange={setIsMaterialModalOpen}>
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <Package className="text-primary" size={20} />
-                        {editingMaterialId ? 'Edit Material' : 'Add New Material'}
-                    </DialogTitle>
-                </DialogHeader>
-                <DialogContent className="max-h-[80vh] overflow-y-auto">
+                <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+                            <Package className="text-primary" size={24} />
+                            {editingMaterialId ? 'Edit Material' : 'Add New Material'}
+                        </DialogTitle>
+                    </DialogHeader>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
                         <div className="space-y-2">
                             <Label htmlFor="material-name">Material Name *</Label>
@@ -741,7 +703,7 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
                                 value={materialForm.criticality || 'Medium'}
                                 onValueChange={(value) => setMaterialForm({...materialForm, criticality: value as any})}
                             >
-                                <SelectTrigger>
+                                <SelectTrigger id="material-criticality">
                                     <SelectValue placeholder="Select criticality" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -752,28 +714,28 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
                             </Select>
                         </div>
                     </div>
+                    <DialogFooter className="mt-6">
+                        <Button variant="outline" onClick={() => setIsMaterialModalOpen(false)}>
+                            <X size={16} className="mr-2" />
+                            Cancel
+                        </Button>
+                        <Button onClick={handleSaveMaterial} className="font-bold">
+                            <Save size={16} className="mr-2" />
+                            {editingMaterialId ? 'Update Material' : 'Add Material'}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
-                <DialogFooter className="bg-muted/50">
-                    <Button variant="outline" onClick={() => setIsMaterialModalOpen(false)}>
-                        <X size={16} className="mr-2" />
-                        Cancel
-                    </Button>
-                    <Button onClick={handleSaveMaterial}>
-                        <Save size={16} className="mr-2" />
-                        {editingMaterialId ? 'Update Material' : 'Add Material'}
-                    </Button>
-                </DialogFooter>
             </Dialog>
 
             {/* RATE MODAL */}
             <Dialog open={isRateModalOpen} onOpenChange={setIsRateModalOpen}>
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <Calculator className="text-primary" size={20} />
-                        Manage Supplier Rates
-                    </DialogTitle>
-                </DialogHeader>
-                <DialogContent>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+                            <Calculator className="text-primary" size={24} />
+                            Manage Supplier Rates
+                        </DialogTitle>
+                    </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
                             <Label htmlFor="supplier-select">Select Supplier *</Label>
@@ -781,7 +743,7 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
                                 value={rateForm.supplierId}
                                 onValueChange={(value) => setRateForm({...rateForm, supplierId: value})}
                             >
-                                <SelectTrigger>
+                                <SelectTrigger id="supplier-select">
                                     <SelectValue placeholder="Choose a supplier" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -823,17 +785,17 @@ const MaterialManagementModule: React.FC<Props> = ({ project, onProjectUpdate, u
                             />
                         </div>
                     </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsRateModalOpen(false)}>
+                            <X size={16} className="mr-2" />
+                            Cancel
+                        </Button>
+                        <Button onClick={handleSaveRate} className="font-bold">
+                            <Save size={16} className="mr-2" />
+                            Save Rate
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
-                <DialogFooter className="bg-muted/50">
-                    <Button variant="outline" onClick={() => setIsRateModalOpen(false)}>
-                        <X size={16} className="mr-2" />
-                        Cancel
-                    </Button>
-                    <Button onClick={handleSaveRate}>
-                        <Save size={16} className="mr-2" />
-                        Save Rate
-                    </Button>
-                </DialogFooter>
             </Dialog>
         </div>
     );

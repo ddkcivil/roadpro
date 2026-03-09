@@ -132,23 +132,40 @@ export const analyzeProjectStatus = async (
 export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
+  attachment?: {
+    mimeType: string;
+    data: string;
+    type: 'image' | 'video' | 'pdf';
+  };
 }
 
 export const chatWithGemini = async (
   currentMessage: string,
   history: ChatMessage[],
   projectContext: any,
-  attachment?: { mimeType: string; data: string }
+  attachment?: { mimeType: string; data: string },
+  isFastMode: boolean = false
 ): Promise<string> => {
   if (!isAIServiceAvailable()) return "Please configure your Gemini API Key or ensure Puter.js is loaded.";
 
   return runWithFallback(async (model) => {
     const systemInstruction = `You are RoadMaster AI for project: ${projectContext.name}. Provide technical advice. Currency: ${getCurrencySymbol(projectContext.settings?.currency)}`;
     
-    const contents = history.map(msg => ({
-      role: msg.role === 'model' ? 'model' : 'user',
-      parts: [{ text: msg.text }]
-    }));
+    const contents = history.map(msg => {
+      const parts: any[] = [{ text: msg.text }];
+      if (msg.attachment) {
+        parts.push({
+          inlineData: {
+            mimeType: msg.attachment.mimeType,
+            data: msg.attachment.data.replace(/^data:.*?;base64,/, "")
+          }
+        });
+      }
+      return {
+        role: msg.role === 'model' ? 'model' : 'user',
+        parts: parts
+      };
+    });
 
     const currentParts: any[] = [{ text: currentMessage }];
     if (attachment) {

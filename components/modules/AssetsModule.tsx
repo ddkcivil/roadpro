@@ -9,16 +9,11 @@ import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableRow, TableHeader } from "~/components/ui/table"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { Badge } from "~/components/ui/badge"
-import { Separator } from "~/components/ui/separator"
-import { cn } from '~/lib/utils';
 import {
-    Package, AlertTriangle, CheckCircle2, TrendingDown, Plus,
-    ArrowUpRight, ShoppingCart, History, PackageSearch, Filter,
-    FileText, Truck, CreditCard, ChevronRight, Calculator,
-    PlusCircle, Trash2, Save, X, Printer, Edit, Car, Fuel, Gauge, Wrench, QrCode
+    CheckCircle2, Plus,
+    Trash2, Save, Edit, Car, Fuel, Gauge, Wrench, QrCode
 } from 'lucide-react';
 
 interface Props {
@@ -28,7 +23,6 @@ interface Props {
 }
 
 const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) => {
-  const [activeTab, setActiveTab] = useState(0);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<Vehicle | null>(null);
@@ -430,7 +424,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
           {selectedAsset && (
             <div className="flex flex-col items-center py-4">
               <QRCodeGenerator
-                data={JSON.stringify({
+                value={JSON.stringify({
                   id: selectedAsset.id,
                   plateNumber: selectedAsset.plateNumber,
                   type: selectedAsset.type,

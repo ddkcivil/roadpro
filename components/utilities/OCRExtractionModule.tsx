@@ -6,7 +6,7 @@ import { Progress } from "../../components/ui/progress";
 import { Alert, AlertTitle, AlertDescription } from "../../components/ui/alert";
 import { Badge } from "../../components/ui/badge";
 
-import { Upload, FileText, Eye, Download, CheckCircle } from 'lucide-react';
+import { FileText, Eye, Download, CheckCircle } from 'lucide-react';
 import { ocrService } from '../../services/ai/ocrService';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
 
@@ -488,7 +488,7 @@ const OCRExtractionModule: React.FC = () => {
                         if (result?.structuredData?.boqItems && result.structuredData.boqItems.length > 0) {
                           csvContent += 'BOQ Items:,\n';
                           csvContent += 'Description,Quantity,Unit\n';
-                          result.structuredData.boqItems.forEach(item => {
+                          result.structuredData.boqItems.forEach((item: any) => {
                             csvContent += `${item.description},${item.quantity},${item.unit}\n`;
                           });
                           csvContent += '\n';
@@ -498,7 +498,7 @@ const OCRExtractionModule: React.FC = () => {
                         if (result?.structuredData?.amounts && result.structuredData.amounts.length > 0) {
                           csvContent += 'Financial Amounts:,\n';
                           csvContent += 'Amount\n';
-                          result.structuredData.amounts.forEach(amount => {
+                          result.structuredData.amounts.forEach((amount: number) => {
                             csvContent += `${formatCurrency(amount)}\n`;
                           });
                           csvContent += '\n';
@@ -508,7 +508,7 @@ const OCRExtractionModule: React.FC = () => {
                         if (result?.structuredData?.dates && result.structuredData.dates.length > 0) {
                           csvContent += 'Dates:,\n';
                           csvContent += 'Date\n';
-                          result.structuredData.dates.forEach(date => {
+                          result.structuredData.dates.forEach((date: string) => {
                             csvContent += `${date}\n`;
                           });
                           csvContent += '\n';

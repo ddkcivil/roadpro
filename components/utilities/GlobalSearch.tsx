@@ -1,15 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback, startTransition } from 'react';
 import { 
   Search, 
-  FileText, 
   MapPin, 
   Truck, 
-  Users, 
   ClipboardCheck, 
   FolderOpen,
   ArrowRight,
   Command,
-  X,
   Star,
   History,
   Trash2
@@ -19,7 +16,7 @@ import { Input } from '~/components/ui/input';
 import { Badge } from '~/components/ui/badge';
 import { ScrollArea } from '~/components/ui/scroll-area';
 import { Button } from '~/components/ui/button';
-import { Project, UserRole } from '../../types';
+import { Project } from '../../types';
 import { cn } from '~/lib/utils';
 
 interface GlobalSearchProps {
@@ -27,7 +24,6 @@ interface GlobalSearchProps {
   currentProject?: Project;
   onSelectProject: (id: string) => void;
   onNavigate: (tabId: string) => void;
-  userRole: UserRole;
 }
 
 interface SearchResult {
@@ -44,8 +40,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
   projects, 
   currentProject, 
   onSelectProject, 
-  onNavigate,
-  userRole 
+  onNavigate
 }) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -141,11 +136,11 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
 
       // RFIs
       currentProject.rfis?.forEach(r => {
-        if (r.subject?.toLowerCase().includes(q) || r.rfiNo?.toLowerCase().includes(q)) {
+        if (r.description?.toLowerCase().includes(q) || r.rfiNumber?.toLowerCase().includes(q)) {
           searchResults.push({
             id: r.id,
-            title: r.rfiNo,
-            subtitle: `RFI • ${r.subject}`,
+            title: r.rfiNumber as string,
+            subtitle: `RFI • ${r.description}`,
             type: 'RFI',
             tabId: 'rfis',
             icon: ClipboardCheck,

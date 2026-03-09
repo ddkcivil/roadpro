@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { 
-    Trees, CloudRain, Droplets, MapPin, Plus, X, Save,
-    ShieldCheck, Calendar, Wind, Thermometer, History
+    Trees, Droplets, Plus, X, Save, Wind
 } from 'lucide-react';
-import { Project, UserRole, TreeLog, SprinklingLog } from '../../types';
+import { Project, TreeLog, SprinklingLog } from '../../types';
 
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import {
@@ -17,8 +16,6 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
-import { Separator } from '~/components/ui/separator';
 import { Badge } from '~/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { Progress } from '~/components/ui/progress';
@@ -30,13 +27,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
 
 interface Props {
   project: Project;
@@ -56,24 +46,23 @@ const EnvironmentModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
         treeStats.planted += (log.plantedCount || 0);
         treeStats.target += (log.targetPlant || 0);
     }
+const handleSaveTree = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const data = new FormData(e.currentTarget);
+    const removed = Number(data.get('removed'));
+    const newLog: TreeLog = {
+        id: `tree-${Date.now()}`,
+        chainage: data.get('chainage') as string,
+        species: data.get('species') as string,
+        location: data.get('location') as string || 'Unknown',
+        action: 'Removed',
+        count: removed,
+        removedCount: removed,
+        plantedCount: 0,
+        targetPlant: removed * 10,
+        date: new Date().toISOString().split('T')[0]
+    };
 
-    const handleSaveTree = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        const data = new FormData(e.currentTarget);
-        const removed = Number(data.get('removed'));
-        const location = data.get('location') as string || 'Unknown';
-        const newLog: TreeLog = {
-            id: `tree-${Date.now()}`,
-            chainage: data.get('chainage') as string,
-            species: data.get('species') as string,
-            location: data.get('location') as string || 'Unknown',
-            action: 'Removed',
-            count: removed,
-            removedCount: removed,
-            plantedCount: 0,
-            targetPlant: removed * 10,
-            date: new Date().toISOString().split('T')[0]
-        };
         onProjectUpdate({
             ...project,
             environmentRegistry: { ...registry, treeLogs: [...registry.treeLogs, newLog] }
@@ -133,7 +122,7 @@ const EnvironmentModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                 <span className="text-4xl font-bold text-green-800">{treeStats.planted}</span>
                                 <span className="text-lg text-gray-500">/ {treeStats.target}</span>
                             </div>
-                            <Progress value={treeStats.target > 0 ? (treeStats.planted / treeStats.target) * 100 : 0} className="h-2" indicatorColor="bg-green-600" />
+                            <Progress value={treeStats.target > 0 ? (treeStats.planted / treeStats.target) * 100 : 0} className="h-2" indicatorClassName="bg-green-600" />
                             <p className="text-xs text-gray-500 mt-2">Based on {treeStats.removed} trees cleared along the alignment.</p>
                         </CardContent>
                     </Card>

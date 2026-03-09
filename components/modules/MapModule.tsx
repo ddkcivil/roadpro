@@ -9,7 +9,6 @@ import { Badge } from '~/components/ui/badge';
 import { Switch } from '~/components/ui/switch';
 import { Label } from '~/components/ui/label';
 import { ScrollArea } from '~/components/ui/scroll-area';
-import { Separator } from '~/components/ui/separator';
 import {
   Accordion,
   AccordionContent,
@@ -29,8 +28,6 @@ import {
   Download,
   Upload,
   Settings,
-  Eye,
-  EyeOff,
   Loader2,
   Maximize,
   Minimize,
@@ -42,6 +39,7 @@ import {
 import { cn } from '~/lib/utils';
 import { toast } from 'sonner';
 
+// @ts-ignore
 import * as omnivore from '@mapbox/leaflet-omnivore';
 import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
 import 'leaflet-geosearch/dist/geosearch.css';
@@ -147,7 +145,7 @@ const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
             kmlLayer = parseFn(kml.content);
             if (kmlLayer) {
               kmlLayer.addTo(map);
-              kmlLayer.eachLayer((layer: any) => {
+              (kmlLayer as any).eachLayer((layer: any) => {
                 if (layer.setStyle) {
                   layer.setStyle({ color: '#4f46e5', weight: 5, opacity: 0.9 });
                 }
@@ -297,8 +295,7 @@ const MapCenterUpdater: React.FC<{ center: [number, number]; zoom: number }> = (
  */
 const MapRuler: React.FC<{ 
   active: boolean; 
-  onClose: () => void;
-}> = ({ active, onClose }) => {
+}> = ({ active }) => {
   const map = useMap();
   const [points, setPoints] = useState<L.LatLng[]>([]);
   const [totalDistance, setTotalDistance] = useState(0);
@@ -1110,6 +1107,7 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
             className="hidden"
             ref={fileInputRef}
             onChange={handleKMLUpload}
+            aria-label="Upload KML file"
           />
           <Button variant="outline" size="sm" className="font-bold border-2" onClick={() => fileInputRef.current?.click()}>
             <Upload className="mr-2 h-4 w-4" /> Upload KML
@@ -1159,7 +1157,7 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
               <KMLDataLayer key={kml.id} kml={kml} />
             ))}
 
-            <MapRuler active={isRulerActive} onClose={() => setIsRulerActive(false)} />
+            <MapRuler active={isRulerActive} />
             <MapDrawingTool 
               active={isDrawing} 
               onComplete={handleSaveDrawing} 
@@ -1412,7 +1410,6 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                                   <Trash2 size={12} />
                                 </Button>
                                 <Switch 
-                                  size="sm"
                                   className="scale-75 origin-right"
                                   checked={kml.visible} 
                                   onCheckedChange={(checked) => {

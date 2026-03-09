@@ -1,17 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { 
     Shield, ShieldCheck, AlertTriangle, FileText, Activity, TrendingUp, 
-    Eye, Printer, Filter, Search, Plus, X, CheckCircle2, Flame,
-    ChevronDown, Wrench, Package, Scale, Ruler, Thermometer,
-    Droplets, Wind, Sun, Zap, Layers, Users, Calendar,
-    Clock, MapPin, Info, History
+    Eye, Printer, Filter, Plus, Flame,
+    ChevronDown, Scale, MapPin, History
 } from 'lucide-react';
-import { Project, UserRole, LabTest, NCR, RFI, User } from '../../types';
+import { Project, UserRole } from '../../types';
 
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
-import { Label } from '~/components/ui/label';
 import {
   Table,
   TableBody,
@@ -21,11 +18,9 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
-import { Separator } from '~/components/ui/separator';
 import { Badge } from '~/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
-import { Avatar, AvatarFallback } from '~/components/ui/avatar';
+import { Alert, AlertDescription } from '~/components/ui/alert';
+import { Avatar } from '~/components/ui/avatar';
 import { Progress } from '~/components/ui/progress';
 import { cn } from '~/lib/utils';
 import { ScrollArea } from '~/components/ui/scroll-area';
@@ -42,7 +37,7 @@ interface Props {
   onProjectUpdate: (project: Project) => void;
 }
 
-const QualityHub: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
+const QualityHub: React.FC<Props> = ({ project }) => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -95,10 +90,6 @@ const QualityHub: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => 
         r.location.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [rfis, searchTerm]);
-
-  const handleExpandChange = (panel: string) => (isExpanded: boolean) => {
-    setExpandedSection(isExpanded ? panel : null);
-  };
 
   return (
     <div className="animate-in fade-in duration-500 p-4">

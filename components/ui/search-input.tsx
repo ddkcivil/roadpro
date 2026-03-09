@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import { Input } from '~/components/ui/input';
 import { Button } from '~/components/ui/button';
-import { useDebounce } from '~/hooks/useDebounce';
+import { useDebouncedValue } from '~/hooks/useDebounce';
 
 interface SearchInputProps {
   value?: string;
@@ -20,7 +20,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   className = ""
 }) => {
   const [innerValue, setInnerValue] = useState(value);
-  const debouncedValue = useDebounce(innerValue, delay);
+  const debouncedValue = useDebouncedValue(innerValue, delay);
 
   useEffect(() => {
     setInnerValue(value);

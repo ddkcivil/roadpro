@@ -122,6 +122,15 @@ export interface BaseRFI {
   linkedChecklistIds?: string[];
   inspectionType?: string;
   specificWorkDetails?: string;
+  inspectionReport?: string;
+  engineerComments?: string;
+  areSignature?: string;
+  iowSignature?: string;
+  meSltSignature?: string;
+  reSignature?: string;
+  engineerRepresentativeComments?: string;
+  worksStatus?: 'Approved' | 'Approved as Noted' | 'Approved for Subsequent Work' | '';
+  requestNumber?: string;
 }
 
 export interface OpenRFI extends BaseRFI {
@@ -224,6 +233,7 @@ export interface StructureAsset {
   completionDate?: string;
   subcontractorId?: string;
   chainage?: string; // Chainage location on the road alignment
+  lastUpdated?: string;
 }
 
 export interface TaskDependency {
@@ -830,6 +840,7 @@ export interface AppSettings {
   companyName: string;
   currency: string;
   vatRate: number;
+  retentionPercentage?: number;
   fiscalYearStart: string;
   googleSpreadsheetId: string;
   timezone?: string;

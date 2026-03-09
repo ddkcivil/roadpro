@@ -1,28 +1,21 @@
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { Project, UserRole, ProjectDocument, SitePhoto, DailyReport } from '../../types';
-import { ocrService } from '../../services/ai/ocrService';
 import { analyzeSitePhoto } from '../../services/ai/geminiService';
-import { offlineManager } from '../../utils/data/offlineUtils';
-import { fetchWeather } from '../../services/analytics/weatherService';
-import { formatCurrency } from '../../utils/formatting/exportUtils';
 
 // Dynamically load PDF components when needed
 let Document: any;
 let Page: any;
 let pdfjs: any;
 import { 
-    FileText, Upload, Search, Filter, Camera, Trash2, 
-    Calendar, MapPin, X, Plus, Folder, MoreVertical, ExternalLink,
-    Briefcase, Receipt, ImageIcon, CheckCircle, Tag, Sparkles,
-    User, Mail, ArrowDownLeft, ArrowUpRight, UploadCloud, File,
-    Loader2, HardHat, History, Wifi, WifiOff, CloudSun, RefreshCw,
-    Thermometer, CloudRain, Sun, Cloud, Wind, Eye, Truck, Package,
-    HelpCircle, FileSpreadsheet, TrendingUp, AlertTriangle, BookOpen,
-    Printer
+    FileText, Upload, Search, Camera, Trash2, 
+    Calendar, MapPin, X, Plus, Folder, ExternalLink,
+    ImageIcon, Sparkles, File, Loader2, Sun, Cloud,
+    FileSpreadsheet, AlertTriangle, BookOpen, Printer,
+    Eye, CloudRain
 } from 'lucide-react';
 
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card, CardContent } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import {
@@ -38,19 +31,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/comp
 import { Separator } from '~/components/ui/separator';
 import { Badge } from '~/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
-import { Avatar, AvatarFallback } from '~/components/ui/avatar';
-import { Progress } from '~/components/ui/progress';
-import { cn } from '~/lib/utils';
 import { ScrollArea } from '~/components/ui/scroll-area';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/components/ui/collapsible';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -58,7 +39,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "~/components/ui/dialog";
 import {
   Select,
@@ -67,9 +47,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-
-
-
 
 interface Props {
   project: Project;
@@ -93,40 +70,31 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
     );
   }
   
+  // === LOCAL COPIES FOR UI ===
+  const documents = project.documents || [];
+  const photos = project.sitePhotos || [];
+  const dailyReports = project.dailyReports || [];
+
   // === DOCUMENT MANAGEMENT STATE ===
-  const [documents, setDocuments] = useState<ProjectDocument[]>(project?.documents || []);
   const [searchTerm, setSearchTerm] = useState('');
   const [folderFilter, setFolderFilter] = useState('All');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [newDocument, setNewDocument] = useState({ name: '', description: '', folder: 'General' });
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // === SITE PHOTOS STATE ===
-  const [photos, setPhotos] = useState<SitePhoto[]>(project.sitePhotos || []);
   const [photoCategoryFilter, setPhotoCategoryFilter] = useState('All');
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<SitePhoto | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   
-  // === DAILY REPORTS STATE ===
-  const [dailyReports, setDailyReports] = useState<DailyReport[]>(project.dailyReports || []);
-  const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
-  const [weather, setWeather] = useState('Sunny');
-  const [isFetchingWeather, setIsFetchingWeather] = useState(false);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-
   // === DOCUMENT PREVIEW STATE ===
   const [previewDoc, setPreviewDoc] = useState<ProjectDocument | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [numPages, setNumPages] = useState<number | null>(null);
   const [scale, setScale] = useState(1.0);
 
-  // === MPR REPORTS STATE ===
-  const [mprMonth, setMprMonth] = useState<string>(new Date().toISOString().slice(0, 7));
-  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
-  
   // === CONSTANTS ===
   const FOLDERS = ['General', 'Contracts', 'Drawings', 'Reports', 'Correspondence', 'Financials', 'Sub-Docs'];
   const PHOTO_CATEGORIES = ['General', 'Earthwork', 'Structures', 'Pavement', 'Safety'];
@@ -137,10 +105,8 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
   const getFileUrl = useCallback((doc: ProjectDocument): string => {
     if (!doc.fileUrl) return '';
     
-    // If it's already a blob URL we managed, return it
     if (blobUrls[doc.id]) return blobUrls[doc.id];
     
-    // If it's a data URL, convert to blob once and store it
     if (doc.fileUrl.startsWith('data:')) {
       try {
         const base64 = doc.fileUrl;
@@ -165,7 +131,6 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
   }, [blobUrls]);
 
   useEffect(() => {
-    // Load PDF components dynamically
     const loadPdfComponents = async () => {
       try {
         const pdfModule = await import('react-pdf');
@@ -173,7 +138,6 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
         Page = pdfModule.Page;
         pdfjs = pdfModule.pdfjs;
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          // Use unpkg as it's more reliable for specific versioned worker files
           pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
         }
       } catch (error) {
@@ -184,22 +148,14 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
     };
     loadPdfComponents();
 
-    // Update online status
-    const handleOnlineStatusChange = () => setIsOnline(navigator.onLine);
-    window.addEventListener('online', handleOnlineStatusChange);
-    window.addEventListener('offline', handleOnlineStatusChange);
     return () => {
-      window.removeEventListener('online', handleOnlineStatusChange);
-      window.removeEventListener('offline', handleOnlineStatusChange);
-      
-      // Cleanup blob URLs created by this component instance
       Object.values(blobUrls).forEach(url => {
         if (url.startsWith('blob:')) {
           URL.revokeObjectURL(url);
         }
       });
     };
-  }, []); // Only run on mount/unmount
+  }, []);
 
   // === COMPUTED VALUES ===
   const filteredDocuments = useMemo(() => {
@@ -227,7 +183,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
 
   const photoStats = useMemo(() => ({
     total: project.sitePhotos?.length || 0,
-    today: project.sitePhotos?.filter(p => new Date(p.date).toDateString() === new Date().toDateString()).length || 0,
+    today: project.sitePhotos?.filter(p => p.date && new Date(p.date).toDateString() === new Date().toDateString()).length || 0,
     earthwork: project.sitePhotos?.filter(p => p.category === 'Earthwork').length || 0,
     structures: project.sitePhotos?.filter(p => p.category === 'Structures').length || 0
   }), [project.sitePhotos]);
@@ -246,12 +202,12 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
         id: `doc-${Date.now()}`,
         name: newDocument.name || file.name,
         type: file.type,
-        date: new Date().toISOString(), // Scanning date
+        date: new Date().toISOString(),
         size: String(file.size),
         folder: newDocument.folder,
         subject: newDocument.name || file.name,
         uploadDate: new Date().toISOString(),
-        uploadedBy: userRole, // Assuming userRole can be used as uploadedBy
+        uploadedBy: userRole,
         tags: [],
         fileUrl: base64,
         description: newDocument.description,
@@ -288,7 +244,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
           url: base64,
           caption: file.name,
           date: new Date().toISOString(),
-          location: 'Site Location', // Placeholder or use project.location
+          location: 'Site Location',
           category: 'General',
           uploadedBy: userRole,
           isAnalyzed: false
@@ -314,21 +270,6 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
       alert('AI Photo analysis failed. Please try again.');
     } finally {
       setIsAnalyzing(false);
-    }
-  };
-
-  const handleFetchWeather = async () => {
-    setIsFetchingWeather(true);
-    try {
-      const lat = project.staffLocations?.[0]?.latitude || 27.6600; // Placeholder lat
-      const lng = project.staffLocations?.[0]?.longitude || 83.4650; // Placeholder lng
-      const weatherData = await fetchWeather(lat, lng);
-      setWeather(weatherData.condition);
-    } catch (error) {
-      console.error('Weather fetch failed:', error);
-      alert('Failed to fetch weather data. Please try again later.');
-    } finally {
-      setIsFetchingWeather(false);
     }
   };
 
@@ -358,11 +299,8 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
   };
   
   const handleExportMPR = () => {
-    // Placeholder for MPR export logic
     alert('MPR export functionality is not yet implemented.');
   };
-
-
 
   return (
     <div className="p-4 h-[calc(100vh-140px)] overflow-y-auto">
@@ -375,9 +313,23 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
           <Button variant="outline" onClick={() => setIsUploadModalOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Upload Document
           </Button>
-          <Button variant="outline" onClick={() => setIsPhotoModalOpen(true)}>
+          <Button variant="outline" onClick={() => photoInputRef.current?.click()}>
             <Camera className="mr-2 h-4 w-4" /> Add Photo
           </Button>
+          <div className="sr-only">
+            <Label htmlFor="photo-upload-input">Select site photo files to upload</Label>
+            <Input 
+              id="photo-upload-input"
+              type="file" 
+              ref={photoInputRef} 
+              accept="image/*" 
+              multiple 
+              onChange={handlePhotoUpload} 
+              title="Select site photo files to upload"
+              placeholder="Select photo files"
+            />
+          </div>
+
           <Button onClick={() => onNavigate ? onNavigate('daily-reports') : setActiveTab("daily-reports")}>
             <FileText className="mr-2 h-4 w-4" /> New Daily Report
           </Button>
@@ -403,34 +355,26 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
 
           <TabsContent value="documents" className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-              <Card>
-                <CardContent>
+              <Card className="p-4">
                   <h3 className="text-sm font-semibold text-muted-foreground">Total Documents</h3>
                   <p className="text-2xl font-bold">{documentStats.total}</p>
-                </CardContent>
               </Card>
-              <Card>
-                <CardContent>
+              <Card className="p-4">
                   <h3 className="text-sm font-semibold text-muted-foreground">Contracts</h3>
                   <p className="text-2xl font-bold">{documentStats.contracts}</p>
-                </CardContent>
               </Card>
-              <Card>
-                <CardContent>
+              <Card className="p-4">
                   <h3 className="text-sm font-semibold text-muted-foreground">Drawings</h3>
                   <p className="text-2xl font-bold">{documentStats.drawings}</p>
-                </CardContent>
               </Card>
-              <Card>
-                <CardContent>
+              <Card className="p-4">
                   <h3 className="text-sm font-semibold text-muted-foreground">Reports</h3>
                   <p className="text-2xl font-bold">{documentStats.reports}</p>
-                </CardContent>
               </Card>
             </div>
             
-            <Card className="mb-4">
-              <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <Card className="mb-4 p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="relative w-full sm:w-auto flex-grow">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
@@ -438,11 +382,12 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 w-full"
+                    aria-label="Search documents"
                   />
                 </div>
                 <div className="w-full sm:w-auto">
                   <Select value={folderFilter} onValueChange={setFolderFilter}>
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full" aria-label="Filter by folder">
                       <SelectValue placeholder="All Folders" />
                     </SelectTrigger>
                     <SelectContent>
@@ -453,12 +398,11 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
                     </SelectContent>
                   </Select>
                 </div>
-              </CardContent>
+              </div>
             </Card>
 
-            <Card>
-              <CardContent className="p-0">
-                <ScrollArea className="h-[400px] w-full rounded-md border">
+            <Card className="p-0 overflow-hidden">
+                <ScrollArea className="h-[400px] w-full border-none">
                   <Table>
                     <TableHeader className="bg-muted">
                       <TableRow>
@@ -480,7 +424,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
                             <Badge variant="secondary">{doc.folder}</Badge>
                           </TableCell>
                           <TableCell>{(parseInt(doc.size) / 1024 / 1024).toFixed(2)} MB</TableCell>
-                          <TableCell>{new Date(doc.uploadDate).toLocaleDateString()}</TableCell>
+                          <TableCell>{new Date(doc.uploadDate || Date.now()).toLocaleDateString()}</TableCell>
                           <TableCell className="text-right">
                             <TooltipProvider>
                               <Tooltip>
@@ -515,42 +459,33 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
                     </TableBody>
                   </Table>
                 </ScrollArea>
-              </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="site-photos" className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-              <Card>
-                <CardContent>
+              <Card className="p-4">
                   <h3 className="text-sm font-semibold text-muted-foreground">Total Photos</h3>
                   <p className="text-2xl font-bold">{photoStats.total}</p>
-                </CardContent>
               </Card>
-              <Card>
-                <CardContent>
+              <Card className="p-4">
                   <h3 className="text-sm font-semibold text-muted-foreground">Today</h3>
                   <p className="text-2xl font-bold">{photoStats.today}</p>
-                </CardContent>
               </Card>
-              <Card>
-                <CardContent>
+              <Card className="p-4">
                   <h3 className="text-sm font-semibold text-muted-foreground">Earthwork</h3>
                   <p className="text-2xl font-bold">{photoStats.earthwork}</p>
-                </CardContent>
               </Card>
-              <Card>
-                <CardContent>
+              <Card className="p-4">
                   <h3 className="text-sm font-semibold text-muted-foreground">Structures</h3>
                   <p className="text-2xl font-bold">{photoStats.structures}</p>
-                </CardContent>
               </Card>
             </div>
 
-            <Card className="mb-4">
-              <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <Card className="mb-4 p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <Select value={photoCategoryFilter} onValueChange={setPhotoCategoryFilter}>
-                  <SelectTrigger className="w-full sm:w-auto">
+                  <SelectTrigger id="photo-category-filter" className="w-full sm:w-auto" aria-label="Filter by category">
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
@@ -566,21 +501,22 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
                 >
                   <Camera className="mr-2 h-4 w-4" /> Add Photos
                 </Button>
-              </CardContent>
+              </div>
             </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredPhotos.length > 0 ? filteredPhotos.map(photo => (
-                <Card key={photo.id} className="cursor-pointer" onClick={() => { setPreviewPhoto(photo); setIsPhotoModalOpen(true); }}>
+                <Card key={photo.id} className="cursor-pointer overflow-hidden" onClick={() => { setPreviewPhoto(photo); setIsPhotoModalOpen(true); }}>
                   <img
                     src={photo.url}
-                    alt={photo.caption}
-                    className="w-full h-48 object-cover rounded-t-lg"
+                    alt={photo.caption || 'Site observation photo'}
+                    title={photo.caption || 'View site photo'}
+                    className="w-full h-48 object-cover"
                   />
                   <CardContent className="p-4">
-                    <p className="font-semibold mb-1">{photo.caption}</p>
+                    <p className="font-semibold mb-1 truncate">{photo.caption}</p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" /> {new Date(photo.date).toLocaleDateString()}
+                      <Calendar className="h-3 w-3" /> {new Date(photo.date || Date.now()).toLocaleDateString()}
                       <MapPin className="h-3 w-3 ml-2" /> {photo.location}
                       <Badge variant="secondary" className="ml-auto">{photo.category}</Badge>
                     </div>
@@ -606,9 +542,8 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
               </Button>
             </div>
             
-            <Card>
-              <CardContent className="p-0">
-                <ScrollArea className="h-[400px] w-full rounded-md border">
+            <Card className="p-0 overflow-hidden">
+                <ScrollArea className="h-[400px] w-full border-none">
                   <Table>
                     <TableHeader className="bg-muted">
                       <TableRow>
@@ -620,21 +555,23 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {dailyReports.length > 0 ? dailyReports.map(report => (
+                      {dailyReports.length > 0 ? dailyReports.map((report: DailyReport) => (
                         <TableRow key={report.id}>
                           <TableCell>
                             <p className="font-semibold">{report.date}</p>
                             <p className="text-xs text-muted-foreground">{report.submittedBy}</p>
                           </TableCell>
                           <TableCell>
-                            {report.weather === 'Sunny' && <Sun className="h-4 w-4" />}
-                            {report.weather === 'Cloudy' && <Cloud className="h-4 w-4" />}
-                            {report.weather === 'Rainy' && <CloudRain className="h-4 w-4" />}
-                            <p className="text-xs text-muted-foreground">{report.weather}</p>
+                            <div className="flex items-center gap-2">
+                                {report.weather === 'Sunny' && <Sun className="h-4 w-4 text-orange-500" />}
+                                {report.weather === 'Cloudy' && <Cloud className="h-4 w-4 text-slate-400" />}
+                                {report.weather === 'Rainy' && <CloudRain className="h-4 w-4 text-blue-500" />}
+                                <span className="text-xs text-muted-foreground">{report.weather}</span>
+                            </div>
                           </TableCell>
                           <TableCell>
                             <ul className="list-disc list-inside text-sm">
-                              {report.workItems.map((item, idx) => <li key={idx}>{item.description} ({item.quantity})</li>)}
+                              {(report.workToday || []).map((item, idx) => <li key={idx}>{item.description} ({item.quantity})</li>)}
                             </ul>
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">{report.remarks?.substring(0, 50) || '...'}</TableCell>
@@ -658,7 +595,6 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
                     </TableBody>
                   </Table>
                 </ScrollArea>
-              </CardContent>
             </Card>
           </TabsContent>
 
@@ -701,7 +637,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
             <div className="grid gap-2">
               <Label htmlFor="documentFolder">Folder</Label>
               <Select value={newDocument.folder} onValueChange={value => setNewDocument({...newDocument, folder: value})}>
-                <SelectTrigger>
+                <SelectTrigger id="documentFolder">
                   <SelectValue placeholder="Select Folder" />
                 </SelectTrigger>
                 <SelectContent>
@@ -732,12 +668,13 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
             <div className="py-4">
               <img
                 src={previewPhoto.url}
-                alt={previewPhoto.caption}
+                alt={previewPhoto.caption || 'Site observation photo'}
+                title={previewPhoto.caption || 'Site observation photo'}
                 className="w-full h-auto object-cover rounded-lg mb-4"
               />
               <p className="font-semibold mb-2">{previewPhoto.caption}</p>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Calendar className="h-4 w-4" /> {new Date(previewPhoto.date).toLocaleDateString()}
+                <Calendar className="h-4 w-4" /> {new Date(previewPhoto.date || Date.now()).toLocaleDateString()}
                 <MapPin className="h-4 w-4" /> {previewPhoto.location}
                 <Badge variant="secondary" className="ml-auto">{previewPhoto.category}</Badge>
               </div>
@@ -749,7 +686,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
             </div>
           )}
           <DialogFooter>
-            <Button variant="destructive" onClick={() => { handleDeletePhoto(previewPhoto.id); setIsPhotoModalOpen(false); }}>
+            <Button variant="destructive" onClick={() => { if (previewPhoto) handleDeletePhoto(previewPhoto.id); setIsPhotoModalOpen(false); }}>
               <Trash2 className="mr-2 h-4 w-4" /> Delete Photo
             </Button>
             <Button onClick={() => setIsPhotoModalOpen(false)}>Close</Button>
@@ -766,7 +703,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
               <DialogTitle className="text-lg font-bold">{previewDoc?.name}</DialogTitle>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => handleDownloadDocument(previewDoc!)}>
+              <Button variant="outline" size="sm" onClick={() => { if (previewDoc) handleDownloadDocument(previewDoc); }}>
                 <ExternalLink className="mr-2 h-4 w-4" /> Download
               </Button>
               <Button variant="ghost" size="icon" onClick={() => setPreviewDoc(null)}>
@@ -774,11 +711,11 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
               </Button>
             </div>
           </DialogHeader>
-          <div className="flex-1 flex items-center justify-center p-4">
+          <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
             {previewDoc?.fileUrl ? (
-              <div className="w-full h-full flex flex-col">
+              <div className="w-full h-full flex flex-col items-center justify-center">
                 {(previewDoc.type === 'application/pdf' || previewDoc.fileUrl.toLowerCase().endsWith('.pdf')) ? (
-                  <div className="flex-1 flex items-center justify-center">
+                  <div className="flex-1 w-full flex items-center justify-center overflow-auto">
                     <Document
                       file={getFileUrl(previewDoc)}
                       loading={<div className="text-center text-muted-foreground">Loading PDF...</div>}
@@ -791,15 +728,16 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
                           </p>
                         </div>
                       }
-                      onLoadSuccess={({ numPages }: { numPages: number }) => setNumPages(numPages)}
+                      onLoadSuccess={({ numPages: totalPages }: { numPages: number }) => setNumPages(totalPages)}
                     >
                       <Page pageNumber={currentPage} scale={scale} renderTextLayer={false} renderAnnotationLayer={false} />
                     </Document>
                   </div>
-                ) : (previewDoc.type?.includes('image') || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => previewDoc.fileUrl.toLowerCase().endsWith(ext))) ? (
+                ) : (previewDoc.type?.includes('image') || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => previewDoc.fileUrl?.toLowerCase().endsWith(ext))) ? (
                   <img
                     src={getFileUrl(previewDoc)}
-                    alt="Document Preview"
+                    alt={previewDoc.name || 'Document image preview'}
+                    title={previewDoc.name || 'Document image preview'}
                     className="max-w-full max-h-full object-contain rounded-lg"
                   />
                 ) : (
@@ -807,13 +745,13 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
                     <FileText className="mx-auto h-12 w-12 mb-2" />
                     <p>Preview not available for this file type</p>
                     <p className="text-sm">{previewDoc.name}</p>
-                    <Button variant="outline" size="sm" className="mt-4" onClick={() => handleDownloadDocument(previewDoc!)}>
+                    <Button variant="outline" size="sm" className="mt-4" onClick={() => { if (previewDoc) handleDownloadDocument(previewDoc); }}>
                       <ExternalLink className="mr-2 h-4 w-4" /> Download File
                     </Button>
                   </div>
                 )}
                 {(previewDoc.type === 'application/pdf' || previewDoc.fileUrl.toLowerCase().endsWith('.pdf')) && numPages && numPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 p-2 bg-background/50 border-t">
+                  <div className="flex items-center justify-center gap-2 p-2 bg-background/50 border-t w-full">
                     <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage <= 1}>
                       Prev
                     </Button>

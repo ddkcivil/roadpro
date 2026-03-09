@@ -112,7 +112,7 @@ export function debounce<T extends (...args: any[]) => any>(
     }
     
     timeout = setTimeout(() => {
-      func.apply(this, args);
+      func(...args);
     }, wait);
   };
 }
@@ -128,7 +128,7 @@ export function throttle<T extends (...args: any[]) => any>(
   
   return (...args: Parameters<T>): void => {
     if (!inThrottle) {
-      func.apply(this, args);
+      func(...args);
       inThrottle = true;
       setTimeout(() => inThrottle = false, limit);
     }
@@ -148,7 +148,7 @@ export function memoize<T extends (...args: any[]) => any>(func: T): T {
       return cache.get(key);
     }
     
-    const result = func.apply(this, args);
+    const result = func(...args);
     cache.set(key, result);
     
     return result;

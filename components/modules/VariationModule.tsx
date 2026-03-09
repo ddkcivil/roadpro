@@ -1,23 +1,22 @@
 
 import React, { useState, useMemo } from 'react';
 import { 
-    FileDiff, Plus, Search, Trash2, Save, X, 
+    FileDiff, Plus, Trash2, Save, X, 
     CheckCircle2, AlertTriangle, TrendingUp, History, 
-    Calculator, Receipt, Info, ArrowRight, DollarSign,
+    Calculator, Receipt,
     CheckCircle, Clock, FileEdit, Send, FileX, Calendar
 } from 'lucide-react';
-import { Project, UserRole, AppSettings, VariationOrder, VariationItem, BOQItem, WorkCategory } from '../../types';
+import { Project, UserRole, AppSettings, VariationOrder, VariationItem, WorkCategory } from '../../types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Progress } from '~/components/ui/progress';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { toast } from 'sonner';
 import { Badge } from '~/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
@@ -114,7 +113,7 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
         
         const newItem: VariationItem = {
             id: `voi-${Date.now()}-${Math.random()}`,
-            boqItemId: tempItem.boqItemId,
+            boqItemId: tempItem.boqItemId || '',
             isNewItem: tempItem.isNewItem || false,
             description: tempItem.description!,
             unit: tempItem.unit || 'unit',

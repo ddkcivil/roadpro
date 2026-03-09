@@ -1,18 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { 
-    FileText, BarChart3, PieChart, TrendingUp, AlertTriangle, CheckCircle, 
-    Plus, Edit, Trash2, Filter, Search, X, Save, Calendar, 
-    Download, Eye, Printer, FileSpreadsheet, Users, HardHat, MapPin,
-    ChevronDown, Clock, DollarSign, Package, FileSignature, Info, Loader2
+    FileText, BarChart3, TrendingUp, AlertTriangle, CheckCircle, 
+    Filter, X, Download, Eye, FileSpreadsheet, HardHat, MapPin,
+    Clock, DollarSign, Loader2
 } from 'lucide-react';
 import { Project, UserRole, BOQItem, LabTest, RFI, RFIStatus, ScheduleTask, StructureAsset, NCR, DailyReport, AppSettings } from '../../types';
-import { formatCurrency, exportBOQToCSV, exportStructuresToCSV, exportRFIToCSV, exportLabTestsToCSV, exportSubcontractorPaymentsToCSV, exportScheduleToCSV } from '../../utils/formatting/exportUtils';
-import { ReportingService, EVMMetrics, ResourceForecast } from '../../services/analytics/reportingService';
+import { formatCurrency } from '../../utils/formatting/exportUtils';
+import { ReportingService } from '../../services/analytics/reportingService';
 
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
-import { Label } from '~/components/ui/label';
 import {
   Table,
   TableBody,
@@ -22,15 +20,11 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { Separator } from '~/components/ui/separator';
 import { Badge } from '~/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
-import { Avatar, AvatarFallback } from '~/components/ui/avatar';
-import { Progress } from '~/components/ui/progress';
+import { Alert, AlertDescription } from '~/components/ui/alert';
 import { cn } from '~/lib/utils';
 import { ScrollArea } from '~/components/ui/scroll-area';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/components/ui/collapsible';
 
 
 // NOTE: This is a refactored version of the ReportsAnalyticsHub component.
@@ -44,10 +38,9 @@ interface Props {
     onProjectUpdate: (project: Project) => void;
 }
 
-const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRole, settings }) => {
+const ReportsAnalyticsHub: React.FC<Props> = ({ project, settings }) => {
     const [activeTab, setActiveTab] = useState("boq-analytics");
     const [searchTerm, setSearchTerm] = useState('');
-    const [expandedReport, setExpandedReport] = useState<string | null>(null);
     const [exportStatus, setExportStatus] = useState<Record<string, 'idle' | 'processing' | 'success' | 'error'>>({});
 
     // Placeholder data
@@ -56,7 +49,6 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, onProjectUpdate, userRo
     const rfis: RFI[] = project.rfis || [];
     const schedule: ScheduleTask[] = project.schedule || [];
     const structures: StructureAsset[] = project.structures || [];
-    const ncrs: NCR[] = project.ncrs || [];
     const dailyReports: DailyReport[] = project.dailyReports || [];
 
     const evmMetrics = useMemo(() => ReportingService.calculateEVM(project), [project]);

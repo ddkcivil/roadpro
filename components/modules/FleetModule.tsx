@@ -1,36 +1,31 @@
 import React, { useState, useMemo } from 'react';
-import { Project, UserRole, Vehicle, VehicleLog, ScheduleTask } from '../../types';
-import { getAutofillSuggestions, checkForDuplicates } from '../../utils/data/autofillUtils';
+import { Project, Vehicle, VehicleLog } from '../../types';
 
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Badge } from '~/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '~/components/ui/tabs';
+import { Avatar, AvatarFallback } from '~/components/ui/avatar';
+import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '~/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
-import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
+import { Alert } from '~/components/ui/alert';
 import { Separator } from '~/components/ui/separator';
-import { ScrollArea } from '~/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 
 import { 
     Truck, Gauge, Droplets, Clock, Signal, Plus, 
-    // Fix: Added missing 'CheckCircle2' import from lucide-react
     ShieldCheck, MapPin, History, Save, X, Navigation,
-    ArrowUpRight, Fuel, Calendar, HardHat, CheckCircle2, Trash2, Edit, AlertTriangle
+    Fuel, Calendar, HardHat, CheckCircle2, Trash2, Edit
 } from 'lucide-react';
 
 interface Props {
   project: Project;
-  userRole: UserRole;
   onProjectUpdate: (project: Project) => void;
 }
 
-const FleetModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) => {
-  const [activeTab, setActiveTab] = useState(0);
+const FleetModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
   const vehicles = project.vehicles || [];
   const vehicleLogs = project.vehicleLogs || [];
   const [selectedId, setSelectedId] = useState<string | null>(vehicles[0]?.id || null);
@@ -39,7 +34,6 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =>
   const [isRegModalOpen, setIsRegModalOpen] = useState(false);
   const [isLogTripModalOpen, setIsLogTripModalOpen] = useState(false);
   const [isEditVehicleModalOpen, setIsEditVehicleModalOpen] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
   
   const activeVehicle = vehicles.find(v => v.id === selectedId);
   const activeVehicleLogs = useMemo(() => 
@@ -111,6 +105,9 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =>
     const vehicle: Vehicle = { 
       ...newVehicle, 
       id: `v-${Date.now()}`, 
+      plateNumber: newVehicle.plateNumber!,
+      type: newVehicle.type || 'Tipper Truck',
+      driver: newVehicle.driver!,
       status: newVehicle.status || 'Active',
       geofenceStatus: newVehicle.geofenceStatus || 'Inside',
       agencyId: newVehicle.agencyId || undefined
@@ -135,28 +132,17 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =>
       return;
     }
     
-    // Check for duplicate plate number (excluding the current vehicle being edited)
-    const duplicateVehicle = vehicles.find(v => 
-      v.plateNumber?.toLowerCase() === editingVehicle.plateNumber?.toLowerCase() && 
-      v.id !== editingVehicle.id
-    );
-    if (duplicateVehicle) {
-      if (!confirm(`A vehicle with plate number '${editingVehicle.plateNumber}' already exists. Do you want to update anyway?`)) {
-        return;
-      }
-    }
-
     const updatedVehicles = vehicles.map(vehicle => 
       vehicle.id === editingVehicle.id 
         ? { 
             ...vehicle, 
-            plateNumber: editingVehicle.plateNumber,
-            type: editingVehicle.type,
-            driver: editingVehicle.driver,
-            status: editingVehicle.status,
-            geofenceStatus: editingVehicle.geofenceStatus,
-            agencyId: vehicle.agencyId  // Preserve agencyId when updating
-          } 
+            plateNumber: editingVehicle.plateNumber!,
+            type: editingVehicle.type || vehicle.type,
+            driver: editingVehicle.driver!,
+            status: editingVehicle.status || vehicle.status,
+            geofenceStatus: editingVehicle.geofenceStatus || vehicle.geofenceStatus,
+            agencyId: editingVehicle.agencyId || vehicle.agencyId
+          } as Vehicle
         : vehicle
     );
     
@@ -665,12 +651,6 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-
-        {snackbarOpen && (
-            <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-md shadow-lg z-50">
-                Opening full trip log history report...
-            </div>
-        )}
     </div>
   );
 };

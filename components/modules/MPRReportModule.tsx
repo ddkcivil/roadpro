@@ -31,6 +31,17 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
   const [activeTab, setActiveTab] = useState(0);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  
+  // Report-specific editable state
+  const [reportDetails, setReportDetails] = useState({
+    reportNumber: '02',
+    executiveSummary: 'The project is currently in the initial construction phase. Site mobilization is 90% complete. Joint surveys for the primary road sections have been finalized, and material testing is ongoing.',
+    challenges: 'Underground utility shifting (water pipes) at Pathardanda section is causing minor delays. Coordination with the local water authority is in progress.',
+    workPlanNextMonth: 'Start site clearance and earthwork for Driver Tole road. Complete site laboratory setup and begin cross-drainage structure work.',
+    safetyIncidents: '0',
+    environmentalCompliance: 'Satisfactory',
+    socialSafeguards: 'Resettlement plan survey ongoing. No major grievances reported.',
+  });
 
   if (!project) {
     return (
@@ -67,8 +78,8 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
 
   const handleExport = async () => {
     try {
-      // Generate the MPR PDF
-      await generateMPRPDF(project, reportMonth, settings);
+      // Generate the MPR PDF with dynamic details
+      await generateMPRPDF(project, reportMonth, settings, reportDetails as any);
       toast.success("MPR Exported", { description: `Report for ${reportMonth} has been generated and downloaded.` });
       setIsExportDialogOpen(false);
     } catch (error) {
@@ -208,60 +219,87 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
             Monthly Progress Report
           </p>
 
-          <div className="mb-4">
-            <Label htmlFor="report-month">Reporting Month</Label>
-            <Input
-              id="report-month"
-              type="month"
-              value={reportMonth}
-              onChange={(e) => setReportMonth(e.target.value)}
-            />
-          </div>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="report-month">Reporting Month</Label>
+              <Input
+                id="report-month"
+                type="month"
+                value={reportMonth}
+                onChange={(e) => setReportMonth(e.target.value)}
+              />
+            </div>
 
-          <Button
-            className="w-full"
-            onClick={handleGenerateReport}
-          >
-            <FileText size={18} className="mr-2" />
-            Generate MPR
-          </Button>
+            <div>
+              <Label htmlFor="report-num">Report #</Label>
+              <Input
+                id="report-num"
+                value={reportDetails.reportNumber}
+                onChange={(e) => setReportDetails({...reportDetails, reportNumber: e.target.value})}
+              />
+            </div>
+
+            <Button
+              className="w-full"
+              onClick={handleGenerateReport}
+            >
+              <FileText size={18} className="mr-2" />
+              Generate MPR
+            </Button>
+          </div>
         </div>
 
-        <div className="flex-1 p-4 overflow-auto">
-          <h3 className="text-sm font-bold mb-4">PROJECT STATS</h3>
+        <ScrollArea className="flex-1 p-4">
+          <h3 className="text-sm font-bold mb-4 uppercase tracking-tighter">Report Details</h3>
+          
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="exec-summary" className="text-[10px] font-black uppercase">Executive Summary</Label>
+              <textarea 
+                id="exec-summary"
+                className="w-full text-xs p-2 rounded-lg border bg-background h-24 resize-none"
+                placeholder="Enter executive summary..."
+                value={reportDetails.executiveSummary}
+                onChange={(e) => setReportDetails({...reportDetails, executiveSummary: e.target.value})}
+              />
+            </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Card className="p-3 text-center bg-muted">
-              <p className="text-xs text-muted-foreground">Planned</p>
-              <p className="text-lg font-bold">{(physicalProgress.planned * 100).toFixed(1)}%</p>
-            </Card>
-            <Card className="p-3 text-center bg-muted">
-              <p className="text-xs text-muted-foreground">Actual</p>
-              <p className="text-lg font-bold text-green-600">{(physicalProgress.actual * 100).toFixed(1)}%</p>
-            </Card>
+            <div className="space-y-1">
+              <Label htmlFor="challenges" className="text-[10px] font-black uppercase">Key Challenges</Label>
+              <textarea 
+                id="challenges"
+                className="w-full text-xs p-2 rounded-lg border bg-background h-20 resize-none"
+                placeholder="Enter key challenges..."
+                value={reportDetails.challenges}
+                onChange={(e) => setReportDetails({...reportDetails, challenges: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="work-plan" className="text-[10px] font-black uppercase">Next Month's Plan</Label>
+              <textarea 
+                id="work-plan"
+                className="w-full text-xs p-2 rounded-lg border bg-background h-20 resize-none"
+                placeholder="Enter next month's work plan..."
+                value={reportDetails.workPlanNextMonth}
+                onChange={(e) => setReportDetails({...reportDetails, workPlanNextMonth: e.target.value})}
+              />
+            </div>
           </div>
 
           <Separator className="my-4" />
 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <span className="text-xs font-bold">BOQ Items</span>
-              <span className="text-sm">{project.boq.length}</span>
+              <span className="text-xs font-bold">Planned</span>
+              <span className="text-sm">{(physicalProgress.planned * 100).toFixed(1)}%</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-xs font-bold">Active Tasks</span>
-              <span className="text-sm">{project.schedule.filter(t => t.status !== 'Completed').length}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-bold">Structures</span>
-              <span className="text-sm">{project.structures?.length || 0}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-bold">Active NCRs</span>
-              <span className="text-sm">{project.ncrs.filter(n => n.status !== 'Closed').length}</span>
+              <span className="text-xs font-bold">Actual</span>
+              <span className="text-sm text-green-600">{(physicalProgress.actual * 100).toFixed(1)}%</span>
             </div>
           </div>
-        </div>
+        </ScrollArea>
       </Card>
 
       <div className="flex-1 overflow-auto">
@@ -329,7 +367,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
                         <div className="flex items-center gap-2 mt-2">
                         <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
                           <div
-                            className={cn("h-full bg-primary")}
+                            className="h-full bg-primary"
                             style={{ width: `${(physicalProgress.planned * 100).toFixed(1)}%` }}
                           />
                         </div>
@@ -474,10 +512,10 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
                           <div key={index} className="flex-1 flex flex-col items-center">
                             <div
                               className={cn(
-                                "w-full rounded h-[var(--bar-height)]",
+                                "w-full rounded",
                                 item.completedQuantity === item.quantity ? "bg-green-500" : "bg-primary"
                               )}
-                              style={{ "--bar-height": `${(item.completedQuantity / item.quantity) * 100}%` } as React.CSSProperties}
+                              style={{ height: `${(item.completedQuantity / item.quantity) * 100}%` }}
                               title={`${item.description}: ${(item.completedQuantity / item.quantity) * 100}%`}
                             />
                             <p className="text-xs mt-2 text-center">{item.itemNo}</p>

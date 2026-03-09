@@ -1,16 +1,14 @@
-import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
-import { Project, UserRole, ProjectDocument, ContractBill, DocumentVersion, Comment } from '../../types';
-import { ocrService } from '../../services/ai/ocrService';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Project, UserRole, ProjectDocument, DocumentVersion } from '../../types';
 import { 
-    Sparkles, FileText, Loader2, User, Mail, ArrowDownLeft, ArrowUpRight, 
+    Sparkles, FileText, Loader2, User, ArrowDownLeft, 
     UploadCloud, File, Plus, Search, Folder, MoreVertical, Trash2, 
-    ExternalLink, Filter, Briefcase, Receipt, Image as ImageIcon, CheckCircle,
-    X, Tag
+    ExternalLink, Image as ImageIcon, CheckCircle,
+    X
 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card, CardHeader } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
-import { Label } from '~/components/ui/label';
 import {
   Table,
   TableBody,
@@ -19,27 +17,22 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { Separator } from '~/components/ui/separator';
 import { Badge } from '~/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
-import { Avatar, AvatarFallback } from '~/components/ui/avatar';
-import { Progress } from '~/components/ui/progress';
 import { cn } from '~/lib/utils';
 import { ScrollArea } from '~/components/ui/scroll-area';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/components/ui/collapsible';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import CommentsPanel from './CommentsPanel';
+import { ocrService } from '../../services/ai/ocrService';
 
 // Dynamically load PDF components when needed
 let Document: any;
@@ -86,10 +79,8 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
   const getFileUrl = useCallback((doc: ProjectDocument): string => {
     if (!doc.fileUrl) return '';
     
-    // If it's already a blob URL we managed, return it
     if (blobUrls[doc.id]) return blobUrls[doc.id];
     
-    // If it's a data URL, convert to blob once and store it
     if (doc.fileUrl.startsWith('data:')) {
       const url = base64ToBlobUrl(doc.fileUrl);
       setBlobUrls(prev => ({ ...prev, [doc.id]: url }));
@@ -107,7 +98,6 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
         Page = pdfModule.Page;
         pdfjs = pdfModule.pdfjs;
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          // Use unpkg as it's more reliable for specific versioned worker files
           pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
         }
       } catch (error) {
@@ -119,14 +109,13 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
     loadPdfComponents();
 
     return () => {
-      // Only cleanup blob URLs created by this component instance when it unmounts
       Object.values(blobUrls).forEach(url => {
         if (url.startsWith('blob:')) {
           URL.revokeObjectURL(url);
         }
       });
     };
-  }, []); // Only run on mount/unmount
+  }, []);
 
   const [activeFolder, setActiveFolder] = useState('General');
   const [searchTerm, setSearchTerm] = useState('');
@@ -138,7 +127,6 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
   const [previewDoc, setPreviewDoc] = useState<ProjectDocument | null>(null);
   const [newTagInput, setNewTagInput] = useState('');
 
-  // PDF Viewer State and Functions
   const [currentPageState, setCurrentPageState] = useState(1);
   const [numPagesState, setNumPagesState] = useState<number | null>(null);
   const [scaleState, setScaleState] = useState(1.0);
@@ -174,17 +162,6 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
       setScanStep('PROCESSING');
       
       const file = uploadFiles[0];
-      const existingDoc = (project.documents || []).find(doc => 
-          doc.name === file.name && 
-          Math.abs(parseFloat(doc.size) - parseFloat(`${(file.size / 1024 / 1024).toFixed(2)}`)) < 0.1
-      );
-      
-      if (existingDoc) {
-          alert(`Document '${file.name}' already exists. Skipping duplicate.`);
-          setScanStep('IDLE');
-          return;
-      }
-      
       const reader = new FileReader();
       reader.onloadend = async () => {
           await ocrService.initialize();
@@ -274,7 +251,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
               date: scanStep === 'REVIEW' ? scannedMetadata.date : new Date().toISOString().split('T')[0],
               size: `${(f.size / 1024 / 1024).toFixed(2)} MB`, folder: uploadTargetFolder,
               tags: scannedMetadata.subId ? [subcontractors.find(s => s.id === scannedMetadata.subId)?.name || ''] : [],
-              subject: scanStep === 'REVIEW' ? scannedMetadata.subject : undefined,
+              subject: (scanStep === 'REVIEW' ? scannedMetadata.subject : '') || '',
               refNo: scanStep === 'REVIEW' ? scannedMetadata.refNo : undefined,
               letterDate: scanStep === 'REVIEW' ? scannedMetadata.letterDate : undefined,
               correspondenceType: scanStep === 'REVIEW' ? scannedMetadata.correspondenceType : undefined,
@@ -324,15 +301,6 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
       }
       
       if (confirm("Permanently delete this document?")) {
-          const docToDelete = (project.documents || []).find(d => d.id === id);
-          if (docToDelete?.fileUrl && docToDelete.fileUrl.startsWith('blob:')) {
-              URL.revokeObjectURL(docToDelete.fileUrl);
-          }
-          
-          if (previewDoc?.id === id && previewDoc.fileUrl && previewDoc.fileUrl.startsWith('blob:')) {
-              URL.revokeObjectURL(previewDoc.fileUrl);
-          }
-          
           onProjectUpdate({ ...project, documents: (project.documents || []).filter(d => d.id !== id) });
           
           if (previewDoc?.id === id) {
@@ -343,23 +311,19 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
   
   const handleUploadNewVersion = async (docId: string, file: File) => {
     const currentDoc = (project.documents || []).find(doc => doc.id === docId);
-    if (currentDoc) {
-      const currentVersion = currentDoc.versions.find(v => v.version === currentDoc.currentVersion);
-      if (currentVersion && 
-          currentVersion.filePath.split('_').pop() === file.name &&
-          Math.abs(parseFloat(currentVersion.size) - parseFloat(`${(file.size / 1024 / 1024).toFixed(2)} MB`)) < 0.1) {
-        alert('This file appears to be the same as the current version. Not adding as new version.');
-        return;
-      }
+    if (!currentDoc) return;
+
+    const currentVersion = currentDoc.versions.find(v => v.version === currentDoc.currentVersion);
+    if (currentVersion && 
+        currentVersion.filePath.split('_').pop() === file.name &&
+        Math.abs(parseFloat(currentVersion.size) - parseFloat(`${(file.size / 1024 / 1024).toFixed(2)} MB`)) < 0.1) {
+      alert('This file appears to be the same as the current version. Not adding as new version.');
+      return;
     }
     
     const updatedDocs = [];
     for (const doc of project.documents || []) {
       if (doc.id === docId) {
-        if (doc.fileUrl && doc.fileUrl.startsWith('blob:')) {
-          URL.revokeObjectURL(doc.fileUrl);
-        }
-        
         const newVersionNumber = doc.versions.length + 1;
         const versionId = `ver-${Date.now()}-${Math.random()}`;
         
@@ -390,16 +354,10 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
     
     if (previewDoc?.id === docId) {
       const base64Data = await fileToBase64(file);
-      
       setPreviewDoc(prev => {
         if (!prev) return null;
-        if (prev.fileUrl && prev.fileUrl.startsWith('blob:')) {
-          URL.revokeObjectURL(prev.fileUrl);
-        }
-        
         const isImage = file.type.includes('image') || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => file.name.toLowerCase().endsWith(ext));
         const isPdf = file.type.includes('pdf') || file.name.toLowerCase().endsWith('.pdf');
-        
         return { ...prev, type: isImage ? 'IMAGE' : isPdf ? 'PDF' : 'OTHER', fileUrl: base64Data };
       });
     }
@@ -408,11 +366,6 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
   const handleRevertToVersion = (docId: string, versionId: string) => {
     const updatedDocs = (project.documents || []).map(doc => {
       if (doc.id === docId) {
-        const oldFileUrl = doc.fileUrl;
-        if (oldFileUrl && oldFileUrl.startsWith('blob:')) {
-          URL.revokeObjectURL(oldFileUrl);
-        }
-        
         const targetVersion = doc.versions.find(v => v.id === versionId);
         if (targetVersion) {
           return {
@@ -429,9 +382,6 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
     if (previewDoc?.id === docId) {
       setPreviewDoc(prev => {
         if (!prev) return null;
-        if (prev.fileUrl && prev.fileUrl.startsWith('blob:')) {
-          URL.revokeObjectURL(prev.fileUrl);
-        }
         return { ...prev, fileUrl: undefined };
       });
     }
@@ -439,7 +389,6 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
 
   return (
     <div className="flex h-[calc(100vh-140px)] gap-4 p-4">
-      {/* Left Sidebar: Folders */}
       <Card className="w-60 flex flex-col">
         <CardHeader className="border-b px-4 py-3">
           <Button onClick={() => setUploadModalOpen(true)} className="w-full">
@@ -469,7 +418,6 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
         </ScrollArea>
       </Card>
 
-      {/* Right Content: Document Browser */}
       <div className="flex-1 flex flex-col gap-4">
         <div className="flex justify-between items-center">
           <div className="text-sm text-muted-foreground flex items-center gap-1">
@@ -482,6 +430,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
               className="pl-10"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
+              aria-label="Search files"
             />
           </div>
         </div>
@@ -561,7 +510,6 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
         </Card>
       </div>
 
-      {/* Upload Dialog */}
       <Dialog open={uploadModalOpen} onOpenChange={setUploadModalOpen}>
         <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
@@ -589,7 +537,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
               ) : (
                 <Button className="relative">
                   Browse Files
-                  <Input type="file" className="absolute inset-0 opacity-0 cursor-pointer" multiple={uploadMode === 'SIMPLE'} onChange={handleFileSelect} />
+                  <Input type="file" className="absolute inset-0 opacity-0 cursor-pointer" multiple={uploadMode === 'SIMPLE'} onChange={handleFileSelect} aria-label="Select files to upload" />
                 </Button>
               )}
             </div>
@@ -611,7 +559,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                 </Button>
               </div>
               <Select value={uploadTargetFolder} onValueChange={setUploadTargetFolder}>
-                <SelectTrigger>
+                <SelectTrigger aria-label="Target Folder">
                   <SelectValue placeholder="Target Folder" />
                 </SelectTrigger>
                 <SelectContent>
@@ -619,7 +567,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                 </SelectContent>
               </Select>
               <Select value={scannedMetadata.subId || 'none'} onValueChange={value => setScannedMetadata({...scannedMetadata, subId: value === 'none' ? '' : value})}>
-                <SelectTrigger>
+                <SelectTrigger aria-label="Associated Subcontractor">
                   <SelectValue placeholder="Associated Subcontractor" />
                 </SelectTrigger>
                 <SelectContent>
@@ -630,15 +578,18 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
               <Input
                 placeholder="Subject Line"
                 value={scannedMetadata.subject} onChange={e => setScannedMetadata({...scannedMetadata, subject: e.target.value})}
+                aria-label="Subject Line"
               />
               <div className="flex gap-2">
                 <Input
                   placeholder="Reference No"
                   value={scannedMetadata.refNo} onChange={e => setScannedMetadata({...scannedMetadata, refNo: e.target.value})}
+                  aria-label="Reference Number"
                 />
                 <Input
                   type="date"
                   value={scannedMetadata.letterDate} onChange={e => setScannedMetadata({...scannedMetadata, letterDate: e.target.value})}
+                  aria-label="Letter Date"
                 />
               </div>
               <div className="flex gap-2">
@@ -646,7 +597,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                     value={scannedMetadata.correspondenceType || 'none'}
                     onValueChange={value => setScannedMetadata({...scannedMetadata, correspondenceType: value === 'none' ? '' : value as any})}
                 >
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="Correspondence Type">
                         <SelectValue placeholder="Correspondence Type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -658,6 +609,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                 <Input
                   type="date"
                   value={scannedMetadata.date} onChange={e => setScannedMetadata({...scannedMetadata, date: e.target.value})}
+                  aria-label="Upload Date"
                 />
               </div>
             </div>
@@ -669,7 +621,6 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
         </DialogContent>
       </Dialog>
 
-      {/* Preview Dialog */}
       <Dialog open={!!previewDoc} onOpenChange={() => setPreviewDoc(null)}>
         {previewDoc && (
           <DialogContent className="max-w-[calc(100vw-6rem)] h-[calc(100vh-6rem)] flex flex-col p-0">
@@ -690,7 +641,6 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
               </div>
             </DialogHeader>
             <div className="flex flex-1 overflow-hidden bg-muted/20">
-              {/* Document View Area */}
               <div className="flex-1 flex items-center justify-center p-4">
                 {previewDoc.fileUrl ? (
                   <div className="w-full h-full flex flex-col">
@@ -709,12 +659,12 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                             </div>
                           }
                           onLoadSuccess={onDocumentLoadSuccess}
-                          onError={(error) => console.error('PDF Load Error:', error)}
+                          onError={(error: Error) => console.error('PDF Load Error:', error)}
                         >
                           <Page pageNumber={currentPageState} scale={scaleState} renderTextLayer={false} renderAnnotationLayer={false} />
                         </Document>
                       </div>
-                    ) : (previewDoc.type === 'IMAGE' || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => previewDoc.fileUrl.toLowerCase().endsWith(ext))) ? (
+                    ) : (previewDoc.type === 'IMAGE' || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => previewDoc.fileUrl && previewDoc.fileUrl.toLowerCase().endsWith(ext))) ? (
                       <img
                         src={getFileUrl(previewDoc)}
                         alt="Document Preview"
@@ -732,7 +682,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                         </Button>
                       </div>
                     )}
-                    {(previewDoc.type === 'PDF' || previewDoc.fileUrl.toLowerCase().endsWith('.pdf')) && (
+                    {(previewDoc.type === 'PDF' || (previewDoc.fileUrl && previewDoc.fileUrl.toLowerCase().endsWith('.pdf'))) && (
                         <div className="flex items-center justify-center gap-2 p-2 bg-background/50 border-t">
                             <Button variant="outline" size="sm" onClick={goToPrevPage} disabled={currentPageState <= 1}>Prev</Button>
                             <span className="text-sm text-muted-foreground">Page {currentPageState} of {numPagesState}</span>
@@ -753,7 +703,6 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                 )}
               </div>
 
-              {/* Metadata and Comments Sidebar */}
               <div className="w-80 border-l bg-background p-4 overflow-y-auto">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Document Metadata</h3>
                 <div className="grid gap-4">
@@ -792,6 +741,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                         onChange={e => setNewTagInput(e.target.value)}
                         onKeyPress={e => e.key === 'Enter' && handleAddTag(previewDoc.id, newTagInput)}
                         className="h-9"
+                        aria-label="New tag name"
                       />
                       <Button size="icon" onClick={() => handleAddTag(previewDoc.id, newTagInput)}>
                         <Plus className="h-4 w-4" />
@@ -813,6 +763,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                               handleUploadNewVersion(previewDoc.id, e.target.files[0]);
                             }
                           }}
+                          aria-label="Upload new version"
                         />
                         <Button
                           variant="outline"

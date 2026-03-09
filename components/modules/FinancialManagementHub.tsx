@@ -1,18 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { Project, UserRole, AppSettings, ContractBill, VariationOrder } from '../../types';
+import { Project, UserRole, AppSettings, ContractBill } from '../../types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
-import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
 
 import {
-    Receipt, Printer, Plus, Calculator, History, X, Save, 
-    ArrowRight, ArrowLeft, Landmark, FileCheck, TrendingUp, Edit3,
-    AlertTriangle, CheckCircle2, FileSpreadsheet, FileDiff, Search,
-    Clock, User, DollarSign, FileText, CheckCircle, Send, Calendar,
-    Eye, Edit2, ShieldCheck
+    Receipt, Printer, X, Save, 
+    TrendingUp, FileDiff, Search,
+    Eye, Edit2
 } from 'lucide-react';
 
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import {
@@ -24,8 +21,6 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
-import { Separator } from '~/components/ui/separator';
 import { Badge } from '~/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { Progress } from '~/components/ui/progress';
@@ -37,14 +32,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
-
 
 interface Props {
   project: Project;
@@ -53,14 +40,13 @@ interface Props {
   onProjectUpdate: (project: Project) => void;
 }
 
-const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectUpdate, userRole }) => {
+const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectUpdate }) => {
   const [activeTab, setActiveTab] = useState("overview");
   
   if (!project) {
     return (
       <div className="p-8 text-center">
         <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>Project data not available. Please select a project first.</AlertDescription>
         </Alert>
@@ -69,12 +55,10 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
   }
 
   // === CONTRACT BILLING STATE ===
-  const [selectedIpcId, setSelectedIpcId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [ipcForm, setIpcForm] = useState<Partial<ContractBill>>({
     billNumber: '',
     date: new Date().toISOString().split('T')[0],
-    dateOfMeasurement: new Date().toISOString().split('T')[0],
     orderOfBill: ((project?.contractBills || [])?.length || 0) + 1,
     items: [],
     provisionalSum: 0,
@@ -86,27 +70,17 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
 
   // === VARIATION ORDERS STATE ===
   const [voSearchTerm, setVoSearchTerm] = useState('');
-  const [isVoModalOpen, setIsVoModalOpen] = useState(false);
-  const [voForm, setVoForm] = useState<Partial<VariationOrder>>({
-    voNumber: `VO-${((project?.variationOrders || [])?.length || 0) + 1}`,
-    title: '',
-    date: new Date().toISOString().split('T')[0],
-    reason: '',
-    items: []
-  });
   
   // === DATA SOURCES ===
   const contractBills = project?.contractBills || [];
   const subcontractorBills = project?.subcontractorBills || [];
   const variationOrders = project?.variationOrders || [];
-  const subcontractors = (project?.agencies || [])?.filter(a => a.type === 'subcontractor') || [];
   
   // === FINANCIAL CALCULATIONS ===
   const financialStats = useMemo(() => {
     const boqItems = project.boq || [];
     const vatRate = settings?.vatRate || 13;
     
-    // --- Original Contract Calculation (a + b + c) ---
     const originalPS = boqItems
         .filter(item => item.unit?.toUpperCase() === 'PS')
         .reduce((acc, item) => acc + (item.quantity * item.rate), 0);
@@ -118,7 +92,6 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
     const originalVAT = originalNonPS * (vatRate / 100);
     const originalContractValue = originalPS + originalNonPS + originalVAT;
 
-    // --- Revised Contract Calculation (a_rev + b_rev + c_rev) ---
     const revisedPS = boqItems
         .filter(item => item.unit?.toUpperCase() === 'PS')
         .reduce((acc, item) => acc + ((item.quantity + (item.variationQuantity || 0)) * item.rate), 0);
@@ -132,7 +105,7 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
 
     const variationsValue = revisedContractValue - originalContractValue;
     
-    const totalBilled = contractBills.reduce((acc, bill) => acc + (bill.totalAmountPayable || 0), 0);
+    const totalBilled = contractBills.reduce((acc, bill) => acc + (bill.netAmount || 0), 0);
     const totalSubBilled = subcontractorBills.reduce((acc, bill) => acc + (bill.netAmount || 0), 0);
     
     return {
@@ -149,8 +122,8 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
   const voStats = useMemo(() => ({
     total: variationOrders.length,
     approved: variationOrders.filter(vo => vo.status === 'Approved').length,
-    pending: variationOrders.filter(vo => vo.status === 'Pending').length,
-    totalValue: variationOrders.reduce((acc, vo) => acc + (vo.totalAmount || 0), 0)
+    pending: variationOrders.filter(vo => vo.status === 'Submitted' || vo.status === 'Draft').length,
+    totalValue: variationOrders.reduce((acc, vo) => acc + (vo.totalImpact || 0), 0)
   }), [variationOrders]);
 
   // === FILTERED DATA ===
@@ -166,10 +139,6 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
     setIsCreateModalOpen(true);
   };
 
-  const handleCreateVo = () => {
-    setIsVoModalOpen(true);
-  };
-
   return (
     <div className="p-4 h-[calc(100vh-140px)] overflow-y-auto">
       <div className="flex justify-between mb-6 items-center">
@@ -180,9 +149,6 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleCreateContractBill}>
             <Receipt className="mr-2 h-4 w-4" /> New Contract Bill
-          </Button>
-          <Button onClick={handleCreateVo}>
-            <FileDiff className="mr-2 h-4 w-4" /> New Variation
           </Button>
         </div>
       </div>
@@ -204,33 +170,33 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
           <TabsContent value="overview" className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <Card>
-                <CardContent>
-                  <h3 className="text-sm font-semibold text-muted-foreground">Original Contract</h3>
-                  <p className="text-2xl font-bold text-primary">
+                <CardContent className="pt-6">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Original Contract</h3>
+                  <p className="text-2xl font-black text-primary">
                     {formatCurrency(financialStats.originalContract, settings)}
                   </p>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent>
-                  <h3 className="text-sm font-semibold text-muted-foreground">Variations</h3>
-                  <p className="text-2xl font-bold text-amber-500">
+                <CardContent className="pt-6">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Variations</h3>
+                  <p className="text-2xl font-black text-amber-500">
                     {formatCurrency(financialStats.variations, settings)}
                   </p>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent>
-                  <h3 className="text-sm font-semibold text-muted-foreground">Revised Contract</h3>
-                  <p className="text-2xl font-bold text-green-600">
+                <CardContent className="pt-6">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Revised Contract</h3>
+                  <p className="text-2xl font-black text-green-600">
                     {formatCurrency(financialStats.revisedContract, settings)}
                   </p>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent>
-                  <h3 className="text-sm font-semibold text-muted-foreground">Payment Progress</h3>
-                  <p className="text-2xl font-bold text-blue-600">
+                <CardContent className="pt-6">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Payment Progress</h3>
+                  <p className="text-2xl font-black text-blue-600">
                     {financialStats.paymentPercentage.toFixed(1)}%
                   </p>
                 </CardContent>
@@ -244,8 +210,10 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
                 </CardHeader>
                 <CardContent>
                   <Progress value={financialStats.paymentPercentage} className="mb-4" />
-                  <p className="text-sm">Billed: {formatCurrency(financialStats.totalBilled, settings)}</p>
-                  <p className="text-sm">Balance: {formatCurrency(financialStats.balanceToBill, settings)}</p>
+                  <div className="space-y-1">
+                    <p className="text-sm flex justify-between"><span>Billed:</span> <span className="font-bold">{formatCurrency(financialStats.totalBilled, settings)}</span></p>
+                    <p className="text-sm flex justify-between"><span>Balance:</span> <span className="font-bold">{formatCurrency(financialStats.balanceToBill, settings)}</span></p>
+                  </div>
                 </CardContent>
               </Card>
               <Card>
@@ -253,22 +221,22 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
                   <CardTitle>Subcontractor Payments</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-primary">
+                  <p className="text-3xl font-black text-primary">
                     {formatCurrency(financialStats.totalSubBilled, settings)}
                   </p>
-                  <p className="text-sm text-muted-foreground">Total Subcontractor Payments</p>
+                  <p className="text-sm text-muted-foreground">Total Subcontractor Net Certified</p>
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
 
           <TabsContent value="contract-bills" className="p-4">
-            <h2 className="text-lg font-semibold mb-2">Contract Bills</h2>
+            <h2 className="text-lg font-bold mb-2 uppercase tracking-tight">Contract Bills</h2>
             <p className="text-sm text-muted-foreground mb-4">Interim Payment Certificates and contract billing records</p>
             
-            <Card>
+            <Card className="overflow-hidden">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-muted">
                   <TableRow>
                     <TableHead>Bill Number</TableHead>
                     <TableHead>Date</TableHead>
@@ -280,15 +248,15 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
                 <TableBody>
                   {contractBills.length > 0 ? contractBills.map(bill => (
                     <TableRow key={bill.id}>
-                      <TableCell className="font-medium">{bill.billNumber}</TableCell>
+                      <TableCell className="font-bold">{bill.billNumber}</TableCell>
                       <TableCell>{new Date(bill.date).toLocaleDateString()}</TableCell>
-                      <TableCell className="font-bold">{formatCurrency(bill.totalAmount || 0, settings)}</TableCell>
+                      <TableCell className="font-black text-primary">{formatCurrency(bill.netAmount || 0, settings)}</TableCell>
                       <TableCell>
-                        <Badge variant="default" className="bg-green-100 text-green-700">Generated</Badge>
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">{bill.status}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon"><Printer className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" title="Print PDF"><Printer className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" title="View Details"><Eye className="h-4 w-4" /></Button>
                       </TableCell>
                     </TableRow>
                   )) : (
@@ -303,62 +271,57 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
             </Card>
           </TabsContent>
 
-
-
-
-
           <TabsContent value="variations" className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <Card>
-                <CardContent>
-                  <h3 className="text-sm font-semibold text-muted-foreground">Total Variations</h3>
-                  <p className="text-2xl font-bold text-primary">{voStats.total}</p>
+                <CardContent className="pt-6">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Total Variations</h3>
+                  <p className="text-2xl font-black text-primary">{voStats.total}</p>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent>
-                  <h3 className="text-sm font-semibold text-muted-foreground">Approved</h3>
-                  <p className="text-2xl font-bold text-green-600">{voStats.approved}</p>
+                <CardContent className="pt-6">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Approved</h3>
+                  <p className="text-2xl font-black text-green-600">{voStats.approved}</p>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent>
-                  <h3 className="text-sm font-semibold text-muted-foreground">Pending</h3>
-                  <p className="text-2xl font-bold text-amber-500">{voStats.pending}</p>
+                <CardContent className="pt-6">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Pending</h3>
+                  <p className="text-2xl font-black text-amber-500">{voStats.pending}</p>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent>
-                  <h3 className="text-sm font-semibold text-muted-foreground">Total Value</h3>
-                  <p className="text-2xl font-bold text-blue-600">
+                <CardContent className="pt-6">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Total Impact</h3>
+                  <p className="text-2xl font-black text-blue-600">
                     {formatCurrency(voStats.totalValue, settings)}
                   </p>
                 </CardContent>
               </Card>
             </div>
 
-            <Card className="mb-6">
-              <CardContent className="p-4">
-                <div className="relative w-full">
+            <div className="flex items-center gap-4 mb-6">
+                <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
-                    placeholder="Search variations..." 
+                    placeholder="Search variations by title or reason..." 
                     value={voSearchTerm}
                     onChange={(e) => setVoSearchTerm(e.target.value)}
                     className="pl-10 w-full"
+                    aria-label="Search variations"
                   />
                 </div>
-              </CardContent>
-            </Card>
+            </div>
 
-            <Card>
+            <Card className="overflow-hidden">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-muted">
                   <TableRow>
                     <TableHead>VO Number</TableHead>
                     <TableHead>Title</TableHead>
                     <TableHead>Reason</TableHead>
-                    <TableHead>Amount</TableHead>
+                    <TableHead>Impact</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -366,10 +329,10 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
                 <TableBody>
                   {filteredVos.length > 0 ? filteredVos.map(vo => (
                     <TableRow key={vo.id}>
-                      <TableCell className="font-medium">{vo.voNumber}</TableCell>
+                      <TableCell className="font-bold">{vo.voNumber}</TableCell>
                       <TableCell>{vo.title}</TableCell>
-                      <TableCell>{vo.reason}</TableCell>
-                      <TableCell className="font-bold">{formatCurrency(vo.totalAmount || 0, settings)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{vo.reason}</TableCell>
+                      <TableCell className="font-black text-primary">{formatCurrency(vo.totalImpact || 0, settings)}</TableCell>
                       <TableCell>
                         <Badge 
                           variant={vo.status === 'Approved' ? 'default' : 'secondary'}
@@ -379,14 +342,14 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon"><Edit2 className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" title="View"><Eye className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" title="Edit"><Edit2 className="h-4 w-4" /></Button>
                       </TableCell>
                     </TableRow>
                   )) : (
                     <TableRow>
                       <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
-                        No variation orders found.
+                        No variation orders found matching your search.
                       </TableCell>
                     </TableRow>
                   )}
@@ -493,14 +456,18 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
               Cancel
             </Button>
             <Button onClick={() => {
-              // Simple bill creation - in a real app this would have more validation
               const newBill: ContractBill = {
                 id: `ipc-${Date.now()}`,
                 ...ipcForm,
                 status: 'Draft',
-                totalAmount: 0, // Would be calculated based on items
+                netAmount: 0,
+                grossAmount: 0,
+                retentionPercent: (settings as any).retentionPercentage || 5,
                 items: [],
                 location: project.location,
+                description: `IPC No. ${ipcForm.billNumber}`,
+                periodFrom: '',
+                periodTo: '',
                 dateOfWorkOrder: project.startDate,
                 extendedCompletionDate: project.endDate,
               } as ContractBill;

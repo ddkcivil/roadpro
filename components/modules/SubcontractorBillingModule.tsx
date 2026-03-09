@@ -1,35 +1,35 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useTransition } from 'react';
+import { Project, SubcontractorBill, BillItem, AppSettings } from '../../types';
+import { formatCurrency } from '../../utils/formatting/exportUtils';
+import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
+import { toast } from 'sonner';
+
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '~/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { Badge } from '~/components/ui/badge';
-import { Avatar, AvatarFallback } from '~/components/ui/avatar';
-import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { Separator } from '~/components/ui/separator';
 import { Checkbox } from '~/components/ui/checkbox';
+import { ScrollArea } from '~/components/ui/scroll-area';
 import {
-  Plus, Edit, Trash2, Save, X, Calendar, DollarSign,
-  FileText, CheckCircle, AlertTriangle, User, Search,
+  Plus, Trash2, Save,
+  Search,
   ArrowRight, ArrowLeft, Printer, FileCheck, Calculator
 } from 'lucide-react';
-import { Project, UserRole, AppSettings, Subcontractor, SubcontractorBill, BillItem, StructureWorkLog } from '../../types';
-import { formatCurrency } from '../../utils/formatting/exportUtils';
-import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
-import { toast } from 'sonner';
 
 interface Props {
   project: Project;
-  userRole: UserRole;
   settings: AppSettings;
   onProjectUpdate: (project: Project) => void;
 }
 
-const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate, userRole }) => {
+const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) => {
+  const [, startTransition] = useTransition();
   const [activeTab, setActiveTab] = useState("0");
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
   const [isManualItemModalOpen, setIsManualItemModalOpen] = useState(false);

@@ -1,24 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card, CardContent } from '~/components/ui/card';
 import { Progress } from '~/components/ui/progress';
 import { Alert, AlertDescription } from '~/components/ui/alert';
 import { Badge } from '~/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
-import { Separator } from '~/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { cn } from '~/lib/utils';
 import {
-  Upload,
   FileText,
   Eye,
   Download,
   CheckCircle,
   BarChart3,
   Search,
-  Zap,
-  Shield,
-  Settings
+  Zap
 } from 'lucide-react';
 import { ocrService } from '../../services/ai/ocrService';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
@@ -119,7 +114,7 @@ const ChandraOCRAnalyzer: React.FC = () => {
       setResult(extractionResult);
       
       // Generate analysis report
-      const report = generateAnalysisReport(extractionResult, file.name);
+      const report = generateAnalysisReport(extractionResult);
       setAnalysisReport(report);
       
       setProgress(100);
@@ -132,7 +127,7 @@ const ChandraOCRAnalyzer: React.FC = () => {
     }
   };
 
-  const generateAnalysisReport = (result: DocumentExtractionResult, fileName: string): OCRAnalysisReport => {
+  const generateAnalysisReport = (result: DocumentExtractionResult): OCRAnalysisReport => {
     // Calculate summary metrics
     const totalWords = result.rawText.split(/\s+/).length;
     const confidence = result.confidence;
@@ -215,10 +210,6 @@ const ChandraOCRAnalyzer: React.FC = () => {
 
   const triggerFileInput = () => {
     fileInputRef.current?.click();
-  };
-
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
   };
 
   return (
@@ -692,32 +683,31 @@ const ChandraOCRAnalyzer: React.FC = () => {
                               if (result?.structuredData?.boqItems && result.structuredData.boqItems.length > 0) {
                                 csvContent += 'BOQ Items:,\n';
                                 csvContent += 'Description,Quantity,Unit\n';
-                                result.structuredData.boqItems.forEach(item => {
+                                result.structuredData.boqItems.forEach((item: any) => {
                                   csvContent += `${item.description},${item.quantity},${item.unit}\n`;
                                 });
                                 csvContent += '\n';
                               }
-                              
+
                               // Add financial amounts if present
                               if (result?.structuredData?.amounts && result.structuredData.amounts.length > 0) {
                                 csvContent += 'Financial Amounts:,\n';
                                 csvContent += 'Amount\n';
-                                result.structuredData.amounts.forEach(amount => {
+                                result.structuredData.amounts.forEach((amount: number) => {
                                   csvContent += `${formatCurrency(amount)}\n`;
                                 });
                                 csvContent += '\n';
                               }
-                              
+
                               // Add other structured data
                               if (result?.structuredData?.dates && result.structuredData.dates.length > 0) {
                                 csvContent += 'Dates:,\n';
                                 csvContent += 'Date\n';
-                                result.structuredData.dates.forEach(date => {
+                                result.structuredData.dates.forEach((date: string) => {
                                   csvContent += `${date}\n`;
                                 });
                                 csvContent += '\n';
                               }
-                              
                               const encodedUri = encodeURI(csvContent);
                               const linkElement = document.createElement('a');
                               linkElement.setAttribute('href', encodedUri);

@@ -1,17 +1,16 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
-    Camera, Upload, Search, Filter, Sparkles, Trash2,
-    Calendar, MapPin, X,
-    HardHat, History, Wifi, WifiOff
+    Camera, Search, Sparkles, Trash2,
+    Calendar, MapPin, X, Wifi, WifiOff, Upload, History
 } from 'lucide-react';
 import { Project, SitePhoto, UserRole } from '../../types';
 import { analyzeSitePhoto } from '../../services/ai/geminiService';
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card, CardContent } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Badge } from '~/components/ui/badge';
 import { toast } from 'sonner';
 
@@ -248,7 +247,8 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole 
                                 <div className="aspect-video overflow-hidden relative">
                                     <img
                                         src={photo.url}
-                                        alt={photo.caption}
+                                        alt={photo.caption || 'Site Photo'}
+                                        title={photo.caption || 'Site Photo'}
                                         className="w-full h-full object-cover transition-transform group-hover:scale-105"
                                     />
                                     {photo.isAnalyzed && (
@@ -290,7 +290,12 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole 
                             onClick={() => fileInputRef.current?.click()}
                         >
                             {tempPreview ? (
-                                <img src={tempPreview} className="w-full h-full object-cover" />
+                                <img 
+                                    src={tempPreview} 
+                                    alt="Preview of the selected site image" 
+                                    title="Selected site image preview" 
+                                    className="w-full h-full object-cover" 
+                                />
                             ) : (
                                 <>
                                     <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -367,6 +372,8 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole 
                             <div className="flex-1 bg-slate-900 flex items-center justify-center p-4 relative group">
                                 <img
                                     src={previewPhoto.url}
+                                    alt={previewPhoto.caption || 'Site Photo Preview'}
+                                    title={previewPhoto.caption || 'Site Photo Preview'}
                                     className="max-w-full max-h-[70vh] object-contain rounded-2xl shadow-2xl"
                                 />
                                 <Button

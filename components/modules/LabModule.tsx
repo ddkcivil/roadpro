@@ -1,14 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { 
-    FlaskConical, Plus, Search, CheckCircle2, XCircle, 
-    Trash2, Eye, Printer, AlertTriangle, Microscope,
+    FlaskConical, Search, CheckCircle2,
+    Eye, Printer, AlertTriangle, Microscope,
     ShieldCheck, History, AlertOctagon, TrendingUp, Filter,
-    Activity, Beaker, MapPin, ChevronDown
+    Activity, Beaker, MapPin
 } from 'lucide-react';
 import { Project, UserRole, LabTest, NCR, User } from '../../types';
 
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card, CardContent } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import {
@@ -21,14 +21,12 @@ import {
 } from "~/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
-import { Separator } from '~/components/ui/separator';
 import { Badge } from '~/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { Progress } from '~/components/ui/progress';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -40,8 +38,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { Avatar, AvatarFallback } from '~/components/ui/avatar';
+import { Avatar } from '~/components/ui/avatar';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '~/components/ui/accordion';
+import { Textarea } from '~/components/ui/textarea';
 
 interface Props {
   project: Project;
@@ -73,7 +72,6 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
   const [activeTab, setActiveTab] = useState("test-entry");
   const [searchTerm, setSearchTerm] = useState('');
   const [isNcrModalOpen, setIsNcrModalOpen] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   if (!project) {
     return (
@@ -94,7 +92,7 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
       location: '',
       date: new Date().toISOString().split('T')[0],
       assetId: '',
-      technicianId: '', // Will be populated dynamically
+      technicianId: '',
       testData: {} as Record<string, number>,
   });
 
@@ -129,7 +127,6 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
       const mainVal = Object.values(testForm.testData)[0] || 0;
       const isPass = selectedType.inverse ? mainVal <= selectedType.limit : mainVal >= selectedType.limit;
       
-      // Get technician name from project users or use role as fallback
       const savedUsers = localStorage.getItem('roadmaster-users');
       const users: User[] = savedUsers ? JSON.parse(savedUsers) : [];
       const technician = users.find(u => u.id === testForm.technicianId)?.name || userRole;
@@ -151,7 +148,6 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
 
       onProjectUpdate({ ...project, labTests: [...labTests, newEntry] });
       setActiveTab("historical-logs");
-      setSnackbarOpen(true);
       setTestForm({ ...testForm, sampleId: '', location: '', testData: {} });
   };
 
@@ -185,7 +181,7 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <Card className="border-l-4 border-l-primary">
           <CardContent className="flex items-center space-x-4 p-4">
-            <Avatar className="h-12 w-12 bg-secondary text-primary">
+            <Avatar className="h-12 w-12 bg-secondary text-primary flex items-center justify-center">
               <Activity className="h-6 w-6" />
             </Avatar>
             <div>
@@ -196,19 +192,19 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
         </Card>
         <Card className="border-l-4 border-l-green-600">
           <CardContent className="flex items-center space-x-4 p-4">
-            <Avatar className="h-12 w-12 bg-green-100 text-green-600">
+            <Avatar className="h-12 w-12 bg-green-100 text-green-600 flex items-center justify-center">
               <ShieldCheck className="h-6 w-6" />
             </Avatar>
             <div>
               <p className="text-xs font-bold text-muted-foreground uppercase">Pass Rate</p>
               <p className="text-3xl font-extrabold text-green-600">{stats.passRate}%</p>
-              <Progress value={stats.passRate} className="h-2 mt-2" indicatorColor="bg-green-600" />
+              <Progress value={stats.passRate} className="h-2 mt-2" indicatorClassName="bg-green-600" />
             </div>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-red-600">
           <CardContent className="flex items-center space-x-4 p-4">
-            <Avatar className="h-12 w-12 bg-red-100 text-red-600">
+            <Avatar className="h-12 w-12 bg-red-100 text-red-600 flex items-center justify-center">
               <AlertOctagon className="h-6 w-6" />
             </Avatar>
             <div>
@@ -219,7 +215,7 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
         </Card>
         <Card className="border-l-4 border-l-blue-600">
           <CardContent className="flex items-center space-x-4 p-4">
-            <Avatar className="h-12 w-12 bg-blue-100 text-blue-600">
+            <Avatar className="h-12 w-12 bg-blue-100 text-blue-600 flex items-center justify-center">
               <Beaker className="h-6 w-6" />
             </Avatar>
             <div>
@@ -251,30 +247,45 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                   <AccordionItem value="item-1">
                     <AccordionTrigger className="bg-muted/50 px-4 py-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">Sample Context</AccordionTrigger>
                     <AccordionContent className="p-4 grid gap-4">
-                      <Input label="Batch / Sample ID" placeholder="e.g. CONC/322/2024" value={testForm.sampleId} onChange={e => setTestForm({...testForm, sampleId: e.target.value})} />
-                      <Input label="Chainage / GPS Location" value={testForm.location} onChange={e => setTestForm({...testForm, location: e.target.value})} />
-                      <Select value={testForm.assetId || 'none'} onValueChange={value => setTestForm({...testForm, assetId: value === 'none' ? '' : value})}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Target Asset" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">General / Alignment</SelectItem>
-                          {(project.structures || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem> )}
-                        </SelectContent>
-                      </Select>
-                      <Select value={testForm.technicianId} onValueChange={value => setTestForm({...testForm, technicianId: value})}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Assigned Technician" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(() => {
-                              const savedUsers = localStorage.getItem('roadmaster-users');
-                              const users: User[] = savedUsers ? JSON.parse(savedUsers) : [];
-                              return users.map(u => <SelectItem key={u.id} value={u.id}>{u.name} ({u.role})</SelectItem> );
-                          })()}
-                        </SelectContent>
-                      </Select>
-                      <Input label="Testing Date" type="date" value={testForm.date} onChange={e => setTestForm({...testForm, date: e.target.value})} />
+                      <div className="space-y-2">
+                        <Label htmlFor="sampleId">Batch / Sample ID</Label>
+                        <Input id="sampleId" placeholder="e.g. CONC/322/2024" value={testForm.sampleId} onChange={e => setTestForm({...testForm, sampleId: e.target.value})} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="location">Chainage / GPS Location</Label>
+                        <Input id="location" value={testForm.location} onChange={e => setTestForm({...testForm, location: e.target.value})} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="asset">Target Asset</Label>
+                        <Select value={testForm.assetId || 'none'} onValueChange={value => setTestForm({...testForm, assetId: value === 'none' ? '' : value})}>
+                          <SelectTrigger id="asset">
+                            <SelectValue placeholder="Target Asset" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">General / Alignment</SelectItem>
+                            {(project.structures || []).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem> )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="technician">Assigned Technician</Label>
+                        <Select value={testForm.technicianId} onValueChange={value => setTestForm({...testForm, technicianId: value})}>
+                          <SelectTrigger id="technician">
+                            <SelectValue placeholder="Assigned Technician" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(() => {
+                                const savedUsers = localStorage.getItem('roadmaster-users');
+                                const users: User[] = savedUsers ? JSON.parse(savedUsers) : [];
+                                return users.map(u => <SelectItem key={u.id} value={u.id}>{u.name} ({u.role})</SelectItem> );
+                            })()}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="date">Testing Date</Label>
+                        <Input id="date" type="date" value={testForm.date} onChange={e => setTestForm({...testForm, date: e.target.value})} />
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
@@ -284,22 +295,28 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                     <AccordionTrigger className="bg-muted/50 px-4 py-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">Engineering Protocol</AccordionTrigger>
                     <AccordionContent className="p-4 grid gap-4">
                       <div className="grid grid-cols-2 gap-4">
-                        <Select value={newTestCategory} onValueChange={value => { setNewTestCategory(value as keyof typeof TEST_PROTOCOLS); setSelectedType(null); }}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Material Class" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.keys(TEST_PROTOCOLS).map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem> )}
-                          </SelectContent>
-                        </Select>
-                        <Select value={selectedType?.name || ''} onValueChange={value => setSelectedType(TEST_PROTOCOLS[newTestCategory].find((t:any) => t.name === value))}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Test Standard" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(TEST_PROTOCOLS[newTestCategory] as any[]).map(t => <SelectItem key={t.name} value={t.name}>{t.name}</SelectItem> )}
-                          </SelectContent>
-                        </Select>
+                        <div className="space-y-2">
+                          <Label htmlFor="category">Material Class</Label>
+                          <Select value={newTestCategory} onValueChange={value => { setNewTestCategory(value as keyof typeof TEST_PROTOCOLS); setSelectedType(null); }}>
+                            <SelectTrigger id="category">
+                              <SelectValue placeholder="Material Class" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.keys(TEST_PROTOCOLS).map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem> )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="test-type">Test Standard</Label>
+                          <Select value={selectedType?.name || ''} onValueChange={value => setSelectedType(TEST_PROTOCOLS[newTestCategory].find((t:any) => t.name === value))}>
+                            <SelectTrigger id="test-type">
+                              <SelectValue placeholder="Test Standard" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(TEST_PROTOCOLS[newTestCategory] as any[]).map(t => <SelectItem key={t.name} value={t.name}>{t.name}</SelectItem> )}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                   
                       {selectedType ? (
@@ -313,14 +330,15 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                           </Alert>
                           <div className="grid grid-cols-2 gap-4">
                             {selectedType.parameters.map((param: string) => (
-                              <Input 
-                                key={param}
-                                label={param}
-                                type="number"
-                                value={testForm.testData[param] || ''}
-                                onChange={e => setTestForm({...testForm, testData: {...testForm.testData, [param]: Number(e.target.value)}})}
-                                suffix={selectedType.unit}
-                              />
+                              <div key={param} className="space-y-2">
+                                <Label htmlFor={`param-${param}`}>{param} ({selectedType.unit})</Label>
+                                <Input 
+                                  id={`param-${param}`}
+                                  type="number"
+                                  value={testForm.testData[param] || ''}
+                                  onChange={e => setTestForm({...testForm, testData: {...testForm.testData, [param]: Number(e.target.value)}})}
+                                />
+                              </div>
                             ))}
                           </div>
                           <Button 
@@ -357,6 +375,7 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                     value={searchTerm} 
                     onChange={e => setSearchTerm(e.target.value)}
                     className="pl-10"
+                    aria-label="Search records"
                   />
                 </div>
                 <Button variant="outline">
@@ -470,22 +489,28 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                 This NCR is linked to failed sample <b>{filteredTests.find(t => t.id === ncrForm.linkedTestId)?.sampleId}</b>.
               </AlertDescription>
             </Alert>
-            <Input label="Deviation Description" multiline rows={3} value={ncrForm.description} onChange={e => setNcrForm({...ncrForm, description: e.target.value})} />
-            <Select value={ncrForm.severity} onValueChange={value => setNcrForm({...ncrForm, severity: value as any})}>
-              <SelectTrigger>
-                <SelectValue placeholder="Risk Severity" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Low">Low - Rectifiable</SelectItem>
-                <SelectItem value="Medium">Medium - Correction Required</SelectItem>
-                <SelectItem value="High">High - Structural Concern</SelectItem>
-                <SelectItem value="Critical">Critical - Immediate Rejection</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <Label htmlFor="ncr-description">Deviation Description</Label>
+              <Textarea id="ncr-description" value={ncrForm.description} onChange={e => setNcrForm({...ncrForm, description: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ncr-severity">Risk Severity</Label>
+              <Select value={ncrForm.severity} onValueChange={value => setNcrForm({...ncrForm, severity: value as any})}>
+                <SelectTrigger id="ncr-severity">
+                  <SelectValue placeholder="Risk Severity" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Low">Low - Rectifiable</SelectItem>
+                  <SelectItem value="Medium">Medium - Correction Required</SelectItem>
+                  <SelectItem value="High">High - Structural Concern</SelectItem>
+                  <SelectItem value="Critical">Critical - Immediate Rejection</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsNcrModalOpen(false)}>Discard</Button>
-            <Button variant="destructive" onClick={() => { setIsNcrModalOpen(false); setSnackbarOpen(true); }}>
+            <Button variant="destructive" onClick={() => { setIsNcrModalOpen(false); }}>
               <CheckCircle2 className="mr-2 h-4 w-4" /> Issue NCR Draft
             </Button>
           </DialogFooter>

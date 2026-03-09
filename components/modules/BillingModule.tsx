@@ -1,15 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { Project, UserRole, AppSettings, ContractBill, BillItem, BOQItem, SubcontractorBill, StructureWorkLog, StructureComponent, StructureAsset } from '../../types';
+import { Project, UserRole, AppSettings, ContractBill, BillItem, SubcontractorBill, StructureWorkLog } from '../../types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
 import {
     Receipt, Printer, Plus, Calculator,
-    History, X, Save, ArrowRight, ArrowLeft, Landmark,
-    Receipt as ReceiptIcon, FileCheck, TrendingUp, Edit3,
+    History, ArrowRight, ArrowLeft,
+    Receipt as ReceiptIcon, FileCheck, TrendingUp,
     AlertTriangle, CheckCircle2, FileSpreadsheet
 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';

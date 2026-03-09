@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card, CardContent, CardTitle } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
-import { Checkbox } from '~/components/ui/checkbox';
 import { ScrollArea } from '~/components/ui/scroll-area';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '~/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
@@ -25,11 +24,6 @@ import {
   Download,
   Save,
   User,
-  Upload,
-  TrendingUp,
-  DollarSign,
-  GraduationCap,
-  Clipboard,
   Loader2
 } from 'lucide-react';
 import { apiService } from '../../services/api/apiService';
@@ -624,8 +618,8 @@ const StaffManagementModule: React.FC = () => {
   const handleSubmitEmployee = async () => {
     try {
       const employee: EmployeeData = {
-        id: `emp-${Date.now()}`,
         ...newEmployee,
+        id: `emp-${Date.now()}`,
         joinedDate: new Date().toISOString(),
         status: 'Active'
       };
@@ -735,15 +729,6 @@ const StaffManagementModule: React.FC = () => {
       case 'Rejected': return <XCircle size={16} />;
       case 'Pending': return <Clock size={16} />;
       default: return <FileText size={16} />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Approved': return 'success';
-      case 'Rejected': return 'error';
-      case 'Pending': return 'warning';
-      default: return 'default';
     }
   };
 
