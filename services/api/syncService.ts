@@ -1,5 +1,6 @@
 import { offlineStorage } from '../database/offlineStorage';
 import { SyncOperation } from '../../types';
+import { realApiService } from './realApiService';
 import { toast } from 'sonner';
 
 const SYNC_QUEUE_KEY = 'roadmaster-sync-queue';
@@ -42,9 +43,6 @@ export class SyncService {
   static async processQueue(): Promise<void> {
     const queue = await this.getQueue();
     if (queue.length === 0) return;
-
-    // Dynamically import realApiService to break circular dependency
-    const { realApiService } = await import('./realApiService');
 
     console.log(`[SyncService] Processing ${queue.length} pending operations...`);
     
