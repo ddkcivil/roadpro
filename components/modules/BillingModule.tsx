@@ -5,7 +5,8 @@ import {
     Receipt, Printer, Plus, Calculator,
     History, ArrowRight, ArrowLeft,
     Receipt as ReceiptIcon, FileCheck, TrendingUp,
-    AlertTriangle, CheckCircle2, FileSpreadsheet
+    AlertTriangle, CheckCircle2, FileSpreadsheet,
+    Edit, Trash2
 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
@@ -16,9 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Progress } from '~/components/ui/progress';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { toast } from 'sonner';
-import { Badge } from '~/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { Checkbox } from '~/components/ui/checkbox';
 import { Separator } from '~/components/ui/separator';
@@ -149,6 +148,21 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
         setSubcontractorBillCreateStep(0);
         setIsSubcontractorBillModalOpen(true);
     };
+
+    const handleEditSubcontractorBill = () => {
+        if (!viewingSubcontractorBill) return;
+        setSubcontractorBillForm({ ...viewingSubcontractorBill });
+        setSubcontractorBillCreateStep(1); // Go straight to items review
+        setIsSubcontractorBillModalOpen(true);
+    };
+
+    const handleDeleteSubcontractorBill = (id: string) => {
+        if (!confirm('Are you sure you want to delete this subcontractor bill?')) return;
+        const updatedBills = subcontractorBills.filter(b => b.id !== id);
+        onProjectUpdate({ ...project, subcontractorBills: updatedBills });
+        if (selectedSubcontractorBillId === id) setSelectedSubcontractorBillId(null);
+        toast.success('Subcontractor bill deleted');
+    };
     
     const generateSubcontractorBillItemsFromWorkLogs = () => {
         const selectedWorkLogs = getSubcontractorWorkLogs(subcontractorBillForm.subcontractorId || '').filter(log => selectedSubcontractorWorkIds.has(log.id));
@@ -226,20 +240,30 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
     
     const handleSaveSubcontractorBill = () => {
         const summary = calculateSubcontractorBillDetails(subcontractorBillForm);
+        const isEdit = !!subcontractorBillForm.id;
         
         const finalSubcontractorBill: SubcontractorBill = {
             ...subcontractorBillForm,
-            id: `scb-${Date.now()}`,
-            status: 'Draft',
+            id: subcontractorBillForm.id || `scb-${Date.now()}`,
+            status: subcontractorBillForm.status || 'Draft',
             grossAmount: summary.grossAmount,
             retentionPercent: subcontractorBillForm.retentionPercent || 5,
             netAmount: summary.netAmount,
             items: subcontractorBillForm.items || []
         } as SubcontractorBill;
         
+        let updatedBills;
+        if (isEdit) {
+            updatedBills = subcontractorBills.map(b => b.id === finalSubcontractorBill.id ? finalSubcontractorBill : b);
+            toast.success("Subcontractor bill updated successfully");
+        } else {
+            updatedBills = [...(project.subcontractorBills || []), finalSubcontractorBill];
+            toast.success("Subcontractor bill created successfully");
+        }
+        
         onProjectUpdate({ 
             ...project, 
-            subcontractorBills: [...(project.subcontractorBills || []), finalSubcontractorBill] 
+            subcontractorBills: updatedBills 
         });
         
         setIsSubcontractorBillModalOpen(false);
@@ -261,6 +285,21 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
         setSelectedSheetIds(new Set());
         setCreateStep(0);
         setIsCreateModalOpen(true);
+    };
+
+    const handleEditIPC = () => {
+        if (!viewingIpc) return;
+        setIpcForm({ ...viewingIpc });
+        setCreateStep(1); // Go straight to review
+        setIsCreateModalOpen(true);
+    };
+
+    const handleDeleteIPC = (id: string) => {
+        if (!confirm('Are you sure you want to delete this IPC?')) return;
+        const updatedBills = bills.filter(b => b.id !== id);
+        onProjectUpdate({ ...project, contractBills: updatedBills });
+        if (selectedIpcId === id) setSelectedIpcId(null);
+        toast.success('IPC deleted');
     };
 
     const generateBillItemsFromSheets = () => {
@@ -321,18 +360,28 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
     };
 
     const handleSaveIPC = () => {
+        const isEdit = !!ipcForm.id;
         const finalIPC: ContractBill = {
             ...ipcForm,
             ...currentIpcSummary,
-            id: `ipc-${Date.now()}`,
-            status: 'Draft',
+            id: ipcForm.id || `ipc-${Date.now()}`,
+            status: ipcForm.status || 'Draft',
             type: 'IPC', // Added missing type property
             location: project.location,
             dateOfWorkOrder: project.startDate,
             extendedCompletionDate: project.endDate,
         } as ContractBill;
 
-        onProjectUpdate({ ...project, contractBills: [...bills, finalIPC] });
+        let updatedBills;
+        if (isEdit) {
+            updatedBills = bills.map(b => b.id === finalIPC.id ? finalIPC : b);
+            toast.success("IPC updated successfully");
+        } else {
+            updatedBills = [...bills, finalIPC];
+            toast.success("IPC created successfully");
+        }
+
+        onProjectUpdate({ ...project, contractBills: updatedBills });
         setIsCreateModalOpen(false);
         setSelectedIpcId(finalIPC.id);
     };
@@ -372,7 +421,10 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                     <Button 
                                         variant="ghost" 
                                         className={`w-full justify-start py-6 mb-2 ${selectedIpcId === b.id ? 'bg-accent text-accent-foreground' : ''}`}
-                                        onClick={() => setSelectedIpcId(b.id)} 
+                                        onClick={() => {
+                                            setSelectedIpcId(b.id);
+                                            setSelectedSubcontractorBillId(null);
+                                        }} 
                                         key={b.id}
                                     >
                                         <div className="flex items-center space-x-3">
@@ -401,7 +453,10 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                         <Button 
                                             variant="ghost" 
                                             className={`w-full justify-start py-6 mb-2 ${selectedSubcontractorBillId === b.id ? 'bg-accent text-accent-foreground' : ''}`}
-                                            onClick={() => setSelectedSubcontractorBillId(b.id)} 
+                                            onClick={() => {
+                                                setSelectedSubcontractorBillId(b.id);
+                                                setSelectedIpcId(null);
+                                            }} 
                                             key={b.id}
                                         >
                                             <div className="flex items-center space-x-3">
@@ -453,7 +508,20 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                         </p>
                                     </div>
                                 </div>
-                                <Button variant="outline" onClick={() => setPrintPreviewOpen(true)}><Printer className="mr-2 h-4 w-4" />Print DoR Format</Button>
+                                <div className="flex items-center space-x-2">
+                                    <Button variant="outline" size="sm" onClick={viewingSubcontractorBill ? handleEditSubcontractorBill : handleEditIPC}>
+                                        <Edit className="mr-2 h-4 w-4" />Edit
+                                    </Button>
+                                    <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => {
+                                        if (viewingSubcontractorBill) handleDeleteSubcontractorBill(viewingSubcontractorBill.id);
+                                        else if (viewingIpc) handleDeleteIPC(viewingIpc.id);
+                                    }}>
+                                        <Trash2 className="mr-2 h-4 w-4" />Delete
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => setPrintPreviewOpen(true)}>
+                                        <Printer className="mr-2 h-4 w-4" />Preview / Print
+                                    </Button>
+                                </div>
                             </CardContent>
                         </Card>
 
@@ -532,7 +600,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                     <DialogHeader className="border-b pb-4">
                         <DialogTitle className="flex items-center text-xl font-bold">
                             <FileSpreadsheet className="mr-2 h-6 w-6 text-primary" />
-                            Prepare New IPC (Certificate No. {ipcForm.orderOfBill})
+                            {ipcForm.id ? 'Edit IPC' : 'Prepare New IPC'} (Certificate No. {ipcForm.orderOfBill})
                         </DialogTitle>
                     </DialogHeader>
                     <div className="flex-1 overflow-y-auto p-6">
@@ -678,7 +746,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
 
                                 <DialogFooter>
                                     <Button variant="outline" onClick={() => setCreateStep(0)}><ArrowLeft className="mr-2 h-4 w-4"/>Back to Selection</Button>
-                                    <Button onClick={handleSaveIPC}><CheckCircle2 className="mr-2 h-4 w-4"/>Issue Certificate Draft</Button>
+                                    <Button onClick={handleSaveIPC}><CheckCircle2 className="mr-2 h-4 w-4"/>{ipcForm.id ? 'Save Changes' : 'Issue Certificate Draft'}</Button>
                                 </DialogFooter>
                             </div>
                         )}
@@ -692,7 +760,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                     <DialogHeader className="border-b pb-4">
                         <DialogTitle className="flex items-center text-xl font-bold">
                             <FileCheck className="mr-2 h-6 w-6 text-amber-600" />
-                            Prepare New Subcontractor Bill (Bill No. {subcontractorBillForm.billNumber})
+                            {subcontractorBillForm.id ? 'Edit Subcontractor Bill' : 'Prepare New Subcontractor Bill'} (Bill No. {subcontractorBillForm.billNumber})
                         </DialogTitle>
                     </DialogHeader>
                     <div className="flex-1 overflow-y-auto p-6">
@@ -735,6 +803,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                             setSubcontractorBillForm({...subcontractorBillForm, subcontractorId: value});
                                             setSelectedSubcontractorWorkIds(new Set());
                                         }}
+                                        disabled={!!subcontractorBillForm.id}
                                     >
                                         <SelectTrigger id="subcontractor">
                                             <SelectValue placeholder="Select a subcontractor" />
@@ -762,15 +831,13 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                         </TableHeader>
                                         <TableBody>
                                             {getSubcontractorWorkLogs(subcontractorBillForm.subcontractorId || '').map(log => {
-                                                // Find the structure and component for this log
-                                                let structureName = 'Unknown';
+                                                // Find the component for this log
                                                 let componentName = 'Unknown';
                                                 
                                                 if (project.structures) {
                                                     for (const structure of project.structures) {
                                                         for (const component of structure.components) {
                                                             if (component.workLogs?.some(wl => wl.id === log.id)) {
-                                                                structureName = structure.name;
                                                                 componentName = component.name;
                                                                 break;
                                                             }
@@ -890,8 +957,10 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                                 </div>
 
                                 <DialogFooter>
-                                    <Button variant="outline" onClick={() => setSubcontractorBillCreateStep(0)}><ArrowLeft className="mr-2 h-4 w-4"/>Back to Selection</Button>
-                                    <Button onClick={handleSaveSubcontractorBill}><CheckCircle2 className="mr-2 h-4 w-4"/>Issue Bill Draft</Button>
+                                    <Button variant="outline" onClick={() => subcontractorBillForm.id ? setIsSubcontractorBillModalOpen(false) : setSubcontractorBillCreateStep(0)}>
+                                        {subcontractorBillForm.id ? 'Cancel' : <><ArrowLeft className="mr-2 h-4 w-4"/>Back to Selection</>}
+                                    </Button>
+                                    <Button onClick={handleSaveSubcontractorBill}><CheckCircle2 className="mr-2 h-4 w-4"/>{subcontractorBillForm.id ? 'Save Changes' : 'Issue Bill Draft'}</Button>
                                 </DialogFooter>
                             </div>
                         )}
@@ -905,20 +974,110 @@ const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) 
                     <DialogHeader className="border-b pb-4">
                         <DialogTitle className="flex items-center text-xl font-bold">
                             <Printer className="mr-2 h-6 w-6 text-muted-foreground" />
-                            Interim Payment Certificate - Print Layout
+                            {viewingSubcontractorBill ? 'Subcontractor Bill' : 'Interim Payment Certificate'} - Print Layout
                         </DialogTitle>
                     </DialogHeader>
                     <div className="flex-1 overflow-y-auto p-6 bg-muted">
-                        <div className="bg-white p-8 mx-auto min-h-[297mm] shadow-lg">
-                            <p className="text-center text-2xl font-bold mb-4">DEPARTMENT OF ROADS</p>
-                            <p className="text-center text-lg uppercase mb-6">Interim Payment Certificate (IPC)</p>
-                            <Separator className="my-6" />
-                            <p className="text-sm text-muted-foreground">Simulation of DoR Format... Content derived from ID: {selectedIpcId}</p>
+                        <div className="bg-white p-8 mx-auto min-h-[297mm] shadow-lg text-black">
+                            <div className="text-center mb-8">
+                                <h1 className="text-2xl font-bold uppercase">{project.clientName || 'Department of Roads'}</h1>
+                                <h2 className="text-xl font-semibold uppercase">{project.name}</h2>
+                                <p className="text-sm mt-2">Location: {project.location}</p>
+                            </div>
+                            
+                            <div className="flex justify-between mb-8 border-b pb-4">
+                                <div>
+                                    <p className="font-bold">Bill No: {viewingSubcontractorBill ? viewingSubcontractorBill.billNumber : viewingIpc?.billNumber}</p>
+                                    <p>Date: {viewingSubcontractorBill ? viewingSubcontractorBill.date : viewingIpc?.date}</p>
+                                    {viewingSubcontractorBill && (
+                                        <p>Subcontractor: {project.agencies?.find(a => a.id === viewingSubcontractorBill.subcontractorId)?.name}</p>
+                                    )}
+                                </div>
+                                <div className="text-right">
+                                    <p>Contract No: {project.contractNo || 'N/A'}</p>
+                                    <p>Contractor: {project.contractor}</p>
+                                </div>
+                            </div>
+
+                            <table className="w-full border-collapse border border-black mb-8">
+                                <thead>
+                                    <tr className="bg-gray-100">
+                                        <th className="border border-black p-2 text-left">Item No</th>
+                                        <th className="border border-black p-2 text-left">Description</th>
+                                        <th className="border border-black p-2 text-right">Qty</th>
+                                        <th className="border border-black p-2 text-right">Rate</th>
+                                        <th className="border border-black p-2 text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(viewingSubcontractorBill ? viewingSubcontractorBill.items : viewingIpc?.items)?.map(item => (
+                                        <tr key={item.id}>
+                                            <td className="border border-black p-2">{item.itemNo}</td>
+                                            <td className="border border-black p-2 text-xs">{item.description}</td>
+                                            <td className="border border-black p-2 text-right">{item.currentQuantity}</td>
+                                            <td className="border border-black p-2 text-right">{item.rate.toLocaleString()}</td>
+                                            <td className="border border-black p-2 text-right">{item.currentAmount.toLocaleString()}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                <tfoot>
+                                    <tr className="font-bold">
+                                        <td colSpan={4} className="border border-black p-2 text-right">Gross Amount</td>
+                                        <td className="border border-black p-2 text-right">
+                                            {viewingSubcontractorBill 
+                                                ? viewingSubcontractorBill.grossAmount.toLocaleString() 
+                                                : viewingIpc?.billAmountGross?.toLocaleString()}
+                                        </td>
+                                    </tr>
+                                    {viewingSubcontractorBill ? (
+                                        <tr className="font-bold">
+                                            <td colSpan={4} className="border border-black p-2 text-right">Retention ({viewingSubcontractorBill.retentionPercent}%)</td>
+                                            <td className="border border-black p-2 text-right">
+                                                {(viewingSubcontractorBill.grossAmount * viewingSubcontractorBill.retentionPercent / 100).toLocaleString()}
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        <>
+                                            <tr className="font-bold">
+                                                <td colSpan={4} className="border border-black p-2 text-right">VAT (13%)</td>
+                                                <td className="border border-black p-2 text-right">{viewingIpc?.vatAmount?.toLocaleString()}</td>
+                                            </tr>
+                                            <tr className="font-bold">
+                                                <td colSpan={4} className="border border-black p-2 text-right">Retention (5%)</td>
+                                                <td className="border border-black p-2 text-right">{viewingIpc?.retentionAmount?.toLocaleString()}</td>
+                                            </tr>
+                                        </>
+                                    )}
+                                    <tr className="font-bold bg-gray-200">
+                                        <td colSpan={4} className="border border-black p-2 text-right">Net Payable</td>
+                                        <td className="border border-black p-2 text-right text-lg">
+                                            {currency} {viewingSubcontractorBill 
+                                                ? viewingSubcontractorBill.netAmount.toLocaleString() 
+                                                : viewingIpc?.totalAmountPayable?.toLocaleString()}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+
+                            <div className="grid grid-cols-3 gap-8 mt-16">
+                                <div className="text-center border-t border-black pt-2">
+                                    <p>Prepared By</p>
+                                    <p className="text-xs text-gray-500 mt-8">(Signature & Date)</p>
+                                </div>
+                                <div className="text-center border-t border-black pt-2">
+                                    <p>Verified By</p>
+                                    <p className="text-xs text-gray-500 mt-8">(Signature & Date)</p>
+                                </div>
+                                <div className="text-center border-t border-black pt-2">
+                                    <p>Approved By</p>
+                                    <p className="text-xs text-gray-500 mt-8">(Signature & Date)</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setPrintPreviewOpen(false)}>Close</Button>
-                        <Button><Printer className="mr-2 h-4 w-4"/>Print PDF</Button>
+                        <Button onClick={() => window.print()}><Printer className="mr-2 h-4 w-4"/>Print / Save PDF</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

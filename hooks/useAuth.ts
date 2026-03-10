@@ -18,20 +18,30 @@ export const useAuth = () => {
     return localStorage.getItem('roadmaster-current-user-id') || '';
   });
 
-  const [token, setToken] = useState(() => {
+  const [token, setToken] = useState<string>(() => {
     const encryptedToken = localStorage.getItem('roadmaster-token');
     if (!encryptedToken) return '';
     try {
-      return encryptionUtils.decrypt<string>(encryptedToken) || '';
+      const decrypted = encryptionUtils.decrypt<string>(encryptedToken);
+      return typeof decrypted === 'string' ? decrypted : '';
     } catch (e) {
+      console.error('Initial token decryption failed:', e);
       return '';
     }
   });
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     const auth = localStorage.getItem('roadmaster-authenticated') === 'true';
-    const hasToken = !!localStorage.getItem('roadmaster-token');
-    return auth && hasToken;
+    const encryptedToken = localStorage.getItem('roadmaster-token');
+    
+    if (!auth || !encryptedToken) return false;
+    
+    try {
+      const decrypted = encryptionUtils.decrypt<string>(encryptedToken);
+      return typeof decrypted === 'string' && decrypted.length > 0;
+    } catch (e) {
+      return false;
+    }
   });
 
   // Debug effect to track authentication state changes
@@ -43,7 +53,20 @@ export const useAuth = () => {
 
     window.addEventListener('roadmaster-auth-failure', handleAuthFailure);
 
-    if (localStorage.getItem('roadmaster-authenticated') === 'true' && !token) {
+    // Only trigger inconsistent state logout if we are actually supposed to be authenticated
+    if (isAuthenticated && localStorage.getItem('roadmaster-authenticated') === 'true' && !token) {
+      const encryptedToken = localStorage.getItem('roadmaster-token');
+      if (encryptedToken) {
+        // Try one last time to decrypt before giving up
+        try {
+          const decrypted = encryptionUtils.decrypt<string>(encryptedToken);
+          if (decrypted) {
+            setToken(decrypted);
+            return;
+          }
+        } catch (e) {}
+      }
+      
       console.warn('Inconsistent auth state detected: Authenticated but no token. Resetting.');
       logout();
     }
@@ -51,7 +74,7 @@ export const useAuth = () => {
     return () => {
       window.removeEventListener('roadmaster-auth-failure', handleAuthFailure);
     };
-  }, [isAuthenticated, token, userRole, userName, currentUserId]);
+  }, [isAuthenticated, token]);
 
   const currentUser = useMemo(() => {
     // Get users from LocalStorageUtils
@@ -67,20 +90,18 @@ export const useAuth = () => {
     if (!user) {
       user = {
         id: currentUserId || 'admin-001',
-        name: 'Dharma Dhoj Kunwar',
-        email: 'dharmadkunwar20@gmail.com',
-        phone: '9779802877286',
-        role: UserRole.ADMIN,
-        avatar: 'https://ui-avatars.com/api/?name=Dharma+Kunwar&background=random'
+        name: userName || 'User',
+        email: 'user@roadmaster.os',
+        role: userRole || UserRole.SITE_ENGINEER,
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(userName || 'User')}&background=random`
       };
     }
     
     return PermissionsService.createUserWithPermissions(user);
-  }, [currentUserId]);
+  }, [currentUserId, userName, userRole]);
 
   const login = (role: UserRole, name: string, userToken?: string, userId?: string) => {
     startTransition(() => {
-      setIsAuthenticated(true);
       setUserRole(role);
       setUserName(name);
       
@@ -98,10 +119,9 @@ export const useAuth = () => {
       if (userId) {
         setCurrentUserId(userId);
         localStorage.setItem('roadmaster-current-user-id', userId);
-      } else {
-        console.error('Login failed: No user ID provided');
-        setIsAuthenticated(false);
       }
+
+      setIsAuthenticated(true);
     });
   };
 
@@ -110,16 +130,23 @@ export const useAuth = () => {
     const actualProjectId = typeof selectedProjectId === 'string' ? selectedProjectId : undefined;
     const actualProjectName = typeof selectedProjectId === 'string' ? projectName : undefined;
 
-    await AuditService.logLogout(currentUser.id, currentUser.name, actualProjectId, actualProjectName);
-    setIsAuthenticated(false);    setUserRole(UserRole.PROJECT_MANAGER);
+    try {
+      await AuditService.logLogout(currentUserId || 'unknown', userName || 'unknown', actualProjectId, actualProjectName);
+    } catch (e) {
+      console.error('Failed to log logout:', e);
+    }
+
+    setIsAuthenticated(false);
+    setUserRole(UserRole.SITE_ENGINEER);
     setUserName('');
-    setCurrentUserId('u2');
+    setCurrentUserId('');
     setToken('');
     localStorage.removeItem('roadmaster-authenticated');
     localStorage.removeItem('roadmaster-user-role');
     localStorage.removeItem('roadmaster-user-name');
     localStorage.removeItem('roadmaster-current-user-id');
     localStorage.removeItem('roadmaster-token');
+    localStorage.removeItem('roadmaster-csrf-token');
   };
 
   return {

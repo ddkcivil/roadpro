@@ -19,7 +19,7 @@ import { ScrollArea } from '~/components/ui/scroll-area';
 import {
   Plus, Trash2, Save,
   Search,
-  ArrowRight, ArrowLeft, Printer, FileCheck, Calculator
+  ArrowRight, ArrowLeft, Printer, FileCheck, Calculator, Edit
 } from 'lucide-react';
 
 interface Props {
@@ -30,7 +30,6 @@ interface Props {
 
 const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) => {
   const [, startTransition] = useTransition();
-  const [activeTab, setActiveTab] = useState("0");
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
   const [isManualItemModalOpen, setIsManualItemModalOpen] = useState(false);
   const [selectedBoqId, setSelectedBoqId] = useState<string>('');
@@ -38,6 +37,7 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubBillId, setSelectedSubBillId] = useState<string | null>(null);
   const [selectedWorkIds, setSelectedWorkIds] = useState(new Set<string>());
+  const [printPreviewOpen, setPrintPreviewOpen] = useState(false);
   
   const [billForm, setBillForm] = useState<Partial<SubcontractorBill>>({
     billNumber: '',
@@ -54,7 +54,7 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
 
   const subcontractors = project.agencies?.filter(a => a.type === 'subcontractor') || [];
   const bills = project.subcontractorBills || [];
-  const currency = getCurrencySymbol(settings?.currency);
+  const currencySymbol = getCurrencySymbol(settings?.currency);
 
   // Filtered bills for the list
   const filteredBills = bills.filter(bill => {
@@ -96,6 +96,12 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
     });
     setSelectedWorkIds(new Set());
     setCreateStep(0);
+    setIsBillModalOpen(true);
+  };
+
+  const handleEditBill = (bill: SubcontractorBill) => {
+    setBillForm({ ...bill });
+    setCreateStep(1); // Go straight to items review
     setIsBillModalOpen(true);
   };
 
@@ -213,24 +219,31 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
       return;
     }
 
+    const isEdit = !!billForm.id;
     const finalBill: SubcontractorBill = {
       ...billForm,
-      id: `scb-${Date.now()}`,
+      id: billForm.id || `scb-${Date.now()}`,
       grossAmount: billDetails.grossAmount,
       netAmount: billDetails.netAmount,
       status: billForm.status || 'Draft'
     } as SubcontractorBill;
 
     startTransition(() => {
+      let updatedBills;
+      if (isEdit) {
+        updatedBills = bills.map(b => b.id === finalBill.id ? finalBill : b);
+      } else {
+        updatedBills = [...(project.subcontractorBills || []), finalBill];
+      }
       onProjectUpdate({
         ...project,
-        subcontractorBills: [...(project.subcontractorBills || []), finalBill]
+        subcontractorBills: updatedBills
       });
     });
 
     setIsBillModalOpen(false);
     setSelectedSubBillId(finalBill.id);
-    toast.success('Subcontractor bill created successfully.');
+    toast.success(`Subcontractor bill ${isEdit ? 'updated' : 'created'} successfully.`);
   };
 
   const handleDeleteBill = (id: string) => {
@@ -298,7 +311,7 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
           <div>
             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2">Recent Transactions</p>
             <div className="space-y-2">
-              {bills.slice(-5).reverse().map(b => (
+              {filteredBills.slice(-5).reverse().map(b => (
                 <div 
                   key={b.id} 
                   onClick={() => setSelectedSubBillId(b.id)}
@@ -335,7 +348,8 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => window.print()}><Printer size={16} className="mr-2"/> Print</Button>
+                  <Button variant="outline" size="sm" onClick={() => handleEditBill(viewingBill)}><Edit size={16} className="mr-2"/> Edit</Button>
+                  <Button variant="outline" size="sm" onClick={() => setPrintPreviewOpen(true)}><Printer size={16} className="mr-2"/> Preview</Button>
                   <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50" onClick={() => handleDeleteBill(viewingBill.id)}><Trash2 size={16}/></Button>
                 </div>
               </CardHeader>
@@ -439,7 +453,7 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
                   <Calculator size={20} />
                 </div>
                 <div>
-                  <DialogTitle className="text-xl font-black">Prepare Subcontractor Bill</DialogTitle>
+                  <DialogTitle className="text-xl font-black">{billForm.id ? 'Edit Subcontractor Bill' : 'Prepare Subcontractor Bill'}</DialogTitle>
                   <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Step {createStep + 1} of 2: {createStep === 0 ? 'Header & Work Selection' : 'Financial Review'}</p>
                 </div>
               </div>
@@ -473,6 +487,7 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
                       setBillForm({...billForm, subcontractorId: val});
                       setSelectedWorkIds(new Set());
                     }}
+                    disabled={!!billForm.id}
                   >
                     <SelectTrigger className="h-12 text-base font-medium">
                       <SelectValue placeholder="Choose partner..." />
@@ -657,12 +672,14 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
               </>
             ) : (
               <>
-                <Button variant="outline" onClick={() => setCreateStep(0)} className="rounded-xl px-6 h-12 font-bold"><ArrowLeft size={18} className="mr-2"/> Back</Button>
+                <Button variant="outline" onClick={() => billForm.id ? setIsBillModalOpen(false) : setCreateStep(0)} className="rounded-xl px-6 h-12 font-bold">
+                  {billForm.id ? 'Cancel' : <><ArrowLeft size={18} className="mr-2"/> Back</>}
+                </Button>
                 <Button 
                   onClick={handleSaveBill}
                   className="bg-green-600 hover:bg-green-700 rounded-xl px-10 h-12 font-bold shadow-lg shadow-green-600/20"
                 >
-                  <Save size={18} className="mr-2" /> Issue Bill Draft
+                  <Save size={18} className="mr-2" /> {billForm.id ? 'Save Changes' : 'Issue Bill Draft'}
                 </Button>
               </>
             )}
@@ -699,6 +716,110 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
             <Button onClick={handleAddManualItem} disabled={!selectedBoqId} className="bg-amber-600 hover:bg-amber-700">Add to Bill</Button>
           </DialogFooter>
         </DialogContent>
+      </Dialog>
+
+      {/* Print Preview Dialog */}
+      <Dialog open={printPreviewOpen} onOpenChange={setPrintPreviewOpen}>
+          <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden">
+              <DialogHeader className="p-6 border-b bg-slate-50">
+                  <DialogTitle className="flex items-center text-xl font-bold">
+                      <Printer className="mr-2 h-6 w-6 text-muted-foreground" />
+                      Subcontractor Bill - Print Layout
+                  </DialogTitle>
+              </DialogHeader>
+              <div className="flex-1 overflow-y-auto p-6 bg-slate-200">
+                  <div className="bg-white p-8 mx-auto min-h-[297mm] shadow-lg text-black w-[210mm]">
+                      <div className="text-center mb-8">
+                          <h1 className="text-2xl font-bold uppercase">{project.clientName || 'Department of Roads'}</h1>
+                          <h2 className="text-xl font-semibold uppercase">{project.name}</h2>
+                          <p className="text-sm mt-2">Location: {project.location}</p>
+                      </div>
+                      
+                      <div className="flex justify-between mb-8 border-b border-slate-300 pb-4">
+                          <div>
+                              <p className="font-bold text-lg">Bill No: {viewingBill?.billNumber}</p>
+                              <p>Date: {viewingBill?.date}</p>
+                              <p>Subcontractor: {subcontractors.find(s => s.id === viewingBill?.subcontractorId)?.name}</p>
+                              <p>Period: {viewingBill?.periodFrom} to {viewingBill?.periodTo}</p>
+                          </div>
+                          <div className="text-right">
+                              <p>Contract No: {project.contractNo || 'N/A'}</p>
+                              <p>Main Contractor: {project.contractor}</p>
+                          </div>
+                      </div>
+
+                      <table className="w-full border-collapse border border-black mb-8">
+                          <thead>
+                              <tr className="bg-slate-100">
+                                  <th className="border border-black p-2 text-left text-xs">Item No</th>
+                                  <th className="border border-black p-2 text-left text-xs">Description</th>
+                                  <th className="border border-black p-2 text-right text-xs">Unit</th>
+                                  <th className="border border-black p-2 text-right text-xs">Qty</th>
+                                  <th className="border border-black p-2 text-right text-xs">Rate</th>
+                                  <th className="border border-black p-2 text-right text-xs">Amount</th>
+                              </tr>
+                          </thead>
+                          <tbody>
+                              {viewingBill?.items.map(item => (
+                                  <tr key={item.id}>
+                                      <td className="border border-black p-2 text-xs">{item.itemNo}</td>
+                                      <td className="border border-black p-2 text-[10px] leading-tight">{item.description}</td>
+                                      <td className="border border-black p-2 text-right text-xs">{item.unit}</td>
+                                      <td className="border border-black p-2 text-right text-xs">{item.currentQuantity.toLocaleString()}</td>
+                                      <td className="border border-black p-2 text-right text-xs">{item.rate.toLocaleString()}</td>
+                                      <td className="border border-black p-2 text-right text-xs font-bold">{item.currentAmount.toLocaleString()}</td>
+                                  </tr>
+                              ))}
+                          </tbody>
+                          <tfoot>
+                              <tr className="font-bold">
+                                  <td colSpan={5} className="border border-black p-2 text-right">Gross Amount</td>
+                                  <td className="border border-black p-2 text-right">{viewingBill?.grossAmount.toLocaleString()}</td>
+                              </tr>
+                              <tr className="font-bold">
+                                  <td colSpan={5} className="border border-black p-2 text-right">Retention ({viewingBill?.retentionPercent}%)</td>
+                                  <td className="border border-black p-2 text-right text-red-600">
+                                      -{(viewingBill ? (viewingBill.grossAmount * viewingBill.retentionPercent / 100) : 0).toLocaleString()}
+                                  </td>
+                              </tr>
+                              <tr className="font-bold bg-slate-100">
+                                  <td colSpan={5} className="border border-black p-2 text-right text-lg">Net Payable</td>
+                                  <td className="border border-black p-2 text-right text-lg font-black">
+                                      {currencySymbol} {viewingBill?.netAmount.toLocaleString()}
+                                  </td>
+                              </tr>
+                          </tfoot>
+                      </table>
+
+                      <div className="grid grid-cols-3 gap-8 mt-24">
+                          <div className="text-center border-t border-black pt-2">
+                              <p className="font-bold">Prepared By</p>
+                              <p className="text-[10px] text-gray-500 mt-1">Site Engineer</p>
+                              <p className="text-xs text-gray-400 mt-12">(Signature & Date)</p>
+                          </div>
+                          <div className="text-center border-t border-black pt-2">
+                              <p className="font-bold">Verified By</p>
+                              <p className="text-[10px] text-gray-500 mt-1">Project Manager</p>
+                              <p className="text-xs text-gray-400 mt-12">(Signature & Date)</p>
+                          </div>
+                          <div className="text-center border-t border-black pt-2">
+                              <p className="font-bold">Approved By</p>
+                              <p className="text-[10px] text-gray-500 mt-1">Client Representative</p>
+                              <p className="text-xs text-gray-400 mt-12">(Signature & Date)</p>
+                          </div>
+                      </div>
+                      
+                      <div className="mt-12 text-[10px] text-gray-400 italic border-t border-slate-100 pt-2 flex justify-between">
+                          <span>System Generated Document: {new Date().toLocaleString()}</span>
+                          <span>Page 1 of 1</span>
+                      </div>
+                  </div>
+              </div>
+              <DialogFooter className="p-4 border-t bg-slate-50">
+                  <Button variant="outline" onClick={() => setPrintPreviewOpen(false)}>Close</Button>
+                  <Button className="bg-slate-900" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4"/> Print to PDF</Button>
+              </DialogFooter>
+          </DialogContent>
       </Dialog>
     </div>
   );

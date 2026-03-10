@@ -3,6 +3,7 @@ import { X, Bot, Send, Paperclip, Zap, Video, Loader2, Sparkles, FileText, Setti
 import { chatWithGemini, ChatMessage, isAIServiceAvailable as isGeminiAvailable } from '../../services/ai/geminiService';
 import { chatWithDeepSeek, isDeepSeekAvailable } from '../../services/ai/deepseekService';
 import { chatWithPuter, isPuterAvailable } from '../../services/ai/puterService';
+import { chatWithHuggingFace, isHuggingFaceAvailable } from '../../services/ai/huggingFaceService';
 import { Project } from '../../types';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
@@ -31,7 +32,9 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFastMode, setIsFastMode] = useState(false);
-  const [aiProvider, setAIProvider] = useState<'puter' | 'deepseek' | 'gemini'>(isPuterAvailable() ? 'puter' : (isDeepSeekAvailable() ? 'deepseek' : 'gemini'));
+  const [aiProvider, setAIProvider] = useState<'puter' | 'deepseek' | 'gemini' | 'huggingface'>(
+    isPuterAvailable() ? 'puter' : (isDeepSeekAvailable() ? 'deepseek' : (isHuggingFaceAvailable() ? 'huggingface' : 'gemini'))
+  );
 
   // File Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -202,6 +205,14 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                 attachment ? { mimeType: attachment.file.type, data: base64Data } : undefined,
                 isFastMode
             );
+        } else if (aiProvider === 'huggingface') {
+            responseText = await chatWithHuggingFace(
+                userText || (attachment ? "Analyze this attachment." : ""), 
+                newHistory,
+                project,
+                attachment ? { mimeType: attachment.file.type, data: base64Data } : undefined,
+                isFastMode
+            );
         } else {
             responseText = await chatWithGemini(
                 userText || (attachment ? "Analyze this attachment." : ""), 
@@ -302,7 +313,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
             <div>
                 <h6 className="font-bold leading-tight">RoadMaster AI</h6>
                 <div className="text-[10px] text-white/70 flex items-center gap-2">
-                    {aiProvider === 'puter' ? 'DeepSeek (Free)' : (aiProvider === 'deepseek' ? 'DeepSeek V3/R1' : 'Gemini 3.0 Pro')}
+                    {aiProvider === 'puter' ? 'DeepSeek (Free)' : (aiProvider === 'deepseek' ? 'DeepSeek V3/R1' : (aiProvider === 'huggingface' ? 'Hugging Face' : 'Gemini 3.0 Pro'))}
                     <Badge variant="outline" className="text-[8px] h-3 px-1 border-white/20 text-white/60">
                         {isFastMode ? 'High Speed' : 'High Performance'}
                     </Badge>
@@ -339,6 +350,10 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                           <span>Google Gemini (Multimodal)</span>
                           {aiProvider === 'gemini' && <Zap size={14} className="text-primary fill-primary" />}
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setAIProvider('huggingface')} className="flex items-center justify-between">
+                          <span>Hugging Face (Open Models)</span>
+                          {aiProvider === 'huggingface' && <Zap size={14} className="text-primary fill-primary" />}
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <div className="px-2 py-1.5 flex items-center justify-between">
                           <Label htmlFor="fast-mode-dropdown" className="text-xs cursor-pointer">Fast Mode</Label>
@@ -374,7 +389,9 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                           ? "Puter SDK is not loaded. Check your internet or index.html."
                           : (aiProvider === 'deepseek' 
                             ? "DeepSeek API key is missing. Add VITE_DEEPSEEK_API_KEY to your .env file." 
-                            : "Gemini API key is missing. Add VITE_GEMINI_API_KEY to your .env file.")}
+                            : (aiProvider === 'huggingface' 
+                              ? "Hugging Face API key is missing. Add VITE_HUGGINGFACE_API_KEY to your .env file."
+                              : "Gemini API key is missing. Add VITE_GEMINI_API_KEY to your .env file."))}
                     </AlertDescription>
                 </Alert>
             )}
