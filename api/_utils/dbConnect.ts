@@ -31,6 +31,7 @@ export interface IPendingRegistration extends Document {
   name: string;
   email: string;
   phone?: string;
+  password?: string;
   requestedRole: string;
   status?: string;
   createdAt?: Date;
@@ -124,6 +125,7 @@ const pendingRegistrationSchema = new Schema<IPendingRegistration>({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true, index: true },
   phone: String,
+  password: { type: String, required: true },
   requestedRole: { type: String, required: true },
   status: { type: String, default: 'pending' },
 }, { timestamps: true });

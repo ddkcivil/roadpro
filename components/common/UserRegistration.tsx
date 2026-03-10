@@ -57,6 +57,7 @@ const UserRegistration: React.FC = () => {
         name: registrationForm.name,
         email: registrationForm.email,
         phone: registrationForm.phone,
+        password: registrationForm.password,
         requestedRole: registrationForm.role
       });
       setRegistrationSuccess(true);

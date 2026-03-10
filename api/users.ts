@@ -68,7 +68,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
     try {
       const { User } = await connectToDatabase();
-      const { name, email, phone, role, avatar } = req.body;
+      const { name, email, phone, role, avatar, password } = req.body;
 
       if (!name || !email || !role) {
         return res.status(400).json({ error: 'Name, email, and role are required' });
@@ -87,6 +87,14 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       user.phone = phone || undefined;
       user.role = role;
       if (avatar) user.avatar = avatar;
+      
+      if (password) {
+        if (password.length < 6) {
+          return res.status(400).json({ error: 'Password must be at least 6 characters' });
+        }
+        user.password = await bcrypt.hash(password, 10);
+      }
+
       await user.save();
 
       const userData = user.toObject();

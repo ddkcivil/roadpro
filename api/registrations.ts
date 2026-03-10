@@ -30,15 +30,12 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         const existingUser = await User.findOne({ email: pendingReg.email.toLowerCase() });
         if (existingUser) return res.status(400).json({ error: 'User with this email already exists' });
 
-        const defaultPassword = 'password123';
-        const hashedPassword = await bcrypt.hash(defaultPassword, 10);
-
         const newUser = new User({
           id: pendingReg.id,
           name: pendingReg.name,
           email: pendingReg.email.toLowerCase(),
           phone: pendingReg.phone,
-          password: hashedPassword,
+          password: pendingReg.password, // Use the hashed password from registration
           role: pendingReg.requestedRole,
           avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`
         });
@@ -73,14 +70,18 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     // Default POST: Submit new registration
     try {
       const { PendingRegistration, User } = await connectToDatabase();
-      const { name, email, phone, requestedRole } = req.body;
+      const { name, email, phone, password, requestedRole } = req.body;
 
-      if (!name || !email || !requestedRole) {
-        return res.status(400).json({ error: 'Name, email, and requested role are required.' });
+      if (!name || !email || !password || !requestedRole) {
+        return res.status(400).json({ error: 'Name, email, password, and requested role are required.' });
       }
 
       if (!/^[\w\.-]+@[\w\.-]+\.[a-zA-Z]{2,}$/.test(email)) {
         return res.status(400).json({ error: 'Please enter a valid email address.' });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters.' });
       }
 
       const existingPending = await PendingRegistration.findOne({ email: email.toLowerCase() });
@@ -89,11 +90,14 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       const existingUser = await User.findOne({ email: email.toLowerCase() });
       if (existingUser) return res.status(409).json({ error: 'A user with this email already exists.' });
 
+      const hashedPassword = await bcrypt.hash(password, 10);
+
       const newPendingRegistration = new PendingRegistration({
         id: generateUniqueId(),
         name,
         email: email.toLowerCase(),
         phone: phone || '',
+        password: hashedPassword,
         requestedRole,
         status: 'pending'
       });
