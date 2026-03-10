@@ -36,8 +36,8 @@ export const OfflineIndicator: React.FC = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
-    // Poll queue status every 5 seconds
-    const interval = setInterval(updateQueue, 5000);
+    // Poll queue status every 30 seconds
+    const interval = setInterval(updateQueue, 30000);
     updateQueue();
 
     return () => {

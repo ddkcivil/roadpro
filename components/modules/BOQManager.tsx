@@ -59,6 +59,8 @@ const BOQManager: React.FC<BOQManagerProps> = ({
   });
 
   const [searchTerm, setSearchTerm] = useState(''); // New state for search term
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
 
   const handleEditClick = (item: BOQItem) => {
     setEditingItem({ ...item }); // Create a copy to edit
@@ -182,10 +184,20 @@ const BOQManager: React.FC<BOQManagerProps> = ({
   }, [project.boq, searchTerm]);
 
 
+  const paginatedBoq = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredBoq.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredBoq, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredBoq.length / itemsPerPage);
+
   return (
     <div className={cn("p-4", compactView ? "p-1" : "p-3")}>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">BOQ Registry</h2>
+        <div>
+            <h2 className="text-xl font-bold">BOQ Registry</h2>
+            <p className="text-xs text-muted-foreground">Showing {Math.min(filteredBoq.length, itemsPerPage)} of {filteredBoq.length} items</p>
+        </div>
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -218,8 +230,8 @@ const BOQManager: React.FC<BOQManagerProps> = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredBoq.length > 0 ? (
-                filteredBoq.map((item) => (
+              {paginatedBoq.length > 0 ? (
+                paginatedBoq.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>{item.itemNo}</TableCell>
                     <TableCell>{item.description}</TableCell>
@@ -276,6 +288,33 @@ const BOQManager: React.FC<BOQManagerProps> = ({
           </Table>
         </CardContent>
       </Card>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4 px-2">
+          <p className="text-xs text-muted-foreground">
+            Page {currentPage} of {totalPages}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Edit BOQ Item Dialog */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>

@@ -37,7 +37,7 @@ export const useMessages = (currentUser: UserWithPermissions, projectId: string)
     
     const interval = setInterval(() => {
       fetchMessages();
-    }, 5000); // 5 second polling for "real-time" feel without web sockets
+    }, 10000); // 10 second polling for "real-time" feel without web sockets
     
     return () => clearInterval(interval);
   }, [fetchMessages]);
