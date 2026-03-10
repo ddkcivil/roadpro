@@ -215,6 +215,7 @@ async function seedInitialAdmin(UserModel: Model<IUser>) {
         id: 'admin-001',
         name: 'System Administrator',
         email: 'admin@roadmaster.os',
+        phone: '9779801234567',
         password: hashedPassword,
         role: 'ADMIN',
         avatar: 'https://ui-avatars.com/api/?name=Admin&background=random'

@@ -13,6 +13,10 @@ export const useAuth = () => {
   const [userName, setUserName] = useState(() => {
     return localStorage.getItem('roadmaster-user-name') || '';
   });
+
+  const [userPhone, setUserPhone] = useState(() => {
+    return localStorage.getItem('roadmaster-user-phone') || '';
+  });
   
   const [currentUserId, setCurrentUserId] = useState<string>(() => {
     return localStorage.getItem('roadmaster-current-user-id') || '';
@@ -92,24 +96,27 @@ export const useAuth = () => {
         id: currentUserId || 'admin-001',
         name: userName || 'User',
         email: 'user@roadmaster.os',
+        phone: userPhone || '9779800000000',
         role: userRole || UserRole.SITE_ENGINEER,
         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(userName || 'User')}&background=random`
       };
     }
     
     return PermissionsService.createUserWithPermissions(user);
-  }, [currentUserId, userName, userRole]);
+  }, [currentUserId, userName, userPhone, userRole]);
 
-  const login = (role: UserRole, name: string, userToken?: string, userId?: string) => {
+  const login = (role: UserRole, name: string, userToken?: string, userId?: string, phone?: string) => {
     startTransition(() => {
       setUserRole(role);
       setUserName(name);
+      if (phone) setUserPhone(phone);
       
       try {
         // Save authentication state to localStorage
         localStorage.setItem('roadmaster-authenticated', 'true');
         localStorage.setItem('roadmaster-user-role', role);
         localStorage.setItem('roadmaster-user-name', name);
+        if (phone) localStorage.setItem('roadmaster-user-phone', phone);
         
         if (userToken) {
           setToken(userToken);
@@ -167,6 +174,7 @@ export const useAuth = () => {
       'roadmaster-authenticated',
       'roadmaster-user-role',
       'roadmaster-user-name',
+      'roadmaster-user-phone',
       'roadmaster-current-user-id',
       'roadmaster-token',
       'roadmaster-csrf-token'

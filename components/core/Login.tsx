@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserRole, UserWithPermissions } from '../../types';
+import { UserRole } from '../../types';
 import { PermissionsService } from '../../services/auth/permissionsService';
 import { validatePasswordStrength, validateEmail } from '../../utils/validation/validationUtils';
 import { AuthService } from '../../services/auth/authService';
@@ -30,7 +30,7 @@ const registerSchema = z.object({
 });
 
 interface Props {
-  onLogin: (role: UserRole, name: string, token?: string, userId?: string) => void;
+  onLogin: (role: UserRole, name: string, token?: string, userId?: string, phone?: string) => void;
 }
 
 const Login: React.FC<Props> = ({ onLogin }) => {
@@ -118,7 +118,7 @@ const Login: React.FC<Props> = ({ onLogin }) => {
             });
             
             await AuditService.logLogin(userWithPermissions.id, userWithPermissions.name);
-            onLogin(role, name, token, userId);
+            onLogin(role, name, token, userId, user?.phone);
         } else {
             setMessage({ type: 'destructive', text: authResult.message || 'Invalid email or password.' });
         }

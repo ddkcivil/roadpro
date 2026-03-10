@@ -228,11 +228,9 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                              {activeChatId === 'general' ? `${users.length} members` : (
                                  <span className="flex flex-col sm:flex-row items-start sm:items-center gap-x-3 text-sm mt-1">
                                      <Badge className="font-bold">{activeUser?.role}</Badge>
-                                     {activeUser?.phone && (
-                                         <span className="flex items-center gap-1 font-mono text-muted-foreground">
-                                             <Phone className="h-3 w-3" /> {activeUser.phone}
-                                         </span>
-                                     )}
+                                     <span className="flex items-center gap-1 font-mono text-muted-foreground">
+                                         <Phone className="h-3 w-3" /> {activeUser?.phone || 'No phone set'}
+                                     </span>
                                      {activeUser?.email && (
                                          <span className="flex items-center gap-1 text-muted-foreground">
                                              <Mail className="h-3 w-3" /> {activeUser.email}
@@ -252,6 +250,7 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                                 size="sm" 
                                 onClick={() => handleEmailClick(activeUser.email)}
                                 className="hidden md:flex"
+                                disabled={!activeUser.email}
                              >
                                 <Mail className="mr-2 h-4 w-4" /> Email
                              </Button>
@@ -260,15 +259,16 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                                 size="sm"
                                 onClick={() => handleWhatsAppClick(activeUser.phone)} 
                                 className="hidden md:flex bg-green-500 hover:bg-green-600 text-white"
+                                disabled={!activeUser.phone}
                              >
                                 <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp
                              </Button>
                              
                              {/* Mobile Icons */}
-                             <Button variant="ghost" size="icon" onClick={() => handleEmailClick(activeUser.email)} className="md:hidden">
+                             <Button variant="ghost" size="icon" onClick={() => handleEmailClick(activeUser.email)} className="md:hidden" disabled={!activeUser.email}>
                                  <Mail className="h-5 w-5 text-muted-foreground" />
                              </Button>
-                             <Button variant="ghost" size="icon" onClick={() => handleWhatsAppClick(activeUser.phone)} className="md:hidden bg-green-500/10 hover:bg-green-500/20 text-green-600">
+                             <Button variant="ghost" size="icon" onClick={() => handleWhatsAppClick(activeUser.phone)} className="md:hidden bg-green-500/10 hover:bg-green-500/20 text-green-600" disabled={!activeUser.phone}>
                                  <MessageCircle className="h-5 w-5" />
                              </Button>
 
