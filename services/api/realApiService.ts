@@ -310,19 +310,30 @@ class RealApiService {
       const result = await this.fetchApi<{ success: boolean; token?: string }>('/auth?action=refresh', {
         method: 'POST',
       });
-      
+
       if (result.success && result.token) {
         const encryptedToken = encryptionUtils.encrypt(result.token);
-        localStorage.setItem('roadmaster-token', encryptedToken);
+        try {
+          localStorage.setItem('roadmaster-token', encryptedToken);
+        } catch (storageError) {
+          if (storageError instanceof DOMException && (storageError.name === 'QuotaExceededError' || storageError.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+            console.error('Storage full during token refresh. Cleaning up...');
+            LocalStorageUtils.emergencyCleanup();
+            try {
+              localStorage.setItem('roadmaster-token', encryptedToken);
+            } catch (retryError) {
+              console.error('Critical: Storage still full after cleanup');
+            }
+          }
+        }
       }
-      
+
       return result;
     } catch (error) {
       console.error('Manual token refresh failed');
       return { success: false };
     }
   }
-
   // --- Registration Management ---
 
   /**

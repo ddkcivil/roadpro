@@ -254,40 +254,47 @@ export const LocalStorageUtils = {
   emergencyCleanup(): void {
     console.error('EMERGENCY: localStorage quota exceeded. Performing deep cleanup...');
     
-    // 1. Move all staff data to IndexedDB and clear from localStorage
-    const staffKeys = Object.values(LOCAL_STORAGE_KEYS).filter(k => k.startsWith('staff-'));
-    staffKeys.forEach(key => {
+    // 1. Move all known large keys to IndexedDB and clear from localStorage
+    const largeKeys = [
+      LOCAL_STORAGE_KEYS.PROJECTS,
+      LOCAL_STORAGE_KEYS.USERS,
+      LOCAL_STORAGE_KEYS.MESSAGES,
+      ...Object.values(LOCAL_STORAGE_KEYS).filter(k => k.startsWith('staff-'))
+    ];
+
+    largeKeys.forEach(key => {
       const data = localStorage.getItem(key);
       if (data) {
         try {
-          offlineStorage.setItem(key, JSON.parse(data));
-        } catch (e) {}
-        localStorage.removeItem(key);
+          // Backup to offline storage if possible
+          const parsed = JSON.parse(data);
+          offlineStorage.setItem(key, parsed);
+          
+          // Clear or heavily truncate in localStorage
+          if (key === LOCAL_STORAGE_KEYS.PROJECTS) {
+            // Keep only the most recent project shell if possible, or clear
+            if (Array.isArray(parsed)) {
+              localStorage.setItem(key, JSON.stringify(parsed.slice(-1)));
+            }
+          } else {
+            localStorage.removeItem(key);
+          }
+        } catch (e) {
+          localStorage.removeItem(key);
+        }
       }
     });
 
-    // 2. Clear old messages
-    const messages = localStorage.getItem(LOCAL_STORAGE_KEYS.MESSAGES);
-    if (messages) {
-      try {
-        const parsed = JSON.parse(messages);
-        if (Array.isArray(parsed)) {
-          localStorage.setItem(LOCAL_STORAGE_KEYS.MESSAGES, JSON.stringify(parsed.slice(-10)));
-        }
-      } catch (e) {}
+    // 2. Clear anything else that doesn't start with 'roadmaster-auth' or 'roadmaster-token'
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && !key.includes('authenticated') && !key.includes('token') && !key.includes('user-role') && !key.includes('user-name') && !key.includes('user-id')) {
+        localStorage.removeItem(key);
+        i--; // Adjust index after removal
+      }
     }
-
-    // 3. Clear users except current session info (if possible)
-    // Actually better to just keep minimal users
-    const users = localStorage.getItem(LOCAL_STORAGE_KEYS.USERS);
-    if (users) {
-      try {
-        const parsed = JSON.parse(users);
-        if (Array.isArray(parsed)) {
-          localStorage.setItem(LOCAL_STORAGE_KEYS.USERS, JSON.stringify(parsed.map(u => ({ ...u, avatar: null }))));
-        }
-      } catch (e) {}
-    }
+    
+    console.log('Emergency cleanup completed. LocalStorage size:', this.getStorageUsage().used, 'bytes');
   },
 
   // Get total localStorage usage
