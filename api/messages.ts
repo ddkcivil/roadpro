@@ -45,6 +45,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST') {
+      console.log('Received message POST request:', { ...req.body, attachmentUrl: req.body.attachmentUrl ? '(truncated)' : undefined });
       const { content, receiverId, projectId, attachmentUrl, attachmentName, attachmentType } = req.body;
 
       if (!content && !attachmentUrl) {
@@ -55,20 +56,25 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'receiverId and projectId are required' });
       }
 
-      const newMessage = await Message.create({
-        id: uuidv4(),
-        senderId: currentUser.userId,
-        receiverId,
-        content: content || '',
-        projectId,
-        timestamp: new Date().toISOString(),
-        read: false,
-        attachmentUrl,
-        attachmentName,
-        attachmentType
-      });
-
-      return res.status(201).json(newMessage);
+      try {
+        const newMessage = await Message.create({
+          id: uuidv4(),
+          senderId: currentUser.userId,
+          receiverId,
+          content: content || '',
+          projectId,
+          timestamp: new Date().toISOString(),
+          read: false,
+          attachmentUrl,
+          attachmentName,
+          attachmentType
+        });
+        console.log('Message created successfully:', newMessage.id);
+        return res.status(201).json(newMessage);
+      } catch (error: any) {
+        console.error('Error creating message:', error);
+        return res.status(500).json({ error: 'Failed to create message', details: error.message });
+      }
     }
 
     if (req.method === 'PUT') {

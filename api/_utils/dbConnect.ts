@@ -179,7 +179,7 @@ const messageSchema = new Schema<IMessage>({
   id: { type: String, required: true, unique: true, index: true },
   senderId: { type: String, required: true, index: true },
   receiverId: { type: String, required: true, index: true },
-  content: { type: String, required: true },
+  content: { type: String },
   timestamp: { type: String, required: true },
   projectId: { type: String, required: true, index: true },
   read: { type: Boolean, default: false },

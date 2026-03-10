@@ -170,11 +170,17 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
       console.log('Sending message to:', activeChatId, 'Project:', projectId);
       if (attachment) console.log('With attachment:', attachment.name, attachment.type, 'Size:', attachment.url.length);
       
-      onSendMessage(inputText, activeChatId, projectId, attachment);
-      setInputText('');
-      if (attachedFile?.preview) URL.revokeObjectURL(attachedFile.preview);
-      setAttachedFile(null);
-      setIsUploading(false);
+      try {
+          await onSendMessage(inputText, activeChatId, projectId, attachment);
+          setInputText('');
+          if (attachedFile?.preview) URL.revokeObjectURL(attachedFile.preview);
+          setAttachedFile(null);
+      } catch (error: any) {
+          console.error('Failed to send message:', error);
+          toast.error("Failed to send message", { description: error.message || "An unexpected error occurred." });
+      } finally {
+          setIsUploading(false);
+      }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
