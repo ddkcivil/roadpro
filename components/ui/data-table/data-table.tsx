@@ -155,10 +155,10 @@ export function DataTable<TData, TValue>({
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="flex w-full">
+              <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id} className="flex-1 flex items-center">
+                    <TableHead key={header.id}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -171,11 +171,11 @@ export function DataTable<TData, TValue>({
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody className="block">
+          <TableBody>
             {rows?.length ? (
               shouldVirtualize ? (
                 /* eslint-disable react/no-inline-styles */
-                <div style={containerStyle}>
+                <div style={containerStyle} className="block w-full">
                   <TypedAutoSizer>
                     {({ height, width }: any) => (
                       <List
@@ -194,10 +194,9 @@ export function DataTable<TData, TValue>({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
-                    className="flex w-full"
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="flex-1">
+                      <TableCell key={cell.id}>
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()
@@ -211,7 +210,7 @@ export function DataTable<TData, TValue>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center w-full"
+                  className="h-24 text-center"
                 >
                   No results.
                 </TableCell>

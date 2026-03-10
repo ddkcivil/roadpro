@@ -41,7 +41,7 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(({
   currentUser
 }) => {
   return (
-    <header className="h-20 flex items-center justify-between px-6 md:px-10 border-b border-white/5 bg-transparent shrink-0 z-10 sticky top-0 transition-all duration-500">
+    <header className="h-20 flex items-center justify-between px-4 md:px-10 border-b border-white/5 bg-transparent shrink-0 z-10 sticky top-0 transition-all duration-500">
       <div className="flex items-center gap-6">
         <Button 
           variant="ghost" 

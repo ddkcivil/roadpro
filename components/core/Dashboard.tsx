@@ -240,7 +240,7 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateProj
         </div>
 
         {/* Bento Grid Main Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-12 grid-rows-auto gap-6 pb-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-12 grid-rows-auto gap-4 sm:gap-6 pb-12">
           
           {/* Main S-Curve Card - Large Bento Piece */}
           <Card className="md:col-span-4 lg:col-span-8 row-span-2 rounded-[2.5rem] glass-card overflow-hidden group border-none relative">

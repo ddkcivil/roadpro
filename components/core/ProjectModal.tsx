@@ -102,7 +102,7 @@ const ProjectModal: React.FC<Props> = ({ open, onClose, onSave, project }) => {
               {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="code" className={cn(errors.code && "text-destructive")}>Project Code</Label>
                 <Input
@@ -124,7 +124,7 @@ const ProjectModal: React.FC<Props> = ({ open, onClose, onSave, project }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="startDate" className={cn(errors.startDate && "text-destructive")}>Commencement Date</Label>
                 <Input

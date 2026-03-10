@@ -140,35 +140,35 @@ const UserRegistration: React.FC<UserRegistrationProps> = ({ onBackToLogin }) =>
             </div>
           </div>
           
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">Full Name</Label>
-            <Input id="name" value={registrationForm.name} onChange={e => setRegistrationForm({...registrationForm, name: e.target.value})} className="col-span-3" />
-            {errors.name && <p className="col-start-2 col-span-3 text-sm text-red-500">{errors.name}</p>}
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
+            <Label htmlFor="name" className="sm:text-right">Full Name</Label>
+            <Input id="name" value={registrationForm.name} onChange={e => setRegistrationForm({...registrationForm, name: e.target.value})} className="sm:col-span-3" />
+            {errors.name && <p className="sm:col-start-2 sm:col-span-3 text-sm text-red-500">{errors.name}</p>}
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="email" className="text-right">Email</Label>
-            <Input id="email" type="email" value={registrationForm.email} onChange={e => setRegistrationForm({...registrationForm, email: e.target.value})} className="col-span-3" />
-            {errors.email && <p className="col-start-2 col-span-3 text-sm text-red-500">{errors.email}</p>}
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
+            <Label htmlFor="email" className="sm:text-right">Email</Label>
+            <Input id="email" type="email" value={registrationForm.email} onChange={e => setRegistrationForm({...registrationForm, email: e.target.value})} className="sm:col-span-3" />
+            {errors.email && <p className="sm:col-start-2 sm:col-span-3 text-sm text-red-500">{errors.email}</p>}
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="password" className="text-right">Password</Label>
-            <Input id="password" type="password" value={registrationForm.password} onChange={e => setRegistrationForm({...registrationForm, password: e.target.value})} className="col-span-3" />
-            {errors.password && <p className="col-start-2 col-span-3 text-sm text-red-500">{errors.password}</p>}
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
+            <Label htmlFor="password" className="sm:text-right">Password</Label>
+            <Input id="password" type="password" value={registrationForm.password} onChange={e => setRegistrationForm({...registrationForm, password: e.target.value})} className="sm:col-span-3" />
+            {errors.password && <p className="sm:col-start-2 sm:col-span-3 text-sm text-red-500">{errors.password}</p>}
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="confirmPassword" className="text-right">Confirm Password</Label>
-            <Input id="confirmPassword" type="password" value={registrationForm.confirmPassword} onChange={e => setRegistrationForm({...registrationForm, confirmPassword: e.target.value})} className="col-span-3" />
-            {errors.confirmPassword && <p className="col-start-2 col-span-3 text-sm text-red-500">{errors.confirmPassword}</p>}
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
+            <Label htmlFor="confirmPassword" className="sm:text-right">Confirm Password</Label>
+            <Input id="confirmPassword" type="password" value={registrationForm.confirmPassword} onChange={e => setRegistrationForm({...registrationForm, confirmPassword: e.target.value})} className="sm:col-span-3" />
+            {errors.confirmPassword && <p className="sm:col-start-2 sm:col-span-3 text-sm text-red-500">{errors.confirmPassword}</p>}
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="phone" className="text-right">Phone</Label>
-            <Input id="phone" value={registrationForm.phone} onChange={e => setRegistrationForm({...registrationForm, phone: e.target.value})} className="col-span-3" />
-            {errors.phone && <p className="col-start-2 col-span-3 text-sm text-red-500">{errors.phone}</p>}
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
+            <Label htmlFor="phone" className="sm:text-right">Phone</Label>
+            <Input id="phone" value={registrationForm.phone} onChange={e => setRegistrationForm({...registrationForm, phone: e.target.value})} className="sm:col-span-3" />
+            {errors.phone && <p className="sm:col-start-2 sm:col-span-3 text-sm text-red-500">{errors.phone}</p>}
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="role" className="text-right">Request Role</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
+            <Label htmlFor="role" className="sm:text-right">Request Role</Label>
             <Select value={registrationForm.role} onValueChange={(value: UserRole) => setRegistrationForm({...registrationForm, role: value})}>
-              <SelectTrigger className="col-span-3">
+              <SelectTrigger className="sm:col-span-3">
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
