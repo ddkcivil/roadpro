@@ -16,7 +16,11 @@ import { apiService } from '../../services/api/apiService';
 // The original logic has been temporarily removed to facilitate the UI migration.
 // It will be re-implemented in subsequent steps.
 
-const UserRegistration: React.FC = () => {
+interface UserRegistrationProps {
+  onBackToLogin?: () => void;
+}
+
+const UserRegistration: React.FC<UserRegistrationProps> = ({ onBackToLogin }) => {
   const [registrationForm, setRegistrationForm] = useState({ 
     name: '', 
     email: '', 
@@ -183,6 +187,11 @@ const UserRegistration: React.FC = () => {
           </Alert>
           
           <div className="flex gap-2 mt-4">
+            {onBackToLogin && (
+              <Button variant="ghost" type="button" onClick={onBackToLogin} className="flex-1">
+                Back to Login
+              </Button>
+            )}
             <Button variant="outline" onClick={() => {
                 setRegistrationForm({ 
                   name: '', email: '', role: UserRole.SITE_ENGINEER, 

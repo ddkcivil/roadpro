@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { UserRole } from '../../types';
 import { PermissionsService } from '../../services/auth/permissionsService';
-import { validatePasswordStrength, validateEmail } from '../../utils/validation/validationUtils';
+import { validateEmail } from '../../utils/validation/validationUtils';
 import { AuthService } from '../../services/auth/authService';
 import { AuditService } from '../../services/analytics/auditService';
 import { apiService } from '../../services/api/apiService';
-import { ArrowLeft, Mail, Lock, User, Fingerprint, Loader2 } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, Fingerprint, Loader2 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Alert, AlertDescription } from '~/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { cn } from '~/lib/utils';
 import { z } from 'zod';
 import { ErrorSummary } from '~/components/ui/error-summary';
@@ -23,19 +22,13 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-const registerSchema = z.object({
-  name: z.string().min(2, "Full name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
-  role: z.nativeEnum(UserRole),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
-
 interface Props {
   onLogin: (role: UserRole, name: string, token?: string, userId?: string, phone?: string) => void;
+  onShowRegistration: () => void;
 }
 
-const Login: React.FC<Props> = ({ onLogin }) => {
-  const [view, setView] = useState<'LOGIN' | 'REGISTER' | 'RESET'>('LOGIN');
+const Login: React.FC<Props> = ({ onLogin, onShowRegistration }) => {
+  const [view, setView] = useState<'LOGIN' | 'RESET'>('LOGIN');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{type: 'default' | 'destructive', text: string} | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -53,13 +46,6 @@ const Login: React.FC<Props> = ({ onLogin }) => {
   // Login State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
-  // Register State
-  const [regName, setRegName] = useState('');
-  const [regEmail, setRegEmail] = useState('');
-  const [regPassword, setRegPassword] = useState('');
-  const [regPasswordStrength, setRegPasswordStrength] = useState<{score: number, isValid: boolean, feedback: string[]} | null>(null);
-  const [regRole, setRegRole] = useState<UserRole>(UserRole.SITE_ENGINEER);
 
   // Reset State
   const [resetEmail, setResetEmail] = useState('');
@@ -128,52 +114,6 @@ const Login: React.FC<Props> = ({ onLogin }) => {
     } finally {
         setLoading(false);
     }
-  };
-
-  const handleRegister = async (e: React.FormEvent) => {
-      e.preventDefault();
-      setErrors({});
-      setMessage(null);
-
-      try {
-        registerSchema.parse({ name: regName, email: regEmail, role: regRole, password: regPassword });
-      } catch (err) {
-        if (err instanceof z.ZodError) {
-          const newErrors: Record<string, string> = {};
-          err.issues.forEach((e: z.ZodIssue) => {
-            if (e.path[0]) newErrors[e.path[0].toString()] = e.message;
-          });
-          setErrors(newErrors);
-          return;
-        }
-      }
-      
-      if (regPassword.length > 0) {
-          const passwordStrength = validatePasswordStrength(regPassword);
-          if (!passwordStrength.isValid) {
-              setErrors(prev => ({ ...prev, password: passwordStrength.feedback[0] }));
-              return;
-          }
-      }
-      
-      setLoading(true);
-      try {
-          await apiService.submitRegistration({
-            name: regName,
-            email: regEmail,
-            phone: '',
-            password: regPassword,
-            requestedRole: regRole,
-          });
-          
-          setLoading(false);
-          setMessage({ type: 'default', text: 'Registration submitted! An administrator will review your request.' });
-          setView('LOGIN');
-          setEmail(regEmail);
-      } catch (error: any) {
-          setLoading(false);
-          setMessage({ type: 'destructive', text: error.response?.data?.error || 'Registration failed. Please try again.' });
-      }
   };
 
   const handleReset = (e: React.FormEvent) => {
@@ -298,75 +238,10 @@ const Login: React.FC<Props> = ({ onLogin }) => {
 
                   <p className="px-8 text-center text-sm text-muted-foreground">
                     Need access?{' '}
-                    <button type="button" onClick={() => setView('REGISTER')} className="font-semibold text-primary hover:text-primary underline-offset-4 hover:underline">
+                    <button type="button" onClick={onShowRegistration} className="font-semibold text-primary hover:text-primary underline-offset-4 hover:underline">
                       Create Account
                     </button>
                   </p>
-                </div>
-              </form>
-            )}
-
-            {view === 'REGISTER' && (
-              <form onSubmit={handleRegister}>
-                <div className="grid gap-4">
-                  <div className="grid gap-2">
-                    <h2 className="text-xl font-bold text-foreground">Create Account</h2>
-                    <p className="text-sm text-muted-foreground">Join the project management workforce</p>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="reg-name" className={cn(errors.name && "text-destructive")}>Full Name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input id="reg-name" placeholder="John Doe" value={regName} onChange={e => setRegName(e.target.value)} className={cn("pl-10", errors.name && "border-destructive")} />
-                    </div>
-                    {errors.name && <p className="text-[10px] text-destructive font-medium">{errors.name}</p>}
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="reg-email" className={cn(errors.email && "text-destructive")}>Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input id="reg-email" type="email" placeholder="email@example.com" value={regEmail} onChange={e => setRegEmail(e.target.value)} className={cn("pl-10", errors.email && "border-destructive")} />
-                    </div>
-                    {errors.email && <p className="text-[10px] text-destructive font-medium">{errors.email}</p>}
-                  </div>
-                   <div className="grid gap-2">
-                    <Label htmlFor="reg-role">Assign Role</Label>
-                    <Select value={regRole} onValueChange={(value) => setRegRole(value as UserRole)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.values(UserRole).map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="reg-password" className={cn(errors.password && "text-destructive")}>Password</Label>
-                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input id="reg-password" type="password" value={regPassword} onChange={e => {
-                        const newPassword = e.target.value;
-                        setRegPassword(newPassword);
-                        setRegPasswordStrength(newPassword.length > 0 ? validatePasswordStrength(newPassword) : null);
-                      }} className={cn("pl-10", errors.password && "border-destructive")} />
-                    </div>
-                    {errors.password && <p className="text-[10px] text-destructive font-medium">{errors.password}</p>}
-                    {regPasswordStrength && regPasswordStrength.feedback.length > 0 && (
-                      <div className="mt-1">
-                        {regPasswordStrength.feedback.map((msg, idx) => (
-                          <p key={idx} className="text-[10px] text-amber-600 font-medium tracking-tight leading-tight mb-0.5">• {msg}</p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Register Member
-                  </Button>
-                  <Button variant="ghost" size="sm" type="button" onClick={() => setView('LOGIN')}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Return to Sign In
-                  </Button>
                 </div>
               </form>
             )}

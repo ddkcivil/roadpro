@@ -182,6 +182,7 @@ const App: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [showRegistration, setShowRegistration] = useState(false);
 
   const handleTabChange = useCallback((tab: string) => {
     startTransition(() => {
@@ -224,7 +225,17 @@ const App: React.FC = () => {
     return (
       <I18nProvider>
         <NotificationProvider>
-          <Login onLogin={login} />
+          {showRegistration ? (
+            <Suspense fallback={<div className="flex justify-center items-center h-screen bg-muted"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+              <div className="min-h-screen bg-muted flex items-center justify-center p-4">
+                <div className="w-full max-w-4xl">
+                  <UserRegistration onBackToLogin={() => setShowRegistration(false)} />
+                </div>
+              </div>
+            </Suspense>
+          ) : (
+            <Login onLogin={login} onShowRegistration={() => setShowRegistration(true)} />
+          )}
         </NotificationProvider>
       </I18nProvider>
     );
