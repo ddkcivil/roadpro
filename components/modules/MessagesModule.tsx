@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { User, Message } from '../../types';
-import { Send, Search, MoreVertical, Hash, Check, CheckCheck, MessageCircle, Mail, Phone, Paperclip, FileText, HardHat } from 'lucide-react';
+import { Send, Search, MoreVertical, Hash, Check, CheckCheck, MessageCircle, Mail, Phone, Paperclip, FileText, HardHat, Loader2 } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import { Button } from '~/components/ui/button';
@@ -22,9 +22,10 @@ interface Props {
   messages: Message[];
   projectId: string;
   onSendMessage: (text: string, receiverId: string, projectId: string) => void;
+  isLoading?: boolean;
 }
 
-const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [], projectId, onSendMessage }) => {
+const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [], projectId, onSendMessage, isLoading = false }) => {
   const [activeChatId, setActiveChatId] = useState<string>('general');
   const [inputText, setInputText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,6 +38,9 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
     if (activeChatId === 'general') {
         return (messages || []).filter(m => m.receiverId === 'general' && m.projectId === projectId);
     }
+    // For direct messages, the backend already filters to only include messages between currentUser and activeChatId
+    // but we might have messages from other chats in the global 'messages' array if we fetch all at once.
+    // So we still filter here to be safe and to show only the active conversation.
     return (messages || []).filter(m => 
         ((m.senderId === currentUser?.id && m.receiverId === activeChatId) ||
         (m.senderId === activeChatId && m.receiverId === currentUser?.id)) &&
@@ -283,12 +287,18 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
              <div className="flex-1 min-h-0 bg-slate-50/50">
                  {activeMessages.length === 0 ? (
                      <div className="flex flex-col items-center justify-center h-full opacity-60">
-                         <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                             {activeChatId === 'general' ? <Hash className="h-8 w-8 text-muted-foreground" /> : <MessageCircle className="h-8 w-8 text-muted-foreground" />}
-                         </div>
-                         <p className="text-muted-foreground font-medium">
-                             {activeChatId === 'general' ? 'No announcements yet.' : `Start a conversation with ${activeUser?.name.split(' ')[0]}.`}
-                         </p>
+                         {isLoading ? (
+                             <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                         ) : (
+                             <>
+                                 <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                                     {activeChatId === 'general' ? <Hash className="h-8 w-8 text-muted-foreground" /> : <MessageCircle className="h-8 w-8 text-muted-foreground" />}
+                                 </div>
+                                 <p className="text-muted-foreground font-medium">
+                                     {activeChatId === 'general' ? 'No announcements yet.' : `Start a conversation with ${activeUser?.name.split(' ')[0]}.`}
+                                 </p>
+                             </>
+                         )}
                      </div>
                  ) : (
                      <AutoSizer>

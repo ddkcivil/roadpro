@@ -1,55 +1,77 @@
-import { useState, startTransition } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Message, UserWithPermissions } from '../types';
-import { DataCache, getCacheKey } from '../utils/data/cacheUtils';
-import { useDebounce } from './useDebounce';
+import { realApiService } from '../services/api/realApiService';
 
-export const useMessages = (currentUser: UserWithPermissions) => {
-  const [messages, setMessages] = useState<Message[]>(() => {
-    const cacheKey = getCacheKey('messages');
-    const cachedMessages = DataCache.get<Message[]>(cacheKey);
+export const useMessages = (currentUser: UserWithPermissions, projectId: string) => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const lastFetchedRef = useRef<string | null>(null);
+
+  const fetchMessages = useCallback(async (isInitial = false) => {
+    if (!projectId || !currentUser) return;
     
-    if (cachedMessages && Array.isArray(cachedMessages)) {
-      return cachedMessages;
+    try {
+      if (isInitial) setIsLoading(true);
+      
+      const newMessages = await realApiService.getMessages(projectId);
+      
+      setMessages(prev => {
+          // Merge logic to avoid duplicates and handle real-time updates
+          const messageMap = new Map();
+          prev.forEach(m => messageMap.set(m.id, m));
+          newMessages.forEach(m => messageMap.set(m.id, m));
+          return Array.from(messageMap.values()).sort((a, b) => 
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+      });
+    } catch (error) {
+      console.error('Failed to fetch messages:', error);
+    } finally {
+      if (isInitial) setIsLoading(false);
     }
+  }, [projectId, currentUser]);
+
+  // Initial fetch and polling
+  useEffect(() => {
+    fetchMessages(true);
     
-    const savedMessages = localStorage.getItem('roadmaster-messages');
-    const messagesData = savedMessages ? (JSON.parse(savedMessages) || []) : [];
+    const interval = setInterval(() => {
+      fetchMessages();
+    }, 5000); // 5 second polling for "real-time" feel without web sockets
     
-    const finalMessages = Array.isArray(messagesData) ? messagesData : [];
-    
-    if (!savedMessages) {
-      localStorage.setItem('roadmaster-messages', JSON.stringify([]));
+    return () => clearInterval(interval);
+  }, [fetchMessages]);
+
+  const sendMessage = async (text: string, receiverId: string, projId: string) => {
+    try {
+      const newMessage = await realApiService.sendMessage({
+        content: text,
+        receiverId,
+        projectId: projId
+      });
+      
+      setMessages(prev => [...prev, newMessage]);
+      return newMessage;
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      throw error;
     }
-    
-    DataCache.set(cacheKey, finalMessages, { ttl: 5 * 60 * 1000 });
-    
-    return finalMessages;
-  });
+  };
 
-  const debouncedSaveMessages = useDebounce((updatedMessages: Message[]) => {
-    localStorage.setItem('roadmaster-messages', JSON.stringify(updatedMessages));
-    DataCache.set(getCacheKey('messages'), updatedMessages, { ttl: 5 * 60 * 1000 });
-  }, 1000);
-
-  const sendMessage = (text: string, receiverId: string, projectId: string) => {
-    const newMessage: Message = {
-      id: `msg-${Date.now()}`,
-      senderId: currentUser.id,
-      receiverId,
-      content: text,
-      timestamp: new Date().toISOString(),
-      projectId,
-      read: false
-    };
-
-    const updatedMessages = [...messages, newMessage];
-    setMessages(updatedMessages);
-    debouncedSaveMessages(updatedMessages);
+  const markAsRead = async (messageId: string) => {
+    try {
+        await realApiService.markMessageAsRead(messageId);
+        setMessages(prev => prev.map(m => m.id === messageId ? { ...m, read: true } : m));
+    } catch (error) {
+        console.error('Failed to mark message as read:', error);
+    }
   };
 
   return {
     messages,
-    setMessages,
-    sendMessage
+    isLoading,
+    sendMessage,
+    markAsRead,
+    refresh: fetchMessages
   };
 };

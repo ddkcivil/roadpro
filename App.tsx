@@ -110,8 +110,9 @@ const App: React.FC = () => {
 
   const {
     messages,
-    sendMessage
-  } = useMessages(currentUser);
+    sendMessage,
+    isLoading: isLoadingMessages
+  } = useMessages(currentUser, currentProject?.id || 'general');
 
   useKeyboardShortcuts({
     onToggleSidebar: () => startTransition(() => setIsSidebarCollapsed(prev => !prev)),

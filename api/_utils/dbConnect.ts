@@ -53,6 +53,18 @@ export interface IAuditLog extends Document {
   metadata?: any;
 }
 
+export interface IMessage extends Document {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  content: string;
+  timestamp: string;
+  projectId: string;
+  read: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 export interface IProject extends Document {
   id: string;
   name: string;
@@ -160,6 +172,16 @@ const auditLogSchema = new Schema<IAuditLog>({
   metadata: Schema.Types.Mixed,
 }, { timestamps: true });
 
+const messageSchema = new Schema<IMessage>({
+  id: { type: String, required: true, unique: true, index: true },
+  senderId: { type: String, required: true, index: true },
+  receiverId: { type: String, required: true, index: true },
+  content: { type: String, required: true },
+  timestamp: { type: String, required: true },
+  projectId: { type: String, required: true, index: true },
+  read: { type: Boolean, default: false },
+}, { timestamps: true });
+
 const projectSchema = new Schema<IProject>({
   id: { type: String, required: true, unique: true, index: true },
   name: { type: String, required: true, index: true },
@@ -234,6 +256,7 @@ const User = mongoose.models.User || mongoose.model<IUser>('User', userSchema);
 const PendingRegistration = mongoose.models.PendingRegistration || mongoose.model<IPendingRegistration>('PendingRegistration', pendingRegistrationSchema);
 const Project = mongoose.models.Project || mongoose.model<IProject>('Project', projectSchema);
 const AuditLog = mongoose.models.AuditLog || mongoose.model<IAuditLog>('AuditLog', auditLogSchema);
+const Message = mongoose.models.Message || mongoose.model<IMessage>('Message', messageSchema);
 
 /**
  * Seeds an initial admin user if none exist
@@ -262,7 +285,7 @@ async function seedInitialAdmin(UserModel: Model<IUser>) {
 
 export async function connectToDatabase() {
   if (cached.conn) {
-    return { User, PendingRegistration, Project, AuditLog, mongoose: cached.conn };
+    return { User, PendingRegistration, Project, AuditLog, Message, mongoose: cached.conn };
   }
 
   if (!cached.promise) {
@@ -291,5 +314,5 @@ export async function connectToDatabase() {
     throw e;
   }
 
-  return { User, PendingRegistration, Project, AuditLog, mongoose: cached.conn };
+  return { User, PendingRegistration, Project, AuditLog, Message, mongoose: cached.conn };
 }

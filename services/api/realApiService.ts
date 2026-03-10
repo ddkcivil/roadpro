@@ -8,6 +8,7 @@ const DEFAULT_TTL = 30000; // 30 seconds default
 const CACHE_CONFIG: Record<string, number> = {
   '/projects': 60000, // 1 minute
   '/users': 120000,   // 2 minutes
+  '/messages': 2000,  // 2 seconds for active polling
   '/auth/': 0,        // Never cache auth
   '/health': 5000,    // 5 seconds
 };
@@ -481,6 +482,38 @@ class RealApiService {
       method: 'POST',
       body: JSON.stringify(log),
     });
+  }
+
+  // --- Message Management ---
+
+  /**
+   * Fetches messages for a project
+   */
+  async getMessages(projectId: string, receiverId?: string, after?: string): Promise<Message[]> {
+    const query = new URLSearchParams({ projectId });
+    if (receiverId) query.append('receiverId', receiverId);
+    if (after) query.append('after', after);
+    
+    return this.fetchApi<Message[]>(`/messages?${query.toString()}`, { method: 'GET' }, true);
+  }
+
+  /**
+   * Sends a new message
+   */
+  async sendMessage(messageData: { content: string, receiverId: string, projectId: string }): Promise<Message> {
+    return this.fetchWithRetry<Message>('/messages', {
+      method: 'POST',
+      body: JSON.stringify(messageData),
+    }, 0); // No retries for messages to avoid duplicates, or handled by caller
+  }
+
+  /**
+   * Marks a message as read
+   */
+  async markMessageAsRead(messageId: string): Promise<void> {
+    return this.fetchWithRetry<void>(`/messages?messageId=${messageId}&action=read`, {
+      method: 'PUT',
+    }, 1);
   }
 }
 
