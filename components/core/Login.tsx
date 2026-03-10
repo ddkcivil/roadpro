@@ -162,6 +162,7 @@ const Login: React.FC<Props> = ({ onLogin }) => {
             name: regName,
             email: regEmail,
             phone: '',
+            password: regPassword,
             requestedRole: regRole,
           });
           
