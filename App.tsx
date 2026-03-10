@@ -47,6 +47,7 @@ const ScheduleModule = lazy(() => import('./components/modules/ScheduleModule'))
 const DailyReportModule = lazy(() => import('./components/modules/DailyReportModule'));
 const AIChatModal = lazy(() => import('./components/utilities/AIChatModal'));
 const UserManagement = lazy(() => import('./components/common/UserManagement'));
+const UserActivity = lazy(() => import('./components/common/UserActivity'));
 const UserRegistration = lazy(() => import('./components/common/UserRegistration'));
 const StaffManagementModule = lazy(() => import('./components/modules/StaffManagementModule'));
 const DocumentationHub = lazy(() => import('./components/modules/DocumentationHub'));
@@ -330,6 +331,11 @@ const App: React.FC = () => {
                               {activeTab === 'user-management' && (
                                 <ProtectedTab permission={Permission.USER_READ}>
                                   <UserManagement />
+                                </ProtectedTab>
+                              )}
+                              {activeTab === 'user-activity' && (
+                                <ProtectedTab permission={Permission.USER_READ}>
+                                  <UserActivity />
                                 </ProtectedTab>
                               )}
                               {activeTab === 'user-registration' && (

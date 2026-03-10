@@ -54,6 +54,7 @@ export const getNavigationGroups = (currentUser: User | UserWithPermissions): Na
     const permissions = (currentUser as UserWithPermissions).permissions || [];
     if (permissions.includes(Permission.USER_READ)) {
       overviewItems.push({ id: 'user-management', label: 'User Management', icon: UserCheck });
+      overviewItems.push({ id: 'user-activity', label: 'User Activity', icon: ClipboardList });
     }
     overviewItems.push({ id: 'user-registration', label: 'Create Account', icon: Shield });
     overviewItems.push({ id: 'staff-management', label: 'Staff Management', icon: Users });

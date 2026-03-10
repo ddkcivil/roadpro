@@ -1,5 +1,6 @@
 import { AuditLog, User, Project } from '../../types';
 import { offlineStorage } from '../database/offlineStorage';
+import { apiService } from '../api/apiService';
 
 /**
  * Service for handling audit logging of user actions and system events
@@ -51,8 +52,25 @@ export class AuditService {
       const trimmedLogs = logs.slice(0, 2000);
       
       await offlineStorage.setItem(this.STORAGE_KEY, trimmedLogs);
+      
+      // Sync with backend (fire and forget)
+      this.syncWithBackend(auditLog);
     } catch (error) {
       console.error('Failed to save audit logs to IndexedDB:', error);
+    }
+  }
+
+  /**
+   * Internal helper to sync a log with the backend
+   */
+  private static async syncWithBackend(log: AuditLog): Promise<void> {
+    try {
+      if (navigator.onLine) {
+        await apiService.submitAuditLog(log);
+      }
+    } catch (error) {
+      // If sync fails, we still have it in offlineStorage
+      console.error('Failed to sync audit log with backend:', error);
     }
   }
 

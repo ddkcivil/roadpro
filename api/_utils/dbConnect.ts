@@ -38,6 +38,21 @@ export interface IPendingRegistration extends Document {
   updatedAt?: Date;
 }
 
+export interface IAuditLog extends Document {
+  id: string;
+  timestamp: string;
+  userId: string;
+  userName: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  entityName?: string;
+  oldValue?: any;
+  newValue?: any;
+  severity: string;
+  metadata?: any;
+}
+
 export interface IProject extends Document {
   id: string;
   name: string;
@@ -130,6 +145,21 @@ const pendingRegistrationSchema = new Schema<IPendingRegistration>({
   status: { type: String, default: 'pending' },
 }, { timestamps: true });
 
+const auditLogSchema = new Schema<IAuditLog>({
+  id: { type: String, required: true, unique: true, index: true },
+  timestamp: { type: String, required: true, index: true },
+  userId: { type: String, required: true, index: true },
+  userName: { type: String, required: true },
+  action: { type: String, required: true, index: true },
+  entityType: { type: String, required: true, index: true },
+  entityId: { type: String, required: true },
+  entityName: String,
+  oldValue: Schema.Types.Mixed,
+  newValue: Schema.Types.Mixed,
+  severity: { type: String, required: true, index: true },
+  metadata: Schema.Types.Mixed,
+}, { timestamps: true });
+
 const projectSchema = new Schema<IProject>({
   id: { type: String, required: true, unique: true, index: true },
   name: { type: String, required: true, index: true },
@@ -203,6 +233,7 @@ const projectSchema = new Schema<IProject>({
 const User = mongoose.models.User || mongoose.model<IUser>('User', userSchema);
 const PendingRegistration = mongoose.models.PendingRegistration || mongoose.model<IPendingRegistration>('PendingRegistration', pendingRegistrationSchema);
 const Project = mongoose.models.Project || mongoose.model<IProject>('Project', projectSchema);
+const AuditLog = mongoose.models.AuditLog || mongoose.model<IAuditLog>('AuditLog', auditLogSchema);
 
 /**
  * Seeds an initial admin user if none exist
@@ -231,7 +262,7 @@ async function seedInitialAdmin(UserModel: Model<IUser>) {
 
 export async function connectToDatabase() {
   if (cached.conn) {
-    return { User, PendingRegistration, Project, mongoose: cached.conn };
+    return { User, PendingRegistration, Project, AuditLog, mongoose: cached.conn };
   }
 
   if (!cached.promise) {
@@ -260,5 +291,5 @@ export async function connectToDatabase() {
     throw e;
   }
 
-  return { User, PendingRegistration, Project, mongoose: cached.conn };
+  return { User, PendingRegistration, Project, AuditLog, mongoose: cached.conn };
 }

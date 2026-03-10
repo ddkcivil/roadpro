@@ -456,6 +456,32 @@ class RealApiService {
   async healthCheck(): Promise<{ status: string; message: string }> {
     return this.fetchApi<{ status: string; message: string }>('/health');
   }
+
+  // --- Audit Logging ---
+
+  /**
+   * Fetches audit logs from the backend (Admin only)
+   */
+  async getAuditLogs(filters?: { userId?: string, action?: string, entityType?: string, limit?: number, offset?: number }): Promise<{ logs: any[], total: number }> {
+    const query = new URLSearchParams();
+    if (filters?.userId) query.append('userId', filters.userId);
+    if (filters?.action) query.append('action', filters.action);
+    if (filters?.entityType) query.append('entityType', filters.entityType);
+    if (filters?.limit) query.append('limit', filters.limit.toString());
+    if (filters?.offset) query.append('offset', filters.offset.toString());
+    
+    return this.fetchApi<{ logs: any[], total: number }>(`/audit?${query.toString()}`, { method: 'GET' });
+  }
+
+  /**
+   * Submits an audit log to the backend
+   */
+  async submitAuditLog(log: any): Promise<any> {
+    return this.fetchApi<any>('/audit', {
+      method: 'POST',
+      body: JSON.stringify(log),
+    });
+  }
 }
 
 export const realApiService = RealApiService.getInstance();
