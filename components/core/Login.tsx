@@ -16,6 +16,7 @@ import { cn } from '~/lib/utils';
 import { z } from 'zod';
 import { ErrorSummary } from '~/components/ui/error-summary';
 import { useRateLimit } from '~/hooks/useRateLimit';
+import { toast } from 'sonner';
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -254,6 +255,46 @@ const Login: React.FC<Props> = ({ onLogin }) => {
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {isLocked ? `Locked (${Math.ceil(remainingTime)}s)` : 'Continue'}
                   </Button>
+
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-slate-200" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white px-2 text-muted-foreground font-bold">Troubleshooting</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      className="text-[10px] h-8 font-bold border-indigo-100 text-indigo-600 hover:bg-indigo-50"
+                      onClick={() => {
+                        setEmail('admin@roadmaster.os');
+                        setPassword('admin123');
+                        toast.info("Admin credentials loaded. Click Continue.");
+                      }}
+                    >
+                      Admin Demo
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      className="text-[10px] h-8 font-bold border-red-100 text-red-600 hover:bg-red-50"
+                      onClick={() => {
+                        if (confirm("This will clear all local browser data and log you out. Continue?")) {
+                          localStorage.clear();
+                          window.location.reload();
+                        }
+                      }}
+                    >
+                      Reset Local App
+                    </Button>
+                  </div>
+
                   <p className="px-8 text-center text-sm text-muted-foreground">
                     Need access?{' '}
                     <button type="button" onClick={() => setView('REGISTER')} className="font-semibold text-primary hover:text-primary underline-offset-4 hover:underline">
