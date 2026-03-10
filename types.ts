@@ -423,7 +423,7 @@ export interface AuditLog {
   timestamp: string; // ISO date string
   userId: string; // User ID who performed the action
   userName: string; // Name of the user who performed the action
-  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'VIEW' | 'EXPORT' | 'IMPORT' | 'ASSIGN' | 'COMMENT' | 'UPLOAD' | 'DOWNLOAD' | 'APPROVE' | 'REJECT' | 'STATUS_CHANGE' | 'LOGIN' | 'LOGOUT';
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'VIEW' | 'EXPORT' | 'IMPORT' | 'ASSIGN' | 'COMMENT' | 'UPLOAD' | 'DOWNLOAD' | 'APPROVE' | 'REJECT' | 'STATUS_CHANGE' | 'LOGIN' | 'LOGOUT' | 'SAVE';
   entityType: 'project' | 'task' | 'document' | 'boq-item' | 'rfi' | 'structure' | 'defect' | 'inspection' | 'payment' | 'user' | 'comment' | 'checklist' | 'compliance-workflow' | 'resource-allocation' | 'milestone' | 'photo' | 'vehicle' | 'lab-test' | 'ncr' | 'bill' | 'measurement-sheet';
   entityId: string; // ID of the entity that was affected
   entityName?: string; // Name of the entity for easier identification

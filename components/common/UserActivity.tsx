@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../../services/api/apiService';
+import { useAuth } from '../../hooks/useAuth';
 import { AuditLog, UserRole } from '../../types';
 import { 
   Search, 
@@ -29,6 +30,7 @@ import { Badge } from "~/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 
 const UserActivity: React.FC = () => {
+  const { userRole } = useAuth();
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [total, setTotal] = useState(0);
@@ -54,7 +56,14 @@ const UserActivity: React.FC = () => {
       if (entityType) filters.entityType = entityType;
 
       const result = await apiService.getAuditLogs(filters);
-      setLogs(result.logs);
+      
+      // Secondary filter for DELETE actions if not privileged
+      let filteredLogs = result.logs;
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.PROJECT_MANAGER) {
+        filteredLogs = result.logs.filter((log: AuditLog) => log.action !== 'DELETE');
+      }
+
+      setLogs(filteredLogs);
       setTotal(result.total);
     } catch (error) {
       console.error('Failed to fetch logs:', error);
@@ -94,7 +103,7 @@ const UserActivity: React.FC = () => {
             <Activity className="text-primary h-6 w-6" />
             User Activity & Audit Logs
           </h1>
-          <p className="text-sm text-muted-foreground">Track all system actions and modifications (Admin Only)</p>
+          <p className="text-sm text-muted-foreground">Track all system actions and modifications</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => fetchLogs()} disabled={loading}>
           <RefreshCcw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -128,9 +137,13 @@ const UserActivity: React.FC = () => {
                   <SelectItem value="all">All Actions</SelectItem>
                   <SelectItem value="LOGIN">Login</SelectItem>
                   <SelectItem value="LOGOUT">Logout</SelectItem>
-                  <SelectItem value="CREATE">Create</SelectItem>
+                  <SelectItem value="CREATE">Add</SelectItem>
                   <SelectItem value="UPDATE">Update</SelectItem>
-                  <SelectItem value="DELETE">Delete</SelectItem>
+                  <SelectItem value="SAVE">Save</SelectItem>
+                  <SelectItem value="UPLOAD">Upload</SelectItem>
+                  {(userRole === UserRole.ADMIN || userRole === UserRole.PROJECT_MANAGER) && (
+                    <SelectItem value="DELETE">Delete</SelectItem>
+                  )}
                   <SelectItem value="APPROVE">Approve</SelectItem>
                 </SelectContent>
               </Select>
