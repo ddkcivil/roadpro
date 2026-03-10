@@ -167,6 +167,9 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
           }
       }
       
+      console.log('Sending message to:', activeChatId, 'Project:', projectId);
+      if (attachment) console.log('With attachment:', attachment.name, attachment.type, 'Size:', attachment.url.length);
+      
       onSendMessage(inputText, activeChatId, projectId, attachment);
       setInputText('');
       if (attachedFile?.preview) URL.revokeObjectURL(attachedFile.preview);

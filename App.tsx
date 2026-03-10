@@ -387,6 +387,7 @@ const App: React.FC = () => {
                                   messages={messages}
                                   projectId={selectedProjectId || currentProject?.id || ''}
                                   onSendMessage={sendMessage}
+                                  isLoading={isLoadingMessages}
                                 />
                               )}
                               {activeTab === 'documents' && (
