@@ -15,21 +15,15 @@ import { apiService } from './services/api/apiService';
 import { sqliteService } from './services/database/sqliteService';
 import { addSkipLink } from './utils/accessibility/a11yUtils';
 
-import AboutPage from './components/core/AboutPage';
-import ContactPage from './components/core/ContactPage';
 import ErrorBoundary from './components/core/ErrorBoundary';
-import ProjectModal from './components/core/ProjectModal';
 import AppSidebar from './components/core/AppSidebar';
 import AppHeader from './components/core/AppHeader';
-import ProjectSelector from './components/core/ProjectSelector';
-import GlobalSearch from './components/utilities/GlobalSearch';
 
 import { I18nProvider } from './contexts/I18nContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 
 // Components
 import Login from './components/core/Login';
-import DataAnalysisModule from './components/core/DataAnalysisModule';
 
 // Shadcn UI components
 import { Button } from '~/components/ui/button';
@@ -38,6 +32,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/comp
 
 
 // Lazy-loaded components
+const AboutPage = lazy(() => import('./components/core/AboutPage'));
+const ContactPage = lazy(() => import('./components/core/ContactPage'));
+const ProjectModal = lazy(() => import('./components/core/ProjectModal'));
+const ProjectSelector = lazy(() => import('./components/core/ProjectSelector'));
+const GlobalSearch = lazy(() => import('./components/utilities/GlobalSearch'));
+const DataAnalysisModule = lazy(() => import('./components/core/DataAnalysisModule'));
 const Dashboard = lazy(() => import('./components/core/Dashboard'));
 const BOQModule = lazy(() => import('./components/modules/BOQModule'));
 const BillingModule = lazy(() => import('./components/modules/BillingModule'));
@@ -79,8 +79,25 @@ import { AnimatePresence } from 'framer-motion';
 import { ProtectedTab } from './components/common/ProtectedTab';
 import { Permission } from './types';
 
+const LoadingScreen: React.FC = () => (
+  <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4">
+    <div className="relative">
+      <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center animate-pulse">
+        <Loader2 className="h-10 w-10 text-primary animate-spin" />
+      </div>
+      <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full border-4 border-slate-50 dark:border-slate-950 animate-bounce" />
+    </div>
+    <h2 className="mt-8 text-2xl font-black tracking-tighter text-slate-900 dark:text-white uppercase italic">
+      RoadMaster <span className="text-primary">OS</span>
+    </h2>
+    <p className="mt-2 text-sm font-bold text-slate-400 uppercase tracking-[0.3em] animate-pulse">Initializing Neural Grid...</p>
+  </div>
+);
+
 
 const App: React.FC = () => {
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  
   // Global hooks
   const { 
     isAuthenticated, 
@@ -90,6 +107,12 @@ const App: React.FC = () => {
     login, 
     logout 
   } = useAuth();
+
+  // ... (rest of hooks)
+
+  if (isInitialLoading) {
+    return <LoadingScreen />;
+  }
 
   const { 
     appSettings, 
@@ -128,6 +151,9 @@ const App: React.FC = () => {
       DataSyncService.syncAllToSQLite();
     }).catch(err => {
       console.error('Failed to initialize SQLite service:', err);
+    }).finally(() => {
+      // Small delay to ensure smooth transition
+      setTimeout(() => setIsInitialLoading(false), 800);
     });
     
     if ('serviceWorker' in navigator) {
