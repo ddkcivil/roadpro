@@ -32,7 +32,7 @@ export const chatWithHuggingFace = async (
   if (!apiKey) return "Please configure your Hugging Face API Key in the environment settings.";
 
   const modelId = getModelId();
-  const API_URL = `https://api-inference.huggingface.co/models/${modelId}`;
+  const API_URL = `https://api-inference.huggingface.co/models/${encodeURIComponent(modelId)}`;
 
   try {
     const systemInstruction = `You are RoadMaster AI, a professional infrastructure project assistant for project: ${projectContext.name}. 
@@ -42,7 +42,6 @@ export const chatWithHuggingFace = async (
     If the user provides an attachment, note that currently I can only process text descriptions of attachments via the Hugging Face Inference API unless using a multimodal model.`;
 
     // Construct prompt for Mistral/Llama style instruct models
-    // History
     let prompt = `<s>[INST] ${systemInstruction} [/INST]</s>`;
     
     history.forEach(msg => {
@@ -65,7 +64,8 @@ export const chatWithHuggingFace = async (
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Authorization': `Bearer ${apiKey}`,
+        'x-use-cache': 'false' // Helpful for avoiding stale responses or specific proxy issues
       },
       body: JSON.stringify({
         inputs: prompt,
@@ -73,7 +73,12 @@ export const chatWithHuggingFace = async (
           max_new_tokens: 1024,
           return_full_text: false,
           temperature: 0.7,
-          top_p: 0.95
+          top_p: 0.95,
+          wait_for_model: true // Tell Hugging Face to wait if the model is still loading
+        },
+        options: {
+          wait_for_model: true, // Some models expect it in options
+          use_cache: false
         }
       })
     });
