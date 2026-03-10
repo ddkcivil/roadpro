@@ -42,12 +42,15 @@ export const useMessages = (currentUser: UserWithPermissions, projectId: string)
     return () => clearInterval(interval);
   }, [fetchMessages]);
 
-  const sendMessage = async (text: string, receiverId: string, projId: string) => {
+  const sendMessage = async (text: string, receiverId: string, projId: string, attachment?: { url: string, name: string, type: string }) => {
     try {
       const newMessage = await realApiService.sendMessage({
         content: text,
         receiverId,
-        projectId: projId
+        projectId: projId,
+        attachmentUrl: attachment?.url,
+        attachmentName: attachment?.name,
+        attachmentType: attachment?.type
       });
       
       setMessages(prev => [...prev, newMessage]);

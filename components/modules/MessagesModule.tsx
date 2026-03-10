@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { User, Message } from '../../types';
-import { Send, Search, MoreVertical, Hash, Check, CheckCheck, MessageCircle, Mail, Phone, Paperclip, FileText, HardHat, Loader2 } from 'lucide-react';
+import { Send, Search, MoreVertical, Hash, Check, CheckCheck, MessageCircle, Mail, Phone, Paperclip, FileText, HardHat, Loader2, X, Download, File, Image as ImageIcon } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import { Button } from '~/components/ui/button';
@@ -21,7 +21,7 @@ interface Props {
   users: User[];
   messages: Message[];
   projectId: string;
-  onSendMessage: (text: string, receiverId: string, projectId: string) => void;
+  onSendMessage: (text: string, receiverId: string, projectId: string, attachment?: { url: string, name: string, type: string }) => void;
   isLoading?: boolean;
 }
 
@@ -29,7 +29,10 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
   const [activeChatId, setActiveChatId] = useState<string>('general');
   const [inputText, setInputText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [attachedFile, setAttachedFile] = useState<{ file: File, preview: string } | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const listRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Helper to get user details
   const getUser = useCallback((id: string) => (users || []).find(u => u.id === id), [users]);
@@ -38,9 +41,6 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
     if (activeChatId === 'general') {
         return (messages || []).filter(m => m.receiverId === 'general' && m.projectId === projectId);
     }
-    // For direct messages, the backend already filters to only include messages between currentUser and activeChatId
-    // but we might have messages from other chats in the global 'messages' array if we fetch all at once.
-    // So we still filter here to be safe and to show only the active conversation.
     return (messages || []).filter(m => 
         ((m.senderId === currentUser?.id && m.receiverId === activeChatId) ||
         (m.senderId === activeChatId && m.receiverId === currentUser?.id)) &&
@@ -59,6 +59,48 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
     const isMe = msg.senderId === currentUser?.id;
     const sender = getUser(msg.senderId);
     const showHeader = index === 0 || activeMessages[index-1].senderId !== msg.senderId;
+
+    const renderAttachment = () => {
+        if (!msg.attachmentUrl) return null;
+
+        const isImage = msg.attachmentType?.startsWith('image/');
+        
+        return (
+            <div className={cn(
+                "mt-2 p-2 rounded-lg border bg-background/50 flex flex-col gap-2 overflow-hidden",
+                isMe ? "border-primary-foreground/20" : "border-border"
+            )}>
+                {isImage ? (
+                    <div className="relative group max-w-sm">
+                        <img 
+                            src={msg.attachmentUrl} 
+                            alt={msg.attachmentName} 
+                            className="rounded border max-h-60 w-auto object-cover cursor-pointer hover:opacity-90 transition-opacity" 
+                            onClick={() => window.open(msg.attachmentUrl, '_blank')}
+                        />
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button size="icon" variant="secondary" className="h-8 w-8 rounded-full shadow-lg" onClick={() => window.open(msg.attachmentUrl, '_blank')}>
+                                <Download className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-3 py-1">
+                        <div className="w-10 h-10 rounded bg-muted flex items-center justify-center shrink-0">
+                            <FileText className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold truncate">{msg.attachmentName}</p>
+                            <p className="text-[10px] opacity-60 uppercase">{msg.attachmentType?.split('/')[1] || 'File'}</p>
+                        </div>
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => window.open(msg.attachmentUrl, '_blank')}>
+                            <Download className="h-4 w-4" />
+                        </Button>
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     return (
       <div 
@@ -83,6 +125,7 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                     <div className={`p-3 rounded-2xl shadow-sm text-sm relative break-words
                                     ${isMe ? 'bg-primary text-primary-foreground rounded-tr-sm' : 'bg-card border rounded-tl-sm'}`}>
                         {msg.content}
+                        {renderAttachment()}
                         <div className={`text-[10px] mt-1 flex items-center ${isMe ? 'justify-end text-primary-foreground/70' : 'justify-end text-muted-foreground'}`}>
                             {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                             {isMe && (msg.read ? <CheckCheck className="h-3 w-3 ml-1"/> : <Check className="h-3 w-3 ml-1"/>)}
@@ -95,11 +138,59 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
     );
   };
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!inputText.trim()) return;
-      onSendMessage(inputText, activeChatId, projectId);
+      if (!inputText.trim() && !attachedFile) return;
+
+      let attachment = undefined;
+
+      if (attachedFile) {
+          setIsUploading(true);
+          try {
+              // Convert to base64 for storage (since we don't have a file storage provider)
+              const base64 = await new Promise<string>((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.onload = () => resolve(reader.result as string);
+                  reader.onerror = reject;
+                  reader.readAsDataURL(attachedFile.file);
+              });
+
+              attachment = {
+                  url: base64,
+                  name: attachedFile.file.name,
+                  type: attachedFile.file.type
+              };
+          } catch (error) {
+              toast.error("Failed to process attachment");
+              setIsUploading(false);
+              return;
+          }
+      }
+      
+      onSendMessage(inputText, activeChatId, projectId, attachment);
       setInputText('');
+      if (attachedFile?.preview) URL.revokeObjectURL(attachedFile.preview);
+      setAttachedFile(null);
+      setIsUploading(false);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+          const file = e.target.files[0];
+          if (file.size > 2 * 1024 * 1024) { // Reduced to 2MB for base64 safety
+              toast.error("File too large", { description: "Maximum size is 2MB for chat attachments." });
+              return;
+          }
+          setAttachedFile({
+              file,
+              preview: URL.createObjectURL(file)
+          });
+      }
+  };
+
+  const removeAttachment = () => {
+      if (attachedFile?.preview) URL.revokeObjectURL(attachedFile.preview);
+      setAttachedFile(null);
   };
 
   const filteredUsers = (users || []).filter(u => 
@@ -112,7 +203,6 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
           toast.info("No phone number available for this user.");
           return;
       }
-      // Simple sanitize
       const cleanPhone = phone.replace(/[^0-9]/g, '');
       window.open(`https://wa.me/${cleanPhone}`, '_blank');
   };
@@ -125,8 +215,6 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
       window.location.href = `mailto:${email}`;
   };
 
-  // Mock handlers for enhancements
-  const handleAttach = () => toast.info("Attachment Feature: Opens file picker.");
   const handleLinkRFI = () => {
       setInputText(prev => prev + "Ref: RFI/CH/12+500 ");
   };
@@ -174,7 +262,7 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                 
                 {filteredUsers.map(user => {
                     const userMessages = (messages || []).filter(m => (m.senderId === user.id && m.receiverId === currentUser?.id) || (m.senderId === currentUser?.id && m.receiverId === user.id));
-                    const lastMsg = userMessages.pop();
+                    const lastMsg = userMessages[userMessages.length - 1];
                     const unreadCount = (messages || []).filter(m => m.senderId === user.id && m.receiverId === currentUser?.id && !m.read).length;
 
                     return (
@@ -268,7 +356,6 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                                 <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp
                              </Button>
                              
-                             {/* Mobile Icons */}
                              <Button variant="ghost" size="icon" onClick={() => handleEmailClick(activeUser.email)} className="md:hidden" disabled={!activeUser.email}>
                                  <Mail className="h-5 w-5 text-muted-foreground" />
                              </Button>
@@ -308,7 +395,7 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                             height={height}
                             width={width}
                             itemCount={activeMessages.length}
-                            itemSize={80} // Estimated average size, ideally would use VariableSizeList
+                            itemSize={80} 
                             className="scrollbar-hide py-4"
                           >
                             {MessageRow}
@@ -318,16 +405,39 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                  )}
              </div>
 
-             {/* Input Area with Enhanced Toolbar */}
+             {/* Input Area */}
              <div className="border-t bg-card p-4">
+                 {attachedFile && (
+                     <div className="mb-3 p-2 rounded-xl bg-muted/60 border border-border flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-300">
+                         <div className="w-12 h-12 rounded border bg-background flex items-center justify-center overflow-hidden shrink-0">
+                             {attachedFile.file.type.startsWith('image/') ? (
+                                 <img src={attachedFile.preview} alt="Preview" className="w-full h-full object-cover" />
+                             ) : (
+                                 <File className="h-6 w-6 text-muted-foreground" />
+                             )}
+                         </div>
+                         <div className="flex-1 min-w-0">
+                             <p className="text-sm font-bold truncate">{attachedFile.file.name}</p>
+                             <p className="text-[10px] text-muted-foreground uppercase font-black">{(attachedFile.file.size / 1024).toFixed(0)} KB • Ready to send</p>
+                         </div>
+                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={removeAttachment}>
+                             <X className="h-4 w-4" />
+                         </Button>
+                     </div>
+                 )}
+
                  <div className="flex gap-2 mb-2 px-1">
                      <TooltipProvider>
                          <Tooltip>
                              <TooltipTrigger asChild>
-                                 <Button variant="ghost" size="icon" onClick={handleAttach}><Paperclip className="h-4 w-4 text-muted-foreground" /></Button>
+                                 <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                                    <Paperclip className="h-4 w-4 text-muted-foreground" />
+                                 </Button>
                              </TooltipTrigger>
                              <TooltipContent>Attach File</TooltipContent>
                          </Tooltip>
+                         <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} />
+                         
                          <Tooltip>
                              <TooltipTrigger asChild>
                                  <Button variant="ghost" size="icon" onClick={handleLinkRFI}><HardHat className="h-4 w-4 text-muted-foreground" /></Button>
@@ -348,14 +458,20 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                          value={inputText}
                          onChange={(e) => setInputText(e.target.value)}
                          className="flex-1 resize-none min-h-[48px] rounded-lg p-3 bg-muted/60 border-0 focus-visible:ring-offset-0 focus-visible:ring-transparent"
+                         onKeyDown={(e) => {
+                             if (e.key === 'Enter' && !e.shiftKey) {
+                                 e.preventDefault();
+                                 handleSend(e as any);
+                             }
+                         }}
                      />
                      <Button 
                          type="submit" 
-                         disabled={!inputText.trim()}
+                         disabled={(!inputText.trim() && !attachedFile) || isUploading}
                          size="icon"
                          className="h-12 w-12 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground"
                      >
-                         <Send className="h-6 w-6" />
+                         {isUploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Send className="h-6 w-6" />}
                      </Button>
                  </form>
              </div>

@@ -500,7 +500,14 @@ class RealApiService {
   /**
    * Sends a new message
    */
-  async sendMessage(messageData: { content: string, receiverId: string, projectId: string }): Promise<Message> {
+  async sendMessage(messageData: { 
+    content: string, 
+    receiverId: string, 
+    projectId: string,
+    attachmentUrl?: string,
+    attachmentName?: string,
+    attachmentType?: string
+  }): Promise<Message> {
     return this.fetchWithRetry<Message>('/messages', {
       method: 'POST',
       body: JSON.stringify(messageData),

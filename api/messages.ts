@@ -45,20 +45,27 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST') {
-      const { content, receiverId, projectId } = req.body;
+      const { content, receiverId, projectId, attachmentUrl, attachmentName, attachmentType } = req.body;
 
-      if (!content || !receiverId || !projectId) {
-        return res.status(400).json({ error: 'content, receiverId, and projectId are required' });
+      if (!content && !attachmentUrl) {
+        return res.status(400).json({ error: 'content or attachment is required' });
+      }
+
+      if (!receiverId || !projectId) {
+        return res.status(400).json({ error: 'receiverId and projectId are required' });
       }
 
       const newMessage = await Message.create({
         id: uuidv4(),
         senderId: currentUser.userId,
         receiverId,
-        content,
+        content: content || '',
         projectId,
         timestamp: new Date().toISOString(),
-        read: false
+        read: false,
+        attachmentUrl,
+        attachmentName,
+        attachmentType
       });
 
       return res.status(201).json(newMessage);

@@ -61,6 +61,9 @@ export interface IMessage extends Document {
   timestamp: string;
   projectId: string;
   read: boolean;
+  attachmentUrl?: string;
+  attachmentName?: string;
+  attachmentType?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -180,6 +183,9 @@ const messageSchema = new Schema<IMessage>({
   timestamp: { type: String, required: true },
   projectId: { type: String, required: true, index: true },
   read: { type: Boolean, default: false },
+  attachmentUrl: String,
+  attachmentName: String,
+  attachmentType: String,
 }, { timestamps: true });
 
 const projectSchema = new Schema<IProject>({

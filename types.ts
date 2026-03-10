@@ -510,6 +510,9 @@ export interface Message {
   timestamp: string;
   read: boolean;
   projectId?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
+  attachmentType?: string;
 }
 
 export interface LandParcel {
