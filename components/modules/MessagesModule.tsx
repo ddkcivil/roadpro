@@ -57,7 +57,10 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
     const showHeader = index === 0 || activeMessages[index-1].senderId !== msg.senderId;
 
     return (
-      <div style={style} className="px-6 py-1">
+      <div 
+        style={style} 
+        className="px-6 py-1"
+      >
         <div className={cn("flex", isMe ? 'justify-end' : 'justify-start')}>
             <div className={cn("flex max-w-[85%] gap-2", isMe ? 'flex-row-reverse' : 'flex-row')}>
                 {!isMe && (

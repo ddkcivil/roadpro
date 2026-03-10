@@ -10,6 +10,7 @@ import { Alert as ShadcnAlert, AlertDescription } from '~/components/ui/alert';
 import { Badge } from '~/components/ui/badge';
 import { Separator } from '~/components/ui/separator';
 import { ScrollArea } from '~/components/ui/scroll-area';
+import { Progress } from '~/components/ui/progress';
 import { cn } from '~/lib/utils';
 
 import {
@@ -365,13 +366,8 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
                       <div className="flex-1">
                         <p className="text-xs text-muted-foreground">Planned vs Actual</p>
                         <div className="flex items-center gap-2 mt-2">
-                        <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary"
-                            style={{ width: `${(physicalProgress.planned * 100).toFixed(1)}%` }}
-                          />
-                        </div>
-                        <p className="text-xs">{(physicalProgress.planned * 100).toFixed(1)}%</p>
+                          <Progress value={physicalProgress.planned * 100} className="flex-1 h-2" />
+                          <p className="text-xs">{(physicalProgress.planned * 100).toFixed(1)}%</p>
                         </div>                      </div>
                     </div>
 

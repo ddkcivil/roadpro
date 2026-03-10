@@ -140,7 +140,7 @@ const WeatherWidget = () => {
         <div className="mt-4 pt-4 border-t border-border/40">
           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">3-Day Forecast</p>
           <div className="grid grid-cols-3 gap-2">
-            {weather.forecast.slice(0, 3).map((day, i) => (
+            {weather.forecast?.slice(0, 3).map((day, i) => (
               <div key={i} className="text-center p-2 rounded-lg hover:bg-background/50 transition-colors">
                 <p className="text-[10px] font-bold text-muted-foreground mb-1">{day.day}</p>
                 <div className="flex justify-center mb-1">
