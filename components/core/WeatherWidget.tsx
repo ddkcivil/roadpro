@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Sun, Wind, Droplets, Cloud, CloudRain, CloudSnow, CloudLightning, AlertTriangle, CloudFog } from 'lucide-react';
 import { fetchWeather } from '../../services/analytics/weatherService';
 import { WeatherInfo } from '../../types';

@@ -1,15 +1,12 @@
-import React, { memo, startTransition } from 'react';
+import React from 'react';
 import { 
   HardHat, 
-  ChevronLeft, 
-  ChevronRight, 
   LogOut,
   Settings
 } from '@/components/icons';
 import { Button } from '~/components/ui/button';
 import { ScrollArea } from '~/components/ui/scroll-area';
-import { Separator } from '~/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '~/components/ui/sheet';
 import { cn } from '~/lib/utils';
 import { NavGroup } from '~/config/navigation';
@@ -41,13 +38,11 @@ const groupColors: Record<string, string> = {
 
 const AppSidebar: React.FC<AppSidebarProps> = React.memo(({
   isSidebarCollapsed,
-  setIsSidebarCollapsed,
   sidebarOpen,
   setSidebarOpen,
   activeTab,
   setActiveTab,
   navGroups,
-  currentUser,
   logout,
   selectedProjectId,
   projectName

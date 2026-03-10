@@ -1,16 +1,14 @@
-import React, { useState, ChangeEvent } from 'react';
+import React, { useState } from 'react';
 import { UserRole } from '../../types';
-import { UserPlus, Mail, Shield, Edit3, Upload, X, Save } from 'lucide-react';
+import { UserPlus, Upload, X } from 'lucide-react';
 
 import { Button } from '~/components/ui/button';
-import { Card, CardContent } from '~/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
+import { Card } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
-import { cn } from '~/lib/utils';
 import { apiService } from '../../services/api/apiService';
 
 

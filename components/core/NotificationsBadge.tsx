@@ -1,14 +1,12 @@
-import React, { useState } from "react";
+import React from "react";
 import { Bell, Check, CheckCircle, AlertCircle, Info, X } from 'lucide-react';
 import { useNotifications } from '../../contexts/NotificationContext';
 
 import { Button } from '~/components/ui/button';
-import { Badge } from '~/components/ui/badge';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '~/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger } from '~/components/ui/dropdown-menu';
 import { ScrollArea } from '~/components/ui/scroll-area';
-import { Separator } from '~/components/ui/separator';
+import { Tooltip, TooltipContent } from '~/components/ui/tooltip';
 import { cn } from '~/lib/utils';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 
 
 // NOTE: This is a refactored version of the NotificationsBadge component.

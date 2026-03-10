@@ -1,7 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Login from './Login';
-import React from 'react';
 import { UserRole } from '~/types';
 import { apiService } from '../../services/api/apiService';
 

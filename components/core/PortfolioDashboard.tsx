@@ -1,32 +1,26 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { 
   Search, 
-  Plus, 
   MapPin, 
   Activity, 
   Clock, 
   TrendingUp, 
   Users, 
   FileText, 
-  DollarSign, 
-  Calendar, 
   BarChart3,
   PieChart,
-  LineChart,
   Trash2
 } from 'lucide-react';
 import { UserRole, Project, AppSettings } from '../../types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
 
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card, CardContent } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Badge } from '~/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import { Progress } from '~/components/ui/progress';
-import { Separator } from '~/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { cn } from '~/lib/utils';
 
 

@@ -2,7 +2,6 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import StatCard from './StatCard';
 import { HardHat } from 'lucide-react';
-import React from 'react';
 
 describe('StatCard', () => {
   it('renders title and value correctly', () => {

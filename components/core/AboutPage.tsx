@@ -1,4 +1,3 @@
-import React from 'react';
 import { 
   HardHat, 
   Building2, 
@@ -6,23 +5,20 @@ import {
   Calendar,
   Award,
   Globe,
-  Mail,
-  Phone,
   MapPin
 } from 'lucide-react';
 
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card, CardContent } from '~/components/ui/card';
 import { Badge } from '~/components/ui/badge';
 import { Separator } from '~/components/ui/separator';
-import { Avatar, AvatarFallback } from '~/components/ui/avatar';
-import { cn } from '~/lib/utils';
+import { Avatar } from '~/components/ui/avatar';
 
 
 // NOTE: This is a refactored version of the AboutPage component.
 // The original logic has been temporarily removed to facilitate the UI migration.
 // It will be re-implemented in subsequent steps.
 
-const AboutPage: React.FC = () => {
+const AboutPage = () => {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
@@ -32,7 +28,7 @@ const AboutPage: React.FC = () => {
           </div>
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-              About RoadMaster<span className="text-primary">.Pro</span>
+              RoadMaster<span className="text-primary">.Pro</span>
             </h1>
             <p className="text-lg text-muted-foreground mt-1">Infrastructure Management System</p>
           </div>

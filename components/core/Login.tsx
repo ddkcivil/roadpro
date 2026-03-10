@@ -5,12 +5,12 @@ import { validatePasswordStrength, validateEmail } from '../../utils/validation/
 import { AuthService } from '../../services/auth/authService';
 import { AuditService } from '../../services/analytics/auditService';
 import { apiService } from '../../services/api/apiService';
-import { UserPlus, ArrowLeft, Mail, Lock, User, Briefcase, ChevronRight, Fingerprint, Loader2 } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, User, Fingerprint, Loader2 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card, CardContent } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
-import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
+import { Alert, AlertDescription } from '~/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { cn } from '~/lib/utils';
 import { z } from 'zod';
@@ -36,7 +36,7 @@ interface Props {
 const Login: React.FC<Props> = ({ onLogin }) => {
   const [view, setView] = useState<'LOGIN' | 'REGISTER' | 'RESET'>('LOGIN');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{type: 'success' | 'destructive', text: string} | null>(null);
+  const [message, setMessage] = useState<{type: 'default' | 'destructive', text: string} | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { isLocked, remainingTime, checkLimit } = useRateLimit({
@@ -81,7 +81,7 @@ const Login: React.FC<Props> = ({ onLogin }) => {
     } catch (err) {
       if (err instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
-        err.issues.forEach((e) => {
+        err.issues.forEach((e: z.ZodIssue) => {
           if (e.path[0]) newErrors[e.path[0].toString()] = e.message;
         });
         setErrors(newErrors);
@@ -139,7 +139,7 @@ const Login: React.FC<Props> = ({ onLogin }) => {
       } catch (err) {
         if (err instanceof z.ZodError) {
           const newErrors: Record<string, string> = {};
-          err.errors.forEach((e) => {
+          err.issues.forEach((e: z.ZodIssue) => {
             if (e.path[0]) newErrors[e.path[0].toString()] = e.message;
           });
           setErrors(newErrors);
@@ -165,7 +165,7 @@ const Login: React.FC<Props> = ({ onLogin }) => {
           });
           
           setLoading(false);
-          setMessage({ type: 'success', text: 'Registration submitted! An administrator will review your request.' });
+          setMessage({ type: 'default', text: 'Registration submitted! An administrator will review your request.' });
           setView('LOGIN');
           setEmail(regEmail);
       } catch (error: any) {
@@ -185,7 +185,7 @@ const Login: React.FC<Props> = ({ onLogin }) => {
       setLoading(true);
       setTimeout(() => {
           setLoading(false);
-          setMessage({ type: 'success', text: `Verification link dispatched to ${resetEmail}` });
+          setMessage({ type: 'default', text: `Verification link dispatched to ${resetEmail}` });
           setTimeout(() => setView('LOGIN'), 3000);
       }, 1200);
   };

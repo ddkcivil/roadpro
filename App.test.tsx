@@ -1,7 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import App from './App';
-import React from 'react';
 
 // Mock the modules that cause issues in JSDOM or are too complex for unit tests
 vi.mock('framer-motion', () => ({

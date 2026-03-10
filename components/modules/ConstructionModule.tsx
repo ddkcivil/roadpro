@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useTransition } from 'react';
 import { 
     Plus, ArrowLeft, HardHat, History, CheckCircle2,
-    MapPin, Trash2, Edit, X, Save, Microscope, FileText
+    MapPin, X, Save, Microscope, FileText
 } from 'lucide-react';
 import { 
     Project, StructureAsset, StructureType, 
@@ -243,7 +243,7 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
         ...s, 
         components: updatedComponents, 
         status: s.status === 'Not Started' ? 'In Progress' : s.status,
-        lastUpdated: new Date().toISOString() 
+        lastUpdated: new Date().toISOString()
       } : s
     ) as StructureAsset[];
 

@@ -1,23 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { 
   Menu as MenuIcon, 
-  ChevronRight, 
-  ChevronLeft, 
   LayoutGrid, 
-  Loader2, 
-  CloudCog, 
   Sun, 
   Moon, 
   Bot,
-  Search,
-  Wifi,
-  WifiOff
+  Search
 } from '@/components/icons';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
 import { Separator } from '~/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
-import { Toggle } from '~/components/ui/toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import NotificationsBadge from './NotificationsBadge';
 import { OfflineIndicator } from '../common/OfflineIndicator';
