@@ -197,7 +197,7 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectU
                 <CardContent className="pt-6">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Payment Progress</h3>
                   <p className="text-2xl font-black text-blue-600">
-                    {financialStats.paymentPercentage.toFixed(1)}%
+                    {financialStats.paymentPercentage.toFixed(2)}%
                   </p>
                 </CardContent>
               </Card>

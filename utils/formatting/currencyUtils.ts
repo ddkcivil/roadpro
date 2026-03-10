@@ -35,7 +35,7 @@ export function getCurrencySymbol(currencyCode?: string): string {
  */
 export function formatCurrency(amount: number, currencyCode?: string): string {
   const symbol = getCurrencySymbol(currencyCode);
-  return `${symbol}${amount.toLocaleString()}`;
+  return `${symbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 /**

@@ -322,7 +322,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                 <StatCard title="Contract Value" value={`${currencySymbol}${(financialSummary.original || 0).toLocaleString()}`} icon={Receipt} color="#4f46e5" />
                 <StatCard title="Work Done" value={`${currencySymbol}${(financialSummary.completed || 0).toLocaleString()}`} icon={FileSpreadsheet} color="#10b981" />
                 {!compactView && (
-                    <StatCard title="Overall Progress" value={`${(financialSummary.percent || 0).toFixed(1)}%`} icon={BarChart4} color="#8b5cf6" />
+                    <StatCard title="Overall Progress" value={`${(financialSummary.percent || 0).toFixed(2)}%`} icon={BarChart4} color="#8b5cf6" />
                 )}
             </div>
 

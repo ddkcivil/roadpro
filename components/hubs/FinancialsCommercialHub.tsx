@@ -500,7 +500,7 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                                         <p className="text-sm text-muted-foreground">Margin</p>
                                         <p className={cn("text-2xl font-black", financialStats.totalContractBills >= (financialStats.totalSubcontractorBills + financialStats.totalAgencyPayments) ? 'text-emerald-600' : 'text-destructive')}>
                                             {financialStats.totalContractBills > 0 
-                                                ? `${(((financialStats.totalContractBills - (financialStats.totalSubcontractorBills + financialStats.totalAgencyPayments)) / financialStats.totalContractBills) * 100).toFixed(1)}%` 
+                                                ? `${(((financialStats.totalContractBills - (financialStats.totalSubcontractorBills + financialStats.totalAgencyPayments)) / financialStats.totalContractBills) * 100).toFixed(2)}%` 
                                                 : '0%'}
                                         </p>
                                     </div>

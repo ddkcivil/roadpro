@@ -5,22 +5,22 @@ export const formatCurrency = (amount: number | undefined | null, settings?: App
   if (amount == null) {
     const currencyCode = settings?.currency || 'USD';
     const symbol = getCurrencySymbol(currencyCode);
-    return `${symbol}0`;
+    return `${symbol}0.00`;
   }
   const currencyCode = settings?.currency || 'USD';
   const symbol = getCurrencySymbol(currencyCode);
-  return `${symbol}${amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  return `${symbol}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 export const formatCurrencyWithCode = (amount: number | undefined | null, settings?: AppSettings): string => {
   if (amount == null) {
     const currencyCode = settings?.currency || 'USD';
     const symbol = getCurrencySymbol(currencyCode);
-    return `${symbol}0 ${currencyCode}`;
+    return `${symbol}0.00 ${currencyCode}`;
   }
   const currencyCode = settings?.currency || 'USD';
   const symbol = getCurrencySymbol(currencyCode);
-  return `${symbol}${amount.toLocaleString('en-US', { maximumFractionDigits: 0 })} ${currencyCode}`;
+  return `${symbol}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencyCode}`;
 };
 
 // Utility function to export project data to CSV format

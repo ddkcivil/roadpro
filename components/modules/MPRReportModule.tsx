@@ -147,7 +147,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
                     <Separator />
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground font-medium">Utilization:</span>
-                      <span className="font-bold">{(financialSummary.progressValue / financialSummary.revised * 100).toFixed(1)}%</span>
+                      <span className="font-bold">{(financialSummary.progressValue / financialSummary.revised * 100).toFixed(2)}%</span>
                     </div>
                   </div>
                 </div>
@@ -157,17 +157,17 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
                   <div className="bg-muted/50 p-4 rounded-2xl border space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground font-medium">Planned Progress:</span>
-                      <span className="font-bold">{(physicalProgress.planned * 100).toFixed(1)}%</span>
+                      <span className="font-bold">{(physicalProgress.planned * 100).toFixed(2)}%</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground font-medium">Actual Progress:</span>
-                      <span className="font-bold text-indigo-600">{(physicalProgress.actual * 100).toFixed(1)}%</span>
+                      <span className="font-bold text-indigo-600">{(physicalProgress.actual * 100).toFixed(2)}%</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground font-medium">Variance:</span>
                       <span className={cn("font-bold", (physicalProgress.actual - physicalProgress.planned) < 0 ? "text-red-500" : "text-green-600")}>
-                        {(physicalProgress.actual * 100 - physicalProgress.planned * 100).toFixed(1)}%
+                        {(physicalProgress.actual * 100 - physicalProgress.planned * 100).toFixed(2)}%
                       </span>
                     </div>
                   </div>
@@ -293,11 +293,11 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-xs font-bold">Planned</span>
-              <span className="text-sm">{(physicalProgress.planned * 100).toFixed(1)}%</span>
+              <span className="text-sm">{(physicalProgress.planned * 100).toFixed(2)}%</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-xs font-bold">Actual</span>
-              <span className="text-sm text-green-600">{(physicalProgress.actual * 100).toFixed(1)}%</span>
+              <span className="text-sm text-green-600">{(physicalProgress.actual * 100).toFixed(2)}%</span>
             </div>
           </div>
         </ScrollArea>
@@ -367,7 +367,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
                         <p className="text-xs text-muted-foreground">Planned vs Actual</p>
                         <div className="flex items-center gap-2 mt-2">
                           <Progress value={physicalProgress.planned * 100} className="flex-1 h-2" />
-                          <p className="text-xs">{(physicalProgress.planned * 100).toFixed(1)}%</p>
+                          <p className="text-xs">{(physicalProgress.planned * 100).toFixed(2)}%</p>
                         </div>                      </div>
                     </div>
 
@@ -400,7 +400,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
                       </Card>
                       <Card className="p-4 bg-muted text-center">
                         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Elapsed Time</p>
-                        <p className="text-xl font-black text-primary">{timeProgress.toFixed(1)}%</p>
+                        <p className="text-xl font-black text-primary">{timeProgress.toFixed(2)}%</p>
                       </Card>
                     </div>
 
@@ -444,8 +444,8 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
 
                     <p className="text-sm mb-4">
                       The project is currently executing {project.boq.length} BOQ items across {project.structures?.length || 0} structural assets.
-                      As of {new Date().toLocaleDateString()}, the physical progress stands at {(physicalProgress.actual * 100).toFixed(1)}% against
-                      the planned {(physicalProgress.planned * 100).toFixed(1)}%. The project value stands at {formatCurrency(financialSummary.revised, settings)}
+                      As of {new Date().toLocaleDateString()}, the physical progress stands at {(physicalProgress.actual * 100).toFixed(2)}% against
+                      the planned {(physicalProgress.planned * 100).toFixed(2)}%. The project value stands at {formatCurrency(financialSummary.revised, settings)}
                       with a progress value of {formatCurrency(financialSummary.progressValue, settings)}.
                     </p>
 
@@ -486,7 +486,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
                               <ShadcnTableCell className="text-right">{item.completedQuantity}</ShadcnTableCell>
                               <ShadcnTableCell className="text-right">
                                 <Badge variant={item.completedQuantity === item.quantity ? 'default' : 'secondary'}>
-                                  {((item.completedQuantity / item.quantity) * 100).toFixed(1)}%
+                                  {((item.completedQuantity / item.quantity) * 100).toFixed(2)}%
                                 </Badge>
                               </ShadcnTableCell>
                               <ShadcnTableCell className="text-right">{formatCurrency(item.completedQuantity * item.rate, settings)}</ShadcnTableCell>
@@ -548,7 +548,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
                       <Card className="p-4 text-center bg-muted">
                         <p className="text-xs text-muted-foreground">Utilization</p>
                         <p className="text-xl font-black">
-                          {((financialSummary.progressValue / financialSummary.revised) * 100).toFixed(1)}%
+                          {((financialSummary.progressValue / financialSummary.revised) * 100).toFixed(2)}%
                         </p>
                       </Card>
                     </div>
