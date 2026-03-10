@@ -1,4 +1,5 @@
 import { Project, User, Message } from '../../types';
+import { offlineStorage } from '../../services/database/offlineStorage';
 
 const LOCAL_STORAGE_KEYS = {
   PROJECTS: 'roadmaster-projects',
@@ -17,13 +18,13 @@ const LOCAL_STORAGE_KEYS = {
 
 // Maximum number of records to keep for each staff category (to prevent quota overflow)
 const MAX_RECORDS = {
-  employees: 500,
-  leaveRequests: 1000,
-  performance: 500,
-  attendance: 2000,
-  salaries: 500,
-  training: 500,
-  evaluations: 500
+  employees: 200,
+  leaveRequests: 500,
+  performance: 200,
+  attendance: 500,
+  salaries: 200,
+  training: 200,
+  evaluations: 200
 };
 
 // Helper to estimate the size of a string in bytes
@@ -35,14 +36,14 @@ const getByteSize = (str: string): number => {
 const isNearQuota = (): boolean => {
   try {
     let totalSize = 0;
-    for (const key in LOCAL_STORAGE_KEYS) {
-      const item = localStorage.getItem(LOCAL_STORAGE_KEYS[key as keyof typeof LOCAL_STORAGE_KEYS]);
-      if (item) {
-        totalSize += getByteSize(item);
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        totalSize += getByteSize(localStorage.getItem(key) || "");
       }
     }
-    // Warning if we're over 4MB (localStorage typically has 5-10MB limit)
-    return totalSize > 4 * 1024 * 1024;
+    // Warning if we're over 4.5MB (localStorage typically has 5-10MB limit)
+    return totalSize > 4.5 * 1024 * 1024;
   } catch {
     return false;
   }
@@ -68,32 +69,44 @@ const safeSet = <T>(key: string, data: T, maxRecords?: number): boolean => {
       dataToStore = data.slice(-maxRecords) as unknown as T;
     }
     
-    localStorage.setItem(key, JSON.stringify(dataToStore));
+    const stringified = JSON.stringify(dataToStore);
+    
+    // Check if this specific item is too large (> 1MB)
+    if (getByteSize(stringified) > 1 * 1024 * 1024) {
+      console.warn(`Item ${key} is very large. Moving to IndexedDB...`);
+      offlineStorage.setItem(key, dataToStore);
+      // Still keep a minimal version in localStorage to avoid breaking existing synchronous code
+      // but remove the bulk of the data
+      if (Array.isArray(dataToStore)) {
+        localStorage.setItem(key, JSON.stringify(dataToStore.slice(-10)));
+      }
+      return true;
+    }
+
+    localStorage.setItem(key, stringified);
     return true;
   } catch (error) {
     if (error instanceof DOMException && (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
-      console.error(`Quota exceeded for ${key}. Clearing space...`);
+      console.error(`Quota exceeded for ${key}. Clearing space and moving to IndexedDB...`);
       
-      // Proactive cleanup
-      LocalStorageUtils.clearOldStaffData();
+      // 1. Proactive cleanup
+      LocalStorageUtils.emergencyCleanup();
       
-      // If it's still users causing issue, we might need to strip avatars from everyone except current user?
-      // Or just try one more time after cleanup
+      // 2. Try to save large data to IndexedDB instead
+      offlineStorage.setItem(key, data);
+      
+      // 3. Try to save a minimal version to localStorage
       try {
-        localStorage.setItem(key, JSON.stringify(data));
+        if (Array.isArray(data)) {
+          localStorage.setItem(key, JSON.stringify(data.slice(-5)));
+        } else {
+          // If not an array, we might just have to remove it from localStorage entirely
+          localStorage.removeItem(key);
+        }
         return true;
       } catch (retryError) {
-        console.error(`Emergency: Still failing to save ${key}. Removing avatars to save space...`);
-        // If it's users, try to save without avatars as last resort
-        if (key === LOCAL_STORAGE_KEYS.USERS && Array.isArray(data)) {
-          const noAvatars = data.map((u: any) => ({ ...u, avatar: null }));
-          try {
-            localStorage.setItem(key, JSON.stringify(noAvatars));
-            return true;
-          } catch (finalError) {
-            console.error("Critical: Failed even without avatars", finalError);
-          }
-        }
+        localStorage.removeItem(key);
+        return true; 
       }
     }
     console.error(`Error saving ${key} to localStorage:`, error);
@@ -207,7 +220,6 @@ export const LocalStorageUtils = {
   clearOldStaffData(): void {
     console.warn('Clearing old staff data to free up localStorage space...');
     
-    // Clear each staff category - they'll be rebuilt from fresh data
     const keysToCheck = [
       LOCAL_STORAGE_KEYS.STAFF_LEAVE_REQUESTS,
       LOCAL_STORAGE_KEYS.STAFF_ATTENDANCE,
@@ -222,31 +234,75 @@ export const LocalStorageUtils = {
         const data = localStorage.getItem(key);
         if (data) {
           const parsed = JSON.parse(data);
-          // Keep only the most recent 50% of records
-          const trimmed = parsed.slice(-Math.floor(parsed.length / 2));
-          localStorage.setItem(key, JSON.stringify(trimmed));
-          console.log(`Trimmed ${key} from ${parsed.length} to ${trimmed.length} records`);
+          if (Array.isArray(parsed) && parsed.length > 50) {
+            // Move to offline storage before clearing
+            offlineStorage.setItem(key, parsed);
+            // Keep only the most recent 10% or 20 records
+            const keepCount = Math.max(20, Math.floor(parsed.length * 0.1));
+            const trimmed = parsed.slice(-keepCount);
+            localStorage.setItem(key, JSON.stringify(trimmed));
+            console.log(`Trimmed ${key} from ${parsed.length} to ${trimmed.length} records`);
+          }
         }
       } catch (error) {
         console.error(`Error trimming ${key}:`, error);
-        // If trimming fails, just remove the key
         localStorage.removeItem(key);
       }
     });
   },
 
+  emergencyCleanup(): void {
+    console.error('EMERGENCY: localStorage quota exceeded. Performing deep cleanup...');
+    
+    // 1. Move all staff data to IndexedDB and clear from localStorage
+    const staffKeys = Object.values(LOCAL_STORAGE_KEYS).filter(k => k.startsWith('staff-'));
+    staffKeys.forEach(key => {
+      const data = localStorage.getItem(key);
+      if (data) {
+        try {
+          offlineStorage.setItem(key, JSON.parse(data));
+        } catch (e) {}
+        localStorage.removeItem(key);
+      }
+    });
+
+    // 2. Clear old messages
+    const messages = localStorage.getItem(LOCAL_STORAGE_KEYS.MESSAGES);
+    if (messages) {
+      try {
+        const parsed = JSON.parse(messages);
+        if (Array.isArray(parsed)) {
+          localStorage.setItem(LOCAL_STORAGE_KEYS.MESSAGES, JSON.stringify(parsed.slice(-10)));
+        }
+      } catch (e) {}
+    }
+
+    // 3. Clear users except current session info (if possible)
+    // Actually better to just keep minimal users
+    const users = localStorage.getItem(LOCAL_STORAGE_KEYS.USERS);
+    if (users) {
+      try {
+        const parsed = JSON.parse(users);
+        if (Array.isArray(parsed)) {
+          localStorage.setItem(LOCAL_STORAGE_KEYS.USERS, JSON.stringify(parsed.map(u => ({ ...u, avatar: null }))));
+        }
+      } catch (e) {}
+    }
+  },
+
   // Get total localStorage usage
   getStorageUsage(): { used: number; available: number; percentage: number } {
     let used = 0;
-    for (const key in LOCAL_STORAGE_KEYS) {
-      const item = localStorage.getItem(LOCAL_STORAGE_KEYS[key as keyof typeof LOCAL_STORAGE_KEYS]);
-      if (item) {
-        used += getByteSize(item);
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        used += getByteSize(localStorage.getItem(key) || "");
       }
     }
     // Assume 5MB limit (conservative estimate)
-    const available = 5 * 1024 * 1024 - used;
-    const percentage = (used / (5 * 1024 * 1024)) * 100;
+    const limit = 5 * 1024 * 1024;
+    const available = Math.max(0, limit - used);
+    const percentage = (used / limit) * 100;
     return { used, available, percentage };
   },
 
@@ -267,9 +323,8 @@ export const LocalStorageUtils = {
 
   // Clear all data
   clearAllData(): void {
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.PROJECTS);
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.USERS);
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.MESSAGES);
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.SETTINGS);
+    Object.values(LOCAL_STORAGE_KEYS).forEach(key => {
+      localStorage.removeItem(key);
+    });
   }
 };

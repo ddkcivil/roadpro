@@ -105,23 +105,44 @@ export const useAuth = () => {
       setUserRole(role);
       setUserName(name);
       
-      // Save authentication state to localStorage
-      localStorage.setItem('roadmaster-authenticated', 'true');
-      localStorage.setItem('roadmaster-user-role', role);
-      localStorage.setItem('roadmaster-user-name', name);
-      
-      if (userToken) {
-        setToken(userToken);
-        const encryptedToken = encryptionUtils.encrypt(userToken);
-        localStorage.setItem('roadmaster-token', encryptedToken);
-      }
+      try {
+        // Save authentication state to localStorage
+        localStorage.setItem('roadmaster-authenticated', 'true');
+        localStorage.setItem('roadmaster-user-role', role);
+        localStorage.setItem('roadmaster-user-name', name);
+        
+        if (userToken) {
+          setToken(userToken);
+          const encryptedToken = encryptionUtils.encrypt(userToken);
+          localStorage.setItem('roadmaster-token', encryptedToken);
+        }
 
-      if (userId) {
-        setCurrentUserId(userId);
-        localStorage.setItem('roadmaster-current-user-id', userId);
-      }
+        if (userId) {
+          setCurrentUserId(userId);
+          localStorage.setItem('roadmaster-current-user-id', userId);
+        }
 
-      setIsAuthenticated(true);
+        setIsAuthenticated(true);
+      } catch (error) {
+        if (error instanceof DOMException && (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+          console.error('LocalStorage quota exceeded during login. Performing emergency cleanup...');
+          LocalStorageUtils.emergencyCleanup();
+          
+          // Try again after cleanup
+          try {
+            localStorage.setItem('roadmaster-authenticated', 'true');
+            localStorage.setItem('roadmaster-user-role', role);
+            if (userToken) {
+              const encryptedToken = encryptionUtils.encrypt(userToken);
+              localStorage.setItem('roadmaster-token', encryptedToken);
+            }
+            setIsAuthenticated(true);
+          } catch (retryError) {
+            console.error('Failed to save auth state even after cleanup', retryError);
+            toast.error("Storage is full. Please clear your browser cache.");
+          }
+        }
+      }
     });
   };
 
@@ -141,12 +162,21 @@ export const useAuth = () => {
     setUserName('');
     setCurrentUserId('');
     setToken('');
-    localStorage.removeItem('roadmaster-authenticated');
-    localStorage.removeItem('roadmaster-user-role');
-    localStorage.removeItem('roadmaster-user-name');
-    localStorage.removeItem('roadmaster-current-user-id');
-    localStorage.removeItem('roadmaster-token');
-    localStorage.removeItem('roadmaster-csrf-token');
+    
+    const keysToRemove = [
+      'roadmaster-authenticated',
+      'roadmaster-user-role',
+      'roadmaster-user-name',
+      'roadmaster-current-user-id',
+      'roadmaster-token',
+      'roadmaster-csrf-token'
+    ];
+    
+    keysToRemove.forEach(key => {
+      try {
+        localStorage.removeItem(key);
+      } catch (e) {}
+    });
   };
 
   return {
