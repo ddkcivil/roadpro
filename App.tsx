@@ -147,14 +147,26 @@ const App: React.FC = () => {
     LocalStorageUtils.initializeEmptyData();
     
     // Initialize SQLite service
-    sqliteService.initialize().then(() => {
-      DataSyncService.syncAllToSQLite();
-    }).catch(err => {
-      console.error('Failed to initialize SQLite service:', err);
-    }).finally(() => {
-      // Small delay to ensure smooth transition
-      setTimeout(() => setIsInitialLoading(false), 800);
-    });
+    const initApp = async () => {
+      // Safety timeout: Ensure loading screen clears after 5 seconds even if something hangs
+      const loadingTimeout = setTimeout(() => {
+        setIsInitialLoading(false);
+        console.warn('App initialization timed out, forcing load...');
+      }, 5000);
+
+      try {
+        await sqliteService.initialize();
+        await DataSyncService.syncAllToSQLite();
+      } catch (err) {
+        console.error('Failed to initialize SQLite service:', err);
+      } finally {
+        clearTimeout(loadingTimeout);
+        // Small delay to ensure smooth transition
+        setTimeout(() => setIsInitialLoading(false), 800);
+      }
+    };
+    
+    initApp();
     
     if ('serviceWorker' in navigator) {
       const registerSW = async () => {
