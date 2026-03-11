@@ -260,13 +260,6 @@ const App: React.FC = () => {
     }
   }, [themeMode]);
 
-  // UI state
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
-  const [showRegistration, setShowRegistration] = useState(false);
-
   const handleTabChange = useCallback((tab: string) => {
     startTransition(() => {
       setActiveTab(tab);
@@ -278,8 +271,6 @@ const App: React.FC = () => {
       saveProject(project);
     });
   }, [saveProject]);
-  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
-  const [editProject, setEditProject] = useState<Partial<Project> | null>(null);
   
   const [users, setUsers] = useState<User[]>(() => {
     return LocalStorageUtils.getUsers();
