@@ -132,6 +132,8 @@ const App: React.FC = () => {
 
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState('Booting Kernel...');
+
+  console.log('[App] State:', { isAuthenticated, isInitialLoading, loadingStatus });
   
   const { 
     appSettings, 
