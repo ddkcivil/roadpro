@@ -2,7 +2,6 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { BOQItem, RFI, ScheduleTask } from '../../types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
 import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
-import { isPuterAvailable, analyzeWithPuter, analyzeSitePhotoWithPuter } from './puterService';
 
 const getAIClient = () => {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
@@ -62,47 +61,30 @@ async function runWithFallback(task: (model: any) => Promise<any>): Promise<any>
 }
 
 export const isAIServiceAvailable = (): boolean => {
-  if (isPuterAvailable()) return true;
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   return !!(apiKey && apiKey.trim() && apiKey !== 'your_api_key_here');
 };
 
 export const analyzeSitePhoto = async (photoBase64: string, category: string): Promise<string> => {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    const hasGemini = !!(apiKey && apiKey.trim() && apiKey !== 'your_api_key_here');
+    if (!isAIServiceAvailable()) return "AI Service Unavailable: Gemini API Key not configured.";
 
-    // If Gemini is available, try it first
-    if (hasGemini) {
-        try {
-            return await runWithFallback(async (model) => {
-                const prompt = `Analyze this site photo from a road project. Category: "${category}". Identify progress and safety issues.`;
-                const result = await model.generateContent({
-                    contents: [{
-                        role: 'user',
-                        parts: [
-                            { inlineData: { mimeType: 'image/jpeg', data: photoBase64.replace(/^data:image\/\w+;base64,/, "") } },
-                            { text: prompt }
-                        ]
-                    }]
-                });
-                return result.response.text();
+    try {
+        return await runWithFallback(async (model) => {
+            const prompt = `Analyze this site photo from a road project. Category: "${category}". Identify progress and safety issues.`;
+            const result = await model.generateContent({
+                contents: [{
+                    role: 'user',
+                    parts: [
+                        { inlineData: { mimeType: 'image/jpeg', data: photoBase64.replace(/^data:image\/\w+;base64,/, "") } },
+                        { text: prompt }
+                    ]
+                }]
             });
-        } catch (err: any) {
-            console.warn("Gemini Vision failed, trying Puter fallback...", err.message);
-            // If Gemini fails, proceed to Puter fallback below
-        }
+            return result.response.text();
+        });
+    } catch (err: any) {
+        return `Analysis failed: ${err.message || "Unknown Gemini error"}`;
     }
-
-    // Fallback to Puter (which might use gpt-4o-mini or similar)
-    if (isPuterAvailable()) {
-        try {
-            return await analyzeSitePhotoWithPuter(photoBase64, category);
-        } catch (puterErr: any) {
-            return `Analysis failed: Both Gemini and Puter services unavailable. (${puterErr.message})`;
-        }
-    }
-    
-    return "AI Service Unavailable: Neither Gemini API Key nor Puter.js are available.";
 };
 
 export const analyzeProjectStatus = async (
@@ -111,17 +93,9 @@ export const analyzeProjectStatus = async (
   schedule: ScheduleTask[],
   userQuery: string
 ): Promise<string> => {
-  const context = `Analyze project: BOQ items: ${boq.length}, Open RFIs: ${rfis.filter(r => r.status === 'Open').length}. Query: ${userQuery}`;
-  
-  if (isPuterAvailable()) {
-      try {
-          return await analyzeWithPuter(context);
-      } catch (e) {
-          console.warn("Puter analysis failed, trying Gemini...", e);
-      }
-  }
-
   if (!isAIServiceAvailable()) return "AI Service Unavailable.";
+
+  const context = `Analyze project: BOQ items: ${boq.length}, Open RFIs: ${rfis.filter(r => r.status === 'Open').length}. Query: ${userQuery}`;
 
   return runWithFallback(async (model) => {
     const result = await model.generateContent(context);
@@ -146,7 +120,7 @@ export const chatWithGemini = async (
   attachment?: { mimeType: string; data: string },
   isFastMode: boolean = false
 ): Promise<string> => {
-  if (!isAIServiceAvailable()) return "Please configure your Gemini API Key or ensure Puter.js is loaded.";
+  if (!isAIServiceAvailable()) return "Please configure your Gemini API Key.";
 
   return runWithFallback(async (model) => {
     const systemInstruction = `You are RoadMaster AI for project: ${projectContext.name}. Provide technical advice. Currency: ${getCurrencySymbol(projectContext.settings?.currency)}`;
@@ -191,17 +165,9 @@ export const chatWithGemini = async (
 };
 
 export const draftLetter = async (topic: string, recipient: string, useSearch: boolean = false): Promise<string> => {
-  const prompt = `Draft FIDIC-style letter for topic: ${topic}, Recipient: ${recipient}.`;
-
-  if (isPuterAvailable()) {
-      try {
-          return await analyzeWithPuter(prompt);
-      } catch (e) {
-          console.warn("Puter drafting failed, trying Gemini...", e);
-      }
-  }
-
   if (!isAIServiceAvailable()) return "AI Service Unavailable.";
+  
+  const prompt = `Draft FIDIC-style letter for topic: ${topic}, Recipient: ${recipient}.`;
 
   return runWithFallback(async (model) => {
     const result = await model.generateContent(prompt);

@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Bot, Send, Paperclip, Zap, Video, Loader2, Sparkles, FileText, Settings2 } from 'lucide-react';
 import { chatWithGemini, ChatMessage, isAIServiceAvailable as isGeminiAvailable } from '../../services/ai/geminiService';
 import { chatWithDeepSeek, isDeepSeekAvailable } from '../../services/ai/deepseekService';
-import { chatWithPuter, isPuterAvailable } from '../../services/ai/puterService';
 import { chatWithHuggingFace, isHuggingFaceAvailable } from '../../services/ai/huggingFaceService';
 import { Project } from '../../types';
 import { Button } from '~/components/ui/button';
@@ -32,8 +31,8 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFastMode, setIsFastMode] = useState(false);
-  const [aiProvider, setAIProvider] = useState<'puter' | 'deepseek' | 'gemini' | 'huggingface'>(
-    isPuterAvailable() ? 'puter' : (isDeepSeekAvailable() ? 'deepseek' : (isHuggingFaceAvailable() ? 'huggingface' : 'gemini'))
+  const [aiProvider, setAIProvider] = useState<'deepseek' | 'gemini' | 'huggingface'>(
+    isDeepSeekAvailable() ? 'deepseek' : (isHuggingFaceAvailable() ? 'huggingface' : 'gemini')
   );
 
   // File Upload State
@@ -189,15 +188,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
     // 3. Call AI Service
     let responseText = "";
     try {
-        if (aiProvider === 'puter') {
-            responseText = await chatWithPuter(
-                userText || (attachment ? "Analyze this attachment." : ""), 
-                newHistory,
-                project,
-                attachment ? { mimeType: attachment.file.type, data: base64Data } : undefined,
-                isFastMode
-            );
-        } else if (aiProvider === 'deepseek') {
+        if (aiProvider === 'deepseek') {
             responseText = await chatWithDeepSeek(
                 userText || (attachment ? "Analyze this attachment." : ""), 
                 newHistory,
@@ -286,7 +277,6 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
   };
 
   const isServiceAvailable = 
-    aiProvider === 'puter' ? isPuterAvailable() : 
     aiProvider === 'deepseek' ? isDeepSeekAvailable() : 
     isGeminiAvailable();
 
@@ -313,7 +303,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
             <div>
                 <h6 className="font-bold leading-tight">RoadMaster AI</h6>
                 <div className="text-[10px] text-white/70 flex items-center gap-2">
-                    {aiProvider === 'puter' ? 'DeepSeek (Free)' : (aiProvider === 'deepseek' ? 'DeepSeek V3/R1' : (aiProvider === 'huggingface' ? 'Hugging Face' : 'Gemini 3.0 Pro'))}
+                    {aiProvider === 'deepseek' ? 'DeepSeek V3/R1' : (aiProvider === 'huggingface' ? 'Hugging Face' : 'Gemini 3.0 Pro')}
                     <Badge variant="outline" className="text-[8px] h-3 px-1 border-white/20 text-white/60">
                         {isFastMode ? 'High Speed' : 'High Performance'}
                     </Badge>
@@ -338,10 +328,6 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                   <DropdownMenuContent align="end" className="w-56 rounded-xl">
                       <DropdownMenuLabel>AI Intelligence Provider</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setAIProvider('puter')} className="flex items-center justify-between">
-                          <span>Puter.js (Free DeepSeek)</span>
-                          {aiProvider === 'puter' && <Zap size={14} className="text-primary fill-primary" />}
-                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setAIProvider('deepseek')} className="flex items-center justify-between">
                           <span>DeepSeek API (Paid)</span>
                           {aiProvider === 'deepseek' && <Zap size={14} className="text-primary fill-primary" />}
@@ -385,13 +371,11 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>AI Provider Connection Required</AlertTitle>
                     <AlertDescription>
-                        {aiProvider === 'puter' 
-                          ? "Puter SDK is not loaded. Check your internet or index.html."
-                          : (aiProvider === 'deepseek' 
-                            ? "DeepSeek API key is missing. Add VITE_DEEPSEEK_API_KEY to your .env file." 
-                            : (aiProvider === 'huggingface' 
-                              ? "Hugging Face API key is missing. Add VITE_HUGGINGFACE_API_KEY to your .env file."
-                              : "Gemini API key is missing. Add VITE_GEMINI_API_KEY to your .env file."))}
+                        {aiProvider === 'deepseek' 
+                          ? "DeepSeek API key is missing. Add VITE_DEEPSEEK_API_KEY to your .env file." 
+                          : (aiProvider === 'huggingface' 
+                            ? "Hugging Face API key is missing. Add VITE_HUGGINGFACE_API_KEY to your .env file."
+                            : "Gemini API key is missing. Add VITE_GEMINI_API_KEY to your .env file.")}
                     </AlertDescription>
                 </Alert>
             )}
@@ -538,7 +522,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder={aiProvider === 'puter' ? "Ask Puter-DeepSeek about the project..." : "Ask about schedule, or upload RFI PDF..."}
+                        placeholder="Ask about schedule, or upload RFI PDF..."
                         className="flex-1 bg-transparent outline-none text-sm p-0"
                         autoFocus
                         aria-label="Ask AI about your project"
@@ -556,7 +540,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
             </form>
             <div className="text-center mt-2">
                 <span className="text-[10px] text-muted-foreground">
-                    Puter AI provides free DeepSeek-R1 reasoning. Verify important project details.
+                    AI models provide reasoning based on project data. Verify important project details.
                 </span>
             </div>
         </div>
