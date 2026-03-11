@@ -1,22 +1,21 @@
-import React, { useState, useMemo } from 'react';
-import { Project, UserRole, Agency, Subcontractor, SubcontractorPayment, BOQItem, AgencyRateEntry, SubcontractorRateEntry, AppSettings } from '../../types';
+import React, { useState } from 'react';
+import { Project, UserRole, Agency, Subcontractor, SubcontractorPayment, SubcontractorRateEntry, AppSettings } from '../../types';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Avatar, AvatarFallback } from '~/components/ui/avatar';
+import { Avatar } from '~/components/ui/avatar';
 import { Badge } from '~/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
-import { Progress } from '~/components/ui/progress';
+import { Table, TableBody, TableCell, TableHead, TableRow } from '~/components/ui/table';
+import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { toast } from 'sonner'; // Using sonner for toasts
 
 import {
-  Briefcase, FileText, Calendar, MapPin, TrendingUp, Clock, Activity,
-  Plus, Save, X, Edit, Trash2, CheckCircle2, Calculator, Package,
+  Briefcase, FileText, Calendar, TrendingUp, Activity,
+  Plus, Save, X, Edit, Trash2, Calculator,
   DollarSign, HelpCircle
 } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
@@ -30,7 +29,7 @@ interface Props {
   onProjectUpdate: (project: Project) => void;
 }
 
-const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, settings }) => {
+const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, settings }) => {
   const [activeTab, setActiveTab] = useState("0"); // Use string for Shadcn Tabs value
   const [isSubcontractorModalOpen, setIsSubcontractorModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -919,8 +918,10 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, userRo
       {/* Payment Modal */}
       <Dialog open={isPaymentModalOpen} onOpenChange={() => setIsPaymentModalOpen(false)} >
         <DialogContent className="sm:max-w-[375px]">
-          <DialogHeader className="font-bold flex items-center gap-1 bg-primary text-white p-2 rounded-t-lg">
-            <DollarSign size={20} className="text-white" /> Record Payment
+          <DialogHeader>
+            <DialogTitle className="font-bold flex items-center gap-1">
+              <DollarSign size={20} className="text-primary" /> Record Payment
+            </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="flex flex-col gap-3 mt-1">

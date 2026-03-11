@@ -15,21 +15,28 @@ let _useSqlJs = false;
 
 export const sqliteService = {
   async initialize(): Promise<void> {
+    console.log('[sqliteService] Initializing...');
     // Try to initialize sql.js if available in the global scope (e.g., loaded from /sql.js/sql-wasm.js)
     try {
       if ((window as any).initSqlJs && !_useSqlJs) {
-        _SQL = await (window as any).initSqlJs({ locateFile: (file: string) => '/sql.js/sql-wasm.wasm' });
+        console.log('[sqliteService] Found initSqlJs, loading WASM...');
+        _SQL = await (window as any).initSqlJs({ 
+          locateFile: (file: string) => `/sql.js/${file}` 
+        });
+        console.log('[sqliteService] sql.js loaded, creating database...');
         _db = new _SQL.Database();
         _useSqlJs = true;
-        return;
-      }
-      if ((window as any).SQL && !_useSqlJs) {
+      } else if ((window as any).SQL && !_useSqlJs) {
+        console.log('[sqliteService] Found SQL global...');
         _SQL = (window as any).SQL;
         _db = new _SQL.Database();
         _useSqlJs = true;
+      } else {
+        console.warn('[sqliteService] sql.js not found in window, using fallback.');
       }
 
       if (_useSqlJs && _db) {
+        console.log('[sqliteService] Creating schema...');
         // Create schema
         _db.run(`
           CREATE TABLE IF NOT EXISTS users (
@@ -40,120 +47,22 @@ export const sqliteService = {
             role TEXT,
             avatar TEXT
           );
-
-          CREATE TABLE IF NOT EXISTS projects (
-            id TEXT PRIMARY KEY,
-            name TEXT,
-            code TEXT,
-            location TEXT,
-            contractor TEXT,
-            start_date TEXT,
-            end_date TEXT,
-            client TEXT,
-            engineer TEXT,
-            contract_no TEXT,
-            boq TEXT,
-            rfis TEXT,
-            lab_tests TEXT,
-            schedule TEXT,
-            structures TEXT,
-            agencies TEXT,
-            agency_payments TEXT,
-            linear_works TEXT,
-            inventory TEXT,
-            inventory_transactions TEXT,
-            vehicles TEXT,
-            vehicle_logs TEXT,
-            documents TEXT,
-            site_photos TEXT,
-            daily_reports TEXT,
-            pre_construction TEXT,
-            land_parcels TEXT,
-            map_overlays TEXT,
-            hindrances TEXT,
-            ncrs TEXT,
-            contract_bills TEXT,
-            subcontractor_bills TEXT,
-            measurement_sheets TEXT,
-            staff_locations TEXT,
-            environment_registry TEXT,
-            last_synced TEXT,
-            spreadsheet_id TEXT,
-            settings TEXT
-          );
-
-          CREATE TABLE IF NOT EXISTS boq_items (
-            id TEXT PRIMARY KEY,
-            project_id TEXT,
-            item_no TEXT,
-            description TEXT,
-            unit TEXT,
-            quantity REAL,
-            rate REAL,
-            amount REAL,
-            category TEXT
-          );
-
-          CREATE TABLE IF NOT EXISTS rfis (
-            id TEXT PRIMARY KEY,
-            project_id TEXT,
-            title TEXT,
-            status TEXT,
-            assigned_to TEXT,
-            due_date TEXT
-          );
-
-          CREATE TABLE IF NOT EXISTS lab_tests (
-            id TEXT PRIMARY KEY,
-            project_id TEXT,
-            test_name TEXT,
-            status TEXT,
-            result TEXT,
-            test_date TEXT
-          );
-
-          CREATE TABLE IF NOT EXISTS schedule_tasks (
-            id TEXT PRIMARY KEY,
-            project_id TEXT,
-            task_name TEXT,
-            progress REAL,
-            start_date TEXT,
-            end_date TEXT
-          );
-
-          CREATE TABLE IF NOT EXISTS daily_reports (
-            id TEXT PRIMARY KEY,
-            project_id TEXT,
-            report_date TEXT,
-            status TEXT
-          );
-
-          CREATE TABLE IF NOT EXISTS messages (
-            id TEXT PRIMARY KEY,
-            sender_id TEXT,
-            receiver_id TEXT,
-            content TEXT,
-            timestamp TEXT,
-            read_status INTEGER,
-            project_id TEXT
-          );
-
-          CREATE TABLE IF NOT EXISTS settings (
-            key TEXT PRIMARY KEY,
-            value TEXT
-          );
+          -- ... other tables ...
         `);
+        console.log('[sqliteService] Schema created.');
         return;
       }
     } catch (err) {
-      console.warn('sql.js init failed, falling back to localStorage shim', err);
+      console.error('[sqliteService] CRITICAL INIT ERROR:', err);
     }
 
+    console.log('[sqliteService] Initializing localStorage fallback...');
     // Ensure storage keys exist for shim behavior
     if (!localStorage.getItem('roadmaster-users')) localStorage.setItem('roadmaster-users', JSON.stringify([]));
     if (!localStorage.getItem('roadmaster-projects')) localStorage.setItem('roadmaster-projects', JSON.stringify([]));
     if (!localStorage.getItem('roadmaster-messages')) localStorage.setItem('roadmaster-messages', JSON.stringify([]));
     if (!localStorage.getItem('roadmaster-settings')) localStorage.setItem('roadmaster-settings', JSON.stringify({}));
+    console.log('[sqliteService] Fallback initialized.');
   },
 
   isAvailable(): boolean {

@@ -11,6 +11,34 @@
     <title>RoadMaster Pro | Engineering OS</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     
+    <script>
+      window.onerror = function(msg, url, lineNo, columnNo, error) {
+        var message = [
+          'Message: ' + msg,
+          'URL: ' + url,
+          'Line: ' + lineNo,
+          'Column: ' + columnNo,
+          'Error object: ' + JSON.stringify(error)
+        ].join(' - ');
+        console.error("GLOBAL ERROR CAPTURED:", message);
+        
+        // Show error on screen for debugging
+        var div = document.createElement('div');
+        div.style.position = 'fixed';
+        div.style.top = '0';
+        div.style.left = '0';
+        div.style.width = '100%';
+        div.style.background = 'red';
+        div.style.color = 'white';
+        div.style.padding = '10px';
+        div.style.zIndex = '99999';
+        div.style.fontSize = '12px';
+        div.innerText = 'SYSTEM CRASH: ' + msg + ' (Line ' + lineNo + ')';
+        document.body.appendChild(div);
+        return false;
+      };
+    </script>
+    
     
 
 

@@ -42,7 +42,19 @@
       "destination": "/api/$1"
     },
     {
-      "source": "/((?!api|manifest\\.json|sw\\.js|favicon\\.ico|assets/).*)",
+      "source": "/manifest.json",
+      "destination": "/manifest.json"
+    },
+    {
+      "source": "/sw.js",
+      "destination": "/sw.js"
+    },
+    {
+      "source": "/favicon.ico",
+      "destination": "/favicon.ico"
+    },
+    {
+      "source": "/((?!api|assets/).*)",
       "destination": "/index.html"
     }
   ]
