@@ -42,7 +42,7 @@
       "destination": "/api/$1"
     },
     {
-      "source": "/((?!api|assets/).*)",
+      "source": "/((?!api|assets|sql.js|pdfjs-worker|favicon.ico|manifest.json|sw.js|apple-touch-icon.png).*)",
       "destination": "/index.html"
     }
   ]
