@@ -79,47 +79,60 @@ import { AnimatePresence } from 'framer-motion';
 import { ProtectedTab } from './components/common/ProtectedTab';
 import { Permission } from './types';
 
-const LoadingScreen: React.FC<{ onReset?: () => void }> = ({ onReset }) => (
-  <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4">
-    <div className="relative">
-      <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center animate-pulse">
-        <Loader2 className="h-10 w-10 text-primary animate-spin" />
+const LoadingScreen: React.FC<{ onReset?: () => void; status?: string }> = ({ onReset, status }) => {
+  const [showWarning, setShowWarning] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowWarning(true), 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4">
+      <div className="relative">
+        <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center animate-pulse">
+          <Loader2 className="h-10 w-10 text-primary animate-spin" />
+        </div>
+        <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full border-4 border-slate-50 dark:border-slate-950 animate-bounce" />
       </div>
-      <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full border-4 border-slate-50 dark:border-slate-950 animate-bounce" />
+      <h2 className="mt-8 text-2xl font-black tracking-tighter text-slate-900 dark:text-white uppercase italic">
+        RoadMaster <span className="text-primary">OS</span>
+      </h2>
+      <p className="mt-2 text-sm font-bold text-slate-400 uppercase tracking-[0.3em] animate-pulse">
+        {status || 'Initializing Neural Grid...'}
+      </p>
+      
+      {showWarning && (
+        <div className="mt-12 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <p className="text-[10px] text-slate-400 font-mono">System is taking longer than expected to respond.</p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onReset}
+            className="text-[10px] uppercase tracking-widest font-bold opacity-50 hover:opacity-100 transition-opacity"
+          >
+            Force System Reset
+          </Button>
+        </div>
+      )}
     </div>
-    <h2 className="mt-8 text-2xl font-black tracking-tighter text-slate-900 dark:text-white uppercase italic">
-      RoadMaster <span className="text-primary">OS</span>
-    </h2>
-    <p className="mt-2 text-sm font-bold text-slate-400 uppercase tracking-[0.3em] animate-pulse">Initializing Neural Grid...</p>
-    
-    <div className="mt-12 flex flex-col items-center gap-4">
-      <p className="text-[10px] text-slate-400 font-mono">System is taking longer than expected to respond.</p>
-      <Button 
-        variant="outline" 
-        size="sm" 
-        onClick={onReset}
-        className="text-[10px] uppercase tracking-widest font-bold opacity-50 hover:opacity-100 transition-opacity"
-      >
-        Force System Reset
-      </Button>
-    </div>
-  </div>
-);
+  );
+};
 
 const App: React.FC = () => {
+  const {
+    isAuthenticated,
+    userRole,
+    userName,
+    currentUserId,
+    currentUser,
+    login,
+    logout
+  } = useAuth();
+
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [loadingStatus, setLoadingStatus] = useState('Booting Kernel...');
   
-  const handleReset = () => {
-    if (confirm("This will clear your local session and data. Are you sure?")) {
-      localStorage.clear();
-      window.location.reload();
-    }
-  };
-
-  if (isInitialLoading) {
-    return <LoadingScreen onReset={handleReset} />;
-  }
-
   const { 
     appSettings, 
     updateSettings 
@@ -143,10 +156,29 @@ const App: React.FC = () => {
     isLoading: isLoadingMessages
   } = useMessages(currentUser, currentProject?.id || 'general');
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [showRegistration, setShowRegistration] = useState(false);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [editProject, setEditProject] = useState<Partial<Project> | null>(null);
+
   useKeyboardShortcuts({
     onToggleSidebar: () => startTransition(() => setIsSidebarCollapsed(prev => !prev)),
     onOpenProjectSwitcher: () => setSelectedProjectId(null),
   });
+
+  const handleReset = () => {
+    if (confirm("This will clear your local session and data. Are you sure?")) {
+      localStorage.clear();
+      window.location.reload();
+    }
+  };
+
+  if (isInitialLoading) {
+    return <LoadingScreen onReset={handleReset} status={loadingStatus} />;
+  }
 
   // Initialize service worker and accessibility on mount
   useEffect(() => {
@@ -154,17 +186,23 @@ const App: React.FC = () => {
     
     // Initialize SQLite service
     const initApp = async () => {
-      // Safety timeout: Ensure loading screen clears after 5 seconds even if something hangs
+      // Safety timeout: Ensure loading screen clears after 8 seconds even if something hangs
       const loadingTimeout = setTimeout(() => {
         setIsInitialLoading(false);
         console.warn('App initialization timed out, forcing load...');
-      }, 5000);
+      }, 8000);
 
       try {
+        setLoadingStatus('Mounting Neural Grid (WASM)...');
         await sqliteService.initialize();
+        
+        setLoadingStatus('Synchronizing Local Core...');
         await DataSyncService.syncAllToSQLite();
+        
+        setLoadingStatus('Ready for Operation');
       } catch (err) {
         console.error('Failed to initialize SQLite service:', err);
+        setLoadingStatus('Initialization Error - Falling back to Legacy Storage');
       } finally {
         clearTimeout(loadingTimeout);
         // Small delay to ensure smooth transition
