@@ -78,6 +78,7 @@ import { PageTransition } from './components/common/PageTransition';
 import { AnimatePresence } from 'framer-motion';
 import { ProtectedTab } from './components/common/ProtectedTab';
 import { Permission } from './types';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 const LoadingScreen: React.FC<{ onReset?: () => void; status?: string }> = ({ onReset, status }) => {
   const [showWarning, setShowWarning] = useState(false);
@@ -543,6 +544,7 @@ const App: React.FC = () => {
               }
             }}
           />
+          <SpeedInsights />
         </TooltipProvider>
       </NotificationProvider>
     </I18nProvider>
