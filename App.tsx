@@ -79,7 +79,7 @@ import { AnimatePresence } from 'framer-motion';
 import { ProtectedTab } from './components/common/ProtectedTab';
 import { Permission } from './types';
 
-const LoadingScreen: React.FC = () => (
+const LoadingScreen: React.FC<{ onReset?: () => void }> = ({ onReset }) => (
   <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4">
     <div className="relative">
       <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center animate-pulse">
@@ -91,27 +91,33 @@ const LoadingScreen: React.FC = () => (
       RoadMaster <span className="text-primary">OS</span>
     </h2>
     <p className="mt-2 text-sm font-bold text-slate-400 uppercase tracking-[0.3em] animate-pulse">Initializing Neural Grid...</p>
+    
+    <div className="mt-12 flex flex-col items-center gap-4">
+      <p className="text-[10px] text-slate-400 font-mono">System is taking longer than expected to respond.</p>
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={onReset}
+        className="text-[10px] uppercase tracking-widest font-bold opacity-50 hover:opacity-100 transition-opacity"
+      >
+        Force System Reset
+      </Button>
+    </div>
   </div>
 );
-
 
 const App: React.FC = () => {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   
-  // Global hooks
-  const { 
-    isAuthenticated, 
-    userRole, 
-    userName, 
-    currentUser, 
-    login, 
-    logout 
-  } = useAuth();
-
-  // ... (rest of hooks)
+  const handleReset = () => {
+    if (confirm("This will clear your local session and data. Are you sure?")) {
+      localStorage.clear();
+      window.location.reload();
+    }
+  };
 
   if (isInitialLoading) {
-    return <LoadingScreen />;
+    return <LoadingScreen onReset={handleReset} />;
   }
 
   const { 
