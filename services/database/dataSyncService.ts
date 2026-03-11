@@ -70,6 +70,64 @@ export class DataSyncService {
             spreadsheet_id: project.spreadsheetId || null,
             settings: JSON.stringify(project.settings || {})
           });
+
+          // Populating granular tables for analytics
+          if (project.boq && project.boq.length > 0) {
+            for (const item of project.boq) {
+              await sqliteService.insert('boq_items', {
+                id: item.id,
+                project_id: project.id,
+                description: item.description,
+                quantity: item.quantity,
+                unit: item.unit,
+                rate: item.rate,
+                completed_quantity: item.completedQuantity || 0
+              });
+            }
+          }
+
+          if (project.rfis && project.rfis.length > 0) {
+            for (const rfi of project.rfis) {
+              await sqliteService.insert('rfis', {
+                id: rfi.id,
+                project_id: project.id,
+                subject: rfi.subject,
+                status: rfi.status
+              });
+            }
+          }
+
+          if (project.labTests && project.labTests.length > 0) {
+            for (const test of project.labTests) {
+              await sqliteService.insert('lab_tests', {
+                id: test.id,
+                project_id: project.id,
+                test_name: test.testName || test.name,
+                status: test.status
+              });
+            }
+          }
+
+          if (project.schedule && project.schedule.length > 0) {
+            for (const task of project.schedule) {
+              await sqliteService.insert('schedule_tasks', {
+                id: task.id,
+                project_id: project.id,
+                task_name: task.name || task.taskName,
+                progress: task.progress || 0
+              });
+            }
+          }
+
+          if (project.dailyReports && project.dailyReports.length > 0) {
+            for (const report of project.dailyReports) {
+              await sqliteService.insert('daily_reports', {
+                id: report.id,
+                project_id: project.id,
+                date: report.date
+              });
+            }
+          }
         }
       }
     } catch (error) {
