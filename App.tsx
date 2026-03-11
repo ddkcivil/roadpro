@@ -154,7 +154,7 @@ const App: React.FC = () => {
     messages,
     sendMessage,
     isLoading: isLoadingMessages
-  } = useMessages(currentUser, currentProject?.id || 'general');
+  } = useMessages(currentUser, currentProject?.id || 'general', isAuthenticated);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);

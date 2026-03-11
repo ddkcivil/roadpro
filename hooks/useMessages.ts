@@ -2,13 +2,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Message, UserWithPermissions } from '../types';
 import { realApiService } from '../services/api/realApiService';
 
-export const useMessages = (currentUser: UserWithPermissions, projectId: string) => {
+export const useMessages = (currentUser: UserWithPermissions | null, projectId: string, isAuthenticated: boolean) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const lastFetchedRef = useRef<string | null>(null);
 
   const fetchMessages = useCallback(async (isInitial = false) => {
-    if (!projectId || !currentUser) return;
+    if (!projectId || !currentUser || !isAuthenticated) return;
     
     try {
       if (isInitial) setIsLoading(true);
