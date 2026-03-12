@@ -131,9 +131,10 @@ const App: React.FC = () => {
   } = useAuth();
 
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [systemReady, setSystemReady] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState('Booting Kernel...');
 
-  console.log('[App] State:', { isAuthenticated, isInitialLoading, loadingStatus });
+  console.log('[App] State:', { isAuthenticated, isInitialLoading, systemReady, loadingStatus });
   
   const { 
     appSettings, 
@@ -150,13 +151,13 @@ const App: React.FC = () => {
     fetchProjects,
     saveProject,
     deleteProject
-  } = useProjects(isAuthenticated, currentUser);
+  } = useProjects(isAuthenticated && systemReady, currentUser);
 
   const {
     messages,
     sendMessage,
     isLoading: isLoadingMessages
-  } = useMessages(currentUser, currentProject?.id || 'general', isAuthenticated);
+  } = useMessages(currentUser, currentProject?.id || 'general', isAuthenticated && systemReady);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -178,10 +179,6 @@ const App: React.FC = () => {
     }
   };
 
-  if (isInitialLoading) {
-    return <LoadingScreen onReset={handleReset} status={loadingStatus} />;
-  }
-
   // Initialize service worker and accessibility on mount
   useEffect(() => {
     LocalStorageUtils.initializeEmptyData();
@@ -202,9 +199,11 @@ const App: React.FC = () => {
         await DataSyncService.syncAllToSQLite();
         
         setLoadingStatus('Ready for Operation');
+        setSystemReady(true);
       } catch (err) {
         console.error('Failed to initialize SQLite service:', err);
         setLoadingStatus('Initialization Error - Falling back to Legacy Storage');
+        setSystemReady(true); // Allow proceeding with fallback
       } finally {
         clearTimeout(loadingTimeout);
         // Small delay to ensure smooth transition
@@ -295,6 +294,10 @@ const App: React.FC = () => {
   }, [isAuthenticated]);
 
   const navGroups = useMemo(() => getNavigationGroups(currentUser), [currentUser]);
+
+  if (isInitialLoading) {
+    return <LoadingScreen onReset={handleReset} status={loadingStatus} />;
+  }
 
   // Authentication Guard
   if (!isAuthenticated) {

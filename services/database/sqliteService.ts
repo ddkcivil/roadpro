@@ -23,10 +23,19 @@ export const sqliteService = {
       // Try to initialize sql.js if available in the global scope (e.g., loaded from /sql.js/sql-wasm.js)
       try {
         if ((window as any).initSqlJs && !_useSqlJs) {
-          console.log('[sqliteService] Found initSqlJs, loading WASM...');
-          _SQL = await (window as any).initSqlJs({ 
+          console.log('[sqliteService] Found initSqlJs, loading WASM with timeout...');
+          
+          // Add a 5-second timeout for WASM loading
+          const wasmPromise = (window as any).initSqlJs({ 
             locateFile: (file: string) => `/sql.js/${file}` 
           });
+          
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('WASM load timeout')), 5000)
+          );
+
+          _SQL = await Promise.race([wasmPromise, timeoutPromise]);
+          
           console.log('[sqliteService] sql.js loaded, creating database...');
           _db = new _SQL.Database();
           _useSqlJs = true;

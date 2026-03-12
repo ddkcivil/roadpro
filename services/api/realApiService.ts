@@ -77,6 +77,9 @@ class RealApiService {
       const response = await fetch(`/api${endpoint}`, {
         ...options,
         headers,
+        // Ensure cookies (HttpOnly auth cookie) are sent to the server
+        // so endpoints that rely on cookie-based auth (refresh) receive the token.
+        credentials: (options as any)?.credentials ?? 'include',
       });
 
       if (response.status === 401 && !endpoint.includes('/auth/') && !this.isRefreshing) {
