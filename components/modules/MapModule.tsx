@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, startTransition } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap, LayerGroup, CircleMarker } from 'react-leaflet';
+import { parseKML, ParsedKML, getKMLBounds } from '~/utils/kmlParser';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Project, StructureAsset, Vehicle, StaffLocation, LandParcel, MapOverlay, SitePhoto, LinearWorkLog, KMLData, AppSettings } from '../../types';
@@ -39,8 +40,6 @@ import {
 import { cn } from '~/lib/utils';
 import { toast } from 'sonner';
 
-// @ts-ignore
-import * as omnivore from '@mapbox/leaflet-omnivore';
 import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
 import 'leaflet-geosearch/dist/geosearch.css';
 
@@ -69,98 +68,56 @@ interface MapModuleProps {
 
 // KML Layer Component
 /**
- * Component to render and sync KML data from XML content using leaflet-omnivore.
- * Now includes 500m interval chainage markers with KML filename prefixing.
+ * Component to render and sync KML data from XML content.
+ * Now using robust utility parser and memoization to prevent re-render loops.
  */
 const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
   const map = useMap();
 
+  // Memoize parsed KML to avoid redundant parsing
+  const parsedData = useMemo((): ParsedKML | null => {
+    if (!kml.content) return null;
+    return parseKML(kml.content);
+  }, [kml.content]);
+
   useEffect(() => {
-    if (!kml.visible || !kml.content) return;
+    if (!kml.visible || !parsedData || parsedData.placemarks.length === 0) return;
 
     console.log(`[GIS] Rendering KML: ${kml.name}`);
 
-    let kmlLayer: L.Layer | null = null;
     const markers: L.Layer[] = [];
-    const fallbackLayers: L.Layer[] = [];
+    const geometryLayers: L.Layer[] = [];
 
     try {
-      // 1. Manual Parsing (Highly reliable since zoomToKML uses it)
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(kml.content, "text/xml");
-      const placemarks = xml.getElementsByTagName("Placemark");
-      
-      console.log(`[GIS] Found ${placemarks.length} Placemarks in ${kml.name}`);
-      
-      let hasManualFeatures = false;
-
-      for (let i = 0; i < placemarks.length; i++) {
-        const placemark = placemarks[i];
-        const coordTags = placemark.getElementsByTagName("coordinates");
-        
-        for (let j = 0; j < coordTags.length; j++) {
-          const coordStr = coordTags[j].textContent || "";
-          const points: L.LatLng[] = [];
+      parsedData.placemarks.forEach(({ name, points }) => {
+        if (points.length >= 2) {
+          const line = L.polyline(points, { 
+            color: '#4f46e5', 
+            weight: 5, 
+            opacity: 0.9,
+            lineJoin: 'round'
+          }).addTo(map);
           
-          // Robust splitting: handle spaces, tabs, and newlines
-          const pairs = coordStr.trim().split(/[\s\n\r]+/);
-          pairs.forEach((pair) => {
-            const parts = pair.split(",");
-            if (parts.length >= 2) {
-              const lng = parseFloat(parts[0]);
-              const lat = parseFloat(parts[1]);
-              if (!isNaN(lat) && !isNaN(lng)) {
-                points.push(L.latLng(lat, lng));
-              }
-            }
-          });
-
-          if (points.length >= 2) {
-            hasManualFeatures = true;
-            const line = L.polyline(points, { 
-              color: '#4f46e5', 
-              weight: 5, 
-              opacity: 0.9,
-              lineJoin: 'round'
-            }).addTo(map);
-            fallbackLayers.push(line);
-            
-            // Add chainage markers
-            addChainageMarkers(map, points, kml.name, markers);
-          } else if (points.length === 1) {
-            hasManualFeatures = true;
-            const marker = L.marker(points[0]).addTo(map);
-            fallbackLayers.push(marker);
+          if (name) {
+            line.bindTooltip(name, { sticky: true });
           }
-        }
-      }
-
-      // 2. Try leaflet-omnivore only if manual parsing didn't find coordinate tags
-      if (!hasManualFeatures) {
-        console.log(`[GIS] Falling back to omnivore for ${kml.name}`);
-        const omnivoreLib = (omnivore as any).default || omnivore;
-        if (omnivoreLib && omnivoreLib.kml) {
-          const parseFn = omnivoreLib.kml.parseStr || omnivoreLib.kml.parse;
-          if (parseFn) {
-            kmlLayer = parseFn(kml.content);
-            if (kmlLayer) {
-              kmlLayer.addTo(map);
-              (kmlLayer as any).eachLayer((layer: any) => {
-                if (layer.setStyle) {
-                  layer.setStyle({ color: '#4f46e5', weight: 5, opacity: 0.9 });
-                }
-                if (layer instanceof L.Polyline && !(layer instanceof L.Polygon)) {
-                  const coords = layer.getLatLngs() as L.LatLng[];
-                  const flatCoords = Array.isArray(coords[0]) ? (coords as any).flat(Infinity) as L.LatLng[] : coords;
-                  if (flatCoords.length >= 2) {
-                    addChainageMarkers(map, flatCoords, kml.name, markers);
-                  }
-                }
-              });
-            }
+          
+          geometryLayers.push(line);
+          
+          // Add chainage markers for paths
+          addChainageMarkers(map, points, kml.name, markers);
+        } else if (points.length === 1) {
+          const marker = L.marker(points[0], {
+            title: name || undefined
+          }).addTo(map);
+          
+          if (name) {
+            marker.bindPopup(`<b>${name}</b>`);
           }
+          
+          geometryLayers.push(marker);
         }
-      }
+      });
 
     } catch (error) {
       console.error(`[GIS] Critical Error in KML Layer "${kml.name}":`, error);
@@ -168,11 +125,10 @@ const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
 
     return () => {
       console.log(`[GIS] Cleaning up KML: ${kml.name}`);
-      if (kmlLayer) map.removeLayer(kmlLayer);
       markers.forEach(m => map.removeLayer(m));
-      fallbackLayers.forEach(l => map.removeLayer(l));
+      geometryLayers.forEach(l => map.removeLayer(l));
     };
-  }, [kml, map]);
+  }, [kml.visible, kml.name, parsedData, map]);
 
   return null;
 };
@@ -493,26 +449,12 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
   const defaultCenter: [number, number] = [27.7006, 83.4484];
   const defaultZoom = 13;
 
-  // Function to zoom to specific KML alignment
+  // Function to zoom to specific KML alignment (pure parser)
   const zoomToKML = useCallback((kmlContent: string) => {
     try {
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(kmlContent, "text/xml");
-      const coordinates = xml.getElementsByTagName("coordinates");
-      const allPoints: L.LatLng[] = [];
-
-      for (let i = 0; i < coordinates.length; i++) {
-        const coordStr = coordinates[i].textContent || "";
-        coordStr.trim().split(/\s+/).forEach((p) => {
-          const [lng, lat] = p.split(",").map(Number);
-          if (!isNaN(lat) && !isNaN(lng)) {
-            allPoints.push(L.latLng(lat, lng));
-          }
-        });
-      }
-
-      if (allPoints.length > 0) {
-        const bounds = L.latLngBounds(allPoints);
+      const points = getKMLBounds(kmlContent);
+      if (points && points.length > 0) {
+        const bounds = L.latLngBounds(points);
         startTransition(() => {
           setTargetBounds(bounds);
         });
@@ -709,30 +651,22 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
     return points;
   }, [alignmentOverlay]);
 
-  // Extract active KML lines for linear referencing monitoring
+  // Extract active KML lines for linear referencing monitoring (pure parser)
   const activeKMLLines = useMemo(() => {
     if (!layerVisibility.kml || !project.kmlData) return [];
     
     const lines: { name: string, coords: L.LatLng[] }[] = [];
-    const parser = new DOMParser();
-
+    
     project.kmlData.forEach(kml => {
       if (!kml.visible || !kml.content) return;
       
-      const xml = parser.parseFromString(kml.content, 'text/xml');
-      const coordinates = xml.getElementsByTagName('coordinates');
-      
-      for (let i = 0; i < coordinates.length; i++) {
-        const coordStr = coordinates[i].textContent || '';
-        const points = coordStr.trim().split(/\s+/).map(p => {
-          const [lng, lat] = p.split(',').map(Number);
-          return L.latLng(lat, lng);
-        }).filter(p => !isNaN(p.lat) && !isNaN(p.lng));
-        
-        if (points.length >= 2) {
+      const parsed: ParsedKML = parseKML(kml.content);
+      parsed.placemarks.forEach(placemark => {
+        const points: L.LatLng[] = placemark.points;
+        if (points && points.length >= 2) {
           lines.push({ name: kml.name.split('.')[0], coords: points });
         }
-      }
+      });
     });
     
     return lines;

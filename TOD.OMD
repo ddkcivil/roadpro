@@ -1,9 +1,0 @@
-# Task TODO List
-
-## Issues to Fix:
-1. [x] Fix Dialog accessibility issue in SubcontractorModule.tsx - Add DialogTitle to Payment Modal
-2. [x] Fix manifest.json 403 issue in vercel.json - Simplify rewrite rule
-
-## Progress:
-- [x] Issue 1: Dialog Accessibility - Payment Modal missing DialogTitle (Already has DialogTitle)
-- [x] Issue 2: Manifest.json 403 Forbidden - Simplified rewrite rules in vercel.json
