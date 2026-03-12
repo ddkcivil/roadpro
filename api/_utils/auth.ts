@@ -1,14 +1,9 @@
 import jwt from 'jsonwebtoken';
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import { TokenPayload } from '../../types.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-default-secret-key-change-this-in-env';
 const JWT_EXPIRES_IN = '24h';
-
-export interface TokenPayload {
-  userId: string;
-  email: string;
-  role: string;
-}
 
 export const generateToken = (payload: TokenPayload): string => {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });

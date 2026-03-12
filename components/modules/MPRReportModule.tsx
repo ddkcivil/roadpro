@@ -68,6 +68,26 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
     actual: (project?.boq || []).reduce((acc, item) => acc + (item.completedQuantity / item.quantity), 0) / (project?.boq || [])?.length || 0
   };
 
+  // NEW: Calculate Real-World Physical Progress from Structural Assets
+  const structuralProgress = (() => {
+    const structures = project.structures || [];
+    if (structures.length === 0) return 0;
+    let totalWeight = 0;
+    let weightedProgress = 0;
+    structures.forEach(s => {
+        const totalTarget = s.components.reduce((acc, c) => acc + (c.totalQuantity || 0), 0);
+        const totalDone = s.components.reduce((acc, c) => acc + (c.completedQuantity || 0), 0);
+        if (totalTarget > 0) {
+            const weight = s.components.length; 
+            totalWeight += weight;
+            weightedProgress += (totalDone / totalTarget) * weight;
+        }
+    });
+    return totalWeight > 0 ? (weightedProgress / totalWeight) : 0;
+  })();
+
+  const divergence = (structuralProgress * 100) - (physicalProgress.actual * 100);
+
   const handleGenerateReport = () => {
     setIsPreviewOpen(true);
   };
@@ -104,7 +124,42 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
   const timeProgress = calculateTimeProgress(project.startDate, project.endDate);
 
   return (
-    <div className="h-[calc(100vh-140px)] flex gap-3">
+    <div className="h-[calc(100vh-140px)] flex flex-col gap-3">
+      {/* Executive Progress Header */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 px-1">
+          <Card className="bg-primary text-primary-foreground shadow-lg border-none relative overflow-hidden">
+              <CardContent className="p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Physical Progress</p>
+                  <p className="text-2xl font-black italic">{(structuralProgress * 100).toFixed(2)}%</p>
+                  <p className="text-[8px] mt-1 font-bold opacity-50 uppercase">From Structural Assets</p>
+              </CardContent>
+          </Card>
+          <Card className="bg-slate-900 text-white shadow-lg border-none relative overflow-hidden">
+              <CardContent className="p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Financial Progress</p>
+                  <p className="text-2xl font-black italic">{(physicalProgress.actual * 100).toFixed(2)}%</p>
+                  <p className="text-[8px] mt-1 font-bold opacity-50 uppercase">From Certified BOQ</p>
+              </CardContent>
+          </Card>
+          <Card className={cn("shadow-lg border-none relative overflow-hidden text-white", divergence > 2 ? "bg-amber-500" : "bg-emerald-500")}>
+              <CardContent className="p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Progress Gap</p>
+                  <p className="text-2xl font-black italic">{divergence.toFixed(2)}%</p>
+                  <p className="text-[8px] mt-1 font-bold opacity-50 uppercase">
+                      {divergence > 0 ? "Work Done Not Yet Billed" : "Billing Ahead of Physical"}
+                  </p>
+              </CardContent>
+          </Card>
+          <Card className="bg-indigo-600 text-white shadow-lg border-none relative overflow-hidden">
+              <CardContent className="p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Schedule Status</p>
+                  <p className="text-2xl font-black italic">{((physicalProgress.actual - physicalProgress.planned) * 100).toFixed(1)}%</p>
+                  <p className="text-[8px] mt-1 font-bold opacity-50 uppercase">Variance vs Plan</p>
+              </CardContent>
+          </Card>
+      </div>
+
+      <div className="flex-1 flex gap-3 min-h-0">
       {/* MPR Preview Dialog */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">

@@ -6,7 +6,7 @@ import {
 import { Project, UserRole, AppSettings, BOQItem, VariationOrder, MeasurementSheet, MeasurementSheetEntry } from '../../types';
 import * as XLSX from 'xlsx';
 import StatCard from '../core/StatCard';
-import BOQManager from './BOQManager';
+import BOQRegistry from './BOQRegistry';
 import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
 import { toast } from 'sonner';
 
@@ -49,8 +49,84 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
     // State for compact/full view toggle
     const [compactView, setCompactView] = useState(false);
     
+    // Auto-MB State
+    const [isAutoMBOpen, setIsAutoMBOpen] = useState(false);
+    const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
+    
     // MB State
     const [isMBModalOpen, setIsMBModalOpen] = useState(false);
+    
+    // Auto-MB Logic
+    const uncertifiedLogs = useMemo(() => {
+        const logs: any[] = [];
+        (project.structures || []).forEach(structure => {
+            structure.components.forEach(comp => {
+                if (comp.boqItemId) {
+                    (comp.workLogs || []).forEach(log => {
+                        // Check if this log is already in an approved/certified MB
+                        const alreadyMBed = (project.measurementSheets || []).some(sheet => 
+                            sheet.entries.some(entry => (entry as any).workLogId === log.id)
+                        );
+                        
+                        if (!alreadyMBed) {
+                            logs.push({
+                                ...log,
+                                structureName: structure.name,
+                                componentName: comp.name,
+                                boqItemId: comp.boqItemId
+                            });
+                        }
+                    });
+                }
+            });
+        });
+        return logs;
+    }, [project.structures, project.measurementSheets]);
+
+    const handleCreateAutoMB = () => {
+        if (selectedLogs.length === 0) return;
+
+        const logsToProcess = uncertifiedLogs.filter(l => selectedLogs.includes(l.id));
+        
+        // Group logs by BOQ Item ID to create combined entries
+        const groupedEntries: Record<string, number> = {};
+        logsToProcess.forEach(log => {
+            groupedEntries[log.boqItemId] = (groupedEntries[log.boqItemId] || 0) + log.quantity;
+        });
+
+        const newEntries: MeasurementSheetEntry[] = Object.entries(groupedEntries).map(([boqId, qty]) => {
+            const boqItem = project.boq.find(b => b.id === boqId);
+            return {
+                id: `mbe-${Date.now()}-${boqId}`,
+                boqItemId: boqId,
+                quantity: qty,
+                rate: boqItem?.rate || 0,
+                amount: qty * (boqItem?.rate || 0),
+                workLogId: logsToProcess.find(l => l.boqItemId === boqId)?.id // Keep track for uncertified check
+            } as any;
+        });
+
+        const autoSheet: MeasurementSheet = {
+            id: `mb-${Date.now()}`,
+            sheetNumber: `MB-AUTO-${(project.measurementSheets?.length || 0) + 1}`,
+            title: `Auto-Generated from Site Logs (${new Date().toLocaleDateString()})`,
+            date: new Date().toISOString().split('T')[0],
+            entries: newEntries,
+            totalAmount: newEntries.reduce((acc, e) => acc + e.amount, 0),
+            status: 'Draft'
+        } as any;
+
+        onProjectUpdate({
+            ...project,
+            measurementSheets: [...(project.measurementSheets || []), autoSheet]
+        });
+
+        setIsAutoMBOpen(false);
+        setSelectedLogs([]);
+        setActiveTab("mb");
+        toast.success("Auto-MB Created", { description: "Review and certify the draft in the MB Registry." });
+    };
+
     const [newMB, setNewMB] = useState<Partial<MeasurementSheet>>({
         sheetNumber: `MB-${((project?.measurementSheets || [])?.length || 0) + 1}`,
         title: '',
@@ -328,13 +404,34 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsContent value="registry">
-                    <BOQManager project={project} settings={settings} userRole={userRole} onProjectUpdate={onProjectUpdate} compactView={compactView} />
+                    <BOQRegistry project={project} settings={settings} userRole={userRole} onProjectUpdate={onProjectUpdate} compactView={compactView} />
                 </TabsContent>
                 
                 <TabsContent value="mb">
                     <div className="flex justify-between mb-4 items-center">
                         <h2 className="text-xl font-bold">Measurement Book</h2>
-                        <Button onClick={() => setIsMBModalOpen(true)}><Plus className="mr-2 h-4 w-4" /> New Entry</Button>
+                        <div className="flex gap-2">
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button 
+                                            variant="secondary" 
+                                            onClick={() => setIsAutoMBOpen(true)}
+                                            disabled={uncertifiedLogs.length === 0}
+                                            className="bg-primary/10 text-primary hover:bg-primary/20 border-primary/20"
+                                        >
+                                            <TrendingUp className="mr-2 h-4 w-4" /> 
+                                            Smart Auto-MB 
+                                            <Badge className="ml-2 h-5 min-w-5 bg-primary text-white p-0 flex items-center justify-center rounded-full">
+                                                {uncertifiedLogs.length}
+                                            </Badge>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Generate MB from Structural logs</TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                            <Button onClick={() => setIsMBModalOpen(true)}><Plus className="mr-2 h-4 w-4" /> New Entry</Button>
+                        </div>
                     </div>
                     <Card>
                         <CardContent className="p-0">
@@ -485,6 +582,92 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                     </div>
                     <DialogFooter>
                         <Button onClick={handleImportSubmit} disabled={!importFile}>Import</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Auto-MB Generator Dialog */}
+            <Dialog open={isAutoMBOpen} onOpenChange={setIsAutoMBOpen}>
+                <DialogContent className="sm:max-w-3xl max-h-[80vh] flex flex-col p-0">
+                    <DialogHeader className="p-6 border-b">
+                        <DialogTitle className="flex items-center gap-2">
+                            <TrendingUp className="text-primary" /> 
+                            Smart Auto-MB Generator
+                        </DialogTitle>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            The following work logs have been recorded in structural assets but haven't been added to a Measurement Sheet yet.
+                        </p>
+                    </DialogHeader>
+                    
+                    <div className="flex-1 overflow-auto p-6">
+                        {uncertifiedLogs.length === 0 ? (
+                            <div className="text-center py-12 opacity-50">
+                                <CheckCircle2 className="h-12 w-12 mx-auto mb-4 text-emerald-500" />
+                                <p className="font-bold">All structural work logs are already accounted for.</p>
+                            </div>
+                        ) : (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/50">
+                                        <TableHead className="w-[50px]">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={selectedLogs.length === uncertifiedLogs.length}
+                                                onChange={(e) => setSelectedLogs(e.target.checked ? uncertifiedLogs.map(l => l.id) : [])}
+                                                className="rounded border-gray-300"
+                                            />
+                                        </TableHead>
+                                        <TableHead>Asset / Component</TableHead>
+                                        <TableHead>Date</TableHead>
+                                        <TableHead>BOQ Item</TableHead>
+                                        <TableHead className="text-right">Qty</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {uncertifiedLogs.map((log) => {
+                                        const boqItem = project.boq.find(b => b.id === log.boqItemId);
+                                        return (
+                                            <TableRow key={log.id} className="group">
+                                                <TableCell>
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={selectedLogs.includes(log.id)}
+                                                        onChange={() => setSelectedLogs(prev => 
+                                                            prev.includes(log.id) ? prev.filter(id => id !== log.id) : [...prev, log.id]
+                                                        )}
+                                                        className="rounded border-gray-300"
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="text-xs font-bold">{log.structureName}</div>
+                                                    <div className="text-[10px] text-muted-foreground">{log.componentName}</div>
+                                                </TableCell>
+                                                <TableCell className="text-xs">{log.date}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className="text-[9px] font-mono">
+                                                        {boqItem?.itemNo}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right font-black text-xs">
+                                                    {log.quantity}
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        )}
+                    </div>
+
+                    <DialogFooter className="p-6 border-t bg-muted/10">
+                        <Button variant="ghost" onClick={() => setIsAutoMBOpen(false)}>Cancel</Button>
+                        <Button 
+                            onClick={handleCreateAutoMB} 
+                            disabled={selectedLogs.length === 0}
+                            className="bg-primary text-white font-black"
+                        >
+                            Generate Measurement Sheet ({selectedLogs.length} Logs)
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

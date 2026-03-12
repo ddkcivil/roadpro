@@ -3,17 +3,14 @@ import { Loader2, Database, Mail, Info } from 'lucide-react';
 import { Project, User } from './types';
 import { LocalStorageUtils } from './utils/data/localStorageUtils';
 import { getNavigationGroups } from './config/navigation';
-import { SyncService } from './services/api/syncService';
-import { DataSyncService } from './services/database/dataSyncService';
 import { useAuth } from './hooks/useAuth';
 import { useProjects } from './hooks/useProjects';
 import { useMessages } from './hooks/useMessages';
 import { useSettings } from './hooks/useSettings';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useAppInitialization } from './hooks/useAppInitialization';
 
 import { apiService } from './services/api/apiService';
-import { sqliteService } from './services/database/sqliteService';
-import { addSkipLink } from './utils/accessibility/a11yUtils';
 
 import ErrorBoundary from './components/core/ErrorBoundary';
 import AppSidebar from './components/core/AppSidebar';
@@ -134,8 +131,9 @@ const App: React.FC = () => {
   const [systemReady, setSystemReady] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState('Booting Kernel...');
 
-  console.log('[App] State:', { isAuthenticated, isInitialLoading, systemReady, loadingStatus });
-  
+  // Initialize App with custom hook
+  useAppInitialization(setLoadingStatus, setSystemReady, setIsInitialLoading);
+
   const { 
     appSettings, 
     updateSettings 
@@ -156,6 +154,7 @@ const App: React.FC = () => {
   const {
     messages,
     sendMessage,
+    markAsRead,
     isLoading: isLoadingMessages
   } = useMessages(currentUser, currentProject?.id || 'general', isAuthenticated && systemReady);
 
@@ -178,77 +177,6 @@ const App: React.FC = () => {
       window.location.reload();
     }
   };
-
-  // Initialize service worker and accessibility on mount
-  useEffect(() => {
-    LocalStorageUtils.initializeEmptyData();
-    
-    // Initialize SQLite service
-    const initApp = async () => {
-      // Safety timeout: Ensure loading screen clears after 8 seconds even if something hangs
-      const loadingTimeout = setTimeout(() => {
-        setIsInitialLoading(false);
-        console.warn('App initialization timed out, forcing load...');
-      }, 8000);
-
-      try {
-        setLoadingStatus('Mounting Neural Grid (WASM)...');
-        await sqliteService.initialize();
-        
-        setLoadingStatus('Synchronizing Local Core...');
-        await DataSyncService.syncAllToSQLite();
-        
-        setLoadingStatus('Ready for Operation');
-        setSystemReady(true);
-      } catch (err) {
-        console.error('Failed to initialize SQLite service:', err);
-        setLoadingStatus('Initialization Error - Falling back to Legacy Storage');
-        setSystemReady(true); // Allow proceeding with fallback
-      } finally {
-        clearTimeout(loadingTimeout);
-        // Small delay to ensure smooth transition
-        setTimeout(() => setIsInitialLoading(false), 800);
-      }
-    };
-    
-    initApp();
-    
-    if ('serviceWorker' in navigator) {
-      const registerSW = async () => {
-        try {
-          if (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-            await navigator.serviceWorker.register('/sw.js');
-          }
-        } catch (error) {
-          console.error('SW registration failed: ', error);
-        }
-      };
-      
-      if (document.readyState === 'loading') {
-        window.addEventListener('load', registerSW);
-      } else {
-        registerSW();
-      }
-    }
-    
-    addSkipLink('#main-content', 'Skip to main content');
-
-    // Handle background sync when coming back online
-    const handleOnline = () => {
-      SyncService.processQueue();
-    };
-    
-    window.addEventListener('online', handleOnline);
-    
-    // Initial check on mount
-    if (navigator.onLine) {
-      SyncService.processQueue();
-    }
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-    };
-  }, []);
 
   // Theme management
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
@@ -299,32 +227,26 @@ const App: React.FC = () => {
     return <LoadingScreen onReset={handleReset} status={loadingStatus} />;
   }
 
-  // Authentication Guard
-  if (!isAuthenticated) {
-    return (
-      <I18nProvider>
-        <NotificationProvider>
-          {showRegistration ? (
-            <Suspense fallback={<div className="flex justify-center items-center h-screen bg-muted"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
-              <div className="min-h-screen bg-muted flex items-center justify-center p-4">
-                <div className="w-full max-w-4xl">
-                  <UserRegistration onBackToLogin={() => setShowRegistration(false)} />
-                </div>
-              </div>
-            </Suspense>
-          ) : (
-            <Login onLogin={login} onShowRegistration={() => setShowRegistration(true)} />
-          )}
-        </NotificationProvider>
-      </I18nProvider>
-    );
-  }
-    
-  // Project Selection Guard
-  if (isAuthenticated && (!selectedProjectId || !currentProject)) {
-    return (
-      <I18nProvider>
-        <NotificationProvider>
+  const renderContent = () => {
+    // Authentication Guard
+    if (!isAuthenticated) {
+      return showRegistration ? (
+        <Suspense fallback={<div className="flex justify-center items-center h-screen bg-muted"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+          <div className="min-h-screen bg-muted flex items-center justify-center p-4">
+            <div className="w-full max-w-4xl">
+              <UserRegistration onBackToLogin={() => setShowRegistration(false)} />
+            </div>
+          </div>
+        </Suspense>
+      ) : (
+        <Login onLogin={login} onShowRegistration={() => setShowRegistration(true)} />
+      );
+    }
+      
+    // Project Selection Guard
+    if (isAuthenticated && (!selectedProjectId || !currentProject)) {
+      return (
+        <>
           {isLoadingProjects ? (
             <ProjectsListSkeleton />
           ) : (
@@ -349,206 +271,214 @@ const App: React.FC = () => {
             onSave={(p) => { saveProject(p); setIsProjectModalOpen(false); }}
             project={editProject}
           />
-        </NotificationProvider>
-      </I18nProvider>
+        </>
+      );
+    }
+      
+    // Main Application Shell
+    return (
+      <TooltipProvider>
+        <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans antialiased text-slate-900 dark:text-slate-100 transition-colors duration-500 relative mesh-gradient">
+          
+          <AppSidebar 
+            isSidebarCollapsed={isSidebarCollapsed}
+            setIsSidebarCollapsed={(collapsed) => startTransition(() => setIsSidebarCollapsed(collapsed))}
+            sidebarOpen={sidebarOpen}
+            setSidebarOpen={(open) => startTransition(() => setSidebarOpen(open))}
+            activeTab={activeTab}
+            setActiveTab={handleTabChange}
+            navGroups={navGroups}
+            currentUser={currentUser}
+            logout={logout}
+            selectedProjectId={selectedProjectId}
+            projectName={currentProject?.name}
+          />
+
+          <div id="main-content" className="flex-1 flex flex-col min-w-0 relative lg:m-4 lg:ml-0 m-0 rounded-none lg:rounded-[2rem] glass overflow-hidden border-none shadow-2xl">
+            <AppHeader 
+              setSidebarOpen={(open) => startTransition(() => setSidebarOpen(open))}
+              isSidebarCollapsed={isSidebarCollapsed}
+              setIsSidebarCollapsed={(collapsed) => startTransition(() => setIsSidebarCollapsed(collapsed))}
+              currentProject={currentProject}
+              onProjectUpdate={handleSaveProject}
+              setSelectedProjectId={(id) => startTransition(() => setSelectedProjectId(id))}
+              themeMode={themeMode}
+              setThemeMode={setThemeMode}
+              setIsAIModalOpen={(open) => startTransition(() => setIsAIModalOpen(open))}
+              currentUser={currentUser}
+            />
+
+            <main className="flex-1 overflow-auto bg-transparent custom-scrollbar">
+              <ErrorBoundary>
+                <AnimatePresence mode="wait">
+                  <PageTransition key={activeTab}>
+                    <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin opacity-20" /></div>}>
+                      {!currentProject && !['about', 'contact', 'user-management', 'user-registration', 'settings'].includes(activeTab) ? (
+                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-40">
+                          <Database className="h-16 w-16 mb-6" />
+                          <p className="text-xl font-black tracking-tighter uppercase">Project Context Missing</p>
+                          <Button variant="ghost" className="mt-6 rounded-xl font-bold border border-border/40" onClick={() => setSelectedProjectId(null)}>Return to Portfolio</Button>
+                        </div>
+                      ) : (
+                        <div className="min-h-full">
+                          {activeTab === 'dashboard' && (
+                            <ErrorBoundary>
+                              <Suspense fallback={<DashboardSkeleton />}>
+                                <Dashboard project={currentProject!} settings={appSettings} onUpdateProject={handleSaveProject} onUpdateSettings={updateSettings} isLoading={isLoadingProjects} />
+                              </Suspense>
+                            </ErrorBoundary>
+                          )}
+                          
+                          {activeTab === 'map' && (
+                            <ErrorBoundary>
+                              <MapModule project={currentProject!} onProjectUpdate={handleSaveProject as any} settings={appSettings} />
+                            </ErrorBoundary>
+                          )}
+                          
+                          <div className="px-4 md:px-8 pb-8">
+                            {activeTab === 'about' && <AboutPage />}
+                            {activeTab === 'contact' && <ContactPage />}
+                            {activeTab === 'user-management' && (
+                              <ProtectedTab permission={Permission.USER_READ}>
+                                <UserManagement />
+                              </ProtectedTab>
+                            )}
+                            {activeTab === 'user-activity' && (
+                              <ProtectedTab permission={Permission.USER_READ}>
+                                <UserActivity />
+                              </ProtectedTab>
+                            )}
+                            {activeTab === 'user-registration' && (
+                              <ProtectedTab permission={Permission.USER_CREATE}>
+                                <UserRegistration />
+                              </ProtectedTab>
+                            )}
+                            {activeTab === 'boq' && <BOQModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                            {activeTab === 'billing' && <BillingModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                            {activeTab === 'variations' && <VariationModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                            {activeTab === 'financials' && <FinancialManagementHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={handleSaveProject as any} />}
+                            {activeTab === 'ocr-extraction' && <ChandraOCRAnalyzer />}
+                            {activeTab === 'agencies' && <AgencyModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} settings={appSettings} />}
+                            {activeTab === 'subcontractors' && <SubcontractorModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                            {activeTab === 'subcontractor-billing' && <SubcontractorBillingModule project={currentProject!} settings={appSettings} onProjectUpdate={handleSaveProject as any} />}
+                            {activeTab === 'schedule' && <ScheduleModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
+                            {activeTab === 'construction' && <ConstructionModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
+                            {activeTab === 'linear-works' && <LinearWorksModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
+                            {activeTab === 'site-photos' && <SitePhotosModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
+                            {activeTab === 'daily-reports' && <DailyReportModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                            {activeTab === 'pre-construction' && <PreConstructionModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
+                            {activeTab === 'reports-analytics' && <ReportsAnalyticsHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={handleSaveProject as any} />}
+                            {activeTab === 'mpr-report' && <MPRReportModule project={currentProject!} settings={appSettings} />}
+                            {activeTab === 'rfis' && <RFIModule project={currentProject!} userRole={userRole} currentUser={currentUser} onProjectUpdate={handleSaveProject as any} />}
+                            {activeTab === 'materials-hub' && <MaterialManagementModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                            {activeTab === 'assets' && <AssetsModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
+                            {activeTab === 'fleet' && <FleetModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
+                            {activeTab === 'resource-matrix' && <ResourceMatrixModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
+                            {activeTab === 'quality' && <QualityHub project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                            {activeTab === 'lab' && <LabModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                            {activeTab === 'environment' && <EnvironmentModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
+                            {activeTab === 'data-analysis' && <DataAnalysisModule />}
+                            {activeTab === 'messages' && (
+                              <MessagesModule 
+                                currentUser={currentUser}
+                                users={users}
+                                messages={messages}
+                                projectId={selectedProjectId || currentProject?.id || ''}
+                                onSendMessage={sendMessage}
+                                onMarkRead={markAsRead}
+                                isLoading={isLoadingMessages}
+                              />
+                            )}
+                            {activeTab === 'documents' && (
+                              <DocumentationHub 
+                                project={currentProject!} 
+                                onProjectUpdate={handleSaveProject as any} 
+                                userRole={userRole} 
+                                onNavigate={handleTabChange}
+                              />
+                            )}
+                            {activeTab === 'settings' && <SettingsModule settings={appSettings} onUpdate={updateSettings} />}
+                            {activeTab === 'staff-management' && <StaffManagementModule />}
+                          </div>
+                        </div>
+                      )}
+                    </Suspense>
+                  </PageTransition>
+                </AnimatePresence>
+              </ErrorBoundary>
+            </main>
+          </div>
+
+          {isAIModalOpen && currentProject && (
+            <AIChatModal project={currentProject} onClose={() => startTransition(() => setIsAIModalOpen(false))} />
+          )}
+          
+          <ProjectModal 
+            open={isProjectModalOpen} 
+            onClose={() => startTransition(() => setIsProjectModalOpen(false))} 
+            onSave={(p) => { handleSaveProject(p); startTransition(() => setIsProjectModalOpen(false)); }}
+            project={editProject}
+          />
+          
+          <GlobalSearch 
+            projects={projects}
+            currentProject={currentProject}
+            onSelectProject={(id) => setSelectedProjectId(id)}
+            onNavigate={handleTabChange}
+          />
+
+          {/* Floating Info Buttons */}
+          <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={() => handleTabChange('about')}
+                    className="w-12 h-12 rounded-full shadow-2xl bg-indigo-600 hover:bg-indigo-700 text-white p-0 flex items-center justify-center border-2 border-white/20 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150"
+                  >
+                    <Info className="h-6 w-6" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left" className="font-bold">About RoadMaster</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={() => handleTabChange('contact')}
+                    className="w-12 h-12 rounded-full shadow-2xl bg-emerald-600 hover:bg-emerald-700 text-white p-0 flex items-center justify-center border-2 border-white/20 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-500"
+                  >
+                    <Mail className="h-6 w-6" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left" className="font-bold">Contact Support</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+        <Toaster 
+          position="bottom-right" 
+          richColors 
+          closeButton
+          theme={themeMode}
+          toastOptions={{
+            className: 'rounded-2xl border-border/50 glass shadow-2xl',
+            classNames: {
+              title: 'font-black tracking-tight',
+              description: 'text-xs opacity-70 font-medium',
+            }
+          }}
+        />
+      </TooltipProvider>
     );
-  }
-    
-  // Main Application Shell
+  };
+
   return (
     <I18nProvider>
       <NotificationProvider>
-        <TooltipProvider>
-          <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans antialiased text-slate-900 dark:text-slate-100 transition-colors duration-500 relative mesh-gradient">
-            
-            <AppSidebar 
-              isSidebarCollapsed={isSidebarCollapsed}
-              setIsSidebarCollapsed={(collapsed) => startTransition(() => setIsSidebarCollapsed(collapsed))}
-              sidebarOpen={sidebarOpen}
-              setSidebarOpen={(open) => startTransition(() => setSidebarOpen(open))}
-              activeTab={activeTab}
-              setActiveTab={handleTabChange}
-              navGroups={navGroups}
-              currentUser={currentUser}
-              logout={logout}
-              selectedProjectId={selectedProjectId}
-              projectName={currentProject?.name}
-            />
-
-            <div id="main-content" className="flex-1 flex flex-col min-w-0 relative lg:m-4 lg:ml-0 m-0 rounded-none lg:rounded-[2rem] glass overflow-hidden border-none shadow-2xl">
-              <AppHeader 
-                setSidebarOpen={(open) => startTransition(() => setSidebarOpen(open))}
-                isSidebarCollapsed={isSidebarCollapsed}
-                setIsSidebarCollapsed={(collapsed) => startTransition(() => setIsSidebarCollapsed(collapsed))}
-                currentProject={currentProject}
-                setSelectedProjectId={(id) => startTransition(() => setSelectedProjectId(id))}
-                themeMode={themeMode}
-                setThemeMode={setThemeMode}
-                setIsAIModalOpen={(open) => startTransition(() => setIsAIModalOpen(open))}
-                currentUser={currentUser}
-              />
-
-              <main className="flex-1 overflow-auto bg-transparent custom-scrollbar">
-                <ErrorBoundary>
-                  <AnimatePresence mode="wait">
-                    <PageTransition key={activeTab}>
-                      <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin opacity-20" /></div>}>
-                        {!currentProject && !['about', 'contact', 'user-management', 'user-registration', 'settings'].includes(activeTab) ? (
-                          <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-40">
-                            <Database className="h-16 w-16 mb-6" />
-                            <p className="text-xl font-black tracking-tighter uppercase">Project Context Missing</p>
-                            <Button variant="ghost" className="mt-6 rounded-xl font-bold border border-border/40" onClick={() => setSelectedProjectId(null)}>Return to Portfolio</Button>
-                          </div>
-                        ) : (
-                          <div className="min-h-full">
-                            {activeTab === 'dashboard' && (
-                              <ErrorBoundary>
-                                <Suspense fallback={<DashboardSkeleton />}>
-                                  <Dashboard project={currentProject!} settings={appSettings} onUpdateProject={handleSaveProject} onUpdateSettings={updateSettings} isLoading={isLoadingProjects} />
-                                </Suspense>
-                              </ErrorBoundary>
-                            )}
-                            
-                            {activeTab === 'map' && (
-                              <ErrorBoundary>
-                                <MapModule project={currentProject!} onProjectUpdate={handleSaveProject as any} settings={appSettings} />
-                              </ErrorBoundary>
-                            )}
-                            
-                            <div className="px-4 md:px-8 pb-8">
-                              {activeTab === 'about' && <AboutPage />}
-                              {activeTab === 'contact' && <ContactPage />}
-                              {activeTab === 'user-management' && (
-                                <ProtectedTab permission={Permission.USER_READ}>
-                                  <UserManagement />
-                                </ProtectedTab>
-                              )}
-                              {activeTab === 'user-activity' && (
-                                <ProtectedTab permission={Permission.USER_READ}>
-                                  <UserActivity />
-                                </ProtectedTab>
-                              )}
-                              {activeTab === 'user-registration' && (
-                                <ProtectedTab permission={Permission.USER_CREATE}>
-                                  <UserRegistration />
-                                </ProtectedTab>
-                              )}
-                              {activeTab === 'boq' && <BOQModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
-                              {activeTab === 'billing' && <BillingModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
-                              {activeTab === 'variations' && <VariationModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
-                              {activeTab === 'financials' && <FinancialManagementHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={handleSaveProject as any} />}
-                              {activeTab === 'ocr-extraction' && <ChandraOCRAnalyzer />}
-                              {activeTab === 'agencies' && <AgencyModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} settings={appSettings} />}
-                              {activeTab === 'subcontractors' && <SubcontractorModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
-                              {activeTab === 'subcontractor-billing' && <SubcontractorBillingModule project={currentProject!} settings={appSettings} onProjectUpdate={handleSaveProject as any} />}
-                              {activeTab === 'schedule' && <ScheduleModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
-                              {activeTab === 'construction' && <ConstructionModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
-                              {activeTab === 'linear-works' && <LinearWorksModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
-                              {activeTab === 'site-photos' && <SitePhotosModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
-                              {activeTab === 'daily-reports' && <DailyReportModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
-                              {activeTab === 'pre-construction' && <PreConstructionModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
-                              {activeTab === 'reports-analytics' && <ReportsAnalyticsHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={handleSaveProject as any} />}
-                              {activeTab === 'mpr-report' && <MPRReportModule project={currentProject!} settings={appSettings} />}
-                              {activeTab === 'rfis' && <RFIModule project={currentProject!} userRole={userRole} currentUser={currentUser} onProjectUpdate={handleSaveProject as any} />}
-                              {activeTab === 'materials-hub' && <MaterialManagementModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
-                              {activeTab === 'assets' && <AssetsModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
-                              {activeTab === 'fleet' && <FleetModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
-                              {activeTab === 'resource-matrix' && <ResourceMatrixModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
-                              {activeTab === 'quality' && <QualityHub project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
-                              {activeTab === 'lab' && <LabModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
-                              {activeTab === 'environment' && <EnvironmentModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
-                              {activeTab === 'data-analysis' && <DataAnalysisModule />}
-                              {activeTab === 'messages' && (
-                                <MessagesModule 
-                                  currentUser={currentUser}
-                                  users={users}
-                                  messages={messages}
-                                  projectId={selectedProjectId || currentProject?.id || ''}
-                                  onSendMessage={sendMessage}
-                                  isLoading={isLoadingMessages}
-                                />
-                              )}
-                              {activeTab === 'documents' && (
-                                <DocumentationHub 
-                                  project={currentProject!} 
-                                  onProjectUpdate={handleSaveProject as any} 
-                                  userRole={userRole} 
-                                  onNavigate={handleTabChange}
-                                />
-                              )}
-                              {activeTab === 'settings' && <SettingsModule settings={appSettings} onUpdate={updateSettings} />}
-                              {activeTab === 'staff-management' && <StaffManagementModule />}
-                            </div>
-                          </div>
-                        )}
-                      </Suspense>
-                    </PageTransition>
-                  </AnimatePresence>
-                </ErrorBoundary>
-              </main>
-            </div>
-
-            {isAIModalOpen && currentProject && (
-              <AIChatModal project={currentProject} onClose={() => startTransition(() => setIsAIModalOpen(false))} />
-            )}
-            
-            <ProjectModal 
-              open={isProjectModalOpen} 
-              onClose={() => startTransition(() => setIsProjectModalOpen(false))} 
-              onSave={(p) => { handleSaveProject(p); startTransition(() => setIsProjectModalOpen(false)); }}
-              project={editProject}
-            />
-            
-            <GlobalSearch 
-              projects={projects}
-              currentProject={currentProject}
-              onSelectProject={(id) => setSelectedProjectId(id)}
-              onNavigate={handleTabChange}
-            />
-
-            {/* Floating Info Buttons */}
-            <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      onClick={() => handleTabChange('about')}
-                      className="w-12 h-12 rounded-full shadow-2xl bg-indigo-600 hover:bg-indigo-700 text-white p-0 flex items-center justify-center border-2 border-white/20 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150"
-                    >
-                      <Info className="h-6 w-6" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left" className="font-bold">About RoadMaster</TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      onClick={() => handleTabChange('contact')}
-                      className="w-12 h-12 rounded-full shadow-2xl bg-emerald-600 hover:bg-emerald-700 text-white p-0 flex items-center justify-center border-2 border-white/20 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-500"
-                    >
-                      <Mail className="h-6 w-6" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left" className="font-bold">Contact Support</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </div>
-          <Toaster 
-            position="bottom-right" 
-            richColors 
-            closeButton
-            theme={themeMode}
-            toastOptions={{
-              className: 'rounded-2xl border-border/50 glass shadow-2xl',
-              classNames: {
-                title: 'font-black tracking-tight',
-                description: 'text-xs opacity-70 font-medium',
-              }
-            }}
-          />
-        </TooltipProvider>
+        <ErrorBoundary>
+          {renderContent()}
+        </ErrorBoundary>
       </NotificationProvider>
     </I18nProvider>
   );

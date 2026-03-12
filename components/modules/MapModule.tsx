@@ -384,7 +384,8 @@ const LinearReferenceView: React.FC<{ info: { lineName: string, chainage: string
   return (
     <div className="mt-2 pt-2 border-t border-indigo-100">
       <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest mb-1 flex items-center gap-1">
-        <Route size={10} /> Linear Monitoring (GIS)
+        <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
+        Linear Monitoring (GIS)
       </p>
       <div className="bg-indigo-50/50 rounded p-1.5 border border-indigo-100/50">
         <p className="text-[10px] flex justify-between">
@@ -404,14 +405,60 @@ const LinearReferenceView: React.FC<{ info: { lineName: string, chainage: string
   );
 };
 
+/**
+ * Custom hook to simulate real-time GPS movement for demo purposes.
+ * In production, this would be replaced with a WebSocket listener.
+ */
+const useLiveTracking = (initialVehicles: Vehicle[] = [], initialStaff: StaffLocation[] = [], active: boolean) => {
+  const [liveVehicles, setLiveVehicles] = useState<Vehicle[]>(initialVehicles);
+  const [liveStaff, setLiveStaff] = useState<StaffLocation[]>(initialStaff);
+
+  useEffect(() => {
+    if (!active) {
+      setLiveVehicles(initialVehicles);
+      setLiveStaff(initialStaff);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      // Simulate slight movement for vehicles
+      setLiveVehicles(prev => prev.map(v => ({
+        ...v,
+        gpsLocation: v.gpsLocation ? {
+          ...v.gpsLocation,
+          latitude: v.gpsLocation.latitude + (Math.random() - 0.5) * 0.0005,
+          longitude: v.gpsLocation.longitude + (Math.random() - 0.5) * 0.0005,
+          speed: Math.floor(Math.random() * 40) + 10
+        } : undefined
+      })));
+
+      // Simulate slight movement for staff
+      setLiveStaff(prev => prev.map(s => ({
+        ...s,
+        latitude: s.latitude + (Math.random() - 0.5) * 0.0002,
+        longitude: s.longitude + (Math.random() - 0.5) * 0.0002,
+        timestamp: Date.now()
+      })));
+    }, 3000); // Update every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [active, initialVehicles, initialStaff]);
+
+  return { liveVehicles, liveStaff };
+};
+
 const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, settings }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isRulerActive, setIsRulerActive] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isLiveMode, setIsLiveMode] = useState(false);
   const [targetBounds, setTargetBounds] = useState<L.LatLngBounds | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  
+  // Real-time tracking simulation
+  const { liveVehicles, liveStaff } = useLiveTracking(project.vehicles, project.staffLocations, isLiveMode);
   
   // States for non-blocking delete confirmation
   const [isDeletingKML, setIsDeletingKML] = useState(false);
@@ -594,6 +641,19 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
     return project.mapOverlays.find(o => o.type === 'Alignment' && o.visible) || 
            project.mapOverlays.find(o => o.type === 'Alignment');
   }, [project.mapOverlays]);
+
+  // Calculate total length of the alignment alignment for statistics
+  const totalAlignmentLength = useMemo(() => {
+    if (!alignmentOverlay || alignmentOverlay.coordinates.length < 2) return 0;
+    
+    let total = 0;
+    for (let i = 0; i < alignmentOverlay.coordinates.length - 1; i++) {
+      const p1 = L.latLng(alignmentOverlay.coordinates[i].lat, alignmentOverlay.coordinates[i].lng);
+      const p2 = L.latLng(alignmentOverlay.coordinates[i+1].lat, alignmentOverlay.coordinates[i+1].lng);
+      total += p1.distanceTo(p2);
+    }
+    return total / 1000; // Convert to km
+  }, [alignmentOverlay]);
 
   /**
    * Helper to map a chainage range (start and end km) to geographic coordinates

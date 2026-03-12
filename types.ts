@@ -97,6 +97,12 @@ export interface User {
   avatar?: string;
 }
 
+export interface TokenPayload {
+  userId: string;
+  email: string;
+  role: string;
+}
+
 export interface BaseRFI {
   id: string;
   rfiNumber: string;
@@ -270,6 +276,13 @@ export interface InventoryTransaction {
 
 export interface Vehicle {
   id: string;
+  name?: string;
+  description?: string;
+  category?: string;
+  unit?: string;
+  quantity?: number;
+  location?: string;
+  lastUpdated?: string;
   plateNumber: string;
   type: string;
   status: 'Active' | 'Maintenance' | 'Idle';
@@ -1253,38 +1266,6 @@ export interface Material {
   supplierName?: string;
   supplierRate?: number;
   rateHistory?: MaterialRateEntry[];
-}
-
-// Unified Vehicle/Equipment type
-export interface Vehicle {
-  id: string;
-  name: string;
-  description?: string;
-  category?: string;
-  unit: string;
-  quantity: number;
-  location: string;
-  lastUpdated: string;
-  plateNumber: string;
-  type: string;
-  status: 'Active' | 'Maintenance' | 'Idle';
-  driver: string;
-  agencyId?: string;
-  chainage?: string;
-  geofenceStatus?: 'Inside' | 'Outside';
-  gpsLocation?: {
-    latitude: number;
-    longitude: number;
-    timestamp: string;
-    accuracy?: number;
-    speed?: number;
-    heading?: number;
-  };
-  lastKnownLocation?: {
-    latitude: number;
-    longitude: number;
-    timestamp: string;
-  };
 }
 
 // Unified Inventory type

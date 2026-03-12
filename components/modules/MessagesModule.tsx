@@ -22,17 +22,31 @@ interface Props {
   messages: Message[];
   projectId: string;
   onSendMessage: (text: string, receiverId: string, projectId: string, attachment?: { url: string, name: string, type: string }) => void;
+  onMarkRead?: (messageId: string) => void;
   isLoading?: boolean;
 }
 
-const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [], projectId, onSendMessage, isLoading = false }) => {
+const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [], projectId, onSendMessage, onMarkRead, isLoading = false }) => {
   const [activeChatId, setActiveChatId] = useState<string>('general');
   const [inputText, setInputText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [attachedFile, setAttachedFile] = useState<{ file: File, preview: string } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const listRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Mark unread messages as read when active chat changes
+  useEffect(() => {
+    if (onMarkRead && activeChatId && currentUser) {
+      const unread = messages.filter(m => 
+        m.receiverId === currentUser.id && 
+        m.senderId === activeChatId && 
+        !m.read
+      );
+      unread.forEach(m => onMarkRead(m.id));
+    }
+  }, [activeChatId, messages, currentUser, onMarkRead]);
 
   // Helper to get user details
   const getUser = useCallback((id: string) => (users || []).find(u => u.id === id), [users]);
@@ -48,17 +62,35 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
     );
   }, [messages, activeChatId, projectId, currentUser]);
 
-  useEffect(() => {
+  const scrollToBottom = useCallback(() => {
     if (listRef.current && activeMessages.length > 0) {
       listRef.current.scrollToItem(activeMessages.length - 1, 'end');
     }
   }, [activeMessages.length]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [scrollToBottom]);
+
+  const onScroll = ({ scrollOffset, scrollDirection, scrollUpdateWasRequested }: any) => {
+    // Basic logic to show jump to bottom button if we scroll up
+    if (scrollDirection === 'backward' && scrollOffset > 100) {
+      setShowScrollButton(true);
+    } else if (scrollDirection === 'forward') {
+      // Approximate logic for bottom check
+      setShowScrollButton(false);
+    }
+  };
 
   const MessageRow = ({ index, style }: { index: number, style: React.CSSProperties }) => {
     const msg = activeMessages[index];
     const isMe = msg.senderId === currentUser?.id;
     const sender = getUser(msg.senderId);
     const showHeader = index === 0 || activeMessages[index-1].senderId !== msg.senderId;
+    
+    // Date separator logic
+    const prevMsg = index > 0 ? activeMessages[index-1] : null;
+    const isNewDay = !prevMsg || new Date(msg.timestamp).toDateString() !== new Date(prevMsg.timestamp).toDateString();
 
     const renderAttachment = () => {
         if (!msg.attachmentUrl) return null;
@@ -107,6 +139,15 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
         style={style} 
         className="px-6 py-1"
       >
+        {isNewDay && (
+            <div className="flex items-center justify-center my-4">
+                <div className="h-[1px] flex-1 bg-border" />
+                <span className="px-3 py-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground bg-muted/50 rounded-full border">
+                    {new Date(msg.timestamp).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                </span>
+                <div className="h-[1px] flex-1 bg-border" />
+            </div>
+        )}
         <div className={cn("flex", isMe ? 'justify-end' : 'justify-start')}>
             <div className={cn("flex max-w-[85%] gap-2", isMe ? 'flex-row-reverse' : 'flex-row')}>
                 {!isMe && (
@@ -380,7 +421,7 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
              </div>
 
              {/* Messages */}
-             <div className="flex-1 min-h-0 bg-slate-50/50">
+             <div className="flex-1 min-h-0 bg-slate-50/50 relative">
                  {activeMessages.length === 0 ? (
                      <div className="flex flex-col items-center justify-center h-full opacity-60">
                          {isLoading ? (
@@ -397,20 +438,33 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                          )}
                      </div>
                  ) : (
-                     <AutoSizer>
-                        {({ height, width }) => (
-                          <List
-                            ref={listRef}
-                            height={height}
-                            width={width}
-                            itemCount={activeMessages.length}
-                            itemSize={80} 
-                            className="scrollbar-hide py-4"
-                          >
-                            {MessageRow}
-                          </List>
+                     <>
+                        <AutoSizer>
+                            {({ height, width }) => (
+                            <List
+                                ref={listRef}
+                                height={height}
+                                width={width}
+                                itemCount={activeMessages.length}
+                                itemSize={80} 
+                                className="scrollbar-hide py-4"
+                                onScroll={onScroll}
+                            >
+                                {MessageRow}
+                            </List>
+                            )}
+                        </AutoSizer>
+                        {showScrollButton && (
+                            <Button 
+                                size="sm" 
+                                variant="secondary" 
+                                onClick={scrollToBottom}
+                                className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full shadow-lg border animate-in fade-in zoom-in duration-300"
+                            >
+                                Jump to latest
+                            </Button>
                         )}
-                     </AutoSizer>
+                     </>
                  )}
              </div>
 

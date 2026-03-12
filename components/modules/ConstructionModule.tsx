@@ -43,6 +43,119 @@ interface Props {
   onProjectUpdate: (project: Project) => void;
 }
 
+import { 
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
+    ResponsiveContainer, PieChart, Pie, Cell, Legend
+} from 'recharts';
+
+const WorkLogTimeline: React.FC<{ structure: StructureAsset }> = ({ structure }) => {
+... (existing WorkLogTimeline code) ...
+};
+
+const StructuralAnalytics: React.FC<{ structures: StructureAsset[] }> = ({ structures }) => {
+  const typeDistribution = useMemo(() => {
+    const counts: Record<string, number> = {};
+    structures.forEach(s => {
+      counts[s.type] = (counts[s.type] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [structures]);
+
+  const progressData = useMemo(() => {
+    return structures.map(s => {
+      if (!s.components || !s.components.length) return { name: s.name, progress: 0 };
+      const totalDone = s.components.reduce((acc, c) => acc + (c.completedQuantity || 0), 0);
+      const totalTarget = s.components.reduce((acc, c) => acc + (c.totalQuantity || 0), 0);
+      return {
+        name: s.name.length > 15 ? s.name.substring(0, 12) + '...' : s.name,
+        progress: totalTarget > 0 ? Math.round((totalDone / totalTarget) * 100) : 0
+      };
+    }).sort((a, b) => b.progress - a.progress).slice(0, 10);
+  }, [structures]);
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+
+  const stats = useMemo(() => {
+    const total = structures.length;
+    const completed = structures.filter(s => s.status === 'Completed').length;
+    const inProgress = structures.filter(s => s.status === 'In Progress').length;
+    return { total, completed, inProgress };
+  }, [structures]);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <Card className="lg:col-span-1">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Overall Status</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4">
+             <div className="flex justify-between items-end">
+                <span className="text-3xl font-black">{stats.total}</span>
+                <span className="text-xs font-bold text-muted-foreground">Total Assets</span>
+             </div>
+             <div className="space-y-2">
+                <div className="flex justify-between text-xs font-bold uppercase">
+                  <span>Completed</span>
+                  <span className="text-emerald-500">{stats.completed}</span>
+                </div>
+                <Progress value={(stats.completed / (stats.total || 1)) * 100} className="h-1 bg-emerald-100" />
+                <div className="flex justify-between text-xs font-bold uppercase">
+                  <span>In Progress</span>
+                  <span className="text-amber-500">{stats.inProgress}</span>
+                </div>
+                <Progress value={(stats.inProgress / (stats.total || 1)) * 100} className="h-1 bg-amber-100" />
+             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="lg:col-span-1">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Type Distribution</CardTitle>
+        </CardHeader>
+        <CardContent className="h-[180px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={typeDistribution}
+                cx="50%"
+                cy="50%"
+                innerRadius={40}
+                outerRadius={60}
+                paddingAngle={5}
+                dataKey="value"
+              >
+                {typeDistribution.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <RechartsTooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      <Card className="lg:col-span-2">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Top Asset Progress (%)</CardTitle>
+        </CardHeader>
+        <CardContent className="h-[180px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={progressData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
+              <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
+              <YAxis hide domain={[0, 100]} />
+              <RechartsTooltip />
+              <Bar dataKey="progress" fill="#4f46e5" radius={[4, 4, 0, 0]} barSize={20} />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
 const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
   const [, startTransition] = useTransition();
   const [viewMode, setViewMode] = useState<'LIST' | 'CREATE' | 'DETAIL' | 'EDIT'>('LIST');
@@ -459,6 +572,20 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                 </div>
                             </CardContent>
                         </Card>
+
+                        <div className="md:col-span-3 mt-4">
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <History className="h-5 w-5 text-primary" />
+                                Construction Timeline
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="max-h-[500px] overflow-y-auto px-6 py-8">
+                              <WorkLogTimeline structure={selectedStructure} />
+                            </CardContent>
+                          </Card>
+                        </div>
                     </div>
                   </TabsContent>
                   <TabsContent value="quality" className="p-4">
@@ -502,24 +629,37 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
           </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {structures.map(str => {
-              const prog = calculateOverallProgress(str);
-              return (
-                  <Card key={str.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => { setDetailStructureId(str.id); setViewMode('DETAIL'); }}>
-                      <CardContent className="p-4">
-                          <div className="flex justify-between items-start mb-2">
-                              <Badge variant="secondary">{str.type}</Badge>
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground"><MapPin size={12}/> {str.location}</div>
-                          </div>
-                          <h3 className="text-lg font-bold mb-3">{str.name}</h3>
-                          <Progress value={prog} className="h-2 mb-1" />
-                          <p className="text-xs text-right font-bold text-primary">{prog}%</p>
-                      </CardContent>
-                  </Card>
-              );
-          })}
-      </div>
+      <Tabs defaultValue="list" className="w-full">
+        <TabsList className="mb-6">
+          <TabsTrigger value="list">Asset Registry</TabsTrigger>
+          <TabsTrigger value="analytics">Progress Analytics</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="list">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {structures.map(str => {
+                  const prog = calculateOverallProgress(str);
+                  return (
+                      <Card key={str.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => { setDetailStructureId(str.id); setViewMode('DETAIL'); }}>
+                          <CardContent className="p-4">
+                              <div className="flex justify-between items-start mb-2">
+                                  <Badge variant="secondary">{str.type}</Badge>
+                                  <div className="flex items-center gap-1 text-xs text-muted-foreground"><MapPin size={12}/> {str.location}</div>
+                              </div>
+                              <h3 className="text-lg font-bold mb-3">{str.name}</h3>
+                              <Progress value={prog} className="h-2 mb-1" />
+                              <p className="text-xs text-right font-bold text-primary">{prog}%</p>
+                          </CardContent>
+                      </Card>
+                  );
+              })}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="analytics">
+          <StructuralAnalytics structures={structures} />
+        </TabsContent>
+      </Tabs>
 
       {/* Modals */}
       <Dialog open={isLogWorkOpen} onOpenChange={setIsLogWorkOpen}>

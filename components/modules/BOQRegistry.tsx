@@ -32,7 +32,7 @@ interface BOQManagerProps {
   compactView?: boolean;
 }
 
-const BOQManager: React.FC<BOQManagerProps> = ({ 
+const BOQRegistry: React.FC<BOQManagerProps> = ({ 
   project, 
   settings, 
   userRole, 
@@ -411,4 +411,4 @@ const BOQManager: React.FC<BOQManagerProps> = ({
   );
 };
 
-export default BOQManager;
+export default BOQRegistry;
