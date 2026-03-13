@@ -15,6 +15,7 @@ import { Card, CardContent } from '~/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
+import { Checkbox } from '~/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import {
   Table,
@@ -565,8 +566,14 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                 <DialogContent className="sm:max-w-xl">
                     <DialogHeader><DialogTitle>Initialize Variation</DialogTitle></DialogHeader>
                     <div className="grid gap-4 py-4">
-                        <Input placeholder="VO Title" value={newVO.title || ''} onChange={e => setNewVO({...newVO, title: e.target.value})} />
-                        <Textarea placeholder="Reason" value={newVO.reason || ''} onChange={e => setNewVO({...newVO, reason: e.target.value})} />
+                        <div className="space-y-2">
+                            <Label htmlFor="vo-title">VO Title</Label>
+                            <Input id="vo-title" placeholder="VO Title" value={newVO.title || ''} onChange={e => setNewVO({...newVO, title: e.target.value})} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="vo-reason">Reason</Label>
+                            <Textarea id="vo-reason" placeholder="Reason" value={newVO.reason || ''} onChange={e => setNewVO({...newVO, reason: e.target.value})} />
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button onClick={handleSaveVO}>Save Variation</Button>
@@ -578,7 +585,10 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                 <DialogContent>
                     <DialogHeader><DialogTitle>Import BOQ</DialogTitle></DialogHeader>
                     <div className="grid gap-4 py-4">
-                        <Input type="file" accept=".xlsx,.xls,.csv" onChange={handleFileChange} />
+                        <div className="space-y-2">
+                            <Label htmlFor="import-boq-file">Select Excel/CSV File</Label>
+                            <Input id="import-boq-file" type="file" accept=".xlsx,.xls,.csv" onChange={handleFileChange} />
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button onClick={handleImportSubmit} disabled={!importFile}>Import</Button>
@@ -610,12 +620,16 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                                 <TableHeader>
                                     <TableRow className="bg-muted/50">
                                         <TableHead className="w-[50px]">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={selectedLogs.length === uncertifiedLogs.length}
-                                                onChange={(e) => setSelectedLogs(e.target.checked ? uncertifiedLogs.map(l => l.id) : [])}
-                                                className="rounded border-gray-300"
-                                            />
+                                            <div className="flex items-center">
+                                                <Checkbox 
+                                                    id="select-all-logs"
+                                                    checked={selectedLogs.length === uncertifiedLogs.length}
+                                                    onCheckedChange={(checked) => setSelectedLogs(checked ? uncertifiedLogs.map(l => l.id) : [])}
+                                                    aria-label="Select all logs"
+                                                    title="Select all logs"
+                                                />
+                                                <Label htmlFor="select-all-logs" className="sr-only">Select all logs</Label>
+                                            </div>
                                         </TableHead>
                                         <TableHead>Asset / Component</TableHead>
                                         <TableHead>Date</TableHead>
@@ -629,14 +643,20 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                                         return (
                                             <TableRow key={log.id} className="group">
                                                 <TableCell>
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={selectedLogs.includes(log.id)}
-                                                        onChange={() => setSelectedLogs(prev => 
-                                                            prev.includes(log.id) ? prev.filter(id => id !== log.id) : [...prev, log.id]
-                                                        )}
-                                                        className="rounded border-gray-300"
-                                                    />
+                                                    <div className="flex items-center">
+                                                        <Checkbox 
+                                                            id={`select-log-${log.id}`}
+                                                            checked={selectedLogs.includes(log.id)}
+                                                            onCheckedChange={(checked) => setSelectedLogs(prev => 
+                                                                checked ? [...prev, log.id] : prev.filter(id => id !== log.id)
+                                                            )}
+                                                            aria-label={`Select log for ${log.structureName} ${log.componentName}`}
+                                                            title={`Select log for ${log.structureName} ${log.componentName}`}
+                                                        />
+                                                        <Label htmlFor={`select-log-${log.id}`} className="sr-only">
+                                                            Select log for {log.structureName} {log.componentName}
+                                                        </Label>
+                                                    </div>
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="text-xs font-bold">{log.structureName}</div>

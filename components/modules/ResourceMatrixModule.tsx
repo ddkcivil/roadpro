@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card } from '~/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Select as ShadcnSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
-import { Table as ShadcnTable, TableBody as ShadcnTableBody, TableCell as ShadcnTableCell, TableHead as ShadcnTableHead, TableHeader as ShadcnTableHeader, TableRow as ShadcnTableRow } from '~/components/ui/table';
-import { Tabs as ShadcnTabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
+import { Table as ShadcnTable, TableBody as ShadcnTableBody, TableCell as ShadcnTableCell, TableHeader as ShadcnTableHeader, TableRow as ShadcnTableRow } from '~/components/ui/table';
+import { Tabs as ShadcnTabs, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Alert as ShadcnAlert, AlertDescription } from '~/components/ui/alert';
 import { Badge } from '~/components/ui/badge';
 import { Textarea } from '~/components/ui/textarea';
-import { Plus, X, Calendar, Package, Users, Wrench, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Plus, Package, Users, Wrench } from 'lucide-react';
 
 interface ResourceMatrixModuleProps {
   project: any;
@@ -23,7 +23,6 @@ const ResourceMatrixModule: React.FC<ResourceMatrixModuleProps> = ({ project, on
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingResource, setEditingResource] = useState<any>({});
   const [activeTab, setActiveTab] = useState(0);
-  const [allocationTab, setAllocationTab] = useState(0);
   const [allocationForm, setAllocationForm] = useState({
     resourceId: '',
     allocatedTo: '',
@@ -144,27 +143,6 @@ const ResourceMatrixModule: React.FC<ResourceMatrixModuleProps> = ({ project, on
       endDate: '',
       notes: ''
     });
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Available': return 'success';
-      case 'Allocated': return 'warning';
-      case 'In Transit': return 'info';
-      case 'Reserved': return 'secondary';
-      case 'Critical': return 'error';
-      default: return 'default';
-    }
-  };
-
-  const getCriticalityColor = (criticality: string) => {
-    switch (criticality) {
-      case 'High': return 'error';
-      case 'Medium': return 'warning';
-      case 'Low': return 'success';
-      case 'Critical': return 'error';
-      default: return 'default';
-    }
   };
 
   const getResourceIcon = (type: string) => {

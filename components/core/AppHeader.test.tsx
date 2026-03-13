@@ -37,6 +37,7 @@ describe('AppHeader', () => {
       schedule: [],
       rfis: [],
     } as any,
+    onProjectUpdate: vi.fn(),
     setSelectedProjectId: vi.fn(),
     themeMode: 'light' as const,
     setThemeMode: vi.fn(),

@@ -225,6 +225,11 @@ export interface StructureWorkLog {
   rfiId?: string;
   boqItemId?: string;
   labTestId?: string;
+  materials?: {
+    materialId: string;
+    quantity: number;
+    unit: string;
+  }[];
 }
 
 export interface StructureAsset {
@@ -555,6 +560,7 @@ export interface KMLData {
   content: string;
   timestamp: number;
   visible: boolean;
+  color?: string;
 }
 
 export interface LinearWorkLog {
@@ -657,7 +663,7 @@ export interface StaffLocation {
   role: string;
   latitude: number;
   longitude: number;
-  status: 'Active' | 'Idle' | 'Offline';
+  status: 'Active' | 'Inactive' | 'Emergency';
   timestamp: string;
 }
 

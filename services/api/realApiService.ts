@@ -2,6 +2,7 @@
 import { Project, User, Message, AppSettings, SyncOperation } from '../../types';
 import { offlineStorage } from '../database/offlineStorage';
 import { encryptionUtils } from '../../utils/data/encryptionUtils';
+import { LocalStorageUtils } from '../../utils/data/localStorageUtils';
 import { SyncService } from './syncService';
 
 const DEFAULT_TTL = 30000; // 30 seconds default

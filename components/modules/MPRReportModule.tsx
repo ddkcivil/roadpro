@@ -124,6 +124,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
   const timeProgress = calculateTimeProgress(project.startDate, project.endDate);
 
   return (
+    <>
     <div className="h-[calc(100vh-140px)] flex flex-col gap-3">
       {/* Executive Progress Header */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 px-1">
@@ -765,6 +766,8 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
           </ScrollArea>
         </ShadcnTabs>
       </div>
+      </div>
+      </div>
 
       <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
@@ -786,7 +789,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 };
 

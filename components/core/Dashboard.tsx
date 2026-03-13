@@ -112,7 +112,7 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateProj
     if (project?.boq && project.boq.length > 0) {
       const monthlyData: Record<string, { planned: number, earned: number }> = {};
       project.boq.forEach(item => {
-        const month = new Date(item.startDate || Date.now()).toLocaleString('default', { month: 'short' });
+        const month = new Date((item as any).startDate || Date.now()).toLocaleString('default', { month: 'short' });
         if (!monthlyData[month]) {
           monthlyData[month] = { planned: 0, earned: 0 };
         }

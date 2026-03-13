@@ -23,15 +23,16 @@ export function parseKML(kmlContent: string): ParsedKML {
   };
 
   try {
-    // Validate KML header
-    if (!kmlContent.includes('<?xml') || !kmlContent.includes('<kml')) {
-      console.warn('[GIS] Invalid KML: Missing XML/KML header');
+    // Validate KML header - More flexible check
+    const lowerKml = kmlContent.toLowerCase();
+    if (!lowerKml.includes('<kml')) {
+      console.warn('[GIS] Invalid KML: Missing <kml> tag');
       result.hasErrors = true;
       return result;
     }
 
     // Extract all Placemark blocks: <Placemark>....</Placemark>
-    const placemarkRegex = /<Placemark[^>]*>(.*?)<\/Placemark>/gs;
+    const placemarkRegex = /<Placemark[^>]*>(.*?)<\/Placemark>/gis;
     const placemarkMatches = kmlContent.matchAll(placemarkRegex);
     
     let placemarkIndex = 0;
@@ -40,11 +41,11 @@ export function parseKML(kmlContent: string): ParsedKML {
       placemarkIndex++;
 
       // Extract name: <name>text</name>
-      const nameMatch = placemarkContent.match(/<name[^>]*>(.*?)<\/name[^>]*>/s);
+      const nameMatch = placemarkContent.match(/<name[^>]*>(.*?)<\/name[^>]*>/si);
       const name = nameMatch ? nameMatch[1].trim() : undefined;
 
       // Extract coordinates: <coordinates>...</coordinates>
-      const coordRegex = /<coordinates[^>]*>(.*?)<\/coordinates[^>]*>/gs;
+      const coordRegex = /<coordinates[^>]*>(.*?)<\/coordinates[^>]*>/gis;
       const coordMatches = placemarkContent.matchAll(coordRegex);
 
       const points: L.LatLng[] = [];

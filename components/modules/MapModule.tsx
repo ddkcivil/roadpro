@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, startTransition } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap, LayerGroup, CircleMarker } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap, LayerGroup, CircleMarker, LayersControl } from 'react-leaflet';
+
+const { BaseLayer, Overlay } = LayersControl;
 import { parseKML, ParsedKML, getKMLBounds } from '~/utils/kmlParser';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -35,7 +37,9 @@ import {
   ChevronLeft,
   ChevronRight,
   BarChart3,
-  Trash2
+  Trash2,
+  TrendingUp,
+  Navigation
 } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import { toast } from 'sonner';
@@ -87,12 +91,13 @@ const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
 
     const markers: L.Layer[] = [];
     const geometryLayers: L.Layer[] = [];
+    const kmlColor = kml.color || '#4f46e5';
 
     try {
       parsedData.placemarks.forEach(({ name, points }) => {
         if (points.length >= 2) {
           const line = L.polyline(points, { 
-            color: '#4f46e5', 
+            color: kmlColor, 
             weight: 5, 
             opacity: 0.9,
             lineJoin: 'round'
@@ -105,7 +110,7 @@ const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
           geometryLayers.push(line);
           
           // Add chainage markers for paths
-          addChainageMarkers(map, points, kml.name, markers);
+          addChainageMarkers(map, points, kml.name, markers, kmlColor);
         } else if (points.length === 1) {
           const marker = L.marker(points[0], {
             title: name || undefined
@@ -128,7 +133,7 @@ const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
       markers.forEach(m => map.removeLayer(m));
       geometryLayers.forEach(l => map.removeLayer(l));
     };
-  }, [kml.visible, kml.name, parsedData, map]);
+  }, [kml.visible, kml.name, parsedData, map, kml.color]);
 
   return null;
 };
@@ -136,7 +141,7 @@ const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
 /**
  * Helper to add chainage markers along a path with high visibility
  */
-function addChainageMarkers(map: L.Map, points: L.LatLng[], name: string, markers: L.Layer[]) {
+function addChainageMarkers(map: L.Map, points: L.LatLng[], name: string, markers: L.Layer[], color: string = '#4f46e5') {
   if (points.length < 2) return;
 
   const prefix = name.split('.')[0];
@@ -145,7 +150,7 @@ function addChainageMarkers(map: L.Map, points: L.LatLng[], name: string, marker
   const startMarker = L.marker(points[0], { 
     icon: L.divIcon({
       className: 'custom-chainage-marker',
-      html: `<div style="background: black; color: white; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 99px; border: 2px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); white-space: nowrap;">${prefix}: 0+000</div>`,
+      html: `<div style="background: ${color}; color: white; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 99px; border: 2px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); white-space: nowrap;">${prefix}: 0+000</div>`,
       iconAnchor: [0, 12],
       iconSize: [0, 0] // Ensures Leaflet doesn't restrict the div size
     }),
@@ -177,7 +182,7 @@ function addChainageMarkers(map: L.Map, points: L.LatLng[], name: string, marker
       const marker = L.marker([lat, lng], { 
         icon: L.divIcon({
           className: 'custom-chainage-marker',
-          html: `<div style="background: white; color: #1e1b4b; font-size: 9px; font-weight: 900; padding: 1px 6px; border-radius: 4px; border: 1px solid #e0e7ff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); white-space: nowrap;">${prefix}: ${chainageKm}+${chainageM.toString().padStart(3, '0')}</div>`,
+          html: `<div style="background: white; color: ${color}; font-size: 9px; font-weight: 900; padding: 1px 6px; border-radius: 4px; border: 1px solid ${color}; box-shadow: 0 2px 4px rgba(0,0,0,0.1); white-space: nowrap;">${prefix}: ${chainageKm}+${chainageM.toString().padStart(3, '0')}</div>`,
           iconAnchor: [0, 12],
           iconSize: [0, 0]
         }),
@@ -242,6 +247,14 @@ const MapCenterUpdater: React.FC<{ center: [number, number]; zoom: number }> = (
   useEffect(() => {
     map.setView(center, zoom);
   }, [center, zoom, map]);
+  return null;
+};
+
+const MapInstanceCapturer: React.FC<{ setMap: (map: L.Map) => void }> = ({ setMap }) => {
+  const map = useMap();
+  useEffect(() => {
+    setMap(map);
+  }, [map, setMap]);
   return null;
 };
 
@@ -437,7 +450,7 @@ const useLiveTracking = (initialVehicles: Vehicle[] = [], initialStaff: StaffLoc
         ...s,
         latitude: s.latitude + (Math.random() - 0.5) * 0.0002,
         longitude: s.longitude + (Math.random() - 0.5) * 0.0002,
-        timestamp: Date.now()
+        timestamp: Date.now().toString()
       })));
     }, 3000); // Update every 3 seconds
 
@@ -453,7 +466,8 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
   const [isRulerActive, setIsRulerActive] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isLiveMode, setIsLiveMode] = useState(false);
+  const [isLiveMode, setIsLiveMode] = useState(true);
+  
   const [targetBounds, setTargetBounds] = useState<L.LatLngBounds | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
@@ -642,18 +656,7 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
            project.mapOverlays.find(o => o.type === 'Alignment');
   }, [project.mapOverlays]);
 
-  // Calculate total length of the alignment alignment for statistics
-  const totalAlignmentLength = useMemo(() => {
-    if (!alignmentOverlay || alignmentOverlay.coordinates.length < 2) return 0;
-    
-    let total = 0;
-    for (let i = 0; i < alignmentOverlay.coordinates.length - 1; i++) {
-      const p1 = L.latLng(alignmentOverlay.coordinates[i].lat, alignmentOverlay.coordinates[i].lng);
-      const p2 = L.latLng(alignmentOverlay.coordinates[i+1].lat, alignmentOverlay.coordinates[i+1].lng);
-      total += p1.distanceTo(p2);
-    }
-    return total / 1000; // Convert to km
-  }, [alignmentOverlay]);
+  
 
   /**
    * Helper to map a chainage range (start and end km) to geographic coordinates
@@ -1131,10 +1134,27 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
             zoomControl={false}
             preferCanvas={true}
           >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+            <LayersControl position="topright">
+              <BaseLayer checked name="OpenStreetMap">
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+              </BaseLayer>
+              <BaseLayer name="Satellite View">
+                <TileLayer
+                  attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
+                  url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                />
+              </BaseLayer>
+              <BaseLayer name="Terrain/Topo">
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+                />
+              </BaseLayer>
+            </LayersControl>
+
             <MapCenterUpdater center={mapCenter} zoom={defaultZoom} />
             <MapController bounds={targetBounds} />
             <SearchField />
@@ -1403,6 +1423,20 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                                 >
                                   <Trash2 size={12} />
                                 </Button>
+                                <input 
+                                  type="color" 
+                                  className="w-5 h-5 rounded cursor-pointer border-none bg-transparent"
+                                  value={kml.color || '#4f46e5'}
+                                  title="Change layer color"
+                                  onChange={(e) => {
+                                    const updatedKMLs = project.kmlData?.map(item => 
+                                      item.id === kml.id ? { ...item, color: e.target.value } : item
+                                    );
+                                    startTransition(() => {
+                                      onProjectUpdate({ kmlData: updatedKMLs });
+                                    });
+                                  }}
+                                />
                                 <Switch 
                                   className="scale-75 origin-right"
                                   checked={kml.visible} 

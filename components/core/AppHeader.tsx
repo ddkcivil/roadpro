@@ -80,7 +80,7 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(({
             latitude,
             longitude,
             status: 'Active',
-            timestamp: Date.now()
+            timestamp: new Date().toISOString()
           };
 
           const existingLocs = currentProject.staffLocations || [];
