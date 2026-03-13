@@ -42,9 +42,8 @@ export function parseKML(kmlContent: string): ParsedKML {
     const hasPlacemarkTag = lowerKml.includes('<placemark');
 
     if (!hasKmlTag && !hasPlacemarkTag) {
-      console.warn('[GIS] Invalid KML: Missing both <kml> and <Placemark> tags. Content length:', kmlContent.length);
-      // Log a snippet of the content for debugging
-      console.debug('[GIS] KML Snippet:', kmlContent.substring(0, 100));
+      const snippet = kmlContent.substring(0, 200).replace(/\n/g, ' ');
+      console.warn(`[GIS] Invalid KML: Missing tags. Length: ${kmlContent.length}. Snippet: ${snippet}`);
       result.hasErrors = true;
       return result;
     }
