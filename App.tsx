@@ -149,6 +149,7 @@ const App: React.FC = () => {
     fetchProjects,
     saveProject,
     refreshCurrentProject,
+    updateLocation,
     deleteProject
   } = useProjects(isAuthenticated && systemReady, currentUser);
 
