@@ -80,9 +80,9 @@ const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
 
   // Memoize parsed KML to avoid redundant parsing
   const parsedData = useMemo((): ParsedKML | null => {
-    if (!kml.content || typeof kml.content !== 'string' || kml.content === '[object Object]') return null;
-    return parseKML(kml.content);
-  }, [kml.content]);
+    if (!kml.kmlContent || typeof kml.kmlContent !== 'string' || kml.kmlContent === '[object Object]') return null;
+    return parseKML(kml.kmlContent);
+  }, [kml.kmlContent]);
 
   useEffect(() => {
     if (!kml.visible || !parsedData || parsedData.placemarks.length === 0) return;
@@ -561,7 +561,7 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
         const newKML: KMLData = {
           id: `kml-${Date.now()}`,
           name: file.name,
-          content: content,
+          kmlContent: content,
           timestamp: Date.now(),
           visible: true
         };
@@ -721,9 +721,9 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
     const lines: { name: string, coords: L.LatLng[] }[] = [];
     
     project.kmlData.forEach(kml => {
-      if (!kml.visible || !kml.content || typeof kml.content !== 'string' || kml.content === '[object Object]') return;
+      if (!kml.visible || !kml.kmlContent || typeof kml.kmlContent !== 'string' || kml.kmlContent === '[object Object]') return;
       
-      const parsed: ParsedKML = parseKML(kml.content);
+      const parsed: ParsedKML = parseKML(kml.kmlContent);
       parsed.placemarks.forEach(placemark => {
         const points: L.LatLng[] = placemark.points;
         if (points && points.length >= 2) {
@@ -1400,7 +1400,7 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                                   variant="ghost" 
                                   className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
                                   onClick={() => {
-                                    zoomToKML(kml.content);
+                                    zoomToKML(kml.kmlContent);
                                     if (!kml.visible) {
                                       const updatedKMLs = project.kmlData?.map(item => 
                                         item.id === kml.id ? { ...item, visible: true } : item

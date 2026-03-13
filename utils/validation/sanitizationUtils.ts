@@ -23,6 +23,8 @@ export const sanitizationUtils = {
     
     for (const key in sanitized) {
       if (typeof sanitized[key] === 'string') {
+        // Skip sanitization for kmlContent to preserve XML/KML tags
+        if (key === 'kmlContent') continue;
         sanitized[key] = sanitizationUtils.sanitizeString(sanitized[key]) as any;
       } else if (typeof sanitized[key] === 'object' && sanitized[key] !== null && !Array.isArray(sanitized[key])) {
         sanitized[key] = sanitizationUtils.sanitizeObject(sanitized[key]);

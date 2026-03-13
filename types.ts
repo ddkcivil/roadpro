@@ -557,7 +557,7 @@ export interface MapOverlay {
 export interface KMLData {
   id: string;
   name: string;
-  content: string;
+  kmlContent: string;
   timestamp: number;
   visible: boolean;
   color?: string;
