@@ -1,7 +1,7 @@
 import { ChatMessage } from './geminiService';
 import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
 
-const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+const AI_PROXY_URL = '/api/ai';
 
 const getApiKey = () => {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
@@ -12,6 +12,8 @@ const getApiKey = () => {
 };
 
 export const isOpenAIAvailable = (): boolean => {
+  // On client side, we check if key exists (it will be passed to proxy if needed, 
+  // but better to have it in Vercel env vars directly)
   const apiKey = getApiKey();
   return !!apiKey;
 };
@@ -23,9 +25,6 @@ export const chatWithOpenAI = async (
   attachment?: { mimeType: string; data: string },
   isFastMode: boolean = false
 ): Promise<string> => {
-  const apiKey = getApiKey();
-  if (!apiKey) return "Please configure your OpenAI API Key in the environment settings.";
-
   try {
     const model = isFastMode ? 'gpt-4o-mini' : 'gpt-4o';
     
@@ -69,13 +68,13 @@ export const chatWithOpenAI = async (
       messages.push({ role: 'user', content });
     }
 
-    const response = await fetch(OPENAI_API_URL, {
+    const response = await fetch(AI_PROXY_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
+        provider: 'openai',
         model: model,
         messages: messages,
         temperature: 0.7
@@ -84,14 +83,14 @@ export const chatWithOpenAI = async (
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+      throw new Error(errorData.error?.message || errorData.error || `Proxy Error: ${response.status}`);
     }
 
     const data = await response.json();
     return data.choices[0].message.content;
 
   } catch (err: any) {
-    console.error("OpenAI API Error:", err);
-    return `OpenAI Connection issue: ${err.message}`;
+    console.error("AI Proxy Error:", err);
+    return `AI Service Error: ${err.message}`;
   }
 };
