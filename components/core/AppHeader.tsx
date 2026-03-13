@@ -26,6 +26,7 @@ interface AppHeaderProps {
   setIsSidebarCollapsed: (collapsed: boolean) => void;
   currentProject?: Project;
   onProjectUpdate: (project: Partial<Project>) => void;
+  updateLocation: (projectId: string, lat: number, lng: number) => Promise<void>;
   setSelectedProjectId: (id: string | null) => void;
   themeMode: 'light' | 'dark';
   setThemeMode: (mode: 'light' | 'dark') => void;
@@ -48,6 +49,12 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(({
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const watchIdRef = useRef<number | null>(null);
 
+  // Use a ref for currentProject to avoid stale closures in watchPosition
+  const currentProjectRef = useRef(currentProject);
+  useEffect(() => {
+    currentProjectRef.current = currentProject;
+  }, [currentProject]);
+
   const stopBroadcasting = useCallback(() => {
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
@@ -69,25 +76,11 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(({
     watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
+        const project = currentProjectRef.current;
         
-        // Update the staff locations array in the current project
-        if (currentProject) {
-          const newStaffLoc: StaffLocation = {
-            id: `loc-${currentUser.id}`,
-            userId: currentUser.id,
-            userName: currentUser.name,
-            role: currentUser.role,
-            latitude,
-            longitude,
-            status: 'Active',
-            timestamp: new Date().toISOString()
-          };
-
-          const existingLocs = currentProject.staffLocations || [];
-          const otherLocs = existingLocs.filter(l => l.userId !== currentUser.id);
-          
-          onProjectUpdate({
-            staffLocations: [...otherLocs, newStaffLoc]
+        if (project) {
+          updateLocation(project.id, latitude, longitude).catch(err => {
+            console.error("[GPS] Update failed:", err);
           });
         }
       },
@@ -98,11 +91,11 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(({
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 10000,
-        timeout: 15000
+        maximumAge: 5000,
+        timeout: 10000
       }
     );
-  }, [currentProject, currentUser, onProjectUpdate, stopBroadcasting]);
+  }, [updateLocation, stopBroadcasting]);
 
   const toggleBroadcast = () => {
     if (isBroadcasting) {

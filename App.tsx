@@ -148,6 +148,7 @@ const App: React.FC = () => {
     apiError,
     fetchProjects,
     saveProject,
+    refreshCurrentProject,
     deleteProject
   } = useProjects(isAuthenticated && systemReady, currentUser);
 
@@ -165,6 +166,17 @@ const App: React.FC = () => {
   const [showRegistration, setShowRegistration] = useState(false);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editProject, setEditProject] = useState<Partial<Project> | null>(null);
+
+  // Periodic refresh of current project data (every 15 seconds)
+  useEffect(() => {
+    if (isAuthenticated && selectedProjectId) {
+      const projectRefreshInterval = setInterval(() => {
+        refreshCurrentProject().catch(err => console.warn('Project refresh failed', err));
+      }, 15000);
+
+      return () => clearInterval(projectRefreshInterval);
+    }
+  }, [isAuthenticated, selectedProjectId, refreshCurrentProject]);
 
   useKeyboardShortcuts({
     onToggleSidebar: () => startTransition(() => setIsSidebarCollapsed(prev => !prev)),
@@ -315,6 +327,7 @@ const App: React.FC = () => {
               setIsSidebarCollapsed={(collapsed) => startTransition(() => setIsSidebarCollapsed(collapsed))}
               currentProject={currentProject}
               onProjectUpdate={handleSaveProject}
+              updateLocation={updateLocation}
               setSelectedProjectId={(id) => startTransition(() => setSelectedProjectId(id))}
               themeMode={themeMode}
               setThemeMode={setThemeMode}

@@ -105,6 +105,54 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     }
   }
 
+  if (req.method === 'PATCH') {
+    const { action } = req.query;
+    
+    if (action === 'update-location') {
+      try {
+        const { Project } = await connectToDatabase();
+        const userId = (req as any).user?.userId;
+        const userName = (req as any).user?.name || 'Staff';
+        const userRole = (req as any).user?.role || 'Staff';
+        const { latitude, longitude } = req.body;
+
+        if (!id || typeof id !== 'string') {
+          return res.status(400).json({ error: 'Project ID is required' });
+        }
+
+        if (latitude === undefined || longitude === undefined) {
+          return res.status(400).json({ error: 'Coordinates are required' });
+        }
+
+        const project = await Project.findOne({ id: id as string });
+        if (!project) return res.status(404).json({ error: 'Project not found' });
+
+        const newStaffLoc = {
+          id: `loc-${userId}`,
+          userId,
+          userName,
+          role: userRole,
+          latitude,
+          longitude,
+          status: 'Active',
+          timestamp: new Date().toISOString()
+        };
+
+        const existingLocs = project.staffLocations || [];
+        const otherLocs = existingLocs.filter((l: any) => l.userId !== userId);
+        
+        project.staffLocations = [...otherLocs, newStaffLoc];
+        project.updatedAt = new Date().toISOString();
+        await project.save();
+
+        return res.status(200).json({ success: true, location: newStaffLoc });
+      } catch (error: any) {
+        console.error('Failed to update location:', error);
+        return res.status(500).json({ error: 'Failed to update location', details: error.message });
+      }
+    }
+  }
+
   if (req.method === 'DELETE') {
     const userRole = (req as any).user?.role;
     if (userRole !== 'Admin' && userRole !== 'ADMIN') {

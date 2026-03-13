@@ -130,6 +130,68 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
     saveTimeoutRef.current = setTimeout(() => performActualSave(data, base, isUp), 2000);
   }, [performActualSave]);
 
+  const refreshCurrentProject = useCallback(async () => {
+    if (!state.selectedProjectId) return;
+    try {
+      const updatedProject = await apiService.getProject(state.selectedProjectId);
+      const processedProject = prepareProjectWithMaterials(updatedProject);
+      
+      startTransition(() => {
+        dispatch({ 
+          type: 'UPDATE_PROJECTS', 
+          payload: state.projects.map(p => p.id === processedProject.id ? {
+            ...p,
+            staffLocations: processedProject.staffLocations,
+            vehicles: processedProject.vehicles,
+            updatedAt: processedProject.updatedAt,
+            lastSynced: new Date().toISOString()
+          } : p)
+        });
+      });
+    } catch (error) {
+      console.warn('[SYNC] Failed to background refresh project:', error);
+    }
+  }, [state.selectedProjectId, state.projects]);
+
+  const lastLocationUpdateRef = useRef<number>(0);
+  const LOCATION_THROTTLE = 10000; // 10 seconds
+
+  const updateLocation = useCallback(async (projectId: string, latitude: number, longitude: number) => {
+    // 1. Optimistic Update (Immediate)
+    startTransition(() => {
+      dispatch({ 
+        type: 'UPDATE_PROJECTS', 
+        payload: state.projects.map(p => p.id === projectId ? {
+          ...p,
+          staffLocations: [
+            ...(p.staffLocations || []).filter(l => l.userId !== currentUser?.id),
+            {
+              id: `loc-${currentUser?.id}`,
+              userId: currentUser?.id,
+              userName: currentUser?.name || 'Staff',
+              role: currentUser?.role || 'Staff',
+              latitude,
+              longitude,
+              status: 'Active',
+              timestamp: new Date().toISOString()
+            }
+          ]
+        } : p)
+      });
+    });
+
+    // 2. Throttled Backend Update
+    const now = Date.now();
+    if (now - lastLocationUpdateRef.current > LOCATION_THROTTLE) {
+      lastLocationUpdateRef.current = now;
+      try {
+        await apiService.updateStaffLocation(projectId, latitude, longitude);
+      } catch (error) {
+        console.warn('[GPS] Failed to sync location to backend:', error);
+      }
+    }
+  }, [state.projects, currentUser, dispatch]);
+
   const fetchProjects = async (page = 1) => {
     startTransition(() => {
       dispatch({ type: 'FETCH_START' });
@@ -256,6 +318,8 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
     apiError: state?.error || null,
     fetchProjects,
     saveProject,
+    refreshCurrentProject,
+    updateLocation,
     deleteProject
   };
 };

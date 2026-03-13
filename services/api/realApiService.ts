@@ -282,6 +282,16 @@ class RealApiService {
     });
   }
 
+  /**
+   * Updates current user's location in a project
+   */
+  async updateStaffLocation(projectId: string, latitude: number, longitude: number): Promise<{ success: boolean, location: StaffLocation }> {
+    return this.fetchWithRetry<{ success: boolean, location: StaffLocation }>(`/projects?id=${projectId}&action=update-location`, {
+      method: 'PATCH',
+      body: JSON.stringify({ latitude, longitude }),
+    }, 0); // Don't retry location updates
+  }
+
   // --- User Management ---
 
   /**

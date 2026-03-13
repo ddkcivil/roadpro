@@ -433,48 +433,6 @@ const LinearReferenceView: React.FC<{ info: { lineName: string, chainage: string
   );
 };
 
-/**
- * Custom hook to simulate real-time GPS movement for demo purposes.
- * In production, this would be replaced with a WebSocket listener.
- */
-const useLiveTracking = (initialVehicles: Vehicle[] = [], initialStaff: StaffLocation[] = [], active: boolean) => {
-  const [liveVehicles, setLiveVehicles] = useState<Vehicle[]>(initialVehicles);
-  const [liveStaff, setLiveStaff] = useState<StaffLocation[]>(initialStaff);
-
-  useEffect(() => {
-    if (!active) {
-      setLiveVehicles(initialVehicles);
-      setLiveStaff(initialStaff);
-      return;
-    }
-
-    const interval = setInterval(() => {
-      // Simulate slight movement for vehicles
-      setLiveVehicles(prev => prev.map(v => ({
-        ...v,
-        gpsLocation: v.gpsLocation ? {
-          ...v.gpsLocation,
-          latitude: v.gpsLocation.latitude + (Math.random() - 0.5) * 0.0005,
-          longitude: v.gpsLocation.longitude + (Math.random() - 0.5) * 0.0005,
-          speed: Math.floor(Math.random() * 40) + 10
-        } : undefined
-      })));
-
-      // Simulate slight movement for staff
-      setLiveStaff(prev => prev.map(s => ({
-        ...s,
-        latitude: s.latitude + (Math.random() - 0.5) * 0.0002,
-        longitude: s.longitude + (Math.random() - 0.5) * 0.0002,
-        timestamp: Date.now().toString()
-      })));
-    }, 3000); // Update every 3 seconds
-
-    return () => clearInterval(interval);
-  }, [active, initialVehicles, initialStaff]);
-
-  return { liveVehicles, liveStaff };
-};
-
 const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, settings }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -484,10 +442,6 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
   const [isLiveMode, setIsLiveMode] = useState(true);
   
   const [targetBounds, setTargetBounds] = useState<L.LatLngBounds | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-  
-  // Real-time tracking simulation
-  const { liveVehicles, liveStaff } = useLiveTracking(project.vehicles, project.staffLocations, isLiveMode);
   
   // States for non-blocking delete confirmation
   const [isDeletingKML, setIsDeletingKML] = useState(false);
