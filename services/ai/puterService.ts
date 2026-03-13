@@ -25,13 +25,33 @@ export const puterService = {
     if (!puterService.isAvailable()) return "Puter.js not available.";
     
     try {
-      const response = await puter.ai.chat(
-        `Context: ${JSON.stringify(context || {})}\n\nUser Message: ${message}`
-      );
-      return typeof response === 'string' ? response : (response.message?.content || JSON.stringify(response));
+      // Create a lightweight summary of context to avoid hitting prompt limits
+      const summary = context ? {
+        name: context.name,
+        code: context.code,
+        client: context.client,
+        contractor: context.contractor,
+        summary: context.summary,
+        status: context.status,
+        boqCount: context.boq?.length || 0,
+        rfiCount: context.rfis?.length || 0,
+        taskCount: context.schedule?.length || 0
+      } : {};
+
+      const prompt = `Context: ${JSON.stringify(summary)}\n\nUser Message: ${message}`;
+      
+      const response = await puter.ai.chat(prompt);
+      
+      // Puter can return strings or objects depending on version/model
+      if (typeof response === 'string') return response;
+      if (response && response.message?.content) return response.message.content;
+      if (response && response.text) return response.text;
+      
+      return JSON.stringify(response);
     } catch (error: any) {
-      console.error("[Puter] AI Error:", error);
-      return `Puter AI Error: ${error.message}`;
+      console.error("[Puter] AI Error Details:", error);
+      const errorMsg = error?.error?.message || error?.message || "Unknown Puter AI Error";
+      return `Puter AI Error: ${errorMsg}`;
     }
   },
 
