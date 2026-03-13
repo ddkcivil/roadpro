@@ -9,7 +9,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="/manifest.json">
     <title>RoadMaster Pro | Engineering OS</title>
-    <script src="https://js.puter.com/v2/"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     
     <script>
@@ -105,7 +104,7 @@
            <div class="flex-1 text-center opacity-90 font-mono tracking-tighter">RoadMaster Pro // System v2.5.2</div>
            <div id="desktop-clock" class="w-28 text-right font-mono opacity-100">00:00:00</div>
         </div>    <div id="root"></div>
-    <script src="/sql.js/sql-wasm.js"></script>
+    <!-- sql.js removed - was Puter.com dependency causing network errors -->
     <script>
        setInterval(() => {
           const el = document.getElementById('desktop-clock');

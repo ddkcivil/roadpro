@@ -21,10 +21,11 @@ export const puterService = {
   /**
    * AI Chat with Puter's unified API
    */
-  chat: async (message: string, context?: any): Promise<string> => {
-    if (!puterService.isAvailable()) return "Puter.js not available.";
+  chat: async (message: string, context?: any): Promise<{ text: string; metadata?: any }> => {
+    if (!puterService.isAvailable()) return { text: "Puter.js not available." };
     
     try {
+      const startTime = Date.now();
       // Create a lightweight summary of context to avoid hitting prompt limits
       const summary = context ? {
         name: context.name,
@@ -41,17 +42,28 @@ export const puterService = {
       const prompt = `Context: ${JSON.stringify(summary)}\n\nUser Message: ${message}`;
       
       const response = await puter.ai.chat(prompt);
+      const endTime = Date.now();
       
+      let text = "";
       // Puter can return strings or objects depending on version/model
-      if (typeof response === 'string') return response;
-      if (response && response.message?.content) return response.message.content;
-      if (response && response.text) return response.text;
-      
-      return JSON.stringify(response);
+      if (typeof response === 'string') text = response;
+      else if (response && response.message?.content) text = response.message.content;
+      else if (response && response.text) text = response.text;
+      else text = JSON.stringify(response);
+
+      return {
+          text: text,
+          metadata: {
+              timestamp: endTime,
+              model: 'puter-unified',
+              processingTime: endTime - startTime,
+              provider: 'puter'
+          }
+      };
     } catch (error: any) {
       console.error("[Puter] AI Error Details:", error);
       const errorMsg = error?.error?.message || error?.message || "Unknown Puter AI Error";
-      return `Puter AI Error: ${errorMsg}`;
+      return { text: `Puter AI Error: ${errorMsg}` };
     }
   },
 

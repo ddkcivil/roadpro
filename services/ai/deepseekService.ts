@@ -22,11 +22,12 @@ export const chatWithDeepSeek = async (
   projectContext: any,
   attachment?: { mimeType: string; data: string },
   isFastMode: boolean = false
-): Promise<string> => {
+): Promise<{ text: string; metadata?: ChatMessage['metadata'] }> => {
   const apiKey = getApiKey();
-  if (!apiKey) return "Please configure your DeepSeek API Key in the environment settings.";
+  if (!apiKey) return { text: "Please configure your DeepSeek API Key in the environment settings." };
 
   try {
+    const startTime = Date.now();
     const model = isFastMode ? 'deepseek-chat' : 'deepseek-reasoner'; // deepseek-reasoner is their "pro" model (DeepSeek-V3 or R1)
     
     const systemInstruction = `You are RoadMaster AI, a professional infrastructure project assistant for project: ${projectContext.name}. 
@@ -72,11 +73,21 @@ export const chatWithDeepSeek = async (
     }
 
     const data = await response.json();
-    return data.choices[0].message.content;
+    const endTime = Date.now();
+
+    return {
+        text: data.choices[0].message.content,
+        metadata: {
+            timestamp: endTime,
+            model: model,
+            processingTime: endTime - startTime,
+            provider: 'deepseek'
+        }
+    };
 
   } catch (err: any) {
     console.error("DeepSeek API Error:", err);
-    return `DeepSeek Connection issue: ${err.message}`;
+    return { text: `DeepSeek Connection issue: ${err.message}` };
   }
 };
 

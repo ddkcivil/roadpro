@@ -189,11 +189,15 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
 
     // 3. Call AI Service
     let responseText = "";
+    let metadata: ChatMessage['metadata'] | undefined;
+    
     try {
+        let response;
+        
         if (aiProvider === 'puter') {
-            responseText = await puterService.chat(userText || (attachment ? "Analyze this attachment." : ""), project);
+            response = await puterService.chat(userText || (attachment ? "Analyze this attachment." : ""), project);
         } else if (aiProvider === 'openai') {
-            responseText = await chatWithOpenAI(
+            response = await chatWithOpenAI(
                 userText || (attachment ? "Analyze this attachment." : ""), 
                 newHistory,
                 project,
@@ -201,7 +205,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                 isFastMode
             );
         } else if (aiProvider === 'deepseek') {
-            responseText = await chatWithDeepSeek(
+            response = await chatWithDeepSeek(
                 userText || (attachment ? "Analyze this attachment." : ""), 
                 newHistory,
                 project,
@@ -209,7 +213,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                 isFastMode
             );
         } else if (aiProvider === 'huggingface') {
-            responseText = await chatWithHuggingFace(
+            response = await chatWithHuggingFace(
                 userText || (attachment ? "Analyze this attachment." : ""), 
                 newHistory,
                 project,
@@ -217,7 +221,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                 isFastMode
             );
         } else {
-            responseText = await chatWithGemini(
+            response = await chatWithGemini(
                 userText || (attachment ? "Analyze this attachment." : ""), 
                 newHistory,
                 project,
@@ -225,12 +229,20 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                 isFastMode
             );
         }
+
+        if (typeof response === 'string') {
+            responseText = response;
+        } else {
+            responseText = response.text;
+            metadata = response.metadata;
+        }
+
     } catch (err: any) {
         responseText = `Error: ${err.message || "Failed to get AI response"}`;
     }
 
     // 4. Update UI with AI Response
-    setMessages(prev => [...prev, { role: 'model', text: responseText }]);
+    setMessages(prev => [...prev, { role: 'model', text: responseText, metadata }]);
     setIsLoading(false);
     clearAttachment();
   };
@@ -456,6 +468,23 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                             <div className="whitespace-pre-wrap font-sans">
                                 {msg.text}
                             </div>
+                            
+                            {/* Metadata Display */}
+                            {msg.metadata && (
+                                <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-muted-foreground gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="secondary" className="h-4 px-1 text-[9px] font-normal text-muted-foreground bg-slate-100 border-slate-200">
+                                            {msg.metadata.model || aiProvider}
+                                        </Badge>
+                                        {msg.metadata.processingTime && (
+                                            <span>{(msg.metadata.processingTime / 1000).toFixed(1)}s</span>
+                                        )}
+                                    </div>
+                                    {msg.metadata.timestamp && (
+                                        <span>{new Date(msg.metadata.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

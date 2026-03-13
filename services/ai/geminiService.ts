@@ -21,7 +21,7 @@ const MODELS = [
   'gemini-pro'
 ];
 
-async function runWithFallback(task: (model: any) => Promise<any>): Promise<any> {
+async function runWithFallback(task: (model: any, modelName: string) => Promise<any>): Promise<any> {
   const ai = getAIClient();
   if (!ai) throw new Error("AI Client not initialized. Please check VITE_GEMINI_API_KEY.");
   
@@ -33,7 +33,7 @@ async function runWithFallback(task: (model: any) => Promise<any>): Promise<any>
     for (const apiVer of ['v1beta', 'v1']) {
       try {
         const model = ai.getGenerativeModel({ model: modelName }, { apiVersion: apiVer as any });
-        return await task(model);
+        return await task(model, modelName);
       } catch (error: any) {
         lastError = error;
         const errMsg = error.message?.toLowerCase() || "";
@@ -69,7 +69,7 @@ export const analyzeSitePhoto = async (photoBase64: string, category: string): P
     if (!isAIServiceAvailable()) return "AI Service Unavailable: Gemini API Key not configured.";
 
     try {
-        return await runWithFallback(async (model) => {
+        return await runWithFallback(async (model, modelName) => {
             const prompt = `Analyze this site photo from a road project. Category: "${category}". Identify progress and safety issues.`;
             const result = await model.generateContent({
                 contents: [{
@@ -97,7 +97,7 @@ export const analyzeProjectStatus = async (
 
   const context = `Analyze project: BOQ items: ${boq.length}, Open RFIs: ${rfis.filter(r => r.status === 'Open').length}. Query: ${userQuery}`;
 
-  return runWithFallback(async (model) => {
+  return runWithFallback(async (model, modelName) => {
     const result = await model.generateContent(context);
     return result.response.text();
   }).catch(() => "Project analysis currently unavailable due to high traffic.");
@@ -111,6 +111,14 @@ export interface ChatMessage {
     data: string;
     type: 'image' | 'video' | 'pdf';
   };
+  metadata?: {
+    timestamp?: number;
+    model?: string;
+    confidence?: number;
+    processingTime?: number;
+    sources?: string[];
+    provider?: string;
+  };
 }
 
 export const chatWithGemini = async (
@@ -119,10 +127,12 @@ export const chatWithGemini = async (
   projectContext: any,
   attachment?: { mimeType: string; data: string },
   isFastMode: boolean = false
-): Promise<string> => {
-  if (!isAIServiceAvailable()) return "Please configure your Gemini API Key.";
+): Promise<{ text: string; metadata?: ChatMessage['metadata'] }> => {
+  if (!isAIServiceAvailable()) return { text: "Please configure your Gemini API Key." };
 
-  return runWithFallback(async (model) => {
+  const startTime = Date.now();
+  
+  return runWithFallback(async (model, modelName) => {
     const systemInstruction = `You are RoadMaster AI for project: ${projectContext.name}. Provide technical advice. Currency: ${getCurrencySymbol(projectContext.settings?.currency)}`;
     
     const contents = history.map(msg => {
@@ -158,9 +168,19 @@ export const chatWithGemini = async (
       systemInstruction: systemInstruction,
     });
 
-    return result.response.text();
+    const endTime = Date.now();
+    
+    return {
+        text: result.response.text(),
+        metadata: {
+            timestamp: endTime,
+            model: modelName, 
+            processingTime: endTime - startTime,
+            provider: 'gemini'
+        }
+    };
   }).catch(err => {
-    return `Connection issue: ${err.message}`;
+    return { text: `Connection issue: ${err.message}` };
   });
 };
 
@@ -169,7 +189,7 @@ export const draftLetter = async (topic: string, recipient: string, useSearch: b
   
   const prompt = `Draft FIDIC-style letter for topic: ${topic}, Recipient: ${recipient}.`;
 
-  return runWithFallback(async (model) => {
+  return runWithFallback(async (model, modelName) => {
     const result = await model.generateContent(prompt);
     return result.response.text();
   }).catch(() => "Drafting service temporarily unavailable.");

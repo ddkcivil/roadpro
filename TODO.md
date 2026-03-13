@@ -1,15 +1,9 @@
-# Fix TypeScript Errors & Accessibility Issues
+# Fix Puter.com 408 Network Errors
 
-## Plan Status
-- [x] Analyzed files (types.ts, MapModule.tsx, BOQModule.tsx)
-- [x] Created comprehensive fix plan
-- [x] User approved plan
-
-## Implementation Steps
-- [x] 1. Fix MapModule.tsx TypeScript errors (timestamp type, unused vars)
-- [x] 2. Fix BOQModule.tsx accessibility violations (checkbox labels)
-- [x] 3. Verify all fixes (TS compile, a11y scan)
-- [x] 4. Test functionality (Map live tracking, BOQ checkboxes)
-- [x] 5. Complete task
-
-## Status: All Tasks Completed Successfully
+## Plan Steps:
+- [ ] 1. Read ./public/sw.js to check for Puter references
+- [ ] 2. Edit ./index.html - Remove Puter.com script tag
+- [ ] 3. Delete ./public/sql.js/ directory  
+- [ ] 4. Update TODO.md with completion status
+- [ ] 5. Test app reload - verify no 408 errors
+- [ ] 6. attempt_completion

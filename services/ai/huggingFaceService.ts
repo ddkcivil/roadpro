@@ -27,14 +27,15 @@ export const chatWithHuggingFace = async (
   projectContext: any,
   attachment?: { mimeType: string; data: string },
   isFastMode: boolean = false
-): Promise<string> => {
+): Promise<{ text: string; metadata?: ChatMessage['metadata'] }> => {
   const apiKey = getApiKey();
-  if (!apiKey) return "Please configure your Hugging Face API Key in the environment settings.";
+  if (!apiKey) return { text: "Please configure your Hugging Face API Key in the environment settings." };
 
   const modelId = getModelId();
   const API_URL = `https://api-inference.huggingface.co/models/${encodeURIComponent(modelId)}`;
 
   try {
+    const startTime = Date.now();
     const systemInstruction = `You are RoadMaster AI, a professional infrastructure project assistant for project: ${projectContext.name}. 
     Provide technical, precise, and actionable advice. 
     Currency: ${getCurrencySymbol(projectContext.settings?.currency)}.
@@ -89,23 +90,33 @@ export const chatWithHuggingFace = async (
     }
 
     const result = await response.json();
-    
+    const endTime = Date.now();
+    let text = "Received an unexpected response format from Hugging Face.";
+
     // Result can be an array or an object depending on the model/API state
     if (Array.isArray(result) && result[0]?.generated_text) {
-      return result[0].generated_text.trim();
+      text = result[0].generated_text.trim();
     } else if (result.generated_text) {
-      return result.generated_text.trim();
+      text = result.generated_text.trim();
     } else if (typeof result === 'string') {
-        return result.trim();
+        text = result.trim();
     }
 
-    return "Received an unexpected response format from Hugging Face.";
+    return {
+        text: text,
+        metadata: {
+            timestamp: endTime,
+            model: modelId,
+            processingTime: endTime - startTime,
+            provider: 'huggingface'
+        }
+    };
 
   } catch (err: any) {
     console.error("Hugging Face API Error:", err);
     if (err.message?.includes('currently loading')) {
-        return "The Hugging Face model is currently being loaded into memory. Please try again in about 30 seconds.";
+        return { text: "The Hugging Face model is currently being loaded into memory. Please try again in about 30 seconds." };
     }
-    return `Hugging Face Connection issue: ${err.message}`;
+    return { text: `Hugging Face Connection issue: ${err.message}` };
   }
 };

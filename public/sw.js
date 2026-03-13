@@ -1,12 +1,10 @@
-const CACHE_NAME = 'roadmaster-v9';
+const CACHE_NAME = 'roadmaster-v10';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
   '/favicon.ico',
   '/index.css',
-  '/sql.js/sql-wasm.js',
-  '/sql.js/sql-wasm.wasm',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap'
 ];
 
