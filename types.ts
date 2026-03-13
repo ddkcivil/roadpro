@@ -95,6 +95,7 @@ export interface User {
   phone: string;
   role: UserRole;
   avatar?: string;
+  lastSeen?: string; // ISO date string
 }
 
 export interface TokenPayload {

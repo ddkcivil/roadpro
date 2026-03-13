@@ -22,6 +22,7 @@ export interface IUser extends Document {
   password: string;
   role: string;
   avatar?: string;
+  lastSeen?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -148,6 +149,7 @@ const userSchema = new Schema<IUser>({
   password: { type: String, required: true },
   role: { type: String, required: true },
   avatar: String,
+  lastSeen: String,
 }, { timestamps: true });
 
 const pendingRegistrationSchema = new Schema<IPendingRegistration>({

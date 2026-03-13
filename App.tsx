@@ -218,6 +218,20 @@ const App: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated) {
       fetchUsers();
+      
+      // Periodic refresh of user list to update online status (every 1 minute)
+      const userRefreshInterval = setInterval(fetchUsers, 60000);
+      
+      // Heartbeat to update current user's online status (every 2 minutes)
+      apiService.heartbeat(); // Initial heartbeat
+      const heartbeatInterval = setInterval(() => {
+        apiService.heartbeat().catch(err => console.warn('Heartbeat failed', err));
+      }, 120000);
+
+      return () => {
+        clearInterval(userRefreshInterval);
+        clearInterval(heartbeatInterval);
+      };
     }
   }, [isAuthenticated]);
 

@@ -519,12 +519,27 @@ class RealApiService {
   }
 
   /**
-   * Marks a message as read
+   * Updates a message's status (read or delivered)
    */
-  async markMessageAsRead(messageId: string): Promise<void> {
-    return this.fetchWithRetry<void>(`/messages?messageId=${messageId}&action=read`, {
+  async updateMessageStatus(messageId: string, status: 'read' | 'delivered'): Promise<void> {
+    return this.fetchWithRetry<void>(`/messages?messageId=${messageId}&action=${status}`, {
       method: 'PUT',
     }, 1);
+  }
+
+  /**
+   * Marks a message as read (legacy)
+   */
+  async markMessageAsRead(messageId: string): Promise<void> {
+    return this.updateMessageStatus(messageId, 'read');
+  }
+
+  /**
+   * Heartbeat to update lastSeen status
+   */
+  async heartbeat(): Promise<void> {
+    if (!navigator.onLine) return;
+    return this.fetchApi<void>('/users?action=heartbeat', { method: 'POST' });
   }
 }
 

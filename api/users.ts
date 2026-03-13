@@ -5,7 +5,20 @@ import { withErrorHandler } from './_utils/errorHandler.js';
 import { withAuth } from './_utils/auth.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
-  const { id } = req.query;
+  const { id, action } = req.query;
+
+  if (req.method === 'POST' && action === 'heartbeat') {
+    try {
+      const { User } = await connectToDatabase();
+      const userId = (req as any).user?.userId;
+      if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+      await User.findOneAndUpdate({ id: userId }, { lastSeen: new Date().toISOString() });
+      return res.status(200).json({ success: true });
+    } catch (error: any) {
+      return res.status(500).json({ error: 'Heartbeat failed', details: error.message });
+    }
+  }
 
   if (req.method === 'GET') {
     try {

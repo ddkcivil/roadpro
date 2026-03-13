@@ -274,6 +274,14 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
 
   const activeUser = getUser(activeChatId);
 
+  const isOnline = useCallback((user?: User) => {
+    if (!user?.lastSeen) return false;
+    const lastSeenDate = new Date(user.lastSeen);
+    const now = new Date();
+    const diffMinutes = (now.getTime() - lastSeenDate.getTime()) / 60000;
+    return diffMinutes < 5; // Online if seen in last 5 minutes
+  }, []);
+
   return (
     <div className="flex h-[calc(100vh-140px)] rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden">
         {/* Sidebar */}
@@ -328,8 +336,16 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                                     <AvatarImage src={user.avatar} />
                                     <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                                 </Avatar>
-                                {unreadCount > 0 && (
+                                {isOnline(user) && (
+                                    <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-background shadow-sm" />
+                                )}
+                                {unreadCount > 0 && !isOnline(user) && (
                                     <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-red-500 ring-2 ring-background" />
+                                )}
+                                {unreadCount > 0 && isOnline(user) && (
+                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white ring-1 ring-background">
+                                        {unreadCount}
+                                    </span>
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -357,10 +373,15 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                              <Hash className="h-6 w-6" />
                          </div>
                      ) : (
-                         <Avatar className="h-12 w-12"> 
-                            <AvatarImage src={activeUser?.avatar} />
-                            <AvatarFallback>{activeUser?.name.charAt(0)}</AvatarFallback>
-                         </Avatar>
+                         <div className="relative">
+                            <Avatar className="h-12 w-12"> 
+                                <AvatarImage src={activeUser?.avatar} />
+                                <AvatarFallback>{activeUser?.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            {isOnline(activeUser) && (
+                                <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-emerald-500 ring-2 ring-card shadow-sm" />
+                            )}
+                         </div>
                      )}
                      <div>
                          <h3 className="text-xl font-bold text-foreground leading-tight">

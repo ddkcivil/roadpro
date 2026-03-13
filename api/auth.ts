@@ -31,6 +31,10 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
+      // Update lastSeen
+      user.lastSeen = new Date().toISOString();
+      await user.save();
+
       const userData = user.toObject();
       delete (userData as any).password;
 
