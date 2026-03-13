@@ -26,8 +26,12 @@ import {
   Sun, Wind, Droplets,
   Layers, Sparkles, FileText,
   FileDown, Settings, GripVertical, ChevronDown, ChevronUp, ShieldCheck, AlertTriangle, Info, Check, ClipboardCheck,
-  ChevronRight
+  ChevronRight,
+  Cloud,
+  Zap,
+  Loader2
 } from 'lucide-react';
+import { puterService } from '../../services/ai/puterService';
 
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
@@ -51,6 +55,24 @@ interface Props {
 const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateProject, onUpdateSettings, isLoading = false }) => {
   const [showWidgetSettings, setShowWidgetSettings] = useState(false);
   const [activeChart, setActiveChart] = useState<'periodic' | 'scumulative'>('scumulative');
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleCloudSync = async () => {
+    if (!puterService.isAvailable()) {
+      alert("Puter.js SDK not loaded. Cloud sync unavailable.");
+      return;
+    }
+    
+    setIsSyncing(true);
+    try {
+      await puterService.syncProjectToCloud(project);
+      alert("Success! Project synced to your Puter.com cloud storage.");
+    } catch (error: any) {
+      alert("Sync failed: " + error.message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const stats = useMemo(() => {
     if (!project || !project.boq) return { earnedValue: 0, totalPlannedValue: 0, actualCost: 0, spi: 0, cpi: 0, physPercent: 0, rfiOpen: 0, rfiClosed: 0, rfiOverdue: 0 };
@@ -190,6 +212,16 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateProj
           </div>
           
           <div className="flex items-center gap-3 bg-muted/30 p-1.5 rounded-[1.5rem] border border-border/40 backdrop-blur-md">
+            <Button 
+              variant="ghost" 
+              onClick={handleCloudSync}
+              disabled={isSyncing}
+              className="rounded-xl font-bold h-10 px-5 hover:bg-background transition-all duration-300 text-indigo-600"
+            >
+              {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Cloud className="mr-2 h-4 w-4 opacity-60" />}
+              {isSyncing ? "Syncing..." : "Cloud Sync"}
+            </Button>
+
             <Button 
               variant="ghost" 
               onClick={() => generateProjectSummaryPDF(project)} 
