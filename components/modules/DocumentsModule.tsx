@@ -98,7 +98,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
         Page = pdfModule.Page;
         pdfjs = pdfModule.pdfjs;
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+          pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
         }
       } catch (error) {
         console.warn('Failed to load PDF components:', error);
