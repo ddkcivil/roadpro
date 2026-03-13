@@ -71,7 +71,7 @@ class RealApiService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      if (csrfToken && options?.method && ['POST', 'PUT', 'DELETE'].includes(options.method)) {
+      if (csrfToken && options?.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method)) {
         headers['X-CSRF-Token'] = csrfToken;
       }
 
