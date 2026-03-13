@@ -442,6 +442,7 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
   const [isLiveMode, setIsLiveMode] = useState(true);
   
   const [targetBounds, setTargetBounds] = useState<L.LatLngBounds | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   
   // States for non-blocking delete confirmation
   const [isDeletingKML, setIsDeletingKML] = useState(false);
