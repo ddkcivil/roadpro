@@ -80,7 +80,7 @@ const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
 
   // Memoize parsed KML to avoid redundant parsing
   const parsedData = useMemo((): ParsedKML | null => {
-    if (!kml.content) return null;
+    if (!kml.content || typeof kml.content !== 'string' || kml.content === '[object Object]') return null;
     return parseKML(kml.content);
   }, [kml.content]);
 
@@ -721,7 +721,7 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
     const lines: { name: string, coords: L.LatLng[] }[] = [];
     
     project.kmlData.forEach(kml => {
-      if (!kml.visible || !kml.content) return;
+      if (!kml.visible || !kml.content || typeof kml.content !== 'string' || kml.content === '[object Object]') return;
       
       const parsed: ParsedKML = parseKML(kml.content);
       parsed.placemarks.forEach(placemark => {

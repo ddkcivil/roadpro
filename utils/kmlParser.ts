@@ -23,18 +23,42 @@ export function parseKML(kmlContent: string): ParsedKML {
   };
 
   try {
-    // Validate KML header - More flexible check
+    // Validate content is a string and exists
+    if (typeof kmlContent !== 'string') {
+      console.warn('[GIS] KML Parse Error: Content is not a string. Type:', typeof kmlContent);
+      result.hasErrors = true;
+      return result;
+    }
+
+    if (!kmlContent || kmlContent.trim().length === 0) {
+      console.warn('[GIS] KML Parse Warning: Content is empty');
+      result.hasErrors = true;
+      return result;
+    }
+
+    // Check for either <kml> or <Placemark> to be present
     const lowerKml = kmlContent.toLowerCase();
-    if (!lowerKml.includes('<kml')) {
-      console.warn('[GIS] Invalid KML: Missing <kml> tag');
+    const hasKmlTag = lowerKml.includes('<kml');
+    const hasPlacemarkTag = lowerKml.includes('<placemark');
+
+    if (!hasKmlTag && !hasPlacemarkTag) {
+      console.warn('[GIS] Invalid KML: Missing both <kml> and <Placemark> tags. Content length:', kmlContent.length);
+      // Log a snippet of the content for debugging
+      console.debug('[GIS] KML Snippet:', kmlContent.substring(0, 100));
       result.hasErrors = true;
       return result;
     }
 
     // Extract all Placemark blocks: <Placemark>....</Placemark>
     const placemarkRegex = /<Placemark[^>]*>(.*?)<\/Placemark>/gis;
-    const placemarkMatches = kmlContent.matchAll(placemarkRegex);
+    const placemarkMatches = Array.from(kmlContent.matchAll(placemarkRegex));
     
+    if (placemarkMatches.length === 0) {
+      console.warn('[GIS] KML Parse Warning: No <Placemark> tags found, even though <kml> tag might be present.');
+      result.hasErrors = true;
+      return result;
+    }
+
     let placemarkIndex = 0;
     for (const match of placemarkMatches) {
       const placemarkContent = match[1] || '';
