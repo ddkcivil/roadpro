@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useTransition } from 'react';
 import { 
-    Plus, Search, Receipt, FileDiff, X, BarChart4, FileSpreadsheet, Upload,
+    Plus, TrendingUp, Receipt, FileDiff, X, BarChart4, FileSpreadsheet, Upload,
     Maximize2, Minimize2, AlertTriangle, CheckCircle2, Trash2
 } from 'lucide-react';
 import { Project, UserRole, AppSettings, BOQItem, VariationOrder, MeasurementSheet, MeasurementSheetEntry } from '../../types';
@@ -41,7 +41,7 @@ interface Props {
 }
 
 const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpdate }) => {
-    const [isPending, startTransition] = useTransition();
+    const [, startTransition] = useTransition();
     const [activeTab, setActiveTab] = useState("registry");
     const [isVOModalOpen, setIsVOModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
