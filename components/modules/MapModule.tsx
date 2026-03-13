@@ -94,7 +94,20 @@ const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
     const kmlColor = kml.color || '#4f46e5';
 
     try {
-      parsedData.placemarks.forEach(({ name, points }) => {
+      // Find likely centerline for chainage markers (Center, CL, Alignment, or the longest path)
+      const centerlinePlacemark = [...parsedData.placemarks].sort((a, b) => {
+        const aName = (a.name || '').toLowerCase();
+        const bName = (b.name || '').toLowerCase();
+        const keywords = ['center', 'cl', 'alignment'];
+        
+        const aScore = keywords.some(k => aName.includes(k)) ? 1000000 : a.points.length;
+        const bScore = keywords.some(k => bName.includes(k)) ? 1000000 : b.points.length;
+        
+        return bScore - aScore;
+      })[0];
+
+      parsedData.placemarks.forEach((placemark) => {
+        const { name, points } = placemark;
         if (points.length >= 2) {
           const line = L.polyline(points, { 
             color: kmlColor, 
@@ -109,8 +122,10 @@ const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
           
           geometryLayers.push(line);
           
-          // Add chainage markers for paths
-          addChainageMarkers(map, points, kml.name, markers, kmlColor);
+          // ONLY add chainage markers to the identified centerline placemark
+          if (placemark === centerlinePlacemark) {
+            addChainageMarkers(map, points, kml.name, markers, kmlColor);
+          }
         } else if (points.length === 1) {
           const marker = L.marker(points[0], {
             title: name || undefined
