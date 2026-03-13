@@ -38,6 +38,7 @@ describe('AppHeader', () => {
       rfis: [],
     } as any,
     onProjectUpdate: vi.fn(),
+    updateLocation: vi.fn().mockResolvedValue({ success: true }),
     setSelectedProjectId: vi.fn(),
     themeMode: 'light' as const,
     setThemeMode: vi.fn(),

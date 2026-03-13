@@ -40,6 +40,7 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(({
   setIsSidebarCollapsed,
   currentProject,
   onProjectUpdate,
+  updateLocation,
   setSelectedProjectId,
   themeMode,
   setThemeMode,
