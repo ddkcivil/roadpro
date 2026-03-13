@@ -14,8 +14,9 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
     const hasMongoUri = envVars.includes('MONGODB_URI') || envVars.includes('MONGO_URI');
     const hasDeepSeek = envVars.includes('VITE_DEEPSEEK_API_KEY');
     const hasGemini = envVars.includes('VITE_GEMINI_API_KEY');
+    const hasOpenAI = envVars.includes('VITE_OPENAI_API_KEY');
     
-    console.log('Environment variables check:', { hasMongoUri, hasDeepSeek, hasGemini });
+    console.log('Environment variables check:', { hasMongoUri, hasDeepSeek, hasGemini, hasOpenAI });
 
     const { mongoose } = await connectToDatabase();
     const state = mongoose.connection.readyState;
@@ -30,7 +31,8 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
         envCheck: { 
             hasMongoUri, 
             hasDeepSeek, 
-            hasGemini 
+            hasGemini,
+            hasOpenAI
         }
       });
     } else {
