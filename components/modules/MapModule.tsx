@@ -68,6 +68,7 @@ interface MapModuleProps {
   project: Project;
   onProjectUpdate: (project: Partial<Project>) => void;
   settings?: AppSettings;
+  users?: User[];
 }
 
 // KML Layer Component
@@ -619,6 +620,15 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
     });
   }, []);
 
+  // Filter online users (seen in the last 5 minutes)
+  const onlineUsers = useMemo(() => {
+    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    return users.filter(user => {
+      if (!user.lastSeen) return false;
+      return new Date(user.lastSeen).getTime() > fiveMinutesAgo;
+    });
+  }, [users]);
+
   // Find the alignment overlay to use as a reference for chainage mapping
   const alignmentOverlay = useMemo(() => {
     if (!project.mapOverlays) return null;
@@ -835,6 +845,7 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
     if (!project.staffLocations || !layerVisibility.staff) return [];
     return project.staffLocations.map((staff: StaffLocation) => {
       const nearestKML = getNearestChainage(L.latLng(staff.latitude, staff.longitude));
+      const userDetails = users.find(u => u.id === staff.userId);
       
       return (
         <Marker
@@ -846,22 +857,58 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
             {staff.userName}
           </MapTooltip>
           <Popup>
-            <div className="p-2 min-w-[150px]">
-              <h3 className="font-bold text-lg border-b pb-1 mb-2">{staff.userName}</h3>
-              <p className="text-sm text-gray-600">{staff.role}</p>
-              <Badge variant={staff.status === 'Active' ? 'default' : 'secondary'} className="mt-2">
-                {staff.status}
-              </Badge>
-              <p className="text-[10px] text-gray-400 mt-2">
-                Updated: {new Date(staff.timestamp).toLocaleTimeString()}
+            <div className="p-3 min-w-[220px]">
+              <div className="flex items-center gap-3 mb-3 pb-2 border-b">
+                <div className="h-10 w-10 rounded-xl overflow-hidden border-2 border-amber-100 shadow-sm bg-slate-100 shrink-0">
+                  {userDetails?.avatar ? (
+                    <img src={userDetails.avatar} alt={staff.userName} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center font-black text-amber-500 bg-amber-50">
+                      {staff.userName.split(' ').map(n => n[0]).join('')}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-black text-sm tracking-tight text-slate-900 truncate">{staff.userName}</h3>
+                  <Badge variant="outline" className="text-[9px] h-4 py-0 font-black uppercase tracking-widest bg-amber-50 text-amber-600 border-amber-200">
+                    {staff.role}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {userDetails?.email && (
+                  <div className="flex items-center gap-2 text-[11px]">
+                    <span className="text-slate-400 font-bold uppercase w-12">Mail:</span>
+                    <span className="font-bold text-slate-700 truncate">{userDetails.email}</span>
+                  </div>
+                )}
+                {userDetails?.phone && (
+                  <div className="flex items-center gap-2 text-[11px]">
+                    <span className="text-slate-400 font-bold uppercase w-12">Phone:</span>
+                    <span className="font-bold text-slate-700">{userDetails.phone}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-[11px]">
+                  <span className="text-slate-400 font-bold uppercase w-12">Status:</span>
+                  <div className="flex items-center gap-1.5 font-black text-green-600 uppercase tracking-tighter">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                    {staff.status}
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-4">
+                Last Telemetry: {new Date(staff.timestamp).toLocaleTimeString()}
               </p>
+              
               <LinearReferenceView info={nearestKML} />
             </div>
           </Popup>
         </Marker>
       );
     });
-  }, [project.staffLocations, layerVisibility.staff]);
+  }, [project.staffLocations, layerVisibility.staff, users, getNearestChainage]);
 
   // Land Parcel polygons
   const landParcelPolygons = useMemo(() => {
@@ -1249,20 +1296,48 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                         />
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="p-2 bg-amber-100 text-amber-600 rounded-lg">
-                            <Users size={16} />
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="p-2 bg-amber-100 text-amber-600 rounded-lg">
+                              <Users size={16} />
+                            </div>
+                            <div>
+                              <Label className="font-bold text-sm text-slate-700">Site Personnel</Label>
+                              <p className="text-[10px] text-muted-foreground uppercase">Staff Locations</p>
+                            </div>
                           </div>
-                          <div>
-                            <Label className="font-bold text-sm text-slate-700">Site Personnel</Label>
-                            <p className="text-[10px] text-muted-foreground uppercase">Staff Locations</p>
-                          </div>
+                          <Switch 
+                            checked={layerVisibility.staff} 
+                            onCheckedChange={() => toggleLayer('staff')} 
+                          />
                         </div>
-                        <Switch 
-                          checked={layerVisibility.staff} 
-                          onCheckedChange={() => toggleLayer('staff')} 
-                        />
+                        
+                        {layerVisibility.staff && onlineUsers.length > 0 && (
+                          <div className="pl-4 space-y-2 mt-2 border-l-2 border-amber-100">
+                            <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                              <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                              Currently Online ({onlineUsers.length})
+                            </p>
+                            {onlineUsers.map(user => (
+                              <div key={user.id} className="flex items-center gap-2 group">
+                                <div className="h-6 w-6 rounded-lg overflow-hidden border border-amber-100 bg-slate-100 shrink-0 shadow-sm">
+                                  {user.avatar ? (
+                                    <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                                  ) : (
+                                    <div className="h-full w-full flex items-center justify-center text-[8px] font-black text-amber-500">
+                                      {user.name.split(' ').map(n => n[0]).join('')}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-[10px] font-bold text-slate-700 truncate leading-tight">{user.name}</p>
+                                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter truncate">{user.role}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center justify-between">

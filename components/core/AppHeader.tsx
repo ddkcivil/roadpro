@@ -50,6 +50,7 @@ interface AppHeaderProps {
   setIsAIModalOpen: (open: boolean) => void;
   currentUser: UserWithPermissions;
   onLogout: () => Promise<void>;
+  setActiveTab: (tab: string) => void;
 }
 
 const AppHeader: React.FC<AppHeaderProps> = React.memo(({
@@ -64,7 +65,8 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(({
   setThemeMode,
   setIsAIModalOpen,
   currentUser,
-  onLogout
+  onLogout,
+  setActiveTab
 }) => {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const watchIdRef = useRef<number | null>(null);
@@ -353,13 +355,22 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(({
                 <DropdownMenuSeparator className="my-6 opacity-10" />
 
                 <div className="grid grid-cols-2 gap-3">
-                  <Button variant="outline" className="h-12 rounded-2xl font-black uppercase tracking-widest text-[10px] border-white/10 hover:bg-white/5">
-                    <Settings className="mr-2 h-4 w-4 opacity-40" />
-                    Settings
-                  </Button>
+                  {currentUser.role === 'Admin' && (
+                    <Button 
+                      variant="outline" 
+                      className="h-12 rounded-2xl font-black uppercase tracking-widest text-[10px] border-white/10 hover:bg-white/5"
+                      onClick={() => setActiveTab('settings')}
+                    >
+                      <Settings className="mr-2 h-4 w-4 opacity-40" />
+                      Settings
+                    </Button>
+                  )}
                   <Button 
                     variant="ghost" 
-                    className="h-12 rounded-2xl font-black uppercase tracking-widest text-[10px] bg-red-500/5 hover:bg-red-500/10 text-red-500 border border-red-500/20"
+                    className={cn(
+                      "h-12 rounded-2xl font-black uppercase tracking-widest text-[10px] bg-red-500/5 hover:bg-red-500/10 text-red-500 border border-red-500/20",
+                      currentUser.role !== 'Admin' && "col-span-2"
+                    )}
                     onClick={() => onLogout()}
                   >
                     <LogOut className="mr-2 h-4 w-4 opacity-40" />

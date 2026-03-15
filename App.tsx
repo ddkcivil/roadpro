@@ -335,6 +335,7 @@ const App: React.FC = () => {
               setIsAIModalOpen={(open) => startTransition(() => setIsAIModalOpen(open))}
               currentUser={currentUser}
               onLogout={logout}
+              setActiveTab={handleTabChange}
             />
 
             <main className="flex-1 overflow-auto bg-transparent custom-scrollbar">
@@ -360,7 +361,7 @@ const App: React.FC = () => {
                           
                           {activeTab === 'map' && (
                             <ErrorBoundary>
-                              <MapModule project={currentProject!} onProjectUpdate={handleSaveProject as any} settings={appSettings} />
+                              <MapModule project={currentProject!} onProjectUpdate={handleSaveProject as any} settings={appSettings} users={users} />
                             </ErrorBoundary>
                           )}
                           
@@ -426,7 +427,9 @@ const App: React.FC = () => {
                                 onNavigate={handleTabChange}
                               />
                             )}
-                            {activeTab === 'settings' && <SettingsModule settings={appSettings} onUpdate={updateSettings} />}
+                            {activeTab === 'settings' && userRole === UserRole.ADMIN && (
+                              <SettingsModule settings={appSettings} onUpdate={updateSettings} />
+                            )}
                             {activeTab === 'staff-management' && <StaffManagementModule />}
                           </div>
                         </div>
