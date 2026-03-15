@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, startTransition } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap, LayerGroup, CircleMarker, LayersControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap, LayerGroup, CircleMarker, LayersControl, Tooltip as MapTooltip } from 'react-leaflet';
 
 const { BaseLayer, Overlay } = LayersControl;
 import { parseKML, ParsedKML, getKMLBounds } from '~/utils/kmlParser';
@@ -842,6 +842,9 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
           position={[staff.latitude, staff.longitude]}
           icon={createCustomIcon('#f59e0b', '👷')}
         >
+          <MapTooltip permanent direction="top" offset={[0, -32]} className="bg-white border-2 border-amber-500 rounded px-2 py-0.5 text-[10px] font-black uppercase text-amber-600 shadow-xl">
+            {staff.userName}
+          </MapTooltip>
           <Popup>
             <div className="p-2 min-w-[150px]">
               <h3 className="font-bold text-lg border-b pb-1 mb-2">{staff.userName}</h3>
