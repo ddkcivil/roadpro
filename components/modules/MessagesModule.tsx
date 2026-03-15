@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { User, Message } from '../../types';
-import { Send, Search, MoreVertical, Hash, Check, CheckCheck, MessageCircle, Mail, Phone, Paperclip, FileText, HardHat, Loader2, X, Download, File, Image as ImageIcon } from 'lucide-react';
+import { Send, MoreVertical, Hash, Check, CheckCheck, MessageCircle, Mail, Phone, Paperclip, FileText, HardHat, Loader2, X, Download, File } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import { Button } from '~/components/ui/button';
@@ -72,7 +72,7 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
     scrollToBottom();
   }, [scrollToBottom]);
 
-  const onScroll = ({ scrollOffset, scrollDirection, scrollUpdateWasRequested }: any) => {
+  const onScroll = ({ scrollOffset, scrollDirection }: any) => {
     // Basic logic to show jump to bottom button if we scroll up
     if (scrollDirection === 'backward' && scrollOffset > 100) {
       setShowScrollButton(true);
@@ -289,12 +289,12 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
             <div className="p-4 border-b">
                 <h2 className="text-2xl font-bold text-foreground mb-3">Messages</h2>
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
+                     <Input 
                         placeholder="Search people..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-9"
+                        aria-label="Search for people"
                     />
                 </div>
             </div>
@@ -548,6 +548,7 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                                  handleSend(e as any);
                              }
                          }}
+                         aria-label="Message input"
                      />
                      <Button 
                          type="submit" 

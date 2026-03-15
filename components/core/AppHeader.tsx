@@ -33,14 +33,12 @@ import {
 } from 'lucide-react';
 import NotificationsBadge from './NotificationsBadge';
 import { OfflineIndicator } from '../common/OfflineIndicator';
-import { Project, UserWithPermissions, StaffLocation } from '../../types';
+import { Project, UserWithPermissions } from '../../types';
 import { cn } from '~/lib/utils';
 import { toast } from 'sonner';
 
 interface AppHeaderProps {
   setSidebarOpen: (open: boolean) => void;
-  isSidebarCollapsed: boolean;
-  setIsSidebarCollapsed: (collapsed: boolean) => void;
   currentProject?: Project;
   onProjectUpdate: (project: Partial<Project>) => void;
   updateLocation: (projectId: string, lat: number, lng: number) => Promise<void>;
@@ -55,8 +53,6 @@ interface AppHeaderProps {
 
 const AppHeader: React.FC<AppHeaderProps> = React.memo(({
   setSidebarOpen,
-  isSidebarCollapsed,
-  setIsSidebarCollapsed,
   currentProject,
   onProjectUpdate,
   updateLocation,

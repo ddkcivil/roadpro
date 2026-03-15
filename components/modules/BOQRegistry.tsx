@@ -27,7 +27,6 @@ import { toast } from 'sonner';
 interface BOQManagerProps {
   project: Project;
   settings: AppSettings;
-  userRole: UserRole;
   onProjectUpdate: (project: Project) => void;
   compactView?: boolean;
 }
@@ -35,11 +34,10 @@ interface BOQManagerProps {
 const BOQRegistry: React.FC<BOQManagerProps> = ({ 
   project, 
   settings, 
-  userRole, 
   onProjectUpdate,
   compactView = false
 }) => {
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const currencySymbol = getCurrencySymbol(settings.currency);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);

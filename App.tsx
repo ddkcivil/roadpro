@@ -309,7 +309,6 @@ const App: React.FC = () => {
           
           <AppSidebar 
             isSidebarCollapsed={isSidebarCollapsed}
-            setIsSidebarCollapsed={(collapsed) => startTransition(() => setIsSidebarCollapsed(collapsed))}
             sidebarOpen={sidebarOpen}
             setSidebarOpen={(open) => startTransition(() => setSidebarOpen(open))}
             activeTab={activeTab}
@@ -324,8 +323,6 @@ const App: React.FC = () => {
           <div id="main-content" className="flex-1 flex flex-col min-w-0 relative lg:m-4 lg:ml-0 m-0 rounded-none lg:rounded-[2rem] glass overflow-hidden border-none shadow-2xl">
             <AppHeader 
               setSidebarOpen={(open) => startTransition(() => setSidebarOpen(open))}
-              isSidebarCollapsed={isSidebarCollapsed}
-              setIsSidebarCollapsed={(collapsed) => startTransition(() => setIsSidebarCollapsed(collapsed))}
               currentProject={currentProject}
               onProjectUpdate={handleSaveProject}
               updateLocation={updateLocation}

@@ -4,7 +4,7 @@ import {
     Sparkles, FileText, Loader2, 
     UploadCloud, Plus, Search, Folder, MoreVertical, Trash2, 
     ExternalLink, Image as ImageIcon, CheckCircle,
-    X
+    X, ArrowDownLeft
 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardHeader } from '~/components/ui/card';
@@ -29,7 +29,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import CommentsPanel from './CommentsPanel';
 import { ocrService } from '../../services/ai/ocrService';

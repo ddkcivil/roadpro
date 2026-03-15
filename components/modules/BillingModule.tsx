@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { Project, UserRole, AppSettings, ContractBill, BillItem, SubcontractorBill, StructureWorkLog } from '../../types';
+import { Project, AppSettings, ContractBill, BillItem, SubcontractorBill, StructureWorkLog } from '../../types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
 import {
     Receipt, Printer, Plus, Calculator,
     History, ArrowRight, ArrowLeft,
     Receipt as ReceiptIcon, FileCheck, TrendingUp,
     CheckCircle2, FileSpreadsheet,
-    Edit, Trash2
+    Edit, Trash2, AlertTriangle
 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';

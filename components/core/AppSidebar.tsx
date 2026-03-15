@@ -10,12 +10,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '~/components/ui/sheet';
 import { cn } from '~/lib/utils';
 import { NavGroup } from '~/config/navigation';
-import { UserWithPermissions } from '~/types';
+import { UserWithPermissions, UserRole } from '~/types';
 import { motion } from 'framer-motion';
 
 interface AppSidebarProps {
   isSidebarCollapsed: boolean;
-  setIsSidebarCollapsed: (collapsed: boolean) => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   activeTab: string;
@@ -43,6 +42,7 @@ const AppSidebar: React.FC<AppSidebarProps> = React.memo(({
   activeTab,
   setActiveTab,
   navGroups,
+  currentUser,
   logout,
   selectedProjectId,
   projectName

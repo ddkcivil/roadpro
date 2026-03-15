@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useTransition } from 'react';
 import { 
     Plus, ArrowLeft, HardHat, History, CheckCircle2,
-    MapPin, X, Save, Microscope, Edit2, Trash2, Package
+    MapPin, X, Save, Microscope, Edit2, Trash2, Package,
+    Clock, CheckCircle, AlertTriangle, Search, FileText
 } from 'lucide-react';
 import { 
     Project, StructureAsset, StructureType, 
@@ -184,7 +185,7 @@ const StructuralAnalytics: React.FC<{ structures: StructureAsset[] }> = ({ struc
                 paddingAngle={5}
                 dataKey="value"
               >
-                {typeDistribution.map((entry, index) => (
+                {typeDistribution.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>

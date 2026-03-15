@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, startTransition } from 'react';
 import { 
     Plus, TrendingUp, Receipt, FileDiff, X, BarChart4, FileSpreadsheet, Upload,
     Maximize2, Minimize2, AlertTriangle, CheckCircle2, Trash2
@@ -404,7 +404,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsContent value="registry">
-                    <BOQRegistry project={project} settings={settings} userRole={userRole} onProjectUpdate={onProjectUpdate} compactView={compactView} />
+                    <BOQRegistry project={project} settings={settings} onProjectUpdate={onProjectUpdate} compactView={compactView} />
                 </TabsContent>
                 
                 <TabsContent value="mb">

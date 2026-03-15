@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback, startTransition } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap, LayerGroup, CircleMarker, LayersControl, Tooltip as MapTooltip } from 'react-leaflet';
 
-const { BaseLayer, Overlay } = LayersControl;
+const { BaseLayer } = LayersControl;
 import { parseKML, ParsedKML, getKMLBounds } from '~/utils/kmlParser';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Project, StructureAsset, Vehicle, StaffLocation, LandParcel, MapOverlay, SitePhoto, LinearWorkLog, KMLData, AppSettings } from '../../types';
+import { Project, StructureAsset, Vehicle, StaffLocation, LandParcel, MapOverlay, SitePhoto, LinearWorkLog, KMLData, AppSettings, User } from '../../types';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Badge } from '~/components/ui/badge';
@@ -37,9 +37,7 @@ import {
   ChevronLeft,
   ChevronRight,
   BarChart3,
-  Trash2,
-  TrendingUp,
-  Navigation
+  Trash2
 } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import { toast } from 'sonner';
@@ -266,14 +264,6 @@ const MapCenterUpdater: React.FC<{ center: [number, number]; zoom: number }> = (
   return null;
 };
 
-const MapInstanceCapturer: React.FC<{ setMap: (map: L.Map) => void }> = ({ setMap }) => {
-  const map = useMap();
-  useEffect(() => {
-    setMap(map);
-  }, [map, setMap]);
-  return null;
-};
-
 /**
  * A simple distance measurement tool (Ruler) that allows users to click
  * consecutive points on the map to calculate the cumulative distance.
@@ -434,13 +424,12 @@ const LinearReferenceView: React.FC<{ info: { lineName: string, chainage: string
   );
 };
 
-const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, settings }) => {
+const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, settings, users = [] }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isRulerActive, setIsRulerActive] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isLiveMode, setIsLiveMode] = useState(true);
   
   const [targetBounds, setTargetBounds] = useState<L.LatLngBounds | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -620,13 +609,19 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
     });
   }, []);
 
-  // Filter online users (seen in the last 5 minutes)
-  const onlineUsers = useMemo(() => {
+  // Categorize all users by status
+  const allUsersStatus = useMemo(() => {
     const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-    return users.filter(user => {
-      if (!user.lastSeen) return false;
-      return new Date(user.lastSeen).getTime() > fiveMinutesAgo;
+    const online: User[] = [];
+    const offline: User[] = [];
+
+    users.forEach((user: User) => {
+      const isOnline = user.lastSeen && new Date(user.lastSeen).getTime() > fiveMinutesAgo;
+      if (isOnline) online.push(user);
+      else offline.push(user);
     });
+
+    return { online, offline };
   }, [users]);
 
   // Find the alignment overlay to use as a reference for chainage mapping
@@ -1304,7 +1299,7 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                             </div>
                             <div>
                               <Label className="font-bold text-sm text-slate-700">Site Personnel</Label>
-                              <p className="text-[10px] text-muted-foreground uppercase">Staff Locations</p>
+                              <p className="text-[10px] text-muted-foreground uppercase">GIS Monitoring Layer</p>
                             </div>
                           </div>
                           <Switch 
@@ -1313,29 +1308,61 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                           />
                         </div>
                         
-                        {layerVisibility.staff && onlineUsers.length > 0 && (
-                          <div className="pl-4 space-y-2 mt-2 border-l-2 border-amber-100">
-                            <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                              <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                              Currently Online ({onlineUsers.length})
-                            </p>
-                            {onlineUsers.map(user => (
-                              <div key={user.id} className="flex items-center gap-2 group">
-                                <div className="h-6 w-6 rounded-lg overflow-hidden border border-amber-100 bg-slate-100 shrink-0 shadow-sm">
-                                  {user.avatar ? (
-                                    <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
-                                  ) : (
-                                    <div className="h-full w-full flex items-center justify-center text-[8px] font-black text-amber-500">
-                                      {user.name.split(' ').map(n => n[0]).join('')}
+                        {layerVisibility.staff && (
+                          <div className="pl-4 space-y-4 mt-2 border-l-2 border-amber-100">
+                            {/* Online Section */}
+                            <div className="space-y-2">
+                              <p className="text-[9px] font-black text-green-600 uppercase tracking-widest flex items-center gap-1.5">
+                                <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                                Online ({allUsersStatus.online.length})
+                              </p>
+                              {allUsersStatus.online.length > 0 ? (
+                                allUsersStatus.online.map(user => (
+                                  <div key={user.id} className="flex items-center gap-2 group">
+                                    <div className="h-6 w-6 rounded-lg overflow-hidden border border-green-200 bg-slate-100 shrink-0 shadow-sm">
+                                      {user.avatar ? (
+                                        <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                                      ) : (
+                                        <div className="h-full w-full flex items-center justify-center text-[8px] font-black text-green-500">
+                                          {user.name.split(' ').map(n => n[0]).join('')}
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-[10px] font-bold text-slate-700 truncate leading-tight">{user.name}</p>
+                                      <p className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter truncate">{user.role}</p>
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-[8px] text-slate-400 italic">No users online</p>
+                              )}
+                            </div>
+
+                            {/* Offline Section */}
+                            <div className="space-y-2">
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+                                Offline ({allUsersStatus.offline.length})
+                              </p>
+                              {allUsersStatus.offline.length > 0 && allUsersStatus.offline.map(user => (
+                                <div key={user.id} className="flex items-center gap-2 group opacity-60 grayscale-[0.5]">
+                                  <div className="h-6 w-6 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 shrink-0">
+                                    {user.avatar ? (
+                                      <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                                    ) : (
+                                      <div className="h-full w-full flex items-center justify-center text-[8px] font-black text-slate-400">
+                                        {user.name.split(' ').map(n => n[0]).join('')}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-[10px] font-bold text-slate-500 truncate leading-tight">{user.name}</p>
+                                    <p className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter truncate">{user.role}</p>
+                                  </div>
                                 </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-[10px] font-bold text-slate-700 truncate leading-tight">{user.name}</p>
-                                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter truncate">{user.role}</p>
-                                </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>

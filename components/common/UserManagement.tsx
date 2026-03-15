@@ -1,7 +1,6 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
-import { User, UserRole } from '../../types';
+import { User } from '../../types';
 import { apiService } from '../../services/api/apiService';
-import { UserPlus, Trash2, Mail, Shield, Edit3, Upload, X } from 'lucide-react';
 
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';

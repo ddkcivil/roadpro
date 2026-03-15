@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Project, UserRole, Agency, Subcontractor, SubcontractorPayment, SubcontractorRateEntry, AppSettings } from '../../types';
+import { Project, Agency, Subcontractor, SubcontractorPayment, SubcontractorRateEntry, AppSettings } from '../../types';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Avatar } from '~/components/ui/avatar';
