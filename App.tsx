@@ -334,6 +334,7 @@ const App: React.FC = () => {
               setThemeMode={setThemeMode}
               setIsAIModalOpen={(open) => startTransition(() => setIsAIModalOpen(open))}
               currentUser={currentUser}
+              onLogout={logout}
             />
 
             <main className="flex-1 overflow-auto bg-transparent custom-scrollbar">

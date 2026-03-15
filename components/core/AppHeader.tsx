@@ -14,6 +14,23 @@ import { Badge } from '~/components/ui/badge';
 import { Separator } from '~/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuGroup, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from '~/components/ui/dropdown-menu';
+import { 
+  User, 
+  Settings, 
+  LogOut, 
+  ShieldCheck, 
+  Mail as MailIcon, 
+  Phone as PhoneIcon 
+} from 'lucide-react';
 import NotificationsBadge from './NotificationsBadge';
 import { OfflineIndicator } from '../common/OfflineIndicator';
 import { Project, UserWithPermissions, StaffLocation } from '../../types';
@@ -32,6 +49,7 @@ interface AppHeaderProps {
   setThemeMode: (mode: 'light' | 'dark') => void;
   setIsAIModalOpen: (open: boolean) => void;
   currentUser: UserWithPermissions;
+  onLogout: () => Promise<void>;
 }
 
 const AppHeader: React.FC<AppHeaderProps> = React.memo(({
@@ -45,7 +63,8 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(({
   themeMode,
   setThemeMode,
   setIsAIModalOpen,
-  currentUser
+  currentUser,
+  onLogout
 }) => {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const watchIdRef = useRef<number | null>(null);
@@ -255,18 +274,101 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(({
             </Button>
           </div>
 
-          <div className="relative group ml-2">
-            <div className="absolute -inset-1.5 bg-gradient-to-r from-primary via-indigo-500 to-violet-600 rounded-2xl blur opacity-0 group-hover:opacity-40 transition duration-700"></div>
-            <div className="h-11 w-11 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl relative transition-transform duration-500 hover:scale-105 active:scale-95 cursor-pointer">
-              <Avatar className="h-full w-full rounded-none">
-                <AvatarImage src={currentUser.avatar} />
-                <AvatarFallback className="bg-slate-900 text-white font-black text-[10px] uppercase tracking-tighter rounded-none">
-                  {currentUser.name.split(' ').map(n => n[0]).join('')}
-                </AvatarFallback>
-              </Avatar>
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>
-            </div>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className="relative group ml-2 cursor-pointer">
+                <div className="absolute -inset-1.5 bg-gradient-to-r from-primary via-indigo-500 to-violet-600 rounded-2xl blur opacity-0 group-hover:opacity-40 transition duration-700"></div>
+                <div className="h-11 w-11 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl relative transition-transform duration-500 hover:scale-105 active:scale-95">
+                  <Avatar className="h-full w-full rounded-none">
+                    <AvatarImage src={currentUser.avatar} />
+                    <AvatarFallback className="bg-slate-900 text-white font-black text-[10px] uppercase tracking-tighter rounded-none">
+                      {currentUser.name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>
+                </div>
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-80 p-0 overflow-hidden rounded-[2rem] border-none shadow-2xl glass animate-in zoom-in-95 duration-300" align="end" sideOffset={12}>
+              <div className="relative h-24 bg-gradient-to-br from-primary via-indigo-600 to-violet-700">
+                <div className="absolute inset-0 opacity-20 mesh-gradient"></div>
+                <div className="absolute -bottom-10 left-6">
+                  <div className="h-20 w-20 rounded-3xl border-4 border-white/20 shadow-2xl overflow-hidden glass">
+                    <Avatar className="h-full w-full rounded-none">
+                      <AvatarImage src={currentUser.avatar} />
+                      <AvatarFallback className="bg-slate-900 text-white font-black text-xl">
+                        {currentUser.name.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="pt-12 pb-6 px-6">
+                <div className="flex flex-col">
+                  <h3 className="text-xl font-black tracking-tighter text-foreground leading-tight">{currentUser.name}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg">
+                      {currentUser.role}
+                    </Badge>
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-green-500 uppercase tracking-widest">
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                      Active Now
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 space-y-4">
+                  <div className="flex items-center gap-4 group/item">
+                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center border border-white/10 group-hover/item:bg-primary/10 group-hover/item:text-primary transition-colors">
+                      <MailIcon className="h-4 w-4" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Network Address</span>
+                      <span className="text-sm font-bold truncate max-w-[180px]">{currentUser.email || 'not-assigned@roadmaster.os'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 group/item">
+                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center border border-white/10 group-hover/item:bg-primary/10 group-hover/item:text-primary transition-colors">
+                      <PhoneIcon className="h-4 w-4" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Secure Line</span>
+                      <span className="text-sm font-bold">{currentUser.phone || '9779800000000'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 group/item">
+                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center border border-white/10 group-hover/item:bg-emerald-500/10 group-hover/item:text-emerald-500 transition-colors">
+                      <ShieldCheck className="h-4 w-4" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Security Clearance</span>
+                      <span className="text-sm font-bold">Authenticated Terminal</span>
+                    </div>
+                  </div>
+                </div>
+
+                <DropdownMenuSeparator className="my-6 opacity-10" />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Button variant="outline" className="h-12 rounded-2xl font-black uppercase tracking-widest text-[10px] border-white/10 hover:bg-white/5">
+                    <Settings className="mr-2 h-4 w-4 opacity-40" />
+                    Settings
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="h-12 rounded-2xl font-black uppercase tracking-widest text-[10px] bg-red-500/5 hover:bg-red-500/10 text-red-500 border border-red-500/20"
+                    onClick={() => onLogout()}
+                  >
+                    <LogOut className="mr-2 h-4 w-4 opacity-40" />
+                    Disconnect
+                  </Button>
+                </div>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>
