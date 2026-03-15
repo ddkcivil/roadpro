@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { Project, UserRole, BOQItem, Permission } from '../../types';
+import React, { useState, useMemo } from 'react';
+import { Project, BOQItem, Permission } from '../../types';
 import {
   Plus, Trash2, Edit, CheckCircle, Activity, Clock, LayoutGrid, List as ListIcon, Timer, ArrowRight, TrendingUp, MapPin, Database, SearchX
 } from 'lucide-react';
@@ -11,7 +11,6 @@ import { Card, CardContent } from '~/components/ui/card';
 import { Badge } from '~/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import { Progress } from '~/components/ui/progress';
-import { Separator } from '~/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group';
 import { cn } from '~/lib/utils';
@@ -19,19 +18,16 @@ import { EmptyState } from '~/components/ui/empty-state';
 import { SearchInput } from '~/components/ui/search-input';
 import { HasPermission } from '~/components/common/HasPermission';
 import { CardGrid } from '~/components/ui/card-grid';
-import { FixedSizeList as List } from 'react-window';
-import AutoSizer from 'react-virtualized-auto-sizer';
 
 interface Props {
   projects: Project[];
-  userRole: UserRole;
   onSelectProject: (projectId: string) => void;
   onSaveProject: (project: Partial<Project>) => void;
   onDeleteProject: (id: string) => void;
   onOpenModal: (project: Partial<Project> | null) => void;
 }
 
-const ProjectsList: React.FC<Props> = ({ projects, userRole, onSelectProject, onDeleteProject, onOpenModal }) => {
+const ProjectsList: React.FC<Props> = ({ projects, onSelectProject, onDeleteProject, onOpenModal }) => {
   const [viewMode, setViewMode] = useState<'LIST' | 'GRID'>('LIST');
   const [gridSearchTerm, setGridSearchTerm] = useState('');
 

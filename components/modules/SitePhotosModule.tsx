@@ -99,12 +99,15 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole 
                 reader.readAsDataURL(tempFile);
             });
 
+            const coordsInput = (uploadForm as any).coordinates || '';
+            const finalLocation = coordsInput.trim() ? coordsInput.trim() : (uploadForm.location || 'Not Specified');
+
             const newPhoto: SitePhoto = {
                 id: `img-${Date.now()}`,
                 url: base64Data, // Store as base64 data URL
                 date: uploadForm.date!,
                 caption: uploadForm.caption || 'Site Photo',
-                location: uploadForm.location || 'Not Specified',
+                location: finalLocation,
                 category: uploadForm.category as any,
                 isAnalyzed: false
             };
@@ -325,13 +328,35 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole 
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="location" className="font-black text-[10px] uppercase tracking-widest text-slate-500">Location</Label>
+                                <Label htmlFor="location" className="font-black text-[10px] uppercase tracking-widest text-slate-500">Location (Chainage/Area)</Label>
                                 <Input
                                     id="location"
                                     value={uploadForm.location}
                                     onChange={e => setUploadForm({...uploadForm, location: e.target.value})}
                                     className="rounded-xl border-2 font-bold"
-                                    placeholder="Chainage/Area"
+                                    placeholder="e.g. Ch 12+400"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="coordinates" className="font-black text-[10px] uppercase tracking-widest text-slate-500">Coordinates (Lat, Lng)</Label>
+                                <Input
+                                    id="coordinates"
+                                    value={(uploadForm as any).coordinates || ''}
+                                    onChange={e => setUploadForm({...uploadForm, coordinates: e.target.value} as any)}
+                                    className="rounded-xl border-2 font-bold"
+                                    placeholder="27.7006, 83.4484"
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="date" className="font-black text-[10px] uppercase tracking-widest text-slate-500">Date</Label>
+                                <Input
+                                    id="date"
+                                    type="date"
+                                    value={uploadForm.date}
+                                    onChange={e => setUploadForm({...uploadForm, date: e.target.value})}
+                                    className="rounded-xl border-2 font-bold"
                                 />
                             </div>
                             <div className="space-y-2">

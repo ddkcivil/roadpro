@@ -1,37 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { 
-  CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis,
+  CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, BarChart, Bar, XAxis, YAxis,
   PieChart, Pie, Cell, LineChart, Line
 } from 'recharts';
 import { Project, AppSettings, RFIStatus, DashboardWidget } from '../../types';
-import StatCard from './StatCard';
-import { 
-  exportBOQToCSV,
-  exportStructuresToCSV,
-  exportRFIToCSV,
-  exportLabTestsToCSV,
-  exportSubcontractorPaymentsToCSV,
-  exportScheduleToCSV
-} from '../../utils/formatting/exportUtils';
 import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
 import { 
-  generateProjectSummaryPDF,
-  generateBOQPDF,
-  generateStructuresPDF,
-  generateRFIPDF
+  generateProjectSummaryPDF
 } from '../../utils/formatting/pdfUtils';
-import WeatherWidget from './WeatherWidget';
 import { 
-  Clock, CheckCircle, TrendingUp, DollarSign, 
-  Sun, Wind, Droplets,
-  Layers, Sparkles, FileText,
-  FileDown, Settings, GripVertical, ChevronDown, ChevronUp, ShieldCheck, AlertTriangle, Info, Check, ClipboardCheck,
+  Clock, TrendingUp, DollarSign, 
+  Layers, Sparkles,
+  FileDown, Settings, GripVertical, ShieldCheck, AlertTriangle, Info,
   ChevronRight,
-  Cloud,
-  Zap,
-  Loader2
+  Zap
 } from 'lucide-react';
-import { puterService } from '../../services/ai/puterService';
 
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
@@ -39,40 +22,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
 import { Checkbox } from '~/components/ui/checkbox';
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
+import { TooltipProvider } from '~/components/ui/tooltip';
 import { Separator } from '~/components/ui/separator';
-import { cn } from '~/lib/utils';
 import { motion } from 'framer-motion';
 
 interface Props {
   project: Project;
   settings: AppSettings;
-  onUpdateProject: (project: Project) => void;
+  onUpdateProject?: (project: Project) => void;
   onUpdateSettings: (settings: AppSettings) => void;
   isLoading?: boolean;
 }
 
-const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateProject, onUpdateSettings, isLoading = false }) => {
+const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSettings }) => {
   const [showWidgetSettings, setShowWidgetSettings] = useState(false);
   const [activeChart, setActiveChart] = useState<'periodic' | 'scumulative'>('scumulative');
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  const handleCloudSync = async () => {
-    if (!puterService.isAvailable()) {
-      alert("Puter.js SDK not loaded. Cloud sync unavailable.");
-      return;
-    }
-    
-    setIsSyncing(true);
-    try {
-      await puterService.syncProjectToCloud(project);
-      alert("Success! Project synced to your Puter.com cloud storage.");
-    } catch (error: any) {
-      alert("Sync failed: " + error.message);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
 
   const stats = useMemo(() => {
     if (!project || !project.boq) return { earnedValue: 0, totalPlannedValue: 0, actualCost: 0, spi: 0, cpi: 0, physPercent: 0, rfiOpen: 0, rfiClosed: 0, rfiOverdue: 0 };
@@ -212,16 +176,6 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateProj
           </div>
           
           <div className="flex items-center gap-3 bg-muted/30 p-1.5 rounded-[1.5rem] border border-border/40 backdrop-blur-md">
-            <Button 
-              variant="ghost" 
-              onClick={handleCloudSync}
-              disabled={isSyncing}
-              className="rounded-xl font-bold h-10 px-5 hover:bg-background transition-all duration-300 text-indigo-600"
-            >
-              {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Cloud className="mr-2 h-4 w-4 opacity-60" />}
-              {isSyncing ? "Syncing..." : "Cloud Sync"}
-            </Button>
-
             <Button 
               variant="ghost" 
               onClick={() => generateProjectSummaryPDF(project)} 

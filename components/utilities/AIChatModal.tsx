@@ -4,7 +4,6 @@ import { chatWithGemini, ChatMessage, isAIServiceAvailable as isGeminiAvailable 
 import { chatWithDeepSeek, isDeepSeekAvailable } from '../../services/ai/deepseekService';
 import { chatWithHuggingFace, isHuggingFaceAvailable } from '../../services/ai/huggingFaceService';
 import { chatWithOpenAI, isOpenAIAvailable } from '../../services/ai/openaiService';
-import { puterService } from '../../services/ai/puterService';
 import { Project } from '../../types';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
@@ -33,8 +32,8 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFastMode, setIsFastMode] = useState(false);
-  const [aiProvider, setAIProvider] = useState<'deepseek' | 'gemini' | 'huggingface' | 'openai' | 'puter'>(
-    puterService.isAvailable() ? 'puter' : (isOpenAIAvailable() ? 'openai' : (isDeepSeekAvailable() ? 'deepseek' : (isHuggingFaceAvailable() ? 'huggingface' : 'gemini')))
+  const [aiProvider, setAIProvider] = useState<'deepseek' | 'gemini' | 'huggingface' | 'openai'>(
+    isOpenAIAvailable() ? 'openai' : (isDeepSeekAvailable() ? 'deepseek' : (isHuggingFaceAvailable() ? 'huggingface' : 'gemini'))
   );
 
   // File Upload State
@@ -194,9 +193,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
     try {
         let response;
         
-        if (aiProvider === 'puter') {
-            response = await puterService.chat(userText || (attachment ? "Analyze this attachment." : ""), project);
-        } else if (aiProvider === 'openai') {
+        if (aiProvider === 'openai') {
             response = await chatWithOpenAI(
                 userText || (attachment ? "Analyze this attachment." : ""), 
                 newHistory,
@@ -301,7 +298,6 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
   };
 
   const isServiceAvailable = 
-    aiProvider === 'puter' ? puterService.isAvailable() :
     aiProvider === 'openai' ? isOpenAIAvailable() :
     (aiProvider === 'deepseek' ? isDeepSeekAvailable() : 
     (aiProvider === 'huggingface' ? isHuggingFaceAvailable() : isGeminiAvailable()));
@@ -329,7 +325,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
             <div>
                 <h6 className="font-bold leading-tight">RoadMaster AI</h6>
                 <div className="text-[10px] text-white/70 flex items-center gap-2">
-                    {aiProvider === 'puter' ? 'Puter Cloud AI' : (aiProvider === 'openai' ? 'OpenAI GPT-4o' : (aiProvider === 'deepseek' ? 'DeepSeek V3/R1' : (aiProvider === 'huggingface' ? 'Hugging Face' : 'Gemini 3.0 Pro')))}
+                    {aiProvider === 'openai' ? 'OpenAI GPT-4o' : (aiProvider === 'deepseek' ? 'DeepSeek V3/R1' : (aiProvider === 'huggingface' ? 'Hugging Face' : 'Gemini 3.0 Pro'))}
                     <Badge variant="outline" className="text-[8px] h-3 px-1 border-white/20 text-white/60">
                         {isFastMode ? 'High Speed' : 'High Performance'}
                     </Badge>
@@ -354,10 +350,6 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                   <DropdownMenuContent align="end" className="w-56 rounded-xl">
                       <DropdownMenuLabel>AI Intelligence Provider</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setAIProvider('puter')} className="flex items-center justify-between font-bold text-indigo-600 bg-indigo-50/50">
-                          <span>Puter Cloud AI (Free)</span>
-                          {aiProvider === 'puter' && <Zap size={14} className="text-primary fill-primary" />}
-                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setAIProvider('openai')} className="flex items-center justify-between">
                           <span>OpenAI GPT-4o (Multimodal)</span>
                           {aiProvider === 'openai' && <Zap size={14} className="text-primary fill-primary" />}
@@ -405,15 +397,13 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>AI Provider Connection Required</AlertTitle>
                     <AlertDescription>
-                        {aiProvider === 'puter'
-                          ? "Puter.js SDK failed to load. Check your internet connection or script source."
-                          : (aiProvider === 'openai' 
+                        {aiProvider === 'openai' 
                             ? "OpenAI API key is missing. Add VITE_OPENAI_API_KEY to your .env file."
                             : (aiProvider === 'deepseek' 
                               ? "DeepSeek API key is missing. Add VITE_DEEPSEEK_API_KEY to your .env file." 
                               : (aiProvider === 'huggingface' 
                                 ? "Hugging Face API key is missing. Add VITE_HUGGINGFACE_API_KEY to your .env file."
-                                : "Gemini API key is missing. Add VITE_GEMINI_API_KEY to your .env file.")))}
+                                : "Gemini API key is missing. Add VITE_GEMINI_API_KEY to your .env file."))}
                     </AlertDescription>
                 </Alert>
             )}

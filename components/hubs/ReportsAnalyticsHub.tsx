@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { 
     FileText, BarChart3, TrendingUp, AlertTriangle, CheckCircle, 
-    Filter, X, Download, Eye, FileSpreadsheet, HardHat, MapPin,
+    Filter, Download, Eye, FileSpreadsheet, MapPin,
     Clock, DollarSign, Loader2
 } from 'lucide-react';
-import { Project, UserRole, BOQItem, LabTest, RFI, RFIStatus, ScheduleTask, StructureAsset, NCR, DailyReport, AppSettings } from '../../types';
+import { Project, UserRole, BOQItem, LabTest, RFI, RFIStatus, ScheduleTask, StructureAsset, AppSettings } from '../../types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
 import { ReportingService } from '../../services/analytics/reportingService';
 

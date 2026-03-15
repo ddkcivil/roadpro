@@ -33,11 +33,10 @@ interface Props {
   userRole: UserRole;
   settings: AppSettings;
   onSelectProject: (projectId: string) => void;
-  onSaveProject: (project: Partial<Project>) => void;
   onDeleteProject: (id: string) => void;
 }
 
-const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onSelectProject, onSaveProject, onDeleteProject }) => {
+const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onSelectProject, onDeleteProject }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
 

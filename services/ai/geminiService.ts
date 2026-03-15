@@ -65,9 +65,10 @@ export const isAIServiceAvailable = (): boolean => {
   return !!(apiKey && apiKey.trim() && apiKey !== 'your_api_key_here');
 };
 
-export const analyzeSitePhoto = async (photoBase64: string, category: string): Promise<string> => {
-    if (!isAIServiceAvailable()) return "AI Service Unavailable: Gemini API Key not configured.";
+export const analyzeSitePhoto = async (photoBase64: string, category: string): Promise<{ text: string; metadata?: ChatMessage['metadata'] }> => {
+    if (!isAIServiceAvailable()) return { text: "AI Service Unavailable: Gemini API Key not configured." };
 
+    const startTime = Date.now();
     try {
         return await runWithFallback(async (model, modelName) => {
             const prompt = `Analyze this site photo from a road project. Category: "${category}". Identify progress and safety issues.`;
@@ -80,10 +81,19 @@ export const analyzeSitePhoto = async (photoBase64: string, category: string): P
                     ]
                 }]
             });
-            return result.response.text();
+            const endTime = Date.now();
+            return {
+                text: result.response.text(),
+                metadata: {
+                    timestamp: endTime,
+                    model: modelName,
+                    processingTime: endTime - startTime,
+                    provider: 'gemini'
+                }
+            };
         });
     } catch (err: any) {
-        return `Analysis failed: ${err.message || "Unknown Gemini error"}`;
+        return { text: `Analysis failed: ${err.message || "Unknown Gemini error"}` };
     }
 };
 
@@ -92,15 +102,25 @@ export const analyzeProjectStatus = async (
   rfis: RFI[],
   schedule: ScheduleTask[],
   userQuery: string
-): Promise<string> => {
-  if (!isAIServiceAvailable()) return "AI Service Unavailable.";
+): Promise<{ text: string; metadata?: ChatMessage['metadata'] }> => {
+  if (!isAIServiceAvailable()) return { text: "AI Service Unavailable." };
 
+  const startTime = Date.now();
   const context = `Analyze project: BOQ items: ${boq.length}, Open RFIs: ${rfis.filter(r => r.status === 'Open').length}. Query: ${userQuery}`;
 
   return runWithFallback(async (model, modelName) => {
     const result = await model.generateContent(context);
-    return result.response.text();
-  }).catch(() => "Project analysis currently unavailable due to high traffic.");
+    const endTime = Date.now();
+    return {
+        text: result.response.text(),
+        metadata: {
+            timestamp: endTime,
+            model: modelName,
+            processingTime: endTime - startTime,
+            provider: 'gemini'
+        }
+    };
+  }).catch(() => ({ text: "Project analysis currently unavailable due to high traffic." }));
 };
 
 export interface ChatMessage {

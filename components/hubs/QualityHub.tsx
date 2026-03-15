@@ -33,7 +33,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/component
 
 interface Props {
   project: Project;
-  userRole: UserRole;
   onProjectUpdate: (project: Project) => void;
 }
 

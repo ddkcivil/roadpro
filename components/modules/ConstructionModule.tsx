@@ -1,8 +1,7 @@
 import React, { useState, useMemo, useTransition } from 'react';
 import { 
     Plus, ArrowLeft, HardHat, History, CheckCircle2,
-    MapPin, X, Save, Microscope, FileText, Edit2, Trash2,
-    Users, Package, AlertTriangle, CheckCircle, Clock, Search
+    MapPin, X, Save, Microscope, Edit2, Trash2, Package
 } from 'lucide-react';
 import { 
     Project, StructureAsset, StructureType, 

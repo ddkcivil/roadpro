@@ -4,9 +4,7 @@ import { sqliteService } from '../../services/database/sqliteService';
 import { DataSyncService } from '../../services/database/dataSyncService';
 
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Input } from '~/components/ui/input';
-import { Label } from '~/components/ui/label';
+import { Card, CardContent } from '~/components/ui/card';
 import {
   Table,
   TableBody,
@@ -19,7 +17,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Textarea } from '~/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { ScrollArea } from '~/components/ui/scroll-area';
-import { cn } from '~/lib/utils';
 
 
 // NOTE: This is a refactored version of the DataAnalysisModule component.
@@ -31,7 +28,7 @@ const DataAnalysisModule: React.FC = () => {
   const [projects, setProjects] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [queryResults, setQueryResults] = useState<any[]>([]);

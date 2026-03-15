@@ -5,7 +5,7 @@ import {
     Receipt, Printer, Plus, Calculator,
     History, ArrowRight, ArrowLeft,
     Receipt as ReceiptIcon, FileCheck, TrendingUp,
-    AlertTriangle, CheckCircle2, FileSpreadsheet,
+    CheckCircle2, FileSpreadsheet,
     Edit, Trash2
 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
@@ -24,7 +24,6 @@ import { Separator } from '~/components/ui/separator';
 
 interface Props {
   project: Project;
-  userRole: UserRole;
   settings: AppSettings;
   onProjectUpdate: (project: Project) => void;
 }

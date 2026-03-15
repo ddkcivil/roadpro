@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Project, UserRole, ProjectDocument, DocumentVersion } from '../../types';
 import { 
-    Sparkles, FileText, Loader2, User, ArrowDownLeft, 
-    UploadCloud, File, Plus, Search, Folder, MoreVertical, Trash2, 
+    Sparkles, FileText, Loader2, 
+    UploadCloud, Plus, Search, Folder, MoreVertical, Trash2, 
     ExternalLink, Image as ImageIcon, CheckCircle,
     X
 } from 'lucide-react';
@@ -29,7 +29,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import CommentsPanel from './CommentsPanel';
 import { ocrService } from '../../services/ai/ocrService';

@@ -1,11 +1,10 @@
 import React, { memo } from 'react';
 import { HardHat, Sun, Moon, LogOut, Loader2, Database, RefreshCw } from '@/components/icons';
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card, CardContent } from '~/components/ui/card';
 import { Toggle } from '~/components/ui/toggle';
 import { Badge } from '~/components/ui/badge';
 import { Project, UserRole } from '../../types';
-import { cn } from '~/lib/utils';
 import ProjectsList from './ProjectsList';
 
 interface Props {

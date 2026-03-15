@@ -5,7 +5,6 @@ import { useNotifications } from '../../contexts/NotificationContext';
 import { Button } from '~/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger } from '~/components/ui/dropdown-menu';
 import { ScrollArea } from '~/components/ui/scroll-area';
-import { Tooltip, TooltipContent } from '~/components/ui/tooltip';
 import { cn } from '~/lib/utils';
 
 

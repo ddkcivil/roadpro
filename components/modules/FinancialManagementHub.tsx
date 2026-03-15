@@ -35,7 +35,6 @@ import {
 
 interface Props {
   project: Project;
-  userRole: UserRole;
   settings: AppSettings;
   onProjectUpdate: (project: Project) => void;
 }

@@ -122,7 +122,7 @@ const handleSaveTree = (e: React.FormEvent<HTMLFormElement>) => {
                                 <span className="text-4xl font-bold text-green-800">{treeStats.planted}</span>
                                 <span className="text-lg text-gray-500">/ {treeStats.target}</span>
                             </div>
-                            <Progress value={treeStats.target > 0 ? (treeStats.planted / treeStats.target) * 100 : 0} className="h-2" indicatorClassName="bg-green-600" />
+                            <Progress value={treeStats.target > 0 ? (treeStats.planted / treeStats.target) * 100 : 0} className="h-2" />
                             <p className="text-xs text-gray-500 mt-2">Based on {treeStats.removed} trees cleared along the alignment.</p>
                         </CardContent>
                     </Card>
@@ -228,7 +228,7 @@ const handleSaveTree = (e: React.FormEvent<HTMLFormElement>) => {
 
             {/* Tree Modal */}
             <Dialog open={isTreeModalOpen} onOpenChange={setIsTreeModalOpen}>
-                <DialogContent className="sm:max-w-md" asChild={false}>
+                <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>Log Tree Clearing</DialogTitle>
                         <DialogDescription>
@@ -263,7 +263,7 @@ const handleSaveTree = (e: React.FormEvent<HTMLFormElement>) => {
             
             {/* Sprinkling Modal */}
             <Dialog open={isSprinkleModalOpen} onOpenChange={setIsSprinkleModalOpen}>
-                <DialogContent className="sm:max-w-md" asChild={false}>
+                <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>Record Sprinkling Cycle</DialogTitle>
                         <DialogDescription>

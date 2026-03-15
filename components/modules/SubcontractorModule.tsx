@@ -20,11 +20,10 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
 import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
-import { cn } from '~/lib/utils'; // Assuming cn utility is available for conditional classes
+import { cn } from '~/lib/utils';
 
 interface Props {
   project: Project;
-  userRole: UserRole;
   settings?: AppSettings;
   onProjectUpdate: (project: Project) => void;
 }

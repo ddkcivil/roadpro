@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useTransition } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
     Plus, TrendingUp, Receipt, FileDiff, X, BarChart4, FileSpreadsheet, Upload,
     Maximize2, Minimize2, AlertTriangle, CheckCircle2, Trash2
@@ -41,7 +41,6 @@ interface Props {
 }
 
 const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpdate }) => {
-    const [, startTransition] = useTransition();
     const [activeTab, setActiveTab] = useState("registry");
     const [isVOModalOpen, setIsVOModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);

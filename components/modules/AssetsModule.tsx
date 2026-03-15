@@ -13,7 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/comp
 import { Badge } from "~/components/ui/badge"
 import {
     CheckCircle2, Plus,
-    Trash2, Save, Edit, Car, Fuel, Gauge, Wrench, QrCode
+    Trash2, Save, Edit, Car, Gauge, Wrench, QrCode
 } from 'lucide-react';
 
 interface Props {
@@ -35,6 +35,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
     chainage: '',
     gpsLocation: undefined
   });
+  const [coords, setCoords] = useState({ lat: '', lng: '' });
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   
   const assets = project.vehicles || [];
@@ -54,6 +55,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
       driver: '',
       chainage: ''
     });
+    setCoords({ lat: '', lng: '' });
     setEditingAssetId(null);
     setIsAssetModalOpen(true);
   };
@@ -68,6 +70,10 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
       agencyId: asset.agencyId || '',
       chainage: asset.chainage,
       gpsLocation: asset.gpsLocation
+    });
+    setCoords({
+      lat: asset.gpsLocation?.latitude?.toString() || '',
+      lng: asset.gpsLocation?.longitude?.toString() || ''
     });
     setEditingAssetId(asset.id);
     setIsAssetModalOpen(true);
@@ -107,6 +113,14 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
       return;
     }
 
+    const lat = parseFloat(coords.lat);
+    const lng = parseFloat(coords.lng);
+    const gpsLocation = (!isNaN(lat) && !isNaN(lng)) ? {
+      latitude: lat,
+      longitude: lng,
+      timestamp: new Date().toISOString()
+    } : undefined;
+
     if (editingAssetId) {
       // Update existing asset
       const updatedAssets = assets.map(asset => 
@@ -116,7 +130,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
               ...assetForm,
               agencyId: assetForm.agencyId || undefined,
               chainage: assetForm.chainage,
-              gpsLocation: assetForm.gpsLocation
+              gpsLocation: gpsLocation || assetForm.gpsLocation
             } 
           : asset
       );
@@ -142,7 +156,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
         driver: assetForm.driver || '',
         agencyId: assetForm.agencyId || undefined,
         chainage: assetForm.chainage,
-        gpsLocation: assetForm.gpsLocation
+        gpsLocation: gpsLocation
       };
       
       onProjectUpdate({
@@ -159,6 +173,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
       driver: '',
       chainage: ''
     });
+    setCoords({ lat: '', lng: '' });
     setEditingAssetId(null);
   };
 
@@ -400,6 +415,30 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
                 onChange={(e) => setAssetForm({ ...assetForm, chainage: e.target.value })}
                 className="col-span-3"
                 placeholder="e.g., 12+400"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="lat" className="text-right">
+                Latitude
+              </Label>
+              <Input
+                id="lat"
+                value={coords.lat}
+                onChange={(e) => setCoords({ ...coords, lat: e.target.value })}
+                className="col-span-3"
+                placeholder="e.g., 27.7006"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="lng" className="text-right">
+                Longitude
+              </Label>
+              <Input
+                id="lng"
+                value={coords.lng}
+                onChange={(e) => setCoords({ ...coords, lng: e.target.value })}
+                className="col-span-3"
+                placeholder="e.g., 83.4484"
               />
             </div>
           </div>

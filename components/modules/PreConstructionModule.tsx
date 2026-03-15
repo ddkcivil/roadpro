@@ -1,24 +1,20 @@
 import React, { useState } from 'react';
 import { 
-    Plus, Calendar, Bell, Target, Trash2, AlertTriangle, 
-    CheckCircle2, Clock, MapPin, Filter, Search, X, ChevronDown
+    Plus, Calendar, Target, Trash2, AlertTriangle, 
+    CheckCircle2, X
 } from 'lucide-react';
 import { Project, PreConstructionTask } from '../../types';
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
+import { Card, CardContent } from '~/components/ui/card';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Progress } from '~/components/ui/progress';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { toast } from 'sonner';
 import { Badge } from '~/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { Textarea } from '~/components/ui/textarea';
-import { Separator } from '~/components/ui/separator';
 
 interface Props {
   project: Project;

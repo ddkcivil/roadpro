@@ -1,11 +1,11 @@
-import React, { useState, useEffect, ChangeEvent, useMemo } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { User, UserRole } from '../../types';
 import { apiService } from '../../services/api/apiService';
 import { UserPlus, Trash2, Mail, Shield, Edit3, Upload, X } from 'lucide-react';
 
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
@@ -19,7 +19,6 @@ import {
 } from "~/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
-import { Checkbox } from '~/components/ui/checkbox';
 import { compressImage } from '../../utils/data/imageUtils';
 
 

@@ -15,7 +15,7 @@ import { Label } from '~/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
+import { Avatar } from '~/components/ui/avatar';
 import { Badge } from '~/components/ui/badge';
 import { useToast } from '~/components/ui/use-toast';
 
