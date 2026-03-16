@@ -325,7 +325,6 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                                 <div className="space-y-1">
                                     <p><span className="font-bold">RFI NO:</span> {pendingRFI?.rfiNumber}</p>
                                     <p><span className="font-bold">DATE:</span> {pendingRFI?.date}</p>
-                                    {/* Added boqItemNo and contractNo from pendingRFI if available */}
                                     {pendingRFI?.boqItemNo && <p><span className="font-bold">BOQ Item No:</span> {pendingRFI.boqItemNo}</p>}
                                     {pendingRFI?.contractNo && <p><span className="font-bold">Contract No:</span> {pendingRFI.contractNo}</p>}
                                 </div>
@@ -370,7 +369,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                             Continue to Final Production <ChevronDown className="ml-2 h-4 w-4" />
                         </Button>
                     </DialogFooter>
-                </Dialog>
+                </DialogContent>
             </Dialog>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
