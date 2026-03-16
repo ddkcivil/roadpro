@@ -2,9 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { 
     FileText, BarChart3, TrendingUp, AlertTriangle, CheckCircle, 
     Filter, Download, Eye, FileSpreadsheet, MapPin,
-    Clock, DollarSign, Loader2
+    Clock, DollarSign, Loader2, HardHat
 } from 'lucide-react';
-import { Project, UserRole, BOQItem, LabTest, RFI, RFIStatus, ScheduleTask, StructureAsset, AppSettings } from '../../types';
+import { Project, UserRole, BOQItem, LabTest, RFI, RFIStatus, ScheduleTask, StructureAsset, AppSettings, DailyReport } from '../../types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
 import { ReportingService } from '../../services/analytics/reportingService';
 

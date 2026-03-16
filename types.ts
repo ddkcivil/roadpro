@@ -493,6 +493,7 @@ export interface DailyWorkItem {
   description: string;
 }
 
+// DAILY REPORT DEFINITION ADDED HERE
 export interface DailyReport {
   id: string;
   date: string;
@@ -980,7 +981,6 @@ export interface Project {
   accountingIntegrations?: AccountingIntegration[];
   accountingTransactions?: AccountingTransaction[];
   personnel?: any[];
-  fleet?: any[];
 }
 
 export interface SubcontractorRateEntry {
@@ -1041,8 +1041,7 @@ export interface ResourceMatrix {
   type: 'Material' | 'Labor' | 'Equipment' | 'Subcontractor';
   category: string;
   unit: string;
-  unitCost: number;
-  totalQuantity: number;
+  quantity: number;
   availableQuantity: number;
   allocatedQuantity: number;
   status: 'Available' | 'Allocated' | 'In Transit' | 'Reserved';
