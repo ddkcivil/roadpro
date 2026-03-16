@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Project, AppSettings, ContractBill, BillItem, SubcontractorBill, StructureWorkLog } from '../../types';
+import { Project, AppSettings, ContractBill, BillItem, SubcontractorBill, StructureWorkLog, UserRole } from '../../types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
 import {
     Receipt, Printer, Plus, Calculator,
@@ -25,10 +25,11 @@ import { Separator } from '~/components/ui/separator';
 interface Props {
   project: Project;
   settings: AppSettings;
+  userRole: UserRole;
   onProjectUpdate: (project: Project) => void;
 }
 
-const BillingModule: React.FC<Props> = ({ project, settings, onProjectUpdate }) => {
+const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpdate }) => {
     const [selectedIpcId, setSelectedIpcId] = useState<string | null>(null);
     const [selectedSubcontractorBillId, setSelectedSubcontractorBillId] = useState<string | null>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);

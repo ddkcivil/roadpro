@@ -12,8 +12,7 @@ import {
   Clock, TrendingUp, DollarSign, 
   Layers, Sparkles,
   FileDown, Settings, GripVertical, ShieldCheck, AlertTriangle, Info,
-  ChevronRight,
-  Zap
+  ChevronRight
 } from 'lucide-react';
 
 import { Button } from '~/components/ui/button';
@@ -255,7 +254,7 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="12 12" stroke="currentColor" vertical={false} opacity={0.05} />
-                    <XAxis dataKey="name" stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} fontBold="900" dy={15} />
+                    <XAxis dataKey="name" stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} dy={15} />
                     <YAxis stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${currency}${v/1000}k`} dx={-15} />
                     <RechartsTooltip 
                       contentStyle={{ 
@@ -269,16 +268,16 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
                       itemStyle={{ fontSize: '12px', fontWeight: '900', color: '#fff' }}
                     />
                     <Line type="monotone" name="Planned" dataKey="Cumulative Planned" stroke="currentColor" strokeWidth={4} dot={false} strokeOpacity={0.1} />
-                    <Line type="monotone" name="Earned" dataKey="Cumulative Earned" stroke="hsl(var(--primary))" strokeWidth={6} dot={{ r: 0 }} activeDot={{ r: 8, strokeWidth: 0, shadow: '0 0 30px hsl(var(--primary))' }} />
+                    <Line type="monotone" name="Earned" dataKey="Cumulative Earned" stroke="hsl(var(--primary))" strokeWidth={6} dot={{ r: 0 }} activeDot={{ r: 8, strokeWidth: 0 }} />
                   </LineChart>
                 ) : (
                   <BarChart data={financialChartData}>
                     <CartesianGrid strokeDasharray="12 12" stroke="currentColor" vertical={false} opacity={0.05} />
-                    <XAxis dataKey="name" stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} fontBold="900" dy={15} />
+                    <XAxis dataKey="name" stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} dy={15} />
                     <YAxis stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${currency}${v/1000}k`} dx={-15} />
                     <RechartsTooltip contentStyle={{ borderRadius: '24px', border: 'none', backgroundColor: 'rgba(15,23,42,0.9)', backdropFilter: 'blur(20px)' }} />
                     <Bar dataKey="Planned Value" name="Planned" fill="currentColor" opacity={0.1} radius={[12, 12, 0, 0]} />
-                    <Bar dataKey="Earned Value" name="Actual" fill="hsl(var(--primary))" radius={[12, 12, 0, 0]} shadow="0 10px 20px rgba(79,70,229,0.3)" />
+                    <Bar dataKey="Earned Value" name="Actual" fill="hsl(var(--primary))" radius={[12, 12, 0, 0]} />
                   </BarChart>
                 )}
               </ResponsiveContainer>

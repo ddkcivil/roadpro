@@ -1,5 +1,5 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
-import { User } from '../../types';
+import { User, UserRole } from '../../types';
 import { apiService } from '../../services/api/apiService';
 
 import { Button } from '~/components/ui/button';
@@ -17,11 +17,9 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
-import { Badge } from "~/components/ui/badge";
+import { Badge } from '~/components/ui/badge';
 import { compressImage } from '../../utils/data/imageUtils';
-
-
-
+import { UserPlus, Mail, Shield, X, Edit3, Trash2, Upload } from 'lucide-react';
 
 const UserManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -30,9 +28,9 @@ const UserManagement: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [newUser, setNewUser] = useState({ 
-    name: '', 
-    email: '', 
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
     role: UserRole.SITE_ENGINEER as UserRole,
     phone: ''
   });
@@ -54,18 +52,18 @@ const UserManagement: React.FC = () => {
         setLoading(false);
       }
     };
-    
+
     loadData();
   }, []);
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newUser.name.trim()) { alert('User name is required'); return; }
     if (!newUser.email.trim()) { alert('Email is required'); return; }
     if (!/^[\w\.-]+@[\w\.-]+\.[a-zA-Z]{2,}$/.test(newUser.email)) { alert('Please enter a valid email address'); return; }
     if (newUser.phone && !/^\+?[1-9][\d\-\s]{8,}$/.test(newUser.phone)) { alert('Please enter a valid phone number'); return; }
-    
+
     try {
       const user = await apiService.createUser({
         name: newUser.name,
@@ -75,7 +73,7 @@ const UserManagement: React.FC = () => {
         avatar: previewUrl || undefined,
         password: 'ChangeMe123!' // Default password for new users created by admin
       } as any);
-      
+
       setUsers(prev => [...prev, user]);
       setIsModalOpen(false);
       setNewUser({ name: '', email: '', role: UserRole.SITE_ENGINEER, phone: '' });
@@ -89,13 +87,13 @@ const UserManagement: React.FC = () => {
   const handleEditUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) return;
-    
+
     if (!editingUser.name.trim()) { alert('User name is required'); return; }
     if (!editingUser.email.trim()) { alert('Email is required'); return; }
     if (!/^[\w\.-]+@[\w\.-]+\.[a-zA-Z]{2,}$/.test(editingUser.email)) { alert('Please enter a valid email address'); return; }
     if (editingUser.phone && !/^\+?[1-9][\d\-\s]{8,}$/.test(editingUser.phone)) { alert('Please enter a valid phone number'); return; }
-    
-    const duplicate = users.some(u => 
+
+    const duplicate = users.some(u =>
       u.id !== editingUser.id && u.email.toLowerCase() === editingUser.email.toLowerCase()
     );
       if (duplicate) { alert(`Duplicate: A user with email "${(editingUser.email ?? '').toLowerCase()}" already exists.`); return; }
@@ -147,12 +145,12 @@ const UserManagement: React.FC = () => {
     if (file) {
       setAvatarFile(file);
       const reader = new FileReader();
-      reader.onloadend = async () => { 
+      reader.onloadend = async () => {
         const base64 = reader.result as string;
         try {
           // Compress image to save space in localStorage/MongoDB
           const compressed = await compressImage(base64, 200, 200, 0.6);
-          setPreviewUrl(compressed); 
+          setPreviewUrl(compressed);
         } catch (err) {
           console.error("Compression failed, using original", err);
           setPreviewUrl(base64);
@@ -166,7 +164,7 @@ const UserManagement: React.FC = () => {
     setAvatarFile(null);
     setPreviewUrl(null);
   };
-  
+
   const approveUser = async (pendingUser: any) => {
     try {
       const newUser = await apiService.approveRegistration(pendingUser.id);
@@ -177,7 +175,7 @@ const UserManagement: React.FC = () => {
       alert(error.message || 'Failed to approve user');
     }
   };
-  
+
   const rejectUser = async (pendingUser: any) => {
     if (window.confirm(`Are you sure you want to reject ${pendingUser?.name ?? 'this user'}'s registration?`)) {
       try {
@@ -209,7 +207,7 @@ const UserManagement: React.FC = () => {
           <p className="text-lg text-muted-foreground">Loading user data...</p>
         </div>
       )}
-      
+
       {!loading && (
         <>
           <div className="flex justify-between mb-4 items-center">
@@ -229,7 +227,7 @@ const UserManagement: React.FC = () => {
               )}
             </div>
           </div>
-          
+
           {/* Pending Users Section */}
           {pendingUsers.length > 0 && (
             <Card className="mb-6 border-amber-300">

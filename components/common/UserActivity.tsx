@@ -5,7 +5,6 @@ import { AuditLog, UserRole } from '../../types';
 import { 
   Search, 
   RefreshCcw, 
-  Filter, 
   FileText, 
   User, 
   Calendar,
@@ -15,7 +14,7 @@ import {
 } from 'lucide-react';
 
 import { Button } from '~/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Card, CardContent } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import {

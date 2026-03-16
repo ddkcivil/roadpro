@@ -1,10 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { 
-    FileDiff, Plus, Trash2, Save, X, 
-    CheckCircle2, AlertTriangle, TrendingUp, History, 
-    Calculator, Receipt,
-    CheckCircle, Clock, FileEdit, Send, FileX, Calendar
+    FileDiff, Plus, Trash2, Save, X
 } from 'lucide-react';
 import { Project, UserRole, AppSettings, VariationOrder, VariationItem, WorkCategory } from '../../types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';

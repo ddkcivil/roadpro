@@ -33,10 +33,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/component
 
 interface Props {
   project: Project;
+  userRole: UserRole;
   onProjectUpdate: (project: Project) => void;
 }
 
-const QualityHub: React.FC<Props> = ({ project }) => {
+const QualityHub: React.FC<Props> = ({ project, userRole }) => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedSection, setExpandedSection] = useState<string | null>(null);

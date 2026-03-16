@@ -20,8 +20,6 @@ const projectFormSchema = z.object({
   contractNo: z.string().optional(),
 });
 
-type ProjectFormData = z.infer<typeof projectFormSchema>;
-
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -58,7 +56,7 @@ const ProjectModal: React.FC<Props> = ({ open, onClose, onSave, project }) => {
     } catch (err) {
       if (err instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
-        err.errors.forEach((e) => {
+        err.issues.forEach((e: any) => {
           if (e.path[0]) {
             newErrors[e.path[0].toString()] = e.message;
           }

@@ -51,6 +51,8 @@ describe('AppHeader', () => {
       permissions: [],
       avatar: '',
     } as any,
+    onLogout: vi.fn(),
+    setActiveTab: vi.fn(),
   };
 
   it('renders project name and code', () => {

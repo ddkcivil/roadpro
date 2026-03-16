@@ -36,10 +36,11 @@ import {
 interface Props {
   project: Project;
   settings: AppSettings;
+  userRole: UserRole;
   onProjectUpdate: (project: Project) => void;
 }
 
-const FinancialManagementHub: React.FC<Props> = ({ project, settings, onProjectUpdate }) => {
+const FinancialManagementHub: React.FC<Props> = ({ project, settings, userRole, onProjectUpdate }) => {
   const [activeTab, setActiveTab] = useState("overview");
   
   if (!project) {

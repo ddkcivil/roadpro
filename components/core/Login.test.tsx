@@ -14,25 +14,25 @@ vi.mock('../../services/api/apiService', () => ({
 
 describe('Login Component', () => {
   const mockOnLogin = vi.fn();
+  const mockOnShowRegistration = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('renders sign in form by default', () => {
-    render(<Login onLogin={mockOnLogin} />);
+    render(<Login onLogin={mockOnLogin} onShowRegistration={mockOnShowRegistration} />);
     expect(screen.getByText(/Sign In/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
   });
 
   it('shows error for invalid email format', async () => {
-    render(<Login onLogin={mockOnLogin} />);
+    render(<Login onLogin={mockOnLogin} onShowRegistration={mockOnShowRegistration} />);
     
     const emailInput = screen.getByLabelText(/Email/i);
     const passwordInput = screen.getByLabelText(/Password/i);
-    const submitButton = screen.getByRole('button', { name: /Continue/i });
-
+    
     fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
     fireEvent.change(passwordInput, { target: { value: 'password123' } });
     
@@ -54,7 +54,7 @@ describe('Login Component', () => {
       csrfToken: 'mock-csrf-token'
     });
 
-    render(<Login onLogin={mockOnLogin} />);
+    render(<Login onLogin={mockOnLogin} onShowRegistration={mockOnShowRegistration} />);
     
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: 'test@example.com' } });
     fireEvent.change(screen.getByLabelText(/Password/i), { target: { value: 'password123' } });
@@ -66,7 +66,7 @@ describe('Login Component', () => {
   });
 
   it('switches to register view', () => {
-    render(<Login onLogin={mockOnLogin} />);
+    render(<Login onLogin={mockOnLogin} onShowRegistration={mockOnShowRegistration} />);
     
     const registerButton = screen.getByRole('button', { name: /Create Account/i });
     fireEvent.click(registerButton);

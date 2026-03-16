@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense, startTransition, useCallback } from 'react';
 import { Loader2, Database, Mail, Info } from 'lucide-react';
-import { Project, User } from './types';
+import { Project, User, UserRole, Permission } from './types';
 import { LocalStorageUtils } from './utils/data/localStorageUtils';
 import { getNavigationGroups } from './config/navigation';
 import { useAuth } from './hooks/useAuth';
@@ -74,7 +74,6 @@ import DashboardSkeleton from './components/core/DashboardSkeleton';
 import { PageTransition } from './components/common/PageTransition';
 import { AnimatePresence } from 'framer-motion';
 import { ProtectedTab } from './components/common/ProtectedTab';
-import { Permission } from './types';
 
 const LoadingScreen: React.FC<{ onReset?: () => void; status?: string }> = ({ onReset, status }) => {
   const [showWarning, setShowWarning] = useState(false);

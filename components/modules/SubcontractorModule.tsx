@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Project, Agency, Subcontractor, SubcontractorPayment, SubcontractorRateEntry, AppSettings } from '../../types';
+import { Project, Agency, Subcontractor, SubcontractorPayment, SubcontractorRateEntry, AppSettings, UserRole } from '../../types';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Avatar } from '~/components/ui/avatar';
@@ -25,10 +25,11 @@ import { cn } from '~/lib/utils';
 interface Props {
   project: Project;
   settings?: AppSettings;
+  userRole: UserRole;
   onProjectUpdate: (project: Project) => void;
 }
 
-const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, settings }) => {
+const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, settings, userRole }) => {
   const [activeTab, setActiveTab] = useState("0"); // Use string for Shadcn Tabs value
   const [isSubcontractorModalOpen, setIsSubcontractorModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);

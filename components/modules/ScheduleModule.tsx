@@ -2,8 +2,8 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Project, ScheduleTask, UserRole, TaskDependency, ResourceAllocation, Milestone, RFI } from '../../types';
 import {
     Plus, Edit2, Trash2, Search, LayoutList,
-    BarChartHorizontal, Save, Calendar, ChevronLeft, ChevronRight,
-    GripVertical, AlertCircle, Info, ZoomIn, ZoomOut, Maximize,
+    BarChartHorizontal, Save, Calendar,
+    AlertCircle, Info, ZoomIn, ZoomOut, Maximize,
     FileCheck, Clock, CheckCircle, Layers, Flag
 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
@@ -11,8 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '~/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableRow } from '~/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '~/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { Badge } from '~/components/ui/badge';
 import { Slider } from '~/components/ui/slider';
@@ -21,10 +21,9 @@ import StatCard from '../core/StatCard';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
 import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
 import { cn } from '~/lib/utils';
-import { Separator } from '~/components/ui/separator';
 import { Switch } from '~/components/ui/switch';
 import { Progress } from '~/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'; // Shadcn Tabs
+import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs'; // Shadcn Tabs
 
 interface Props {
     project: Project;
