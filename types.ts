@@ -576,8 +576,17 @@ export interface LinearWorkLog {
   date: string;
   side: 'LHS' | 'RHS' | 'Both';
   quantity?: number; // Added: Quantity of work performed
+  plannedQuantity?: number; // Added: Planned quantity for this stretch
   quantityUnit?: string; // Added: Unit of measurement for quantity (e.g., 'm3', 'tons', 'sqm')
   status: 'In Progress' | 'Completed';
+  changeLog?: {
+    date: string;
+    userId: string;
+    userName: string;
+    field: string;
+    oldValue: any;
+    newValue: any;
+  }[];
 }
 
 export interface Subcontractor {
