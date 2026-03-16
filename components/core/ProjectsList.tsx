@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Project, BOQItem, Permission } from '../../types';
+import { Project, BOQItem, Permission, UserRole } from '../../types';
 import {
   Plus, Trash2, Edit, CheckCircle, Activity, Clock, LayoutGrid, List as ListIcon, Timer, ArrowRight, TrendingUp, MapPin, Database, SearchX
 } from 'lucide-react';
@@ -25,9 +25,10 @@ interface Props {
   onSaveProject: (project: Partial<Project>) => void;
   onDeleteProject: (id: string) => void;
   onOpenModal: (project: Partial<Project> | null) => void;
+  userRole: UserRole;
 }
 
-const ProjectsList: React.FC<Props> = ({ projects, onSelectProject, onDeleteProject, onOpenModal }) => {
+const ProjectsList: React.FC<Props> = ({ projects, onSelectProject, onDeleteProject, onOpenModal, userRole }) => {
   const [viewMode, setViewMode] = useState<'LIST' | 'GRID'>('LIST');
   const [gridSearchTerm, setGridSearchTerm] = useState('');
 

@@ -1,10 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { 
-    Shield, ShieldCheck, AlertTriangle, FileText, Activity, TrendingUp, 
-    Eye, Printer, Filter, Plus, Flame,
+    Shield, ShieldCheck, AlertTriangle, FileText, Activity, TrendingUp,
+    Eye, Printer, Filter, Plus, Flame, Info,
     ChevronDown, Scale, MapPin, History
-} from 'lucide-react';
-import { Project, UserRole } from '../../types';
+    } from 'lucide-react';import { Project, UserRole } from '../../types';
 
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';

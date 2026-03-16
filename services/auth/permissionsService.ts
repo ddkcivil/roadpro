@@ -102,7 +102,7 @@ export class PermissionsService {
       ]
     },
     {
-      role: UserRole.CONTRACTOR,
+      role: UserRole.HSE_OFFICER,
       permissions: [
         Permission.PROJECT_READ,
         Permission.SCHEDULE_READ,

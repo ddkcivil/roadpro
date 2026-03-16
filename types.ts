@@ -20,7 +20,7 @@ export enum UserRole {
   PROJECT_MANAGER = 'Project Manager',
   SITE_ENGINEER = 'Site Engineer',
   LAB_TECHNICIAN = 'Lab Technician',
-  CONTRACTOR = 'Contractor',
+  HSE_OFFICER = 'HSE Officer',
   SUBCONTRACTOR = 'Subcontractor',
   SUPERVISOR = 'Supervisor'
 }
@@ -649,6 +649,26 @@ export interface ContractBill {
   totalAmountPayable?: number;
 }
 
+export interface BillItem {
+  id: string;
+  boqItemId: string;
+  itemNo?: string;
+  description: string;
+  unit: string;
+  quantity: number;
+  rate: number;
+  amount: number;
+  contractQuantity?: number;
+  previousQuantity?: number;
+  currentQuantity?: number;
+  uptoDateQuantity?: number;
+  previousAmount?: number;
+  currentAmount?: number;
+  uptoDateAmount?: number;
+  totalQuantity?: number;
+  totalAmount?: number;
+}
+
 export interface MeasurementSheetEntry {
   id: string;
   boqItemId: string;
@@ -749,6 +769,18 @@ export interface AgencyBillItem {
   quantity: number;
   rate: number;
   amount: number;
+}
+
+export interface AgencyRateEntry {
+  id: string;
+  agencyId: string;
+  materialId?: string;
+  boqItemId?: string;
+  rate: number;
+  effectiveDate: string;
+  expiryDate?: string;
+  description?: string;
+  status: 'Active' | 'Expired' | 'Suspended';
 }
 
 export interface SubcontractorBill {
@@ -1016,7 +1048,7 @@ export interface SitePhoto {
   category: 'Earthwork' | 'Structures' | 'Pavement' | 'General' | 'Safety';
   url: string;
   uploadedBy?: string;
-  aiAnalysis?: string;
+  aiAnalysis?: any;
   isAnalyzed: boolean;
 }
 
@@ -1027,9 +1059,11 @@ export interface ResourceMatrix {
   category: string;
   unit: string;
   quantity: number;
+  totalQuantity: number;
   availableQuantity: number;
   allocatedQuantity: number;
-  status: 'Available' | 'Low Stock' | 'Out of Stock' | 'Discontinued';
+  unitCost?: number;
+  status: 'Available' | 'Low Stock' | 'Out of Stock' | 'Discontinued' | 'Allocated' | 'In Transit' | 'Reserved';
   location: string;
   supplier?: string;
   leadTime?: number; // in days

@@ -195,6 +195,7 @@ const UserManagement: React.FC = () => {
       case UserRole.PROJECT_MANAGER: return 'bg-blue-500/20 text-blue-700';
       case UserRole.SITE_ENGINEER: return 'bg-green-500/20 text-green-700';
       case UserRole.LAB_TECHNICIAN: return 'bg-yellow-500/20 text-yellow-700';
+      case UserRole.HSE_OFFICER: return 'bg-orange-500/20 text-orange-700';
       case UserRole.SUPERVISOR: return 'bg-purple-500/20 text-purple-700';
       default: return 'bg-gray-500/20 text-gray-700';
     }
