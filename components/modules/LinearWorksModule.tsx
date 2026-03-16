@@ -195,7 +195,7 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                             <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-4">CATEGORY COVERAGE</h2>
                             <div className="space-y-6">
                                 {stats.map(s => (
-                                    <div key={s.layer} className="bg-muted/30 p-3 rounded-lg border border-border/50">
+                                    <div key={s.layer} className="bg-card p-4 rounded-lg border shadow-sm">
                                         <div className="flex justify-between mb-2">
                                             <span className="text-sm font-bold">{s.layer}</span>
                                             <span className="text-sm font-black text-primary">{s.totalKm.toFixed(3)} Km</span>
@@ -207,23 +207,23 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                         </div>
 
                         <div className="lg:col-span-3">
-                            <Card className="border-none shadow-none bg-transparent">
-                                <CardHeader className="px-0 pt-0">
+                            <Card className="border shadow-sm bg-card">
+                                <CardHeader className="pb-2 border-b">
                                     <div className="flex justify-between items-center">
                                         <CardTitle className="text-lg">Work Log: {activeCategory}</CardTitle>
                                         <Button variant="ghost" size="sm" className="h-8"><Filter className="h-4 w-4 mr-2" /> Filter</Button>
                                     </div>
                                 </CardHeader>
-                                <CardContent className="px-0">
+                                <CardContent className="p-0">
                                     <Table>
-                                        <TableHeader>
+                                        <TableHeader className="bg-muted/50">
                                             <TableRow className="hover:bg-transparent">
-                                                <TableHead className="w-[100px]">Date</TableHead>
+                                                <TableHead className="w-[120px] px-4">Date</TableHead>
                                                 <TableHead>Layer</TableHead>
                                                 <TableHead>Chainage (Km)</TableHead>
                                                 <TableHead>Progress (Qty)</TableHead>
                                                 <TableHead>Side</TableHead>
-                                                <TableHead className="text-right">Actions</TableHead>
+                                                <TableHead className="text-right px-4">Actions</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
@@ -233,8 +233,8 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                                     : 0;
                                                 
                                                 return (
-                                                    <TableRow key={log.id} className="group">
-                                                        <TableCell className="font-medium text-xs">{log.date}</TableCell>
+                                                    <TableRow key={log.id} className="group hover:bg-muted/20">
+                                                        <TableCell className="font-medium text-xs px-4">{log.date}</TableCell>
                                                         <TableCell>
                                                             <div className="flex flex-col">
                                                                 <span className="font-bold text-sm">{log.layer}</span>
@@ -249,7 +249,7 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                                             </div>
                                                         </TableCell>
                                                         <TableCell>
-                                                            <code className="text-[11px] bg-muted px-1.5 py-0.5 rounded">
+                                                            <code className="text-[11px] bg-muted/80 px-1.5 py-0.5 rounded font-mono border">
                                                                 {log.startChainage.toFixed(3)} - {log.endChainage.toFixed(3)}
                                                             </code>
                                                         </TableCell>
@@ -263,16 +263,16 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                                             </div>
                                                         </TableCell>
                                                         <TableCell>
-                                                            <span className="text-[10px] font-black border px-1.5 py-0.5 rounded bg-background">
+                                                            <span className="text-[10px] font-black border px-1.5 py-0.5 rounded bg-muted shadow-sm">
                                                                 {log.side}
                                                             </span>
                                                         </TableCell>
-                                                        <TableCell className="text-right">
+                                                        <TableCell className="text-right px-4">
                                                             <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditLog(log)}>
+                                                                <Button variant="outline" size="icon" className="h-8 w-8 bg-background shadow-sm" onClick={() => handleEditLog(log)}>
                                                                     <Edit className="h-4 w-4" />
                                                                 </Button>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteLog(log.id)}>
+                                                                <Button variant="outline" size="icon" className="h-8 w-8 text-destructive bg-background shadow-sm hover:bg-destructive/10" onClick={() => handleDeleteLog(log.id)}>
                                                                     <Trash2 className="h-4 w-4" />
                                                                 </Button>
                                                             </div>
@@ -282,7 +282,7 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                             })}
                                             {filteredLogs.length === 0 && (
                                                 <TableRow>
-                                                    <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic">
+                                                    <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic bg-muted/5">
                                                         No work logs recorded for this category.
                                                     </TableCell>
                                                 </TableRow>
