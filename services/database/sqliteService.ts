@@ -228,9 +228,10 @@ export const sqliteService = {
       const raw = localStorage.getItem(key) || '[]';
       const arr = key === 'roadmaster-settings' ? JSON.parse(raw || '{}') : JSON.parse(raw);
       if (key === 'roadmaster-settings') {
-        const obj = arr || {};
-        obj[record.key] = record.value;
-        localStorage.setItem(key, JSON.stringify(obj));
+        // Skip localStorage manipulation for settings if sqliteService is in fallback mode
+        // This assumes hooks/useSettings.ts is the primary manager for 'roadmaster-settings'
+        console.warn('[sqliteService] Skipping localStorage write for settings in fallback mode.');
+        // The actual localStorage.setItem call is omitted here to prevent quota issues.
       } else {
         arr.push(record);
         localStorage.setItem(key, JSON.stringify(arr));
