@@ -274,13 +274,18 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
   };
 
   const handleDownloadDocument = (doc: ProjectDocument) => {
-    if (doc.fileUrl) {
-      const link = document.createElement('a');
-      link.href = doc.fileUrl;
-      link.download = doc.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    const url = getFileUrl(doc);
+    if (url) {
+      if (url.startsWith('blob:')) {
+        window.open(url, '_blank');
+      } else {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = doc.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
     }
   };
 
@@ -695,7 +700,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
       </Dialog>
 
       {/* Document Preview Modal */}
-      <Dialog open={!!previewDoc} onOpenChange={() => setPreviewDoc(null)}>
+      <Dialog open={!!previewDoc} onOpenChange={(open) => { if (!open) { setPreviewDoc(null); setNumPages(null); setCurrentPage(1); setScale(1.0); } }}>
         <DialogContent className="max-w-[calc(100vw-6rem)] h-[calc(100vh-6rem)] flex flex-col p-0">
           <DialogHeader className="flex flex-row items-center justify-between px-6 py-4 border-b">
             <div className="flex items-center gap-2">
@@ -716,22 +721,29 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
               <div className="w-full h-full flex flex-col items-center justify-center">
                 {(previewDoc.type === 'application/pdf' || previewDoc.fileUrl.toLowerCase().endsWith('.pdf')) ? (
                   <div className="flex-1 w-full flex items-center justify-center overflow-auto">
-                    <Document
-                      file={getFileUrl(previewDoc)}
-                      loading={<div className="text-center text-muted-foreground">Loading PDF...</div>}
-                      error={
-                        <div className="flex flex-col items-center justify-center p-4 text-destructive">
-                          <FileText className="h-12 w-12 mb-2" />
-                          <p>Failed to load PDF</p>
-                          <p className="text-sm text-muted-foreground mt-1 text-center">
-                            This document may have an expired link. Please re-upload the file.
-                          </p>
-                        </div>
-                      }
-                      onLoadSuccess={({ numPages: totalPages }: { numPages: number }) => setNumPages(totalPages)}
-                    >
-                      <Page pageNumber={currentPage} scale={scale} renderTextLayer={false} renderAnnotationLayer={false} />
-                    </Document>
+                    {Document ? (
+                      <Document
+                        file={getFileUrl(previewDoc)}
+                        loading={<div className="text-center text-muted-foreground"><Loader2 className="animate-spin mx-auto mb-2" /> Loading PDF...</div>}
+                        error={
+                          <div className="flex flex-col items-center justify-center p-4 text-destructive">
+                            <FileText className="h-12 w-12 mb-2" />
+                            <p>Failed to load PDF</p>
+                            <p className="text-sm text-muted-foreground mt-1 text-center">
+                              This document may have an expired link or invalid format.
+                            </p>
+                          </div>
+                        }
+                        onLoadSuccess={({ numPages: totalPages }: { numPages: number }) => setNumPages(totalPages)}
+                      >
+                        <Page pageNumber={currentPage} scale={scale} renderTextLayer={false} renderAnnotationLayer={false} />
+                      </Document>
+                    ) : (
+                      <div className="text-center p-4 text-muted-foreground">
+                        <Loader2 className="animate-spin mx-auto mb-2" />
+                        <p>Initializing PDF viewer...</p>
+                      </div>
+                    )}
                   </div>
                 ) : (previewDoc.type?.includes('image') || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => previewDoc.fileUrl?.toLowerCase().endsWith(ext))) ? (
                   <img
@@ -755,7 +767,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
                     <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage <= 1}>
                       Prev
                     </Button>
-                    <span className="text-sm text-muted-foreground">Page {currentPage} of {numPages}</span>
+                    <span className="text-sm text-muted-foreground font-mono">Page {currentPage} of {numPages}</span>
                     <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(numPages, prev + 1))} disabled={currentPage >= numPages}>
                       Next
                     </Button>
@@ -763,7 +775,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
                     <Button variant="outline" size="sm" onClick={() => setScale(prev => Math.max(0.5, prev - 0.2))}>
                       -
                     </Button>
-                    <span className="text-sm text-muted-foreground">{Math.round(scale * 100)}%</span>
+                    <span className="text-sm text-muted-foreground font-mono">{Math.round(scale * 100)}%</span>
                     <Button variant="outline" size="sm" onClick={() => setScale(prev => Math.min(2, prev + 0.2))}>
                       +
                     </Button>
