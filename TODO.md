@@ -1,30 +1,21 @@
-# Fix "trendingup is not defined" Error
+# RFI Module Enhancement: Generate Official Single RFI PDF Form
 
-## Status: ✅ COMPLETED
+## Current Status
+- [x] Analyzed Sagun RFI PDF content
+- [x] Searched & identified RFI module files (RFIModule.tsx, types.ts, pdfUtils.ts)
+- [x] Read pdfUtils.ts & types.ts 
+- [x] Created detailed edit plan
+- [x] Got user approval for plan
 
-### Steps Completed:
-- [x] Searched codebase - 41 TrendingUp usages across components
-- [x] Verified lucide-react "0.460.0" in package.json ✓
-- [x] Analyzed App.tsx, Dashboard.tsx, BOQModule.tsx, ReportsAnalyticsHub.tsx - all TrendingUp imports correct
-- [x] **Found root cause:** ReportsAnalyticsHub.tsx used `<HardHat />` icon without import (near TrendingUp)
-- [x] Fixed: Added `HardHat` to lucide-react import destructuring
-- [x] Verified edit applied cleanly (no indentation/formatting issues)
+## Implementation Steps
+- [ ] Step 1: Read components/modules/RFIModule.tsx to understand UI structure for export button integration
+- [ ] Step 2: Enhance utils/formatting/pdfUtils.ts - Add generateSingleRFIPDF(rfi: RFI, project: Project)
+- [ ] Step 3: Edit components/modules/RFIModule.tsx - Add "Download Official RFI PDF" button calling new function
+- [ ] Step 4: Test PDF generation with Sagun RFI data mock
+- [ ] Step 5: Update types.ts if any missing fields (boqItemNo, contractNo link)
+- [ ] Step 6: Verify in browser (if dev server running) or demo
+- [ ] Step 7: Mark complete
 
-### Findings:
-- TrendingUp properly imported everywhere examined
-- **Actual issue:** Missing HardHat import in ReportsAnalyticsHub.tsx progress-reports tab
-- Error likely misreported as "trendingup" due to minification/proximity to TrendingUp
-- Similar to previous UserRole issue but required code fix this time
-
-### Resolution:
-```
-components/hubs/ReportsAnalyticsHub.tsx
-- Added HardHat to lucide-react imports
-```
-
-### Next Steps:
-- [x] Run `npm run dev` and test ReportsAnalyticsHub tab
-- [x] Browser console should show no ReferenceError
-- [x] Restart TS server if VSCode still shows red squiggles
-
-**Task complete - no further code changes needed.**
+## Notes
+- Goal: Output exact PDF form matching "C:\Users\LENOVO\Desktop\RFI@Sagun March _15.pdf"
+- RFI type already matches ~90% fields

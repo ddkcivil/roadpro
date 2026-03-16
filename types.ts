@@ -107,7 +107,7 @@ export interface TokenPayload {
 export interface BaseRFI {
   id: string;
   rfiNumber: string;
-  rfiNo?: string;
+  rfiNo?: string; // This might be related to contractNo or a separate identifier
   title?: string;
   date: string;
   location: string;
@@ -138,6 +138,8 @@ export interface BaseRFI {
   engineerRepresentativeComments?: string;
   worksStatus?: 'Approved' | 'Approved as Noted' | 'Approved for Subsequent Work' | '';
   requestNumber?: string;
+  boqItemNo?: string; // Added: Link to BOQ Item Number
+  contractNo?: string; // Added: Link to Contract Number
 }
 
 export interface OpenRFI extends BaseRFI {
@@ -573,6 +575,8 @@ export interface LinearWorkLog {
   endChainage: number;
   date: string;
   side: 'LHS' | 'RHS' | 'Both';
+  quantity?: number; // Added: Quantity of work performed
+  quantityUnit?: string; // Added: Unit of measurement for quantity (e.g., 'm3', 'tons', 'sqm')
   status: 'In Progress' | 'Completed';
 }
 
@@ -736,34 +740,6 @@ export interface AgencyBillItem {
   quantity: number;
   rate: number;
   amount: number;
-}
-
-export interface AgencyRateEntry {
-  id: string;
-  agencyId: string;
-  materialId: string; // Links to specific material that the agency supplies
-  boqItemId?: string; // For backwards compatibility
-  rate: number;
-  effectiveDate: string;
-  expiryDate?: string;
-  description?: string;
-  status: 'Active' | 'Expired' | 'Suspended';
-}
-
-export interface BillItem {
-  id: string;
-  boqItemId: string;
-  itemNo: string;
-  description: string;
-  unit: string;
-  contractQuantity: number;
-  rate: number;
-  previousQuantity: number;
-  currentQuantity: number;
-  uptoDateQuantity: number;
-  previousAmount: number;
-  currentAmount: number;
-  uptoDateAmount: number;
 }
 
 export interface SubcontractorBill {
@@ -1044,8 +1020,8 @@ export interface ResourceMatrix {
   quantity: number;
   availableQuantity: number;
   allocatedQuantity: number;
-  status: 'Available' | 'Allocated' | 'In Transit' | 'Reserved';
-  location?: string;
+  status: 'Available' | 'Low Stock' | 'Out of Stock' | 'Discontinued';
+  location: string;
   supplier?: string;
   leadTime?: number; // in days
   reorderLevel?: number;
@@ -1196,7 +1172,7 @@ export enum EntityStatus {
   CANCELLED = 'Cancelled'
 }
 
-// Generic resource interface that can be used across modules
+// Unified resource interface that can be used across modules
 export interface GenericResource<T = any> {
   id: string;
   type: ResourceType;

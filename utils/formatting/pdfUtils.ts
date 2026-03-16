@@ -1,4 +1,7 @@
-import { Project } from '../../types';
+import { Project, RFI, RFIStatus, UserWithPermissions } from '../../types';
+import { generateUniqueId } from '../../utils/uuidUtils'; // Assuming this might be needed for internal IDs, though not directly for PDF generation here.
+import { AuditService } from '../../services/analytics/auditService'; // Assuming this is used elsewhere
+import { toast } from 'sonner'; // Assuming this is used elsewhere
 
 // Define a type for the jsPDF library
 declare global {
@@ -113,7 +116,6 @@ export const generateProjectSummaryPDF = async (project: Project) => {
     doc.text(`Page ${i} of ${pageCount}`, 200, doc.internal.pageSize.height - 10, { align: 'right' });
   }
   
-  // Save the PDF
   doc.save(`${project.code}_Project_Summary.pdf`);
 };
 
@@ -210,7 +212,8 @@ export const generateStructuresPDF = async (project: Project) => {
   
   // Add structure data
   let yPos = 85;
-  (project.structures || []).forEach((structure, index) => {
+  const structures = project.structures || [];
+  structures.forEach((structure, index) => {
     const pageHeight = doc.internal.pageSize.height;
     if (yPos > pageHeight - 20) {
       doc.addPage();
@@ -223,10 +226,10 @@ export const generateStructuresPDF = async (project: Project) => {
       yPos += 10;
     }
     
-    doc.text(structure.name, 20, yPos);
-    doc.text(structure.type, 100, yPos);
-    doc.text(structure.location, 130, yPos);
-    doc.text(structure.status, 180, yPos);
+    doc.text(structure.name || '', 20, yPos);
+    doc.text(structure.type || '', 100, yPos);
+    doc.text(structure.location || '', 130, yPos);
+    doc.text(structure.status || '', 180, yPos);
     yPos += 10;
   });
   
@@ -238,62 +241,6 @@ export const generateStructuresPDF = async (project: Project) => {
   }
   
   doc.save(`${project.code}_Structures_Report.pdf`);
-};
-
-// Function to generate an RFI report in PDF
-export const generateRFIPDF = async (project: Project) => {
-  const { jsPDF } = await import('jspdf');
-  
-  const doc = new jsPDF();
-  
-  doc.setFontSize(22);
-  doc.text(`${project.name} - RFI Report`, 20, 30);
-  
-  doc.setFontSize(16);
-  doc.text(`Project: ${project.name}`, 20, 45);
-  doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 55);
-  
-  // Add table headers
-  doc.setFontSize(12);
-  doc.text('RFI Number', 20, 75);
-  doc.text('Date', 70, 75);
-  doc.text('Location', 100, 75);
-  doc.text('Description', 130, 75);
-  doc.text('Status', 180, 75);
-  
-  // Add RFI data
-  let yPos = 85;
-  const rfis = project.rfis || [];
-  rfis.forEach((rfi, index) => {
-    const pageHeight = doc.internal.pageSize.height;
-    if (yPos > pageHeight - 20) {
-      doc.addPage();
-      yPos = 20;
-      doc.setFontSize(12);
-      doc.text('RFI Number', 20, yPos);
-      doc.text('Date', 70, yPos);
-      doc.text('Location', 100, yPos);
-      doc.text('Description', 130, yPos);
-      doc.text('Status', 180, yPos);
-      yPos += 10;
-    }
-    
-    doc.text(rfi.rfiNumber || '', 20, yPos);
-    doc.text(rfi.date || '', 70, yPos);
-    doc.text(rfi.location || '', 100, yPos);
-    doc.text((rfi.description || '').substring(0, 20) + '...', 130, yPos); // Truncate description
-    doc.text(rfi.status || '', 180, yPos);
-    yPos += 10;
-  });
-  
-  // Add footer
-  const pageCount = doc.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.text(`Page ${i} of ${pageCount}`, 200, doc.internal.pageSize.height - 10, { align: 'right' });
-  }
-  
-  doc.save(`${project.code}_RFI_Report.pdf`);
 };
 
 // Function to generate a Resource Management report in PDF
@@ -510,4 +457,87 @@ export const generateResourcePDF = async (project: Project) => {
   }
   
   doc.save(`${project.code}_Resource_Report.pdf`);
+};
+
+// Function to generate a single RFI report in PDF
+export const generateSingleRFIPDF = async (rfi: RFI, project: Project) => {
+  const { jsPDF } = await import('jspdf');
+  
+  const doc = new jsPDF();
+  
+  doc.setFontSize(22);
+  doc.text(`${project.name} - RFI Details`, 20, 30);
+  
+  doc.setFontSize(16);
+  doc.text(`RFI Number: ${rfi.rfiNumber}`, 20, 45);
+  doc.text(`Project: ${project.name}`, 20, 55);
+  doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 65);
+  
+  // Add RFI details
+  doc.setFontSize(14);
+  doc.text('Inspection Details', 20, 85);
+  doc.setFontSize(12);
+  doc.text(`Date: ${rfi.date}`, 20, 95);
+  doc.text(`Time: ${rfi.inspectionTime || 'N/A'}`, 20, 105);
+  doc.text(`Location: ${rfi.location}`, 20, 115);
+  doc.text(`Inspection Type: ${rfi.inspectionType || 'N/A'}`, 20, 125);
+  doc.text(`Purpose: ${rfi.inspectionPurpose || 'First'}`, 20, 135);
+  
+  doc.text(`Status: ${rfi.status}`, 150, 135);
+
+  // Add Description of Work
+  doc.setFontSize(14);
+  doc.text('Description of Work for Inspection', 20, 155);
+  doc.setFontSize(12);
+  const descriptionLines = doc.splitTextToSize(rfi.description || 'No description provided.', 180);
+  doc.text(descriptionLines, 20, 165);
+  let currentY = 165 + descriptionLines.length * 10 + 10; // Update yPos based on description height
+
+  // Add Engineer Representative Comments
+  if (rfi.engineerRepresentativeComments) {
+    if (currentY > doc.internal.pageSize.height - 40) { doc.addPage(); currentY = 20; }
+    doc.setFontSize(14);
+    doc.text('Engineer Representative Comments', 20, currentY);
+    currentY += 10;
+    doc.setFontSize(12);
+    const commentsLines = doc.splitTextToSize(rfi.engineerRepresentativeComments, 180);
+    doc.text(commentsLines, 20, currentY);
+    currentY += commentsLines.length * 10 + 10;
+  }
+
+  // Add Works Status
+  if (rfi.worksStatus) {
+    if (currentY > doc.internal.pageSize.height - 40) { doc.addPage(); currentY = 20; }
+    doc.setFontSize(14);
+    doc.text('Works Status', 20, currentY);
+    currentY += 10;
+    doc.setFontSize(12);
+    doc.text(rfi.worksStatus, 20, currentY);
+    currentY += 10;
+  }
+
+  // Add Signatures (if available)
+  if (rfi.submittedBy || rfi.receivedBy || rfi.areSignature || rfi.iowSignature || rfi.meSltSignature || rfi.reSignature) {
+    if (currentY > doc.internal.pageSize.height - 40) { doc.addPage(); currentY = 20; }
+    doc.setFontSize(14);
+    doc.text('Signatures', 20, currentY);
+    currentY += 10;
+    
+    doc.setFontSize(10);
+    if (rfi.submittedBy) doc.text(`Submitted By: ${rfi.submittedBy}`, 20, currentY); currentY += 7;
+    if (rfi.receivedBy) doc.text(`Received By: ${rfi.receivedBy}`, 20, currentY); currentY += 7;
+    if (rfi.areSignature) doc.text(`ARE Signature: (Provided)`, 20, currentY); currentY += 7;
+    if (rfi.iowSignature) doc.text(`IOW Signature: (Provided)`, 20, currentY); currentY += 7;
+    if (rfi.meSltSignature) doc.text(`ME/SLT Signature: (Provided)`, 20, currentY); currentY += 7;
+    if (rfi.reSignature) doc.text(`RE Signature: (Provided)`, 20, currentY); currentY += 7;
+  }
+  
+  // Add footer
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.text(`Page ${i} of ${pageCount}`, 200, doc.internal.pageSize.height - 10, { align: 'right' });
+  }
+  
+  doc.save(`${rfi.rfiNumber}_RFI_Report.pdf`);
 };

@@ -42,7 +42,9 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
       category: 'Pavement', 
       date: new Date().toISOString().split('T')[0],
       side: 'Both',
-      layer: ''
+      layer: '',
+      quantity: 0, // Initialize quantity
+      quantityUnit: '' // Initialize quantityUnit
   });
 
   const logs = project.linearWorks || [];
@@ -58,7 +60,13 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
   }, [filteredLogs, activeCategory]);
 
   const handleSaveLog = () => {
-      if (!newLog.layer || newLog.startChainage === undefined || newLog.endChainage === undefined) return;
+      // Basic validation for required fields
+      if (!newLog.layer || newLog.startChainage === undefined || newLog.endChainage === undefined) {
+          toast.alert("Please fill in Layer, Start Km, and End Km."); // Added feedback
+          return;
+      }
+      // If quantity is provided, ensure it's a valid number. If not, set to 0 or handle as needed.
+      const quantity = newLog.quantity === undefined || newLog.quantity === null ? 0 : Number(newLog.quantity);
       
       const log: LinearWorkLog = {
           id: `lin-${Date.now()}`,
@@ -68,12 +76,23 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
           endChainage: Number(newLog.endChainage),
           date: newLog.date!,
           side: newLog.side as any || 'Both',
+          quantity: quantity, // Include quantity
+          quantityUnit: newLog.quantityUnit || '', // Include quantityUnit, default to empty string
           status: 'Completed'
       };
 
       onProjectUpdate({ ...project, linearWorks: [...logs, log] });
       setIsLogModalOpen(false);
-      setNewLog({ category: activeCategory, date: new Date().toISOString().split('T')[0], side: 'Both', layer: '' });
+      // Reset form, ensuring quantity and unit are also reset
+      setNewLog({ 
+          category: activeCategory, 
+          date: new Date().toISOString().split('T')[0], 
+          side: 'Both', 
+          layer: '',
+          quantity: 0,
+          quantityUnit: '' 
+      });
+      toast.info("Linear work log saved successfully."); // Added feedback
   };
 
   const handleDeleteLog = (id: string) => {
@@ -141,7 +160,8 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                             <TableRow>
                                                 <TableHead>Date</TableHead>
                                                 <TableHead>Layer</TableHead>
-                                                <TableHead>Range</TableHead>
+                                                <TableHead>Range (Km)</TableHead>
+                                                <TableHead>Quantity</TableHead> {/* New Header */}
                                                 <TableHead>Side</TableHead>
                                                 <TableHead className="text-right">Actions</TableHead>
                                             </TableRow>
@@ -152,6 +172,7 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                                     <TableCell>{log.date}</TableCell>
                                                     <TableCell>{log.layer}</TableCell>
                                                     <TableCell>{`${log.startChainage.toFixed(3)} - ${log.endChainage.toFixed(3)}`}</TableCell>
+                                                    <TableCell>{`${log.quantity !== undefined ? log.quantity.toFixed(3) : 'N/A'} ${log.quantityUnit || ''}`.trim()}</TableCell> {/* Display Quantity and Unit */}
                                                     <TableCell>{log.side}</TableCell>
                                                     <TableCell className="text-right">
                                                         <Button variant="ghost" size="icon" onClick={() => handleDeleteLog(log.id)}>
@@ -209,6 +230,14 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                 </SelectContent>
                             </Select>
                         </div>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="quantity" className="text-right">Quantity</Label>
+                        <Input id="quantity" type="number" value={newLog.quantity !== undefined ? newLog.quantity : ''} onChange={e => setNewLog({...newLog, quantity: e.target.value === '' ? undefined : Number(e.target.value)})} className="col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="quantityUnit" className="text-right">Unit</Label>
+                        <Input id="quantityUnit" type="text" value={newLog.quantityUnit || ''} onChange={e => setNewLog({...newLog, quantityUnit: e.target.value})} className="col-span-3" placeholder="e.g., m³, tons, sqm" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="date" className="text-right">Date</Label>
