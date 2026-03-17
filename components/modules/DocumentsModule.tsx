@@ -95,14 +95,11 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
         const pdfjs = pdfModule.pdfjs;
         
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          const cdnWorker = `https://unpkg.com/pdfjs-dist@4.4.168/legacy/build/pdf.worker.min.js`;
-          pdfjs.GlobalWorkerOptions.workerSrc = cdnWorker; // Set CDN first
-          
-          // Verify accessibility in background and fallback if CDN fails
-          fetch(cdnWorker, { method: 'HEAD' }).catch(() => {
-            console.warn('CDN worker unreachable, falling back to local');
-            pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
-          });
+          const workerUrl = new URL(
+            'pdfjs-dist/build/pdf.worker.min.mjs',
+            import.meta.url,
+          ).toString();
+          pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
         }
         
         setPdfComponents({

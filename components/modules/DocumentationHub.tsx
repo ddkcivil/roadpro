@@ -151,8 +151,11 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
         const pdfjs = pdfModule.pdfjs;
         
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          // Prioritize local worker as it's guaranteed to be available and less prone to CSP issues.
-          pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
+          const workerUrl = new URL(
+            'pdfjs-dist/build/pdf.worker.min.mjs',
+            import.meta.url,
+          ).toString();
+          pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
         }
 
         setPdfComponents({

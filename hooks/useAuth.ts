@@ -4,7 +4,7 @@ import { PermissionsService } from '../services/auth/permissionsService';
 import { AuditService } from '../services/analytics/auditService';
 import { encryptionUtils } from '../utils/data/encryptionUtils';
 import { LocalStorageUtils } from '../utils/data/localStorageUtils';
-import { toast } from 'sonner';
+const { toast } = require('sonner');
 
 export const useAuth = () => {
   const [userRole, setUserRole] = useState<UserRole>(() => {
