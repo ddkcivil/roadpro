@@ -35,9 +35,11 @@ import CommentsPanel from './CommentsPanel';
 import { ocrService } from '../../services/ai/ocrService';
 
 // Dynamically load PDF components when needed
-let Document: any;
-let Page: any;
-let pdfjs: any;
+interface PdfComponents {
+  Document: any;
+  Page: any;
+  pdfjs: any;
+}
 
 interface Props {
   project: Project;
@@ -48,19 +50,17 @@ interface Props {
 const FOLDERS = ['General', 'Contracts', 'Drawings', 'Reports', 'Correspondence', 'Financials', 'Sub-Docs'];
 
 const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
-    });
-  };
+  const [pdfComponents, setPdfComponents] = useState<PdfComponents | null>(null);
+  const [blobUrls, setBlobUrls] = useState<Record<string, string>>({});
+  const [previewUrl, setPreviewUrl] = useState<string>('');
 
-  const base64ToBlobUrl = (base64: string): string => {
+  const base64ToBlobUrl = useCallback((base64: string): string => {
     try {
-      const byteString = atob(base64.split(',')[1]);
-      const mimeString = base64.split(',')[0].split(':')[1].split(';')[0];
+      const parts = base64.split(',');
+      if (parts.length < 2) return '';
+      
+      const byteString = atob(parts[1]);
+      const mimeString = parts[0].split(':')[1].split(';')[0];
       const ab = new ArrayBuffer(byteString.length);
       const ia = new Uint8Array(ab);
       for (let i = 0; i < byteString.length; i++) {
@@ -72,13 +72,10 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
       console.error('Error converting base64 to blob URL:', error);
       return '';
     }
-  };
-
-  const [blobUrls, setBlobUrls] = useState<Record<string, string>>({});
+  }, []);
 
   const getFileUrl = useCallback((doc: ProjectDocument): string => {
     if (!doc.fileUrl) return '';
-    
     if (blobUrls[doc.id]) return blobUrls[doc.id];
     
     if (doc.fileUrl.startsWith('data:')) {
@@ -88,22 +85,36 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
     }
     
     return doc.fileUrl;
-  }, [blobUrls]);
+  }, [blobUrls, base64ToBlobUrl]);
 
   useEffect(() => {
     const loadPdfComponents = async () => {
       try {
         const pdfModule = await import('react-pdf');
-        Document = pdfModule.Document;
-        Page = pdfModule.Page;
-        pdfjs = pdfModule.pdfjs;
+        const pdfjs = pdfModule.pdfjs;
+        
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
+          // Use CDN worker for reliability, fallback to local if needed
+          const cdnWorker = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs`;
+          try {
+            const resp = await fetch(cdnWorker, { method: 'HEAD' });
+            if (resp.ok) {
+              pdfjs.GlobalWorkerOptions.workerSrc = cdnWorker;
+            } else {
+              pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
+            }
+          } catch (e) {
+            pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
+          }
         }
+        
+        setPdfComponents({
+          Document: pdfModule.Document,
+          Page: pdfModule.Page,
+          pdfjs: pdfjs
+        });
       } catch (error) {
         console.warn('Failed to load PDF components:', error);
-        Document = () => <div className="text-center p-4 text-muted-foreground">PDF viewer unavailable</div>;
-        Page = () => <div className="text-center p-4 text-muted-foreground">PDF page unavailable</div>;
       }
     };
     loadPdfComponents();
@@ -125,6 +136,18 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
   const [scannedMetadata, setScannedMetadata] = useState<{ subject: string; refNo: string; date: string; letterDate: string; correspondenceType: 'incoming' | 'outgoing' | undefined; sender: string; recipient: string; subId: string; }>({ subject: '', refNo: '', date: '', letterDate: '', correspondenceType: undefined, sender: '', recipient: '', subId: '' });
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [previewDoc, setPreviewDoc] = useState<ProjectDocument | null>(null);
+
+  // Update preview URL when previewDoc changes
+  useEffect(() => {
+    if (previewDoc) {
+      setPreviewUrl(getFileUrl(previewDoc));
+    } else {
+      setPreviewUrl('');
+    }
+  }, [previewDoc, getFileUrl]);
+
+  const Document = pdfComponents?.Document;
+  const Page = pdfComponents?.Page;
   const [newTagInput, setNewTagInput] = useState('');
 
   const [currentPageState, setCurrentPageState] = useState(1);

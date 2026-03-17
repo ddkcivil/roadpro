@@ -3,9 +3,11 @@ import { Project, UserRole, ProjectDocument, SitePhoto, DailyReport } from '../.
 import { analyzeSitePhoto } from '../../services/ai/geminiService';
 
 // Dynamically load PDF components when needed
-let Document: any;
-let Page: any;
-let pdfjs: any;
+interface PdfComponents {
+  Document: any;
+  Page: any;
+  pdfjs: any;
+}
 import { 
     FileText, Upload, Search, Camera, Trash2, 
     Calendar, MapPin, X, Plus, Folder, ExternalLink,
@@ -144,33 +146,29 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
     const loadPdfComponents = async () => {
       try {
         const pdfModule = await import('react-pdf');
-        Document = pdfModule.Document;
-        Page = pdfModule.Page;
-        pdfjs = pdfModule.pdfjs;
+        const pdfjs = pdfModule.pdfjs;
         
-        // Use a more standard .js worker URL. .mjs can cause fetch issues on some environments.
-        // We'll use the cdnjs version which is highly reliable.
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          // react-pdf 9.x+ usually bundles with pdfjs-dist 4.x
-          // We'll try to use a compatible stable version from cdnjs
-          pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs`;
-          
-          // Add error handling for worker loading
-          const testWorker = async () => {
-            try {
-              const response = await fetch(pdfjs.GlobalWorkerOptions.workerSrc, { method: 'HEAD' });
-              if (!response.ok) throw new Error('CDN worker not found');
-            } catch (e) {
-              console.warn('CDN worker failed, falling back to local worker');
+          const cdnWorker = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs`;
+          try {
+            const response = await fetch(cdnWorker, { method: 'HEAD' });
+            if (response.ok) {
+              pdfjs.GlobalWorkerOptions.workerSrc = cdnWorker;
+            } else {
               pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
             }
-          };
-          testWorker();
+          } catch (e) {
+            pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
+          }
         }
+
+        setPdfComponents({
+          Document: pdfModule.Document,
+          Page: pdfModule.Page,
+          pdfjs: pdfjs
+        });
       } catch (error) {
         console.warn('Failed to load PDF components:', error);
-        Document = () => <div className="text-center p-4 text-muted-foreground">PDF viewer unavailable</div>;
-        Page = () => <div className="text-center p-4 text-muted-foreground">PDF page unavailable</div>;
       }
     };
     loadPdfComponents();
@@ -183,6 +181,9 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
       });
     };
   }, []);
+
+  const Document = pdfComponents?.Document;
+  const Page = pdfComponents?.Page;
 
   // === COMPUTED VALUES ===
   const filteredDocuments = useMemo(() => {
