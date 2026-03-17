@@ -33,6 +33,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import CommentsPanel from './CommentsPanel';
 import { ocrService } from '../../services/ai/ocrService';
+import { fileToBase64 } from '../../utils/data/documentUtils';
 
 // Dynamically load PDF components when needed
 interface PdfComponents {
@@ -669,23 +670,30 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                   <div className="w-full h-full flex flex-col">
                     {(previewDoc.type === 'PDF' || previewDoc.fileUrl.toLowerCase().endsWith('.pdf')) ? (
                       <div className="flex-1 flex items-center justify-center">
-                        <Document
-                          file={getFileUrl(previewDoc)}
-                          loading={<div className="text-center text-muted-foreground">Loading PDF...</div>}
-                          error={
-                            <div className="flex flex-col items-center justify-center p-4 text-destructive">
-                              <FileText className="h-12 w-12 mb-2" />
-                              <p>Failed to load PDF</p>
-                              <p className="text-sm text-muted-foreground mt-1 text-center">
-                                This document may have an expired link. Please re-upload the file.
-                              </p>
-                            </div>
-                          }
-                          onLoadSuccess={onDocumentLoadSuccess}
-                          onError={(error: Error) => console.error('PDF Load Error:', error)}
-                        >
-                          <Page pageNumber={currentPageState} scale={scaleState} renderTextLayer={false} renderAnnotationLayer={false} />
-                        </Document>
+                        {Document ? (
+                          <Document
+                            file={getFileUrl(previewDoc)}
+                            loading={<div className="text-center text-muted-foreground">Loading PDF...</div>}
+                            error={
+                              <div className="flex flex-col items-center justify-center p-4 text-destructive">
+                                <FileText className="h-12 w-12 mb-2" />
+                                <p>Failed to load PDF</p>
+                                <p className="text-sm text-muted-foreground mt-1 text-center">
+                                  This document may have an expired link. Please re-upload the file.
+                                </p>
+                              </div>
+                            }
+                            onLoadSuccess={onDocumentLoadSuccess}
+                            onError={(error: Error) => console.error('PDF Load Error:', error)}
+                          >
+                            <Page pageNumber={currentPageState} scale={scaleState} renderTextLayer={false} renderAnnotationLayer={false} />
+                          </Document>
+                        ) : (
+                          <div className="text-center p-4 text-muted-foreground">
+                            <Loader2 className="animate-spin mx-auto mb-2" />
+                            <p>Initializing PDF viewer...</p>
+                          </div>
+                        )}
                       </div>
                     ) : (previewDoc.type === 'IMAGE' || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => previewDoc.fileUrl && previewDoc.fileUrl.toLowerCase().endsWith(ext))) ? (
                       <img
