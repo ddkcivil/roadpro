@@ -58,6 +58,7 @@ interface Props {
 }
 
 const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate, onNavigate }) => {
+  const [pdfComponents, setPdfComponents] = useState<PdfComponents | null>(null);
   const [activeTab, setActiveTab] = useState("documents");
 
   if (!project) {
