@@ -50,7 +50,6 @@ export default defineConfig(({ mode }) => {
       ],
       include: []
     },
-    assetsInclude: ['**/*.mjs'],
     css: {
       modules: {
         localsConvention: 'camelCase',

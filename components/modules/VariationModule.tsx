@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { 
-    FileDiff, Plus, Trash2, Save, X
+    FileDiff, Plus, Trash2, Save, X, AlertTriangle, Calendar, History as HistoryIcon, TrendingUp, Send, FileX, CheckCircle2, CheckCircle, FileEdit, Clock, Calculator, Receipt
 } from 'lucide-react';
 import { Project, UserRole, AppSettings, VariationOrder, VariationItem, WorkCategory } from '../../types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
@@ -284,7 +284,7 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Button variant="outline" className="w-full" onClick={() => toast.info('Financial History view would open here')}><History className="mr-2 h-4 w-4"/>Financial History</Button>
+                                    <Button variant="outline" className="w-full" onClick={() => toast.info('Financial History view would open here')}><HistoryIcon className="mr-2 h-4 w-4"/>Financial History</Button>
                                     <Button variant="outline" className="w-full" onClick={() => toast.info('Variation S-Curve visualization would open here')}><TrendingUp className="mr-2 h-4 w-4"/>Variation S-Curve</Button>
                                 </div>
                             </div>

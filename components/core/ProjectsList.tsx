@@ -259,7 +259,7 @@ const ProjectsList: React.FC<Props> = ({ projects, onSelectProject, onDeleteProj
                     />
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <CardGrid columns={3}>
                     {filteredGridProjects.map((project, index) => {
                         const physProgress = calculateProgress(project.boq);
                         const timeProgress = calculateTimeProgress(project.startDate, project.endDate);
