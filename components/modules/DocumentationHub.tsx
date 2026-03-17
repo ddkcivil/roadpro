@@ -753,15 +753,19 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
                       <Document
                         file={getFileUrl(previewDoc)}
                         loading={<div className="text-center text-muted-foreground"><Loader2 className="animate-spin mx-auto mb-2" /> Loading PDF...</div>}
-                        error={
-                          <div className="flex flex-col items-center justify-center p-4 text-destructive">
-                            <FileText className="h-12 w-12 mb-2" />
-                            <p>Failed to load PDF</p>
-                            <p className="text-sm text-muted-foreground mt-1 text-center">
-                              {pdfError || 'The file may be invalid, corrupted, or the PDF worker failed to load.'}
-                            </p>
-                          </div>
-                        }
+                        error={(error) => {
+                          console.error('PDF render error:', error);
+                          setPdfError(error?.message || 'Unknown PDF error');
+                          return (
+                            <div className="flex flex-col items-center justify-center p-4 text-destructive">
+                              <FileText className="h-12 w-12 mb-2" />
+                              <p>Failed to load PDF</p>
+                              <p className="text-sm text-muted-foreground mt-1 text-center">
+                                {pdfError || 'The file may be invalid, corrupted, or the PDF worker failed to load.'}
+                              </p>
+                            </div>
+                          );
+                        }}
                         onLoadError={(error: Error) => {
                           console.error('PDF load error:', error);
                           setPdfError(error?.message || 'Unknown PDF error');
