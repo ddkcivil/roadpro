@@ -240,6 +240,37 @@ class RealApiService {
   // --- Project Management ---
 
   /**
+   * Strips base64-encoded file data URLs from project documents and site photos
+   * before sending to the API. File data is kept client-side only; the server
+   * stores only metadata. This prevents 413 Content Too Large errors.
+   */
+  private sanitizeProjectForApi(projectData: Partial<Project>): Partial<Project> {
+    const sanitized = { ...projectData };
+
+    if (sanitized.documents) {
+      sanitized.documents = sanitized.documents.map((doc: any) => {
+        if (doc.fileUrl && (doc.fileUrl.startsWith('data:') || doc.fileUrl.startsWith('blob:'))) {
+          const { fileUrl: _stripped, ...rest } = doc;
+          return rest;
+        }
+        return doc;
+      });
+    }
+
+    if (sanitized.sitePhotos) {
+      sanitized.sitePhotos = sanitized.sitePhotos.map((photo: any) => {
+        if (photo.url && (photo.url.startsWith('data:') || photo.url.startsWith('blob:'))) {
+          const { url: _stripped, ...rest } = photo;
+          return rest;
+        }
+        return photo;
+      });
+    }
+
+    return sanitized;
+  }
+
+  /**
    * Fetches projects from the database with pagination
    */
   async getProjects(page = 1, limit = 50): Promise<{ data: Project[], pagination: any }> {
@@ -259,17 +290,18 @@ class RealApiService {
   async createProject(projectData: Partial<Project>): Promise<Project> {
     return this.fetchApi<Project>('/projects', {
       method: 'POST',
-      body: JSON.stringify(projectData),
+      body: JSON.stringify(this.sanitizeProjectForApi(projectData)),
     });
   }
 
   /**
-   * Updates an existing project
+   * Updates an existing project (binary file data is stripped before sending
+   * to avoid 413 Content Too Large — file data lives in client storage only)
    */
   async updateProject(id: string, projectData: Partial<Project>): Promise<Project> {
     return this.fetchApi<Project>(`/projects?id=${id}`, {
       method: 'PUT',
-      body: JSON.stringify(projectData),
+      body: JSON.stringify(this.sanitizeProjectForApi(projectData)),
     });
   }
 
