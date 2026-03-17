@@ -107,17 +107,27 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
     
     if (blobUrls[doc.id]) return blobUrls[doc.id];
     
-    if (doc.fileUrl.startsWith('data:')) {
+    // Direct data URLs can be very large and slow for PDF.js to parse sometimes, 
+    // but converting to Blob URL usually helps.
+    if (doc.fileUrl.startsWith('data:application/pdf') || doc.fileUrl.startsWith('data:image/')) {
       try {
-        const base64 = doc.fileUrl;
-        const byteString = atob(base64.split(',')[1]);
-        const mimeString = base64.split(',')[0].split(':')[1].split(';')[0];
-        const ab = new ArrayBuffer(byteString.length);
-        const ia = new Uint8Array(ab);
-        for (let i = 0; i < byteString.length; i++) {
-          ia[i] = byteString.charCodeAt(i);
+        const parts = doc.fileUrl.split(',');
+        const mime = parts[0].match(/:(.*?);/)?.[1] || 'application/octet-stream';
+        const b64Data = parts[1];
+        const byteCharacters = atob(b64Data);
+        const byteArrays = [];
+
+        for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+          const slice = byteCharacters.slice(offset, offset + 512);
+          const byteNumbers = new Array(slice.length);
+          for (let i = 0; i < slice.length; i++) {
+            byteNumbers[i] = slice.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          byteArrays.push(byteArray);
         }
-        const blob = new Blob([ab], { type: mimeString });
+
+        const blob = new Blob(byteArrays, { type: mime });
         const url = URL.createObjectURL(blob);
         setBlobUrls(prev => ({ ...prev, [doc.id]: url }));
         return url;
@@ -137,8 +147,11 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
         Document = pdfModule.Document;
         Page = pdfModule.Page;
         pdfjs = pdfModule.pdfjs;
+        
+        // Use CDN for worker to ensure same version as the library and avoid local file issues
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
+          // Version from package.json: 5.4.530
+          pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@5.4.530/build/pdf.worker.min.mjs`;
         }
       } catch (error) {
         console.warn('Failed to load PDF components:', error);
