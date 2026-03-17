@@ -304,7 +304,7 @@ const App: React.FC = () => {
     // Main Application Shell
     return (
       <TooltipProvider>
-        <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans antialiased text-slate-900 dark:text-slate-100 transition-colors duration-500 relative mesh-gradient">
+        <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans antialiased text-slate-900 dark:text-slate-100 transition-colors duration-500 relative mesh-gradient safe-pl safe-pr">
           
           <AppSidebar 
             isSidebarCollapsed={isSidebarCollapsed}
@@ -319,7 +319,7 @@ const App: React.FC = () => {
             projectName={currentProject?.name}
           />
 
-          <div id="main-content" className="flex-1 flex flex-col min-w-0 relative lg:m-4 lg:ml-0 m-0 rounded-none lg:rounded-[2rem] glass overflow-hidden border-none shadow-2xl">
+          <div id="main-content" className="flex-1 flex flex-col min-w-0 relative lg:m-4 lg:ml-0 m-0 rounded-none lg:rounded-[2rem] glass overflow-hidden border-none shadow-2xl safe-pb">
             <AppHeader 
               setSidebarOpen={(open) => startTransition(() => setSidebarOpen(open))}
               currentProject={currentProject}

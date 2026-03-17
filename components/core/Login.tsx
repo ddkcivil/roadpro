@@ -133,25 +133,25 @@ const Login: React.FC<Props> = ({ onLogin, onShowRegistration }) => {
   };
 
   return (
-    <div className="min-h-screen bg-muted flex items-center justify-center p-2 relative overflow-hidden">
+    <div className="min-h-screen bg-muted flex items-center justify-center p-4 relative overflow-hidden safe-pt safe-pb">
       <div className="absolute top-[10%] left-[15%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
       <div className="absolute bottom-[10%] right-[15%] w-[400px] h-[400px] bg-purple-500/5 rounded-full blur-3xl" />
 
       <div className="relative z-10 w-full max-w-md">
-        <div className="mb-8 text-center">
-          <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm border border-slate-100">
-            <Fingerprint size={28} className="text-primary" strokeWidth={1.5} />
+        <div className="mb-6 sm:mb-8 text-center">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm border border-slate-100">
+            <Fingerprint className="h-7 w-7 sm:h-8 sm:w-8 text-primary" strokeWidth={1.5} />
           </div>
-          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
             RoadMaster <span className="text-primary">Pro</span>
           </h1>
-          <p className="text-muted-foreground mt-1 font-medium">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1 font-medium">
             Infrastructure Management System
           </p>
         </div>
 
-        <Card className="rounded-2xl shadow-lg border-slate-200/50">
-          <CardContent className="p-6">
+        <Card className="rounded-[2rem] shadow-lg border-slate-200/50 overflow-hidden">
+          <CardContent className="p-6 sm:p-8">
             <ErrorSummary 
               errors={errors} 
               className="mb-4" 

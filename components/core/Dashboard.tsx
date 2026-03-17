@@ -157,7 +157,7 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
 
   return (
     <TooltipProvider>
-      <div className="p-4 md:p-8 space-y-8 animate-in fade-in duration-700 min-h-full">
+      <div className="p-4 md:p-8 space-y-8 animate-in fade-in duration-700 min-h-full safe-pb">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative pb-2">
           <div>
@@ -169,16 +169,16 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
               <span className="h-1 w-8 bg-primary rounded-full" />
               <p className="text-[10px] font-black text-primary tracking-[0.4em] uppercase opacity-70">Strategic Overview</p>
             </motion.div>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-foreground">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter text-foreground">
               Command <span className="text-muted-foreground/40">Center</span>
             </h1>
           </div>
           
-          <div className="flex items-center gap-3 bg-muted/30 p-1.5 rounded-[1.5rem] border border-border/40 backdrop-blur-md">
+          <div className="flex w-full sm:w-auto items-center gap-3 bg-muted/30 p-1.5 rounded-[1.5rem] border border-border/40 backdrop-blur-md">
             <Button 
               variant="ghost" 
               onClick={() => generateProjectSummaryPDF(project)} 
-              className="rounded-xl font-bold h-10 px-5 hover:bg-background transition-all duration-300"
+              className="flex-1 sm:flex-none rounded-xl font-bold h-10 px-5 hover:bg-background transition-all duration-300"
             >
               <FileDown className="mr-2 h-4 w-4 opacity-60" />
               Export Intel
@@ -186,7 +186,7 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
             
             <Dialog open={showWidgetSettings} onOpenChange={setShowWidgetSettings}>
               <DialogTrigger asChild>
-                <Button className="rounded-xl grad-primary text-white shadow-lg shadow-primary/20 h-10 px-5 font-bold border-none active:scale-95 transition-all">
+                <Button className="flex-1 sm:flex-none rounded-xl grad-primary text-white shadow-lg shadow-primary/20 h-10 px-5 font-bold border-none active:scale-95 transition-all">
                   <Settings className="mr-2 h-4 w-4" />
                   Configure
                 </Button>
