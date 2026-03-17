@@ -1,21 +1,18 @@
-# RFI Module Enhancement: Generate Official Single RFI PDF Form
+# PDF Loading Fix - Documentation Hub
 
 ## Current Status
-- [x] Analyzed Sagun RFI PDF content
-- [x] Searched & identified RFI module files (RFIModule.tsx, types.ts, pdfUtils.ts)
-- [x] Read pdfUtils.ts & types.ts 
-- [x] Created detailed edit plan
-- [x] Got user approval for plan
+- [x] Analyzed files and identified root cause (react-pdf v10 + Vite worker loading)
+- [ ] Update vite.config.ts
+- [ ] Fix DocumentationHub.tsx worker setup
+- [ ] Fix DocumentsModule.tsx worker setup  
+- [ ] Test PDF upload/preview
+- [ ] Verify in browser
+- [ ] Complete
 
-## Implementation Steps
-- [ ] Step 1: Read components/modules/RFIModule.tsx to understand UI structure for export button integration
-- [ ] Step 2: Enhance utils/formatting/pdfUtils.ts - Add generateSingleRFIPDF(rfi: RFI, project: Project)
-- [ ] Step 3: Edit components/modules/RFIModule.tsx - Add "Download Official RFI PDF" button calling new function
-- [ ] Step 4: Test PDF generation with Sagun RFI data mock
-- [ ] Step 5: Update types.ts if any missing fields (boqItemNo, contractNo link)
-- [ ] Step 6: Verify in browser (if dev server running) or demo
-- [ ] Step 7: Mark complete
+## Plan Details
+1. `vite.config.ts`: Add `assetsInclude: ['**/*.mjs']`
+2. `components/modules/DocumentationHub.tsx`: Update workerSrc to Vite ESM pattern
+3. `components/modules/DocumentsModule.tsx`: Apply same worker fix
+4. Restart dev server, test PDF preview functionality
 
-## Notes
-- Goal: Output exact PDF form matching "C:\Users\LENOVO\Desktop\RFI@Sagun March _15.pdf"
-- RFI type already matches ~90% fields
+**Next Step:** Update vite.config.ts

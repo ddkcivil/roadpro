@@ -148,10 +148,24 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
         Page = pdfModule.Page;
         pdfjs = pdfModule.pdfjs;
         
-        // Use CDN for worker to ensure same version as the library and avoid local file issues
+        // Use a more standard .js worker URL. .mjs can cause fetch issues on some environments.
+        // We'll use the cdnjs version which is highly reliable.
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          // Version from package.json: 5.4.530
-          pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@5.4.530/build/pdf.worker.min.mjs`;
+          // react-pdf 9.x+ usually bundles with pdfjs-dist 4.x
+          // We'll try to use a compatible stable version from cdnjs
+          pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs`;
+          
+          // Add error handling for worker loading
+          const testWorker = async () => {
+            try {
+              const response = await fetch(pdfjs.GlobalWorkerOptions.workerSrc, { method: 'HEAD' });
+              if (!response.ok) throw new Error('CDN worker not found');
+            } catch (e) {
+              console.warn('CDN worker failed, falling back to local worker');
+              pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
+            }
+          };
+          testWorker();
         }
       } catch (error) {
         console.warn('Failed to load PDF components:', error);
@@ -738,15 +752,18 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
                       <Document
                         file={getFileUrl(previewDoc)}
                         loading={<div className="text-center text-muted-foreground"><Loader2 className="animate-spin mx-auto mb-2" /> Loading PDF...</div>}
-                        error={
-                          <div className="flex flex-col items-center justify-center p-4 text-destructive">
-                            <FileText className="h-12 w-12 mb-2" />
-                            <p>Failed to load PDF</p>
-                            <p className="text-sm text-muted-foreground mt-1 text-center">
-                              This document may have an expired link or invalid format.
-                            </p>
-                          </div>
-                        }
+                        error={(error) => {
+                          console.error('PDF render error:', error);
+                          return (
+                            <div className="flex flex-col items-center justify-center p-4 text-destructive">
+                              <FileText className="h-12 w-12 mb-2" />
+                              <p>Failed to load PDF</p>
+                              <p className="text-sm text-muted-foreground mt-1 text-center">
+                                Check console for details. May be worker issue or invalid file.
+                              </p>
+                            </div>
+                          );
+                        }}
                         onLoadSuccess={({ numPages: totalPages }: { numPages: number }) => setNumPages(totalPages)}
                       >
                         <Page pageNumber={currentPage} scale={scale} renderTextLayer={false} renderAnnotationLayer={false} />
