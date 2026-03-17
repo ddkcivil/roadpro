@@ -664,7 +664,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
               <div className="flex-1 flex items-center justify-center p-4">
                 {previewDoc.fileUrl ? (
                   <div className="w-full h-full flex flex-col">
-                    {(previewDoc.type === 'PDF' || previewDoc.fileUrl.toLowerCase().endsWith('.pdf')) ? (
+                    {(previewDoc.type?.toLowerCase().includes('pdf') || previewDoc.fileUrl?.toLowerCase().endsWith('.pdf')) ? (
                       <div className="flex-1 flex items-center justify-center">
                         {Document ? (
                           <Document
