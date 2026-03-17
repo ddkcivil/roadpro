@@ -97,6 +97,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
   const [currentPage, setCurrentPage] = useState(1);
   const [numPages, setNumPages] = useState<number | null>(null);
   const [scale, setScale] = useState(1.0);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   // === CONSTANTS ===
   const FOLDERS = ['General', 'Contracts', 'Drawings', 'Reports', 'Correspondence', 'Financials', 'Sub-Docs'];
@@ -150,17 +151,15 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
         const pdfjs = pdfModule.pdfjs;
         
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          const cdnWorker = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs`;
-          try {
-            const response = await fetch(cdnWorker, { method: 'HEAD' });
-            if (response.ok) {
-              pdfjs.GlobalWorkerOptions.workerSrc = cdnWorker;
-            } else {
-              pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
-            }
-          } catch (e) {
+          // Use legacy .js worker for better browser compatibility and fewer ESM issues
+          // Version should match pdfjs-dist used by react-pdf 9.1.1+ (4.4.168)
+          pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@4.4.168/legacy/build/pdf.worker.min.js`;
+          
+          // Verify accessibility in background
+          fetch(pdfjs.GlobalWorkerOptions.workerSrc, { method: 'HEAD' }).catch(() => {
+            console.warn('CDN worker unreachable, falling back to local');
             pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
-          }
+          });
         }
 
         setPdfComponents({
@@ -463,7 +462,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" onClick={() => { setPreviewDoc(doc); setCurrentPage(1); setNumPages(null); setScale(1.0); }}>
+                                  <Button variant="ghost" size="icon" onClick={() => { setPreviewDoc(doc); setCurrentPage(1); setNumPages(null); setScale(1.0); setPdfError(null); }}>
                                     <Eye className="h-4 w-4" />
                                   </Button>
                                 </TooltipTrigger>
@@ -729,7 +728,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
       </Dialog>
 
       {/* Document Preview Modal */}
-      <Dialog open={!!previewDoc} onOpenChange={(open) => { if (!open) { setPreviewDoc(null); setNumPages(null); setCurrentPage(1); setScale(1.0); } }}>
+      <Dialog open={!!previewDoc} onOpenChange={(open) => { if (!open) { setPreviewDoc(null); setNumPages(null); setCurrentPage(1); setScale(1.0); setPdfError(null); } }}>
         <DialogContent className="max-w-[calc(100vw-6rem)] h-[calc(100vh-6rem)] flex flex-col p-0">
           <DialogHeader className="flex flex-row items-center justify-between px-6 py-4 border-b">
             <div className="flex items-center gap-2">
@@ -754,19 +753,20 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
                       <Document
                         file={getFileUrl(previewDoc)}
                         loading={<div className="text-center text-muted-foreground"><Loader2 className="animate-spin mx-auto mb-2" /> Loading PDF...</div>}
-                        error={(error) => {
-                          console.error('PDF render error:', error);
-                          return (
-                            <div className="flex flex-col items-center justify-center p-4 text-destructive">
-                              <FileText className="h-12 w-12 mb-2" />
-                              <p>Failed to load PDF</p>
-                              <p className="text-sm text-muted-foreground mt-1 text-center">
-                                Check console for details. May be worker issue or invalid file.
-                              </p>
-                            </div>
-                          );
+                        error={
+                          <div className="flex flex-col items-center justify-center p-4 text-destructive">
+                            <FileText className="h-12 w-12 mb-2" />
+                            <p>Failed to load PDF</p>
+                            <p className="text-sm text-muted-foreground mt-1 text-center">
+                              {pdfError || 'The file may be invalid, corrupted, or the PDF worker failed to load.'}
+                            </p>
+                          </div>
+                        }
+                        onLoadError={(error: Error) => {
+                          console.error('PDF load error:', error);
+                          setPdfError(error?.message || 'Unknown PDF error');
                         }}
-                        onLoadSuccess={({ numPages: totalPages }: { numPages: number }) => setNumPages(totalPages)}
+                        onLoadSuccess={({ numPages: totalPages }: { numPages: number }) => { setNumPages(totalPages); setPdfError(null); }}
                       >
                         <Page pageNumber={currentPage} scale={scale} renderTextLayer={false} renderAnnotationLayer={false} />
                       </Document>
