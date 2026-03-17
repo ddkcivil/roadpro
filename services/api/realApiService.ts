@@ -1,5 +1,5 @@
 // services/api/realApiService.ts
-import { Project, User, Message, AppSettings, SyncOperation } from '../../types';
+import { Project, User, Message, AppSettings, SyncOperation, StaffLocation } from '../../types';
 import { offlineStorage } from '../database/offlineStorage';
 import { encryptionUtils } from '../../utils/data/encryptionUtils';
 import { LocalStorageUtils } from '../../utils/data/localStorageUtils';

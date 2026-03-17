@@ -91,7 +91,7 @@ export class DataSyncService {
               await sqliteService.insert('rfis', {
                 id: rfi.id,
                 project_id: project.id,
-                subject: rfi.subject,
+                subject: rfi.title || rfi.description,
                 status: rfi.status
               });
             }
@@ -102,8 +102,8 @@ export class DataSyncService {
               await sqliteService.insert('lab_tests', {
                 id: test.id,
                 project_id: project.id,
-                test_name: test.testName || test.name,
-                status: test.status
+                test_name: test.testName,
+                status: test.result
               });
             }
           }
