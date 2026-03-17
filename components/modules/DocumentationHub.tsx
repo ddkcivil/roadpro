@@ -151,15 +151,8 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
         const pdfjs = pdfModule.pdfjs;
         
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          // Use legacy .js worker for better browser compatibility and fewer ESM issues
-          // Version should match pdfjs-dist used by react-pdf 9.1.1+ (4.4.168)
-          pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@4.4.168/legacy/build/pdf.worker.min.js`;
-          
-          // Verify accessibility in background
-          fetch(pdfjs.GlobalWorkerOptions.workerSrc, { method: 'HEAD' }).catch(() => {
-            console.warn('CDN worker unreachable, falling back to local');
-            pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
-          });
+          // Prioritize local worker as it's guaranteed to be available and less prone to CSP issues.
+          pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
         }
 
         setPdfComponents({
