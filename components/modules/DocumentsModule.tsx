@@ -95,18 +95,14 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
         const pdfjs = pdfModule.pdfjs;
         
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          // Use CDN worker for reliability, fallback to local if needed
-          const cdnWorker = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs`;
-          try {
-            const resp = await fetch(cdnWorker, { method: 'HEAD' });
-            if (resp.ok) {
-              pdfjs.GlobalWorkerOptions.workerSrc = cdnWorker;
-            } else {
-              pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
-            }
-          } catch (e) {
+          const cdnWorker = `https://unpkg.com/pdfjs-dist@4.4.168/legacy/build/pdf.worker.min.js`;
+          pdfjs.GlobalWorkerOptions.workerSrc = cdnWorker; // Set CDN first
+          
+          // Verify accessibility in background and fallback if CDN fails
+          fetch(cdnWorker, { method: 'HEAD' }).catch(() => {
+            console.warn('CDN worker unreachable, falling back to local');
             pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
-          }
+          });
         }
         
         setPdfComponents({
