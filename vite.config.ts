@@ -49,7 +49,7 @@ export default defineConfig(({ mode }) => {
         'react-pdf',
         'mongoose'
       ],
-      include: []
+      include: ['sonner']
     },
     css: {
       modules: {
