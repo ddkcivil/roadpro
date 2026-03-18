@@ -4,7 +4,7 @@ import {
     Plus, Edit, Trash2, Filter, Search, X, Save, 
     Users, CreditCard, FileSpreadsheet, PieChart
 } from 'lucide-react';
-import { Project, UserRole, ContractBill, SubcontractorBill, AgencyPayment } from '../../types';
+import { Project, UserRole, ContractBill, SubcontractorBill, AgencyPayment, BillStatus } from '../../types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
 import { cn } from '~/lib/utils';
 
@@ -26,7 +26,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Badge } from '~/components/ui/badge';
 import { Separator } from '~/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip';
 
 // NOTE: This is a refactored version of the FinancialsCommercialHub component.
 // The original logic has been temporarily removed to facilitate the UI migration.
@@ -57,7 +57,6 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
         );
     }
 
-    // Placeholder data - will be replaced with actual project data and calculations
     const contractBills: ContractBill[] = project?.contractBills || [];
     const subcontractorBills: SubcontractorBill[] = project?.subcontractorBills || [];
     const agencyPayments: AgencyPayment[] = project?.agencyPayments || [];
@@ -67,6 +66,7 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
             totalContractBills: contractBills.reduce((sum, b) => sum + (b.netAmount || 0), 0),
             totalSubcontractorBills: subcontractorBills.reduce((sum, b) => sum + (b.netAmount || 0), 0),
             totalAgencyPayments: agencyPayments.reduce((sum, b) => sum + (b.amount || 0), 0),
+            // Filter based on the defined BillStatus type
             pendingBills: [...contractBills, ...subcontractorBills].filter(b => b.status === 'Submitted').length,
             approvedBills: [...contractBills, ...subcontractorBills].filter(b => b.status === 'Approved').length,
             paidBills: [...contractBills, ...subcontractorBills].filter(b => b.status === 'Paid').length
@@ -83,20 +83,29 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
         setIsBillModalOpen(true);
     };
     const handleEditBill = (bill: ContractBill | SubcontractorBill, type: 'contract' | 'subcontractor') => {
-        setEditingBill(bill);
+        // Ensure the status is explicitly set to one of the allowed types if it's a generic string
+        const typedBill = {
+            ...bill,
+            status: (bill.status && ['Draft', 'Submitted', 'Approved', 'Paid'].includes(bill.status)) ? bill.status as BillStatus : 'Draft',
+        };
+        setEditingBill(typedBill);
         setEditingBillType(type);
         setIsBillModalOpen(true);
     };
     const handleDeleteBill = (billId: string, type: 'contract' | 'subcontractor') => { console.log('Delete Bill', billId, type); };
-    const handleSaveBill = () => { console.log('Save Bill', editingBill); setIsBillModalOpen(false); };
+    const handleSaveBill = () => { 
+        console.log('Save Bill', editingBill); 
+        setIsBillModalOpen(false); 
+    };
     
-    const getBillStatusBadge = (status: string) => {
+    // Use the BillStatus type for the badge
+    const getBillStatusBadge = (status: BillStatus | string) => {
         switch (status) {
             case 'Paid': return <Badge variant="default" className="bg-green-100 text-green-700">Paid</Badge>;
             case 'Approved': return <Badge variant="default" className="bg-blue-100 text-blue-700">Approved</Badge>;
             case 'Submitted': return <Badge variant="secondary">Submitted</Badge>;
             case 'Draft': return <Badge variant="outline">Draft</Badge>;
-            default: return <Badge variant="secondary">{status}</Badge>;
+            default: return <Badge variant="secondary">{status as string}</Badge>; // Fallback for unexpected statuses
         }
     };
 
@@ -151,7 +160,6 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                                 </Button>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                                {/* Stat Cards */}
                                 <Card className="border-l-4 border-emerald-500">
                                     <CardContent className="p-4">
                                         <div className="flex justify-between mb-1">
@@ -268,7 +276,6 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                                 </Button>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                                {/* Stat Cards */}
                                 <Card className="border-l-4 border-emerald-500">
                                     <CardContent className="p-4">
                                         <div className="flex justify-between mb-1">
@@ -387,7 +394,6 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                                 </Button>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                                {/* Stat Cards */}
                                 <Card className="border-l-4 border-emerald-500">
                                     <CardContent className="p-4">
                                         <div className="flex justify-between mb-1">
@@ -607,7 +613,7 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="status" className="text-right">Status</Label>
-                            <Select value={editingBill?.status || 'Draft'} onValueChange={(value) => setEditingBill(prev => ({ ...prev, status: value }))}>
+                            <Select value={editingBill?.status || 'Draft'} onValueChange={(value) => setEditingBill(prev => ({ ...prev, status: value as BillStatus }))}>
                                 <SelectTrigger className="col-span-3">
                                     <SelectValue placeholder="Select status" />
                                 </SelectTrigger>
