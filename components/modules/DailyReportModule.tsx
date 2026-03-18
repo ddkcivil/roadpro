@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Project, UserRole, DailyWorkItem, DailyReport } from '../../types';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuth.tsx';
 import { Activity, FileText, Trash2, Plus, Printer, CheckCircle, Info, CloudSun, Wifi, User, Users, AlertCircle } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';

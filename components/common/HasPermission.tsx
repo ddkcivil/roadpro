@@ -1,6 +1,6 @@
 import React from 'react';
 import { Permission } from '../../types';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuth.tsx';
 import { PermissionsService } from '../../services/auth/permissionsService';
 
 interface HasPermissionProps {

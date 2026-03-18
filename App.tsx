@@ -3,7 +3,7 @@ import { Loader2, Database, Mail, Info } from 'lucide-react';
 import { Project, User, UserRole, Permission } from './types';
 import { LocalStorageUtils } from './utils/data/localStorageUtils';
 import { getNavigationGroups } from './config/navigation';
-import { useAuth } from './hooks/useAuth';
+import { useAuth } from './hooks/useAuth.tsx';
 import { useProjects } from './hooks/useProjects';
 import { useMessages } from './hooks/useMessages';
 import { useSettings } from './hooks/useSettings';

@@ -1,7 +1,6 @@
 import { offlineStorage } from '../database/offlineStorage';
 import { SyncOperation } from '../../types';
 import { realApiService } from './realApiService';
-import { toast } from 'sonner';
 
 const SYNC_QUEUE_KEY = 'roadmaster-sync-queue';
 
@@ -24,9 +23,7 @@ export class SyncService {
     queue.push(newOp);
     await offlineStorage.setItem(SYNC_QUEUE_KEY, queue);
     
-    toast.info("Offline: Operation queued", {
-      description: `Your changes to "${operation.description}" will be synced when you're back online.`,
-    });
+    console.info("Offline: Operation queued - Your changes to '%s' will be synced when online.", operation.description);
   }
 
   /**
@@ -67,15 +64,11 @@ export class SyncService {
     await offlineStorage.setItem(SYNC_QUEUE_KEY, remainingQueue);
 
     if (successCount > 0) {
-      toast.success("Sync Success", {
-        description: `Successfully synchronized ${successCount} offline operations.`,
-      });
+      console.log(`[Sync Success] Synchronized ${successCount} offline operations.`);
     }
 
     if (failCount > 0) {
-      toast.error("Sync Issues", {
-        description: `${failCount} operations failed to sync and will be retried later.`,
-      });
+      console.error(`[Sync Issues] ${failCount} operations failed to sync and will be retried later.`);
     }
   }
 

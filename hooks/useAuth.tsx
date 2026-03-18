@@ -1,3 +1,9 @@
+'use client';
+
+/**
+ * Authentication Hook
+ * Handles user login, logout, and persistent session management.
+ */
 import { useState, useEffect, useMemo, startTransition } from 'react';
 import { UserRole, User, UserWithPermissions } from '../types';
 import { PermissionsService } from '../services/auth/permissionsService';
@@ -8,22 +14,24 @@ import { toast } from 'sonner';
 
 export const useAuth = () => {
   const [userRole, setUserRole] = useState<UserRole>(() => {
-    return (localStorage.getItem('roadmaster-user-role') as UserRole) || UserRole.SITE_ENGINEER;
+    const role = typeof localStorage !== 'undefined' ? localStorage.getItem('roadmaster-user-role') : null;
+    return (role as UserRole) || UserRole.SITE_ENGINEER;
   });
   
   const [userName, setUserName] = useState(() => {
-    return localStorage.getItem('roadmaster-user-name') || '';
+    return typeof localStorage !== 'undefined' ? (localStorage.getItem('roadmaster-user-name') || '') : '';
   });
 
   const [userPhone, setUserPhone] = useState(() => {
-    return localStorage.getItem('roadmaster-user-phone') || '';
+    return typeof localStorage !== 'undefined' ? (localStorage.getItem('roadmaster-user-phone') || '') : '';
   });
   
   const [currentUserId, setCurrentUserId] = useState<string>(() => {
-    return localStorage.getItem('roadmaster-current-user-id') || '';
+    return typeof localStorage !== 'undefined' ? (localStorage.getItem('roadmaster-current-user-id') || '') : '';
   });
 
   const [token, setToken] = useState<string>(() => {
+    if (typeof localStorage === 'undefined') return '';
     const encryptedToken = localStorage.getItem('roadmaster-token');
     if (!encryptedToken) return '';
     try {
@@ -36,6 +44,7 @@ export const useAuth = () => {
   });
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (typeof localStorage === 'undefined') return false;
     const auth = localStorage.getItem('roadmaster-authenticated') === 'true';
     const encryptedToken = localStorage.getItem('roadmaster-token');
     
@@ -51,6 +60,8 @@ export const useAuth = () => {
 
   // Debug effect to track authentication state changes
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const handleAuthFailure = () => {
       console.warn('Persistent auth failure detected via event. Logging out.');
       setIsAuthenticated(false);
@@ -113,21 +124,23 @@ export const useAuth = () => {
       if (phone) setUserPhone(phone);
       
       try {
-        // Save authentication state to localStorage
-        localStorage.setItem('roadmaster-authenticated', 'true');
-        localStorage.setItem('roadmaster-user-role', role);
-        localStorage.setItem('roadmaster-user-name', name);
-        if (phone) localStorage.setItem('roadmaster-user-phone', phone);
-        
-        if (userToken) {
-          setToken(userToken);
-          const encryptedToken = encryptionUtils.encrypt(userToken);
-          localStorage.setItem('roadmaster-token', encryptedToken);
-        }
+        if (typeof localStorage !== 'undefined') {
+          // Save authentication state to localStorage
+          localStorage.setItem('roadmaster-authenticated', 'true');
+          localStorage.setItem('roadmaster-user-role', role);
+          localStorage.setItem('roadmaster-user-name', name);
+          if (phone) localStorage.setItem('roadmaster-user-phone', phone);
+          
+          if (userToken) {
+            setToken(userToken);
+            const encryptedToken = encryptionUtils.encrypt(userToken);
+            localStorage.setItem('roadmaster-token', encryptedToken);
+          }
 
-        if (userId) {
-          setCurrentUserId(userId);
-          localStorage.setItem('roadmaster-current-user-id', userId);
+          if (userId) {
+            setCurrentUserId(userId);
+            localStorage.setItem('roadmaster-current-user-id', userId);
+          }
         }
 
         setIsAuthenticated(true);
@@ -138,11 +151,13 @@ export const useAuth = () => {
           
           // Try again after cleanup
           try {
-            localStorage.setItem('roadmaster-authenticated', 'true');
-            localStorage.setItem('roadmaster-user-role', role);
-            if (userToken) {
-              const encryptedToken = encryptionUtils.encrypt(userToken);
-              localStorage.setItem('roadmaster-token', encryptedToken);
+            if (typeof localStorage !== 'undefined') {
+              localStorage.setItem('roadmaster-authenticated', 'true');
+              localStorage.setItem('roadmaster-user-role', role);
+              if (userToken) {
+                const encryptedToken = encryptionUtils.encrypt(userToken);
+                localStorage.setItem('roadmaster-token', encryptedToken);
+              }
             }
             setIsAuthenticated(true);
           } catch (retryError) {
@@ -171,21 +186,23 @@ export const useAuth = () => {
     setCurrentUserId('');
     setToken('');
     
-    const keysToRemove = [
-      'roadmaster-authenticated',
-      'roadmaster-user-role',
-      'roadmaster-user-name',
-      'roadmaster-user-phone',
-      'roadmaster-current-user-id',
-      'roadmaster-token',
-      'roadmaster-csrf-token'
-    ];
-    
-    keysToRemove.forEach(key => {
-      try {
-        localStorage.removeItem(key);
-      } catch (e) {}
-    });
+    if (typeof localStorage !== 'undefined') {
+      const keysToRemove = [
+        'roadmaster-authenticated',
+        'roadmaster-user-role',
+        'roadmaster-user-name',
+        'roadmaster-user-phone',
+        'roadmaster-current-user-id',
+        'roadmaster-token',
+        'roadmaster-csrf-token'
+      ];
+      
+      keysToRemove.forEach(key => {
+        try {
+          localStorage.removeItem(key);
+        } catch (e) {}
+      });
+    }
   };
 
   return {

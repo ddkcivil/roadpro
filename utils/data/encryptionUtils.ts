@@ -1,5 +1,7 @@
+/// <reference types="vite/client" />
 import CryptoJS from 'crypto-js';
 
+// @ts-ignore - import.meta is supported by Vite but might not be recognized by all TS configs
 const ENCRYPTION_KEY = import.meta.env.VITE_STORAGE_KEY || 'roadmaster-secure-key-2024-infrastructure';
 
 export const encryptionUtils = {
