@@ -6,7 +6,6 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
-    assetsInclude: ['**/*.mjs'],
     server: {
       host: 'localhost',
       port: 3003,
@@ -48,8 +47,7 @@ export default defineConfig(({ mode }) => {
         'pdfjs-dist',
         'react-pdf',
         'mongoose'
-      ],
-      include: ['sonner']
+      ]
     },
     css: {
       modules: {
