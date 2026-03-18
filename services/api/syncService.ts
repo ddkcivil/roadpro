@@ -1,7 +1,7 @@
 import { offlineStorage } from '../database/offlineStorage';
 import { SyncOperation } from '../../types';
 import { realApiService } from './realApiService';
-const { toast } = require('sonner');
+import { toast } from 'sonner';
 
 const SYNC_QUEUE_KEY = 'roadmaster-sync-queue';
 

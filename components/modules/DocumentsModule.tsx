@@ -56,9 +56,13 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
   const [previewUrl, setPreviewUrl] = useState<string>('');
 
   const base64ToBlobUrl = useCallback((base64: string): string => {
+    console.log('[DocumentsModule] Attempting to convert base64 to blob URL.');
     try {
       const parts = base64.split(',');
-      if (parts.length < 2) return '';
+      if (parts.length < 2) {
+        console.error('[DocumentsModule] Base64 string is malformed (missing comma separator).');
+        return '';
+      }
       
       const byteString = atob(parts[1]);
       const mimeString = parts[0].split(':')[1].split(';')[0];
@@ -68,23 +72,40 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
         ia[i] = byteString.charCodeAt(i);
       }
       const blob = new Blob([ab], { type: mimeString });
-      return URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob);
+      console.log('[DocumentsModule] Successfully created blob URL.');
+      return url;
     } catch (error) {
-      console.error('Error converting base64 to blob URL:', error);
+      console.error('[DocumentsModule] Error converting base64 to blob URL:', error);
       return '';
     }
   }, []);
 
   const getFileUrl = useCallback((doc: ProjectDocument): string => {
-    if (!doc.fileUrl) return '';
-    if (blobUrls[doc.id]) return blobUrls[doc.id];
-    
-    if (doc.fileUrl.startsWith('data:')) {
-      const url = base64ToBlobUrl(doc.fileUrl);
-      setBlobUrls(prev => ({ ...prev, [doc.id]: url }));
-      return url;
+    console.log('[DocumentsModule] getFileUrl called for doc:', doc.name);
+    if (!doc.fileUrl) {
+      console.error('[DocumentsModule] doc.fileUrl is empty or undefined.');
+      return '';
+    }
+    if (blobUrls[doc.id]) {
+      console.log('[DocumentsModule] Returning cached blob URL.');
+      return blobUrls[doc.id];
     }
     
+    if (doc.fileUrl.startsWith('data:')) {
+      console.log('[DocumentsModule] File is a data URL. Attempting conversion.');
+      const url = base64ToBlobUrl(doc.fileUrl);
+      if (url) {
+        setBlobUrls(prev => ({ ...prev, [doc.id]: url }));
+        console.log('[DocumentsModule] Converted to blob URL:', url);
+        return url;
+      } else {
+        console.error('[DocumentsModule] Failed to convert data URL to blob URL.');
+        return ''; // Return empty if conversion failed
+      }
+    }
+    
+    console.log('[DocumentsModule] Returning original fileUrl:', doc.fileUrl);
     return doc.fileUrl;
   }, [blobUrls, base64ToBlobUrl]);
 
@@ -100,6 +121,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
             import.meta.url,
           ).toString();
           pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+          console.log('[DocumentsModule] PDF workerSrc set to:', workerUrl);
         }
         
         setPdfComponents({
@@ -108,10 +130,11 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
           pdfjs: pdfjs
         });
       } catch (error) {
-        console.warn('Failed to load PDF components:', error);
+        console.warn('[DocumentsModule] Failed to load PDF components:', error);
       }
     };
     loadPdfComponents();
+
 
     return () => {
       Object.values(blobUrls).forEach(url => {
