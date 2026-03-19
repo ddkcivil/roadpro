@@ -283,7 +283,7 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
           // Fallback: if snapping fails, try to estimate distance based on distance to main road line
           const distToMainRoad = turf.pointToLineDistance(turf.point(structurePointCoords), mainRoadLine, { units: 'meters' });
           if (distToMainRoad < 30) {
-            const nearestPointOnMainRoad = turf.pointOnLine(mainRoadLine, turf.point(structurePointCoords));
+            const nearestPointOnMainRoad = turf.nearestPointOnLine(mainRoadLine, turf.point(structurePointCoords));
             if (nearestPointOnMainRoad.geometry) {
               const pathLengthToNearest = turf.length(turf.lineString(mainRoadLine.geometry.coordinates.slice(0, mainRoadLine.geometry.coordinates.findIndex(coord => coord[0] === nearestPointOnMainRoad.geometry.coordinates[0] && coord[1] === nearestPointOnMainRoad.geometry.coordinates[1]))), { units: 'kilometers' }) * 1000;
               structureDistance = pathLengthToNearest;

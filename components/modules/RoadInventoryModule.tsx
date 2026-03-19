@@ -6,8 +6,9 @@ import {
     ChevronRight, ChevronDown, CheckCircle2,
     Database, Activity, Search, Filter,
     Eye, MoreVertical, LayoutList,
-    Box, Construction, Bridge
+    Box, Construction, Waypoints, Milestone, Edit
 } from 'lucide-react';
+
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '~/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '~/components/ui/dialog';
@@ -296,7 +297,7 @@ const RoadInventoryModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                               <div key={structure.id} className="p-6 hover:bg-muted/30 transition-colors flex justify-between items-center group">
                                 <div className="flex items-center gap-4">
                                   <div className="h-10 w-10 rounded-xl bg-muted border flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                                    {structure.type.includes('Bridge') ? <Bridge size={20} /> : <Construction size={20} />}
+                                    {structure.type.toLowerCase().includes('bridge') ? <Waypoints size={20} /> : <Milestone size={20} />}
                                   </div>
                                   <div>
                                     <h4 className="font-bold text-sm uppercase tracking-tight">{structure.name}</h4>
