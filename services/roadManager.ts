@@ -1,17 +1,21 @@
 import { Road, Alignment, Structure, ChainagePoint, ProjectPoint, RoadProject, Chainage, parseChainage, formatChainage } from '../models/roadTypes';
-import { v4 as uuidv4 } from 'uuid'; // Assuming uuid is available for generating IDs
-
-// Interface for an in-memory store of roads
-interface RoadStore {
-  [roadId: string]: Road;
-}
+import { v4 as uuidv4 } from 'uuid';
+import RoadModel, { RoadDocument } from './database/roadModels';
+import connectToDatabase from './database/mongodb';
+import { parseKML } from './kmlParser';
 
 export class RoadDataManager {
-  private roads: RoadStore = {};
+  private mongoose: typeof import('mongoose') | null = null;
 
   constructor() {
-    // You might want to load existing data here from a persistent store
-    // For now, it starts with an empty in-memory store
+    // MongoDB connection will be established on first operation
+  }
+
+  private async ensureConnected(): Promise<typeof import('mongoose')> {
+    if (!this.mongoose) {
+      this.mongoose = await connectToDatabase();
+    }
+    return this.mongoose;
   }
 
   /**
@@ -19,33 +23,50 @@ export class RoadDataManager {
    * @param road The road object to add.
    * @returns The ID of the added road, or null if a road with the same ID already exists.
    */
-  public addRoad(road: Omit<Road, 'id'>): string | null {
+  public async addRoad(road: Omit<Road, 'id'>): Promise<string | null> {
+    await this.ensureConnected();
     const id = uuidv4();
-    if (this.roads[id]) {
-      console.warn(`Road with ID ${id} already exists.`);
+    const newRoad: Road & { _id?: any } = { ...road, id };
+    try {
+      const doc = new RoadModel(newRoad);
+      await doc.save();
+      console.log(`Road "${road.name}" added with ID: ${id}`);
+      return id;
+    } catch (error) {
+      console.error(`Failed to add road "${road.name}":`, error);
       return null;
     }
-    const newRoad: Road = { ...road, id };
-    this.roads[id] = newRoad;
-    console.log(`Road "${road.name}" added with ID: ${id}`);
-    return id;
   }
 
   /**
    * Retrieves a road by its ID.
    * @param roadId The ID of the road to retrieve.
-   * @returns The road object, or undefined if not found.
+   * @returns The road object, or null if not found.
    */
-  public getRoad(roadId: string): Road | undefined {
-    return this.roads[roadId];
+  public async getRoad(roadId: string): Promise<Road | null> {
+    await this.ensureConnected();
+    try {
+      const doc = await RoadModel.findOne({ id: roadId });
+      return doc ? doc.toObject() as Road : null;
+    } catch (error) {
+      console.error(`Failed to get road ${roadId}:`, error);
+      return null;
+    }
   }
 
   /**
    * Retrieves all roads managed by this instance.
    * @returns An array of all road objects.
    */
-  public getAllRoads(): Road[] {
-    return Object.values(this.roads);
+  public async getAllRoads(): Promise<Road[]> {
+    await this.ensureConnected();
+    try {
+      const docs = await RoadModel.find({});
+      return docs.map(doc => doc.toObject() as Road);
+    } catch (error) {
+      console.error('Failed to get all roads:', error);
+      return [];
+    }
   }
 
   /**
@@ -54,15 +75,20 @@ export class RoadDataManager {
    * @param updatedRoadData The partial road data to update.
    * @returns True if the road was updated, false otherwise.
    */
-  public updateRoad(roadId: string, updatedRoadData: Partial<Road>): boolean {
-    if (!this.roads[roadId]) {
+  public async updateRoad(roadId: string, updatedRoadData: Partial<Road>): Promise<boolean> {
+    await this.ensureConnected();
+    try {
+      const result = await RoadModel.findOneAndUpdate({ id: roadId }, updatedRoadData, { new: true });
+      if (result) {
+        console.log(`Road with ID ${roadId} updated.`);
+        return true;
+      }
       console.error(`Road with ID ${roadId} not found for update.`);
       return false;
+    } catch (error) {
+      console.error(`Failed to update road ${roadId}:`, error);
+      return false;
     }
-    // Deep merge or selective update of properties
-    this.roads[roadId] = { ...this.roads[roadId], ...updatedRoadData };
-    console.log(`Road with ID ${roadId} updated.`);
-    return true;
   }
 
   /**
@@ -70,14 +96,20 @@ export class RoadDataManager {
    * @param roadId The ID of the road to delete.
    * @returns True if the road was deleted, false otherwise.
    */
-  public deleteRoad(roadId: string): boolean {
-    if (!this.roads[roadId]) {
+  public async deleteRoad(roadId: string): Promise<boolean> {
+    await this.ensureConnected();
+    try {
+      const result = await RoadModel.findOneAndDelete({ id: roadId });
+      if (result) {
+        console.log(`Road with ID ${roadId} deleted.`);
+        return true;
+      }
       console.error(`Road with ID ${roadId} not found for deletion.`);
       return false;
+    } catch (error) {
+      console.error(`Failed to delete road ${roadId}:`, error);
+      return false;
     }
-    delete this.roads[roadId];
-    console.log(`Road with ID ${roadId} deleted.`);
-    return true;
   }
 
   // --- Alignment Management ---
@@ -88,21 +120,24 @@ export class RoadDataManager {
    * @param alignment The alignment object to add.
    * @returns The ID of the added alignment, or null if road not found or alignment ID exists.
    */
-  public addAlignmentToRoad(roadId: string, alignment: Omit<Alignment, 'id' | 'roadId'>): string | null {
-    const road = this.getRoad(roadId);
-    if (!road) {
-      console.error(`Road with ID ${roadId} not found.`);
+  public async addAlignmentToRoad(roadId: string, alignment: Omit<Alignment, 'id' | 'roadId'>): Promise<string | null> {
+    await this.ensureConnected();
+    try {
+      const roadDoc = await RoadModel.findOne({ id: roadId });
+      if (!roadDoc) {
+        console.error(`Road with ID ${roadId} not found.`);
+        return null;
+      }
+      const id = uuidv4();
+      const newAlignment: Alignment = { ...alignment, id, roadId };
+      roadDoc.alignments.push(newAlignment as any);
+      await roadDoc.save();
+      console.log(`Alignment "${alignment.name}" added to road ${roadId} with ID: ${id}`);
+      return id;
+    } catch (error) {
+      console.error(`Failed to add alignment to road ${roadId}:`, error);
       return null;
     }
-    const id = uuidv4();
-    if (road.alignments.some(a => a.id === id)) {
-      console.warn(`Alignment with ID ${id} already exists for road ${roadId}.`);
-      return null;
-    }
-    const newAlignment: Alignment = { ...alignment, id, roadId };
-    road.alignments.push(newAlignment);
-    console.log(`Alignment "${alignment.name}" added to road ${roadId} with ID: ${id}`);
-    return id;
   }
 
   /**
@@ -111,8 +146,8 @@ export class RoadDataManager {
    * @param alignmentId The ID of the alignment.
    * @returns The alignment object, or undefined if not found.
    */
-  public getAlignment(roadId: string, alignmentId: string): Alignment | undefined {
-    const road = this.getRoad(roadId);
+  public async getAlignment(roadId: string, alignmentId: string): Promise<Alignment | undefined> {
+    const road = await this.getRoad(roadId);
     return road?.alignments.find(a => a.id === alignmentId);
   }
 
@@ -124,21 +159,24 @@ export class RoadDataManager {
    * @param structure The structure object to add.
    * @returns The ID of the added structure, or null if road not found or structure ID exists.
    */
-  public addStructureToRoad(roadId: string, structure: Omit<Structure, 'id' | 'roadId'>): string | null {
-    const road = this.getRoad(roadId);
-    if (!road) {
-      console.error(`Road with ID ${roadId} not found.`);
+  public async addStructureToRoad(roadId: string, structure: Omit<Structure, 'id' | 'roadId'>): Promise<string | null> {
+    await this.ensureConnected();
+    try {
+      const roadDoc = await RoadModel.findOne({ id: roadId });
+      if (!roadDoc) {
+        console.error(`Road with ID ${roadId} not found.`);
+        return null;
+      }
+      const id = uuidv4();
+      const newStructure: Structure = { ...structure, id, roadId };
+      roadDoc.structures.push(newStructure as any);
+      await roadDoc.save();
+      console.log(`Structure "${structure.name}" added to road ${roadId} with ID: ${id}`);
+      return id;
+    } catch (error) {
+      console.error(`Failed to add structure to road ${roadId}:`, error);
       return null;
     }
-    const id = uuidv4();
-    if (road.structures.some(s => s.id === id)) {
-      console.warn(`Structure with ID ${id} already exists for road ${roadId}.`);
-      return null;
-    }
-    const newStructure: Structure = { ...structure, id, roadId };
-    road.structures.push(newStructure);
-    console.log(`Structure "${structure.name}" added to road ${roadId} with ID: ${id}`);
-    return id;
   }
 
   /**
@@ -147,9 +185,61 @@ export class RoadDataManager {
    * @param structureId The ID of the structure.
    * @returns The structure object, or undefined if not found.
    */
-  public getStructure(roadId: string, structureId: string): Structure | undefined {
-    const road = this.getRoad(roadId);
+  public async getStructure(roadId: string, structureId: string): Promise<Structure | undefined> {
+    const road = await this.getRoad(roadId);
     return road?.structures.find(s => s.id === structureId);
+  }
+
+/**
+ * Imports KML data, parses it, and adds the resulting road to the manager.
+ * @param kmlContent The KML content as a string.
+ * @param roadName The desired name for the road.
+ * @returns The ID of the added road, or null if an error occurred.
+ */
+public async importKml(kmlContent: string, roadName: string): Promise<string | null> {
+  console.log(`Importing KML for road: "${roadName}"`);
+  try {
+    const parsedRoad = await parseKML(kmlContent, roadName);
+    if (!parsedRoad) {
+      console.error("KML parsing failed to return a road object.");
+      return null;
+    }
+    
+    // We pass it to addRoad which generates its own ID and saves to MongoDB.
+    const newRoadId = await this.addRoad(parsedRoad);
+
+    if (newRoadId) {
+      console.log(`Successfully imported and added road "${roadName}" with ID: ${newRoadId}`);
+      return newRoadId;
+    } else {
+      console.error(`Failed to add parsed road "${roadName}" to RoadDataManager.`);
+      return null;
+    }
+
+  } catch (error) {
+    console.error(`Error during KML import for road "${roadName}":`, error);
+    return null;
+  }
+}
+
+  /**
+   * Retrieves all alignments for a specific road.
+   * @param roadId The ID of the road.
+   * @returns An array of all alignment objects for the road, or an empty array if the road is not found.
+   */
+  public async getAllAlignmentsForRoad(roadId: string): Promise<Alignment[]> {
+    const road = await this.getRoad(roadId);
+    return road ? road.alignments : [];
+  }
+
+  /**
+   * Retrieves all structures for a specific road.
+   * @param roadId The ID of the road.
+   * @returns An array of all structure objects for the road, or an empty array if the road is not found.
+   */
+  public async getAllStructuresForRoad(roadId: string): Promise<Structure[]> {
+    const road = await this.getRoad(roadId);
+    return road ? road.structures : [];
   }
 
   // --- Validation Tasks (Task 3.2) ---
@@ -164,8 +254,8 @@ export class RoadDataManager {
    * @param structureId The ID of the structure to validate (optional).
    * @returns True if validation passes, false otherwise.
    */
-  public validateChainage(roadId: string, alignmentId?: string, structureId?: string): boolean {
-    const road = this.getRoad(roadId);
+  public async validateChainage(roadId: string, alignmentId?: string, structureId?: string): Promise<boolean> {
+    const road = await this.getRoad(roadId);
     if (!road) {
       console.error(`Road with ID ${roadId} not found for validation.`);
       return false;
@@ -178,15 +268,16 @@ export class RoadDataManager {
         console.error(`Alignment with ID ${alignmentId} not found for road ${roadId}.`);
         return false;
       }
-      let lastChainageValue = -1; // Initialize with a value less than any possible chainage
+      let lastDistanceValue = -1;
       for (const cp of alignment.chainagePoints) {
         try {
-          const currentChainageValue = parseChainage(cp.chainage);
-          if (currentChainageValue < lastChainageValue) {
-            console.error(`Invalid chainage sequence in alignment ${alignmentId} of road ${roadId}: ${cp.chainage} follows ${formatChainage(lastChainageValue)}`);
+          // Use distance for numerical comparison if available, otherwise parse chainage string
+          const currentDistanceValue = cp.distance !== undefined ? cp.distance : parseChainage(cp.chainage);
+          if (currentDistanceValue < lastDistanceValue) {
+            console.error(`Invalid chainage sequence in alignment ${alignmentId} of road ${roadId}: ${cp.chainage} follows ${formatChainage(lastDistanceValue)}`);
             return false;
           }
-          lastChainageValue = currentChainageValue;
+          lastDistanceValue = currentDistanceValue;
         } catch (e) {
           console.error(`Error parsing chainage "${cp.chainage}" in alignment ${alignmentId} of road ${roadId}:`, e);
           return false;
@@ -203,17 +294,15 @@ export class RoadDataManager {
         return false;
       }
       try {
-        const structureChainageValue = parseChainage(structure.chainage);
+        const structureDistanceValue = structure.distance !== undefined ? structure.distance : parseChainage(structure.chainage);
         // Basic check: ensure structure chainage falls within the road's geometry extent if available
         if (road.geometry && road.geometry.length > 0) {
-          const minChainage = parseChainage(formatChainage(0)); // Start of road geometry
-          const maxChainage = parseChainage(formatChainage(road.geometry.length * 1000)); // Approx end of road geometry based on points count
-          if (structureChainageValue < minChainage || structureChainageValue > maxChainage) {
+          const minDistance = 0;
+          const maxDistance = road.geometry.length * 1000; // Rough estimate if no total length
+          if (structureDistanceValue < minDistance || structureDistanceValue > maxDistance) {
             console.warn(`Structure ${structureId} on road ${roadId} has chainage ${structure.chainage} which is outside the primary road geometry extent.`);
-            // Depending on requirements, this could be an error or a warning. For now, it's a warning.
           }
         }
-        // More advanced validation could involve checking against alignment chainages, etc.
         console.log(`Structure ${structureId} chainage validation passed for road ${roadId}.`);
       } catch (e) {
         console.error(`Error parsing structure chainage "${structure.chainage}" for structure ${structureId} on road ${roadId}:`, e);
@@ -233,25 +322,26 @@ export class RoadDataManager {
    * @param endChainageString The ending chainage (e.g., "5+500").
    * @returns An array of roads matching the criteria.
    */
-  public findRoadsByChainageRange(startChainageString: Chainage, endChainageString: Chainage): Road[] {
-    const startChainage = parseChainage(startChainageString);
-    const endChainage = parseChainage(endChainageString);
+  public async findRoadsByChainageRange(startChainageString: Chainage, endChainageString: Chainage): Promise<Road[]> {
+    const startDistance = parseChainage(startChainageString);
+    const endDistance = parseChainage(endChainageString);
 
-    if (isNaN(startChainage) || isNaN(endChainage) || startChainage > endChainage) {
+    if (isNaN(startDistance) || isNaN(endDistance) || startDistance > endDistance) {
       console.error("Invalid chainage range provided.");
       return [];
     }
 
     const matchingRoads: Road[] = [];
+    const allRoads = await this.getAllRoads();
 
-    for (const road of this.getAllRoads()) {
+    for (const road of allRoads) {
       let hasMatchingElement = false;
 
       // Check structures
       for (const structure of road.structures) {
         try {
-          const structureChainage = parseChainage(structure.chainage);
-          if (structureChainage >= startChainage && structureChainage <= endChainage) {
+          const structureDistance = structure.distance !== undefined ? structure.distance : parseChainage(structure.chainage);
+          if (structureDistance >= startDistance && structureDistance <= endDistance) {
             hasMatchingElement = true;
             break;
           }
@@ -262,23 +352,23 @@ export class RoadDataManager {
 
       if (hasMatchingElement) {
         matchingRoads.push(road);
-        continue; // Move to the next road if a structure matched
+        continue;
       }
 
-      // Check alignments (chainage points within alignments)
+      // Check alignments
       for (const alignment of road.alignments) {
         for (const cp of alignment.chainagePoints) {
           try {
-            const cpChainage = parseChainage(cp.chainage);
-            if (cpChainage >= startChainage && cpChainage <= endChainage) {
+            const cpDistance = cp.distance !== undefined ? cp.distance : parseChainage(cp.chainage);
+            if (cpDistance >= startDistance && cpDistance <= endDistance) {
               hasMatchingElement = true;
-              break; // Found a matching chainage point in this alignment
+              break;
             }
           } catch (e) {
             console.warn(`Skipping alignment ${alignment.id} chainage point for road ${road.id} due to invalid chainage: ${cp.chainage}`);
           }
         }
-        if (hasMatchingElement) break; // Found a matching alignment, no need to check others for this road
+        if (hasMatchingElement) break;
       }
 
       if (hasMatchingElement) {
@@ -296,17 +386,17 @@ export class RoadDataManager {
    * @param endChainageString The ending chainage (e.g., "5+500").
    * @returns An array of structures matching the criteria.
    */
-  public findStructuresByRoadIdAndChainageRange(roadId: string, startChainageString: Chainage, endChainageString: Chainage): Structure[] {
-    const road = this.getRoad(roadId);
+  public async findStructuresByRoadIdAndChainageRange(roadId: string, startChainageString: Chainage, endChainageString: Chainage): Promise<Structure[]> {
+    const road = await this.getRoad(roadId);
     if (!road) {
       console.error(`Road with ID ${roadId} not found for structure query.`);
       return [];
     }
 
-    const startChainage = parseChainage(startChainageString);
-    const endChainage = parseChainage(endChainageString);
+    const startDistance = parseChainage(startChainageString);
+    const endDistance = parseChainage(endChainageString);
 
-    if (isNaN(startChainage) || isNaN(endChainage) || startChainage > endChainage) {
+    if (isNaN(startDistance) || isNaN(endDistance) || startDistance > endDistance) {
       console.error("Invalid chainage range provided for structure query.");
       return [];
     }
@@ -314,8 +404,8 @@ export class RoadDataManager {
     const matchingStructures: Structure[] = [];
     for (const structure of road.structures) {
       try {
-        const structureChainage = parseChainage(structure.chainage);
-        if (structureChainage >= startChainage && structureChainage <= endChainage) {
+        const structureDistance = structure.distance !== undefined ? structure.distance : parseChainage(structure.chainage);
+        if (structureDistance >= startDistance && structureDistance <= endDistance) {
           matchingStructures.push(structure);
         }
       } catch (e) {
@@ -324,10 +414,4 @@ export class RoadDataManager {
     }
     return matchingStructures;
   }
-
-  // Additional query methods can be added here as needed, e.g.:
-  // - getAlignmentsForRoad(roadId: string)
-  // - getStructuresForRoad(roadId: string)
-  // - findAlignmentById(roadId: string, alignmentId: string)
-  // - etc.
 }

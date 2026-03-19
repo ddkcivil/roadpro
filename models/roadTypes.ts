@@ -3,10 +3,13 @@ import { LatLngExpression } from 'leaflet';
 // Chainage format: "0+000" -> 0 meters, "3+020" -> 3020 meters
 export type Chainage = string;
 
-export interface ProjectPoint {
+export interface Point {
   lat: number;
   lng: number;
+  alt?: number;
 }
+
+type ProjectPoint = Point;
 
 export interface ChainagePoint {
   distance: number; // meters from start
@@ -18,7 +21,7 @@ export interface Alignment {
   id: string;
   roadId: string;
   name: string; // e.g., "Pavement Main", "Drainage Left"
-  type: 'pavement' | 'drainage' | 'footpath' | 'kerb' | 'service';
+  type: 'Pavement' | 'Drainage' | 'Footpath' | 'Kerb' | 'pavement' | 'drainage' | 'footpath' | 'kerb' | 'service';
   coordinates: LatLngExpression[]; // polyline coords from KML
   chainagePoints: ChainagePoint[];
   totalLength: number;
@@ -28,10 +31,11 @@ export interface Alignment {
 export interface Structure {
   id: string;
   roadId: string;
-  type: 'culvert' | 'box-culvert' | 'bridge' | 'underpass';
+  type: 'Box Culvert' | 'Pipe Culvert' | 'Bridge' | 'Retaining Wall' | 'Abutment' | 'Pier' | 'Slab Culvert' | 'Minor Bridge' | 'Major Bridge' | 'Drainage (Lined)' | 'Drainage (Unlined)' | 'Breast Wall' | 'Pavement (Flexible)' | 'Pavement (Rigid)' | 'Footpath' | 'Utility Duct' | 'Street Light Base' | 'Road Signal' | 'Junction Box' | 'Median Barrier' | 'Pedestrian Guardrail' | 'Bus Shelter' | 'culvert' | 'box-culvert' | 'bridge' | 'underpass';
   name: string;
   chainage: Chainage;
   distance: number; // normalized meters
+  geometry?: Point | LatLngExpression[] | { type: 'Polygon'; coordinates: LatLngExpression[][] };
   alignments: string[]; // linked alignment IDs
   properties: Record<string, any>;
 }
