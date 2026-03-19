@@ -439,19 +439,16 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
   const [isDeletingKML, setIsDeletingKML] = useState(false);
   const [kmlToDelete, setKmlToDelete] = useState<string | null>(null);
   const [isPendingDelete, startDeleteTransition] = React.useTransition();
-const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({
-  structures: true,
-  vehicles: true,
-  staff: true,
-  landParcels: true,
-  overlays: true,
-  sitePhotos: true,
-  linearWorks: true,
-  kml: true,
-  roadAlignments: true,
-  roadStructures: true,
-});
 
+  const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({
+    structures: true,
+    vehicles: true,
+    staff: true,
+    landParcels: true,
+    overlays: true,
+    sitePhotos: true,
+    linearWorks: true,
+    kml: true,
     roadAlignments: true,
     roadStructures: true,
   });
