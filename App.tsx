@@ -55,6 +55,7 @@ const MapModule = lazy(() => import('./components/modules/MapModule'));
 const LabModule = lazy(() => import('./components/modules/LabModule'));
 const QualityHub = lazy(() => import('./components/hubs/QualityHub'));
 const LinearWorksModule = lazy(() => import('./components/modules/LinearWorksModule'));
+const RoadInventoryModule = lazy(() => import('./components/modules/RoadInventoryModule'));
 const SubcontractorModule = lazy(() => import('./components/modules/SubcontractorModule'));
 const SubcontractorBillingModule = lazy(() => import('./components/modules/SubcontractorBillingModule'));
 const MessagesModule = lazy(() => import('./components/modules/MessagesModule'));
@@ -390,6 +391,7 @@ const App: React.FC = () => {
                             {activeTab === 'schedule' && <ScheduleModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
                             {activeTab === 'construction' && <ConstructionModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
                             {activeTab === 'linear-works' && <LinearWorksModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
+                            {activeTab === 'road-inventory' && <RoadInventoryModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
                             {activeTab === 'site-photos' && <SitePhotosModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
                             {activeTab === 'daily-reports' && <DailyReportModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
                             {activeTab === 'pre-construction' && <PreConstructionModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}

@@ -1,3 +1,5 @@
+import { Road } from './models/roadTypes';
+
 export enum RFIStatus {
   OPEN = 'Open',
   APPROVED = 'Approved',
@@ -998,6 +1000,7 @@ export interface Project {
   accountingIntegrations?: AccountingIntegration[];
   accountingTransactions?: AccountingTransaction[];
   personnel?: any[];
+  roads?: Road[];
 }
 
 export interface SubcontractorRateEntry {

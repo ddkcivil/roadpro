@@ -45,6 +45,7 @@ export const getNavigationGroups = (currentUser: User | UserWithPermissions): Na
   const overviewItems: NavItem[] = [
     { id: 'dashboard', label: 'Command Center', icon: LayoutDashboard }, 
     { id: 'map', label: 'GIS Alignment', icon: MapIcon },
+    { id: 'road-inventory', label: 'Road Inventory', icon: Navigation },
     { id: 'messages', label: 'Communications', icon: MessageSquare },
     { id: 'documents', label: 'Document Hub', icon: FolderOpen }
   ];
