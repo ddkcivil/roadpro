@@ -40,12 +40,26 @@ const RoadInventoryModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
+  const [selectedKmlId, setSelectedKmlId] = useState<string>('manual');
+
   const roads = project.roads || [];
+  const projectKmls = project.kmlData || [];
   const selectedRoad = roads.find(r => r.id === selectedRoadId);
 
   const handleImportKml = async () => {
-    if (!kmlContent || !newRoadName) {
-      toast.error("Please provide both KML content and a road name.");
+    let contentToProcess = kmlContent;
+    let nameToUse = newRoadName;
+
+    if (selectedKmlId !== 'manual') {
+      const existingKml = projectKmls.find(k => k.id === selectedKmlId);
+      if (existingKml) {
+        contentToProcess = existingKml.kmlContent;
+        if (!nameToUse) nameToUse = existingKml.name.replace('.kml', '');
+      }
+    }
+
+    if (!contentToProcess || !nameToUse) {
+      toast.error("Please provide KML content and a road name.");
       return;
     }
 
@@ -380,27 +394,72 @@ const RoadInventoryModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
           </div>
           
           <div className="p-8 space-y-6">
+            {projectKmls.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest ml-1 text-primary">Source: Existing Project KMLs</Label>
+                <div className="grid grid-cols-1 gap-2">
+                  {projectKmls.map(kml => (
+                    <button
+                      key={kml.id}
+                      onClick={() => setSelectedKmlId(kml.id)}
+                      className={`flex items-center justify-between p-3 rounded-2xl border-2 transition-all ${
+                        selectedKmlId === kml.id 
+                          ? 'border-primary bg-primary/5 shadow-md' 
+                          : 'border-transparent bg-muted/30 hover:bg-muted/50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className={`p-2 rounded-xl ${selectedKmlId === kml.id ? 'bg-primary text-white' : 'bg-background text-muted-foreground'}`}>
+                          <FileJson size={16} />
+                        </div>
+                        <div className="text-left overflow-hidden">
+                          <p className="text-xs font-bold truncate">{kml.name}</p>
+                          <p className="text-[9px] uppercase font-black opacity-40">Ready for Telemetry Extraction</p>
+                        </div>
+                      </div>
+                      {selectedKmlId === kml.id && <CheckCircle2 size={16} className="text-primary" />}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setSelectedKmlId('manual')}
+                    className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all ${
+                      selectedKmlId === 'manual' 
+                        ? 'border-primary bg-primary/5 shadow-md' 
+                        : 'border-transparent bg-muted/30 hover:bg-muted/50'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-xl ${selectedKmlId === 'manual' ? 'bg-primary text-white' : 'bg-background text-muted-foreground'}`}>
+                      <Plus size={16} />
+                    </div>
+                    <p className="text-xs font-bold uppercase tracking-tighter">New Manual Entry</p>
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="roadName" className="text-xs font-black uppercase tracking-widest ml-1">Entity Name</Label>
               <Input 
                 id="roadName" 
-                placeholder="e.g. Butwal - Bhairahawa Main Highway" 
+                placeholder={selectedKmlId !== 'manual' ? "Auto-derived from KML name" : "e.g. Butwal - Bhairahawa Main Highway"} 
                 className="rounded-2xl border-none bg-muted/50 h-12 font-bold px-6 focus-visible:ring-primary/20"
                 value={newRoadName}
                 onChange={e => setNewRoadName(e.target.value)}
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="kmlContent" className="text-xs font-black uppercase tracking-widest ml-1">KML XML Content</Label>
-              <textarea 
-                id="kmlContent"
-                placeholder="Paste your <kml>...</kml> XML here"
-                className="w-full h-48 rounded-3xl border-none bg-muted/50 p-6 font-mono text-xs custom-scrollbar focus:ring-2 focus:ring-primary/20 outline-none"
-                value={kmlContent}
-                onChange={e => setKmlContent(e.target.value)}
-              />
-            </div>
+            {selectedKmlId === 'manual' && (
+              <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                <Label htmlFor="kmlContent" className="text-xs font-black uppercase tracking-widest ml-1">KML XML Content</Label>
+                <textarea 
+                  id="kmlContent"
+                  placeholder="Paste your <kml>...</kml> XML here"
+                  className="w-full h-48 rounded-3xl border-none bg-muted/50 p-6 font-mono text-xs custom-scrollbar focus:ring-2 focus:ring-primary/20 outline-none"
+                  value={kmlContent}
+                  onChange={e => setKmlContent(e.target.value)}
+                />
+              </div>
+            )}
 
             <div className="flex items-center gap-3 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700">
                <Info size={18} className="shrink-0" />
