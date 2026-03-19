@@ -24,7 +24,7 @@ import {
     DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { toast } from 'sonner';
-import { RoadDataManager } from '../../services/roadManager';
+import { apiService } from '../../services/api/apiService';
 
 interface Props {
   project: Project;
@@ -64,34 +64,26 @@ const RoadInventoryModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
     }
 
     setIsProcessing(true);
-    const manager = new RoadDataManager();
     
     try {
-      // In a real app, this would call the backend API which uses the manager
-      // For this demo/UI implementation, we'll simulate the process or call the manager directly if possible
-      // Since RoadDataManager is designed for backend/Node, we might need an API call here.
-      // But for the sake of the task, I'll implement the UI flow.
+      const result = await apiService.ingestRoadKml(project.id, nameToUse, contentToProcess);
       
-      const newRoadId = await manager.importKml(kmlContent, newRoadName);
-      
-      if (newRoadId) {
-        const newRoad = await manager.getRoad(newRoadId);
-        if (newRoad) {
-           onProjectUpdate({
-             ...project,
-             roads: [...roads, newRoad]
-           });
-           toast.success(`Successfully imported road: ${newRoadName}`);
-           setIsImportModalOpen(false);
-           setKmlContent('');
-           setNewRoadName('');
-        }
+      if (result.success && result.road) {
+         onProjectUpdate({
+           ...project,
+           roads: [...roads, result.road]
+         });
+         toast.success(`Successfully ingested telemetry for: ${nameToUse}`);
+         setIsImportModalOpen(false);
+         setKmlContent('');
+         setNewRoadName('');
+         setSelectedKmlId('manual');
       } else {
-        toast.error("Failed to parse KML or save road data.");
+        toast.error("Telemetry extraction failed. Check KML format.");
       }
-    } catch (error) {
-      console.error("Import error:", error);
-      toast.error("An error occurred during KML import.");
+    } catch (error: any) {
+      console.error("Ingestion error:", error);
+      toast.error(error.message || "An error occurred during backend ingestion.");
     } finally {
       setIsProcessing(false);
     }

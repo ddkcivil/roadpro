@@ -384,7 +384,6 @@ const MapDrawingTool: React.FC<{
     </LayerGroup>
   );
 };
-
 // Layer visibility state
 interface LayerVisibility {
   structures: boolean;
@@ -395,6 +394,8 @@ interface LayerVisibility {
   sitePhotos: boolean;
   linearWorks: boolean;
   kml: boolean;
+  roadAlignments: boolean;
+  roadStructures: boolean;
 }
 
 // Helper Component for Linear Monitoring Info
@@ -438,16 +439,21 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
   const [isDeletingKML, setIsDeletingKML] = useState(false);
   const [kmlToDelete, setKmlToDelete] = useState<string | null>(null);
   const [isPendingDelete, startDeleteTransition] = React.useTransition();
+const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({
+  structures: true,
+  vehicles: true,
+  staff: true,
+  landParcels: true,
+  overlays: true,
+  sitePhotos: true,
+  linearWorks: true,
+  kml: true,
+  roadAlignments: true,
+  roadStructures: true,
+});
 
-  const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({
-    structures: true,
-    vehicles: true,
-    staff: true,
-    landParcels: true,
-    overlays: true,
-    sitePhotos: true,
-    linearWorks: true,
-    kml: true,
+    roadAlignments: true,
+    roadStructures: true,
   });
 
   const confirmDeleteKML = useCallback(() => {
@@ -1259,6 +1265,38 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="pt-2 pb-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                            <Route size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Road Alignments</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Inventory Monitoring</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.roadAlignments} 
+                          onCheckedChange={() => toggleLayer('roadAlignments')} 
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                            <Building size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Road Structures</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Inventory Monitoring</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.roadStructures} 
+                          onCheckedChange={() => toggleLayer('roadStructures')} 
+                        />
+                      </div>
+
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">

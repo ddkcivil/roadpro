@@ -583,6 +583,18 @@ class RealApiService {
     if (!navigator.onLine) return;
     return this.fetchApi<void>('/users?action=heartbeat', { method: 'POST' });
   }
+
+  // --- Road Management ---
+
+  /**
+   * Ingests a KML file into structured road data
+   */
+  async ingestRoadKml(projectId: string, roadName: string, kmlContent: string): Promise<{ success: boolean, road: any }> {
+    return this.fetchApi<{ success: boolean, road: any }>(`/roads?action=ingest&projectId=${projectId}`, {
+      method: 'POST',
+      body: JSON.stringify({ roadName, kmlContent }),
+    });
+  }
 }
 
 export const realApiService = RealApiService.getInstance();
