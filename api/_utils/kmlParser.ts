@@ -1,12 +1,24 @@
 import pkg from 'xml2js';
 const { Parser } = pkg;
-import * as turf from '@turf/turf';
+import { 
+  lineString, 
+  point, 
+  polygon, 
+  length, 
+  nearestPointOnLine, 
+  centroid, 
+  pointToLineDistance,
+  type Feature,
+  type LineString,
+  type Point as TurfPoint,
+  type Polygon as TurfPolygon,
+  type Position
+} from '@turf/turf';
 import { v4 as uuidv4 } from 'uuid';
-import type { Feature, LineString, Point as TurfPoint, Polygon as TurfPolygon } from '@turf/helpers';
 import { Road, Alignment, Structure, ChainagePoint, Point as ProjectPoint, formatChainage } from '../../models/roadTypes';
 
 // Helper to convert Leaflet-like LatLngExpression ([lat, lng]) to Turf's [lng, lat]
-function toTurfCoords(coords: ProjectPoint | [number, number]): turf.Position {
+function toTurfCoords(coords: ProjectPoint | [number, number]): Position {
   if (Array.isArray(coords)) {
     return [coords[1], coords[0]]; // [lng, lat]
   }
@@ -14,12 +26,12 @@ function toTurfCoords(coords: ProjectPoint | [number, number]): turf.Position {
 }
 
 // Helper to convert Turf's [lng, lat] to our ProjectPoint {lat, lng}
-function fromTurfCoords(coords: turf.Position): ProjectPoint {
+function fromTurfCoords(coords: Position): ProjectPoint {
   return { lat: coords[1], lng: coords[0] };
 }
 
 // Helper to extract coordinates from different Turf geometry types
-function extractCoordinates(geometry: turf.GeoJSONGeometry): turf.Position[] | turf.Position | turf.Position[][] {
+function extractCoordinates(geometry: any): Position[] | Position | Position[][] {
   if (!geometry) return [];
   switch (geometry.type) {
     case 'Point':
@@ -42,7 +54,7 @@ function getGeometryType(placemark: any): 'Point' | 'LineString' | 'Polygon' | n
 }
 
 // Function to parse coordinates from KML string format
-function parseKmlCoordinates(coordStr: string): turf.Position[] {
+function parseKmlCoordinates(coordStr: string): Position[] {
   return coordStr.trim().split(/\s+/).map(coord => {
     const parts = coord.split(',');
     if (parts.length >= 2) {
@@ -113,25 +125,25 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
   // First pass: Extract all geometries and identify the main road line
   for (const placemark of placemarks) {
     const geometryType = getGeometryType(placemark);
-    let coordinates: turf.Position[] = [];
-    let turfGeometry: turf.GeoJSONGeometry | null = null;
+    let coordinates: Position[] = [];
+    let turfGeometry: GeoJSONGeometry | null = null;
     let placemarkName = (placemark.name && placemark.name[0]) || 'Unnamed Placemark';
 
     if (geometryType === 'LineString' && placemark.LineString?.[0]?.coordinates?.[0]) {
       coordinates = parseKmlCoordinates(placemark.LineString[0].coordinates[0]);
       if (coordinates.length > 1) {
-        turfGeometry = turf.lineString(coordinates);
+        turfGeometry = lineString(coordinates);
       }
     } else if (geometryType === 'Point' && placemark.Point?.[0]?.coordinates?.[0]) {
       const pos = parseKmlCoordinates(placemark.Point[0].coordinates[0]);
       if (pos.length > 0) {
         coordinates = pos;
-        turfGeometry = turf.point(pos[0]);
+        turfGeometry = point(pos[0]);
       }
     } else if (geometryType === 'Polygon' && placemark.Polygon?.[0]?.outerBoundaryIs?.[0]?.LinearRing?.[0]?.coordinates?.[0]) {
       coordinates = parseKmlCoordinates(placemark.Polygon[0].outerBoundaryIs[0].LinearRing[0].coordinates[0]);
       if (coordinates.length > 1) {
-        turfGeometry = turf.polygon([coordinates]);
+        turfGeometry = polygon([coordinates]);
       }
     }
 
@@ -146,7 +158,7 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
       // Tentatively identify the main road line. Use the first LineString encountered.
       if (geometryType === 'LineString' && !mainRoadLine) {
         mainRoadLine = turfGeometry as Feature<LineString>;
-        mainRoadLength = turf.length(mainRoadLine, { units: 'kilometers' }) * 1000; // in meters
+        mainRoadLength = length(mainRoadLine, { units: 'kilometers' }) * 1000; // in meters
         road.geometry = mainRoadLine.geometry.coordinates.map(fromTurfCoords);
         // TODO: Extract road.chainageOffset if available in KML properties (e.g., from ExtendedData)
       }
@@ -209,9 +221,9 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
       const chainagePoints: ChainagePoint[] = [];
       // Iterate through points of the alignment line
       for (const pointCoords of alignmentLine.geometry.coordinates) {
-        const turfPoint = turf.point(pointCoords);
+        const turfPoint = point(pointCoords);
         // Find the closest point on the main road line to get its chainage
-        const snappedPointFeature = turf.nearestPointOnLine(mainRoadLine, turfPoint);
+        const snappedPointFeature = nearestPointOnLine(mainRoadLine, turfPoint);
 
         if (snappedPointFeature && snappedPointFeature.properties?.dist !== undefined) {
           const snappedChainageMeters = snappedPointFeature.properties.dist * 1000; // dist is in km by default
@@ -225,7 +237,7 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
           // Fallback: If snapping fails (e.g., alignment deviates far from main road),
           // push the point with an approximate chainage based on its position along the alignment itself.
           // This is less accurate but prevents data loss.
-          const approxDistance = turf.length(turf.lineString(alignmentLine.geometry.coordinates.slice(0, alignmentLine.geometry.coordinates.indexOf(pointCoords) + 1)), { units: 'kilometers' }) * 1000;
+          const approxDistance = length(lineString(alignmentLine.geometry.coordinates.slice(0, alignmentLine.geometry.coordinates.indexOf(pointCoords) + 1)), { units: 'kilometers' }) * 1000;
           chainagePoints.push({
             distance: approxDistance,
             chainage: formatChainage(approxDistance),
@@ -245,7 +257,7 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
         type: alignmentType,
         coordinates: alignmentLine.geometry.coordinates.map(fromTurfCoords) as any,
         chainagePoints: sortedUniqueChainagePoints,
-        totalLength: turf.length(alignmentLine, { units: 'kilometers' }) * 1000
+        totalLength: length(alignmentLine, { units: 'kilometers' }) * 1000
       });
 
     }
@@ -261,8 +273,8 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
         return 'Other' as any; // Default
       })();
 
-      let structureGeometryTurf: turf.GeoJSONGeometry | null = null;
-      let structurePointCoords: turf.Position | null = null; // The point used for chainage calculation
+      let structureGeometryTurf: GeoJSONGeometry | null = null;
+      let structurePointCoords: Position | null = null; // The point used for chainage calculation
 
       if (geometryType === 'Point') {
         structureGeometryTurf = turfGeometry as Feature<TurfPoint>;
@@ -270,23 +282,23 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
       } else if (geometryType === 'Polygon') {
         structureGeometryTurf = turfGeometry as Feature<TurfPolygon>;
         // For polygons, use the centroid to determine chainage
-        const centroid = turf.centroid(structureGeometryTurf);
+        const centroid = centroid(structureGeometryTurf);
         structurePointCoords = centroid.geometry.coordinates;
       }
 
       let structureDistance: number | null = null;
       if (structurePointCoords) {
         // Find the closest point on the main road line to determine chainage
-        const snappedPointFeature = turf.nearestPointOnLine(mainRoadLine, turf.point(structurePointCoords));
+        const snappedPointFeature = nearestPointOnLine(mainRoadLine, point(structurePointCoords));
         if (snappedPointFeature && snappedPointFeature.properties?.dist !== undefined) {
           structureDistance = snappedPointFeature.properties.dist * 1000; // in meters
         } else {
           // Fallback: if snapping fails, try to estimate distance based on distance to main road line
-          const distToMainRoad = turf.pointToLineDistance(turf.point(structurePointCoords), mainRoadLine, { units: 'meters' });
+          const distToMainRoad = pointToLineDistance(point(structurePointCoords), mainRoadLine, { units: 'meters' });
           if (distToMainRoad < 30) {
-            const nearestPointOnMainRoad = turf.nearestPointOnLine(mainRoadLine, turf.point(structurePointCoords));
+            const nearestPointOnMainRoad = nearestPointOnLine(mainRoadLine, point(structurePointCoords));
             if (nearestPointOnMainRoad.geometry) {
-              const pathLengthToNearest = turf.length(turf.lineString(mainRoadLine.geometry.coordinates.slice(0, mainRoadLine.geometry.coordinates.findIndex(coord => coord[0] === nearestPointOnMainRoad.geometry.coordinates[0] && coord[1] === nearestPointOnMainRoad.geometry.coordinates[1]))), { units: 'kilometers' }) * 1000;
+              const pathLengthToNearest = length(lineString(mainRoadLine.geometry.coordinates.slice(0, mainRoadLine.geometry.coordinates.findIndex(coord => coord[0] === nearestPointOnMainRoad.geometry.coordinates[0] && coord[1] === nearestPointOnMainRoad.geometry.coordinates[1]))), { units: 'kilometers' }) * 1000;
               structureDistance = pathLengthToNearest;
             }
           }
