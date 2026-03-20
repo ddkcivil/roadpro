@@ -136,6 +136,7 @@ export interface IProject extends Document {
   accountingTransactions?: any;
   personnel?: any;
   fleet?: any;
+  roads?: any;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -257,6 +258,7 @@ const projectSchema = new Schema<IProject>({
   accountingTransactions: { type: Schema.Types.Mixed, default: [] },
   personnel: { type: Schema.Types.Mixed, default: [] },
   fleet: { type: Schema.Types.Mixed, default: [] },
+  roads: { type: Schema.Types.Mixed, default: [] },
 }, { timestamps: true });
 
 // Create models
