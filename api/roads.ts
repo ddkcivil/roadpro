@@ -22,16 +22,23 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
     try {
       console.log(`[API] Starting KML Ingestion for project: ${projectId}, road: ${roadName}`);
-      const { Project } = await connectToDatabase();
       
+      console.log('[API] Connecting to database...');
+      const { Project } = await connectToDatabase();
+      console.log('[API] Database connected.');
+      
+      console.log('[API] Parsing KML...');
       // Parse KML securely on backend
       const roadData = await parseKML(kmlContent, roadName);
+      console.log('[API] KML parsed successfully.');
       
+      console.log(`[API] Finding project: ${projectId}`);
       const project = await Project.findOne({ id: projectId });
       if (!project) {
         console.error(`[API] Project not found: ${projectId}`);
         return res.status(404).json({ error: 'Project not found' });
       }
+      console.log('[API] Project found.');
 
       // Add unique IDs to the road and its components if not present
       const roadWithId = {
@@ -39,28 +46,34 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         id: uuidv4()
       };
 
-      // Ensure components have IDs too (some might be missing if parser fallback was used)
-      roadWithId.alignments = roadWithId.alignments.map((a: any) => ({ ...a, id: a.id || uuidv4() }));
-      roadWithId.structures = roadWithId.structures.map((s: any) => ({ ...s, id: s.id || uuidv4() }));
+      console.log('[API] Assigning component IDs...');
+      // Ensure components have IDs too
+      roadWithId.alignments = (roadWithId.alignments || []).map((a: any) => ({ ...a, id: a.id || uuidv4() }));
+      roadWithId.structures = (roadWithId.structures || []).map((s: any) => ({ ...s, id: s.id || uuidv4() }));
 
+      console.log('[API] Updating project roads...');
       const existingRoads = project.roads || [];
       project.roads = [...existingRoads, roadWithId];
-      project.markModified('roads'); // Critical for Schema.Types.Mixed
+      
+      console.log('[API] Marking roads modified...');
+      project.markModified('roads');
       project.updatedAt = new Date().toISOString();
       
+      console.log('[API] Saving project...');
       await project.save();
-      console.log(`[API] Successfully ingested road: ${roadWithId.id}`);
+      console.log(`[API] Project saved. Successfully ingested road: ${roadWithId.id}`);
 
       return res.status(200).json({
         success: true,
         road: roadWithId
       });
     } catch (error: any) {
-      console.error('[API] KML Ingestion failed:', error);
+      console.error('[API] KML Ingestion CRITICAL FAILURE:', error);
       return res.status(500).json({ 
         error: 'Ingestion failed', 
         details: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined 
+        type: error.name,
+        stack: error.stack
       });
     }
   }
