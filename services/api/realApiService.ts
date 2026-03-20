@@ -195,16 +195,28 @@ class RealApiService {
       }
 
       return data;
-    } catch (error) {
+    } catch (error: any) { // Added type annotation for 'error'
       // 5. Try Offline Storage Fallback
       if (options?.method === 'GET') {
         const offlineEntry = await offlineStorage.getItem<{data: T, timestamp: number}>(cacheKey);
         if (offlineEntry !== undefined) {
           console.log(`[API] Serving offline data for: ${endpoint}`);
+          // Optionally, could indicate to the UI that offline data is being used
+          // e.g., by dispatching an event or returning a specific flag
           return (offlineEntry as any).data || offlineEntry;
         }
       }
-      throw error;
+      
+      // Enhance error message for network issues or when offline fallback fails
+      if (!navigator.onLine || error.message.includes('Failed to fetch')) { // Check if it's likely a network issue
+          const networkError = new Error('Network error: Could not reach the server. Please check your connection.');
+          networkError.name = 'NetworkRequestError';
+          networkError.stack = error.stack; // Preserve original stack if useful
+          throw networkError;
+      }
+
+      // Re-throw original error if it's not a network issue or if offline fallback failed
+      throw error; 
     }
   }
 

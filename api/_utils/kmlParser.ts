@@ -1,24 +1,22 @@
-import pkg from 'xml2js';
-const { Parser } = pkg;
-import { 
-  lineString, 
-  point, 
-  polygon, 
-  length, 
-  nearestPointOnLine, 
-  centroid, 
+import { Parser } from 'xml2js';
+import {
+  lineString,
+  point,
+  polygon,
+  length,
+  nearestPointOnLine,
+  centroid,
   pointToLineDistance,
-  type Feature,
-  type LineString,
-  type Point as TurfPoint,
-  type Polygon as TurfPolygon,
-  type Position
+  Feature,
+  LineString,
+  Point as TurfPoint,
+  Polygon as TurfPolygon,
 } from '@turf/turf';
 import { v4 as uuidv4 } from 'uuid';
-import { Road, Alignment, Structure, ChainagePoint, Point as ProjectPoint, formatChainage } from '../../models/roadTypes';
+import { Road, Alignment, Structure, ChainagePoint, Point as ProjectPoint, formatChainage } from '../../models/roadTypes.js';
 
 // Helper to convert Leaflet-like LatLngExpression ([lat, lng]) to Turf's [lng, lat]
-function toTurfCoords(coords: ProjectPoint | [number, number]): Position {
+function toTurfCoords(coords: ProjectPoint | [number, number]): [number, number] {
   if (Array.isArray(coords)) {
     return [coords[1], coords[0]]; // [lng, lat]
   }
@@ -26,12 +24,13 @@ function toTurfCoords(coords: ProjectPoint | [number, number]): Position {
 }
 
 // Helper to convert Turf's [lng, lat] to our ProjectPoint {lat, lng}
-function fromTurfCoords(coords: Position): ProjectPoint {
+function fromTurfCoords(coords: [number, number]): ProjectPoint {
   return { lat: coords[1], lng: coords[0] };
 }
 
 // Helper to extract coordinates from different Turf geometry types
-function extractCoordinates(geometry: any): Position[] | Position | Position[][] {
+// This function is currently not used in parseKML but kept for potential future use.
+function extractCoordinates(geometry: any): [number, number][] | [number, number] | [number, number][][] {
   if (!geometry) return [];
   switch (geometry.type) {
     case 'Point':
@@ -54,7 +53,7 @@ function getGeometryType(placemark: any): 'Point' | 'LineString' | 'Polygon' | n
 }
 
 // Function to parse coordinates from KML string format
-function parseKmlCoordinates(coordStr: string): Position[] {
+function parseKmlCoordinates(coordStr: string): [number, number][] {
   return coordStr.trim().split(/\s+/).map(coord => {
     const parts = coord.split(',');
     if (parts.length >= 2) {
@@ -62,7 +61,7 @@ function parseKmlCoordinates(coordStr: string): Position[] {
       const lat = parseFloat(parts[1]);
       return [lng, lat];
     }
-    return [NaN, NaN]; // Invalid coordinate
+    return [NaN, NaN] as [number, number]; // Invalid coordinate
   }).filter(coord => !isNaN(coord[0]));
 }
 
@@ -101,7 +100,7 @@ function findPlacemarks(obj: any): any[] {
  * @returns A Promise resolving to a Road object with associated alignments and structures.
  */
 export async function parseKML(kmlText: string, roadName: string): Promise<Road> {
-  const parser = new xml2js.Parser({ explicitArray: true }); // Use explicitArray: true for consistent array handling
+  const parser = new Parser({ explicitArray: true }); // Use explicitArray: true for consistent array handling
   const result = await parser.parseStringPromise(kmlText);
 
   const placemarks = findPlacemarks(result.kml || result);
@@ -125,8 +124,8 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
   // First pass: Extract all geometries and identify the main road line
   for (const placemark of placemarks) {
     const geometryType = getGeometryType(placemark);
-    let coordinates: Position[] = [];
-    let turfGeometry: GeoJSONGeometry | null = null;
+    let coordinates: [number, number][] = [];
+    let turfGeometry: Feature<LineString> | Feature<TurfPoint> | Feature<TurfPolygon> | null = null;
     let placemarkName = (placemark.name && placemark.name[0]) || 'Unnamed Placemark';
 
     if (geometryType === 'LineString' && placemark.LineString?.[0]?.coordinates?.[0]) {
@@ -186,8 +185,8 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
       }
       // Or if coordinates match exactly
       const coords = feature.geometry.coordinates;
-      if (coords.length === mainRoadLine.geometry.coordinates.length && 
-          coords.every((c, i) => c[0] === mainRoadLine.geometry.coordinates[i][0] && c[1] === mainRoadLine.geometry.coordinates[i][1])) {
+      if (coords.length === mainRoadLine.geometry.coordinates.length &&
+        coords.every((c, i) => c[0] === mainRoadLine.geometry.coordinates[i][0] && c[1] === mainRoadLine.geometry.coordinates[i][1])) {
         continue;
       }
       entityType = 'main_road_duplicate';
@@ -273,17 +272,23 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
         return 'Other' as any; // Default
       })();
 
-      let structureGeometryTurf: GeoJSONGeometry | null = null;
-      let structurePointCoords: Position | null = null; // The point used for chainage calculation
+      let structureGeometryTurf: Feature<TurfPoint> | Feature<TurfPolygon> | null = null; // Use specific Turf types
+      let structurePointCoords: [number, number] | null = null; // Use [number, number] for Position
 
       if (geometryType === 'Point') {
-        structureGeometryTurf = turfGeometry as Feature<TurfPoint>;
-        structurePointCoords = structureGeometryTurf.geometry.coordinates;
+        // Ensure turfGeometry is a Point
+        if (turfGeometry && turfGeometry.type === 'Point') {
+          structureGeometryTurf = turfGeometry as Feature<TurfPoint>;
+          structurePointCoords = structureGeometryTurf.geometry.coordinates;
+        }
       } else if (geometryType === 'Polygon') {
-        structureGeometryTurf = turfGeometry as Feature<TurfPolygon>;
-        // For polygons, use the centroid to determine chainage
-        const centroid = centroid(structureGeometryTurf);
-        structurePointCoords = centroid.geometry.coordinates;
+        // Ensure turfGeometry is a Polygon
+        if (turfGeometry && turfGeometry.type === 'Polygon') {
+          structureGeometryTurf = turfGeometry as Feature<TurfPolygon>;
+          // For polygons, use the centroid to determine chainage
+          const centerPoint = centroid(structureGeometryTurf); // Use imported centroid
+          structurePointCoords = centerPoint.geometry.coordinates;
+        }
       }
 
       let structureDistance: number | null = null;

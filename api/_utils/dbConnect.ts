@@ -301,8 +301,12 @@ export async function connectToDatabase() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      serverSelectionTimeoutMS: 5000,
-      maxPoolSize: 10, // Recommended for serverless
+      serverSelectionTimeoutMS: 10000, // Increased for Vercel cold starts
+      socketTimeoutMS: 45000, // 45s for slow connections
+      maxPoolSize: 20, // More connections for concurrent ops
+      retryWrites: true,
+      w: 'majority',
+      family: 4, // IPv4 only for Vercel
     };
 
     console.log('Connecting to MongoDB...');
@@ -320,7 +324,7 @@ export async function connectToDatabase() {
     
   } catch (e) {
     cached.promise = null;
-    console.error('MongoDB connection error:', e);
+    console.error('[DBCONNECT] MongoDB connection FAILED:', e);
     throw e;
   }
 
