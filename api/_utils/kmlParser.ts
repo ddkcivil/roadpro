@@ -1,8 +1,9 @@
-import xml2js from 'xml2js';
+import pkg from 'xml2js';
+const { Parser } = pkg;
 import * as turf from '@turf/turf';
 import { v4 as uuidv4 } from 'uuid';
 import type { Feature, LineString, Point as TurfPoint, Polygon as TurfPolygon } from '@turf/helpers';
-import { Road, Alignment, Structure, ChainagePoint, Point as ProjectPoint, formatChainage } from '../models/roadTypes';
+import { Road, Alignment, Structure, ChainagePoint, Point as ProjectPoint, formatChainage } from '../../models/roadTypes';
 
 // Helper to convert Leaflet-like LatLngExpression ([lat, lng]) to Turf's [lng, lat]
 function toTurfCoords(coords: ProjectPoint | [number, number]): turf.Position {

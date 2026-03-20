@@ -3,7 +3,7 @@ import { connectToDatabase } from './_utils/dbConnect.js';
 import { withErrorHandler } from './_utils/errorHandler.js';
 import { withAuth } from './_utils/auth.js';
 import { CSRFProtection } from './_utils/csrf.js';
-import { parseKML } from '../services/kmlParser.js';
+import { parseKML } from './_utils/kmlParser.js';
 import { v4 as uuidv4 } from 'uuid';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
