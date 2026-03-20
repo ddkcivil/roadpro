@@ -25,6 +25,7 @@ import {
 } from "~/components/ui/dropdown-menu";
 import { toast } from 'sonner';
 import { apiService } from '../../services/api/apiService';
+import MapModule from './MapModule'; // Import MapModule
 
 interface Props {
   project: Project;
@@ -39,6 +40,7 @@ const RoadInventoryModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
   const [newRoadName, setNewRoadName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false); // State for map modal
 
   const [selectedKmlId, setSelectedKmlId] = useState<string>('manual');
 
@@ -234,7 +236,10 @@ const RoadInventoryModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                             </div>
                           </div>
                           <div className="pt-4 border-t border-primary/10">
-                             <Button size="sm" className="w-full rounded-xl font-bold bg-primary hover:bg-primary/90">View on GIS Map</Button>
+                             {/* Modified button to open map modal */}
+                             <Button size="sm" className="w-full rounded-xl font-bold bg-primary hover:bg-primary/90" onClick={() => setIsMapModalOpen(true)}>
+                               View on GIS Map
+                             </Button>
                           </div>
                         </div>
 
@@ -430,7 +435,7 @@ const RoadInventoryModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="roadName" className="text-xs font-black uppercase tracking-widest ml-1">Entity Name</Label>
+              <Label htmlFor="roadName" className="text-xs font-black uppercase tracking-widest ml-1 text-primary">Entity Name</Label>
               <Input 
                 id="roadName" 
                 placeholder={selectedKmlId !== 'manual' ? "Auto-derived from KML name" : "e.g. Butwal - Bhairahawa Main Highway"} 
@@ -471,6 +476,29 @@ const RoadInventoryModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Map Modal */}
+      <Dialog open={isMapModalOpen} onOpenChange={setIsMapModalOpen}>
+        <DialogContent className="max-w-6xl w-full h-[80vh] rounded-[2.5rem] glass border-none shadow-2xl overflow-hidden p-0">
+          <DialogHeader className="p-8 pb-4">
+            <DialogTitle className="text-3xl font-black tracking-tighter uppercase italic flex items-center gap-3">
+               <MapIcon className="h-8 w-8" /> GIS Map View
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">
+              Interactive map displaying road data for {selectedRoad?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogContent className="h-[calc(80vh-120px)] p-0 border-none"> {/* Adjust DialogContent height */}
+             {selectedRoad && (
+               <MapModule 
+                 project={project} 
+                 selectedRoad={selectedRoad} 
+                 onClose={() => setIsMapModalOpen(false)} 
+               />
+             )}
+          </DialogContent>
         </DialogContent>
       </Dialog>
     </div>
