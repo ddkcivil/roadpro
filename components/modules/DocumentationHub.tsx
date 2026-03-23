@@ -130,8 +130,9 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
         const pdfjs = pdfModule.pdfjs;
         
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          // Use the worker from the public directory which is more reliable in Vite
-          const workerUrl = '/pdfjs-worker/pdf.worker.min.mjs';
+          // Use the worker from the CDN that matches the exact version of the library
+          // this prevents version mismatch errors like "Rf 2"
+          const workerUrl = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
           pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
         }
 
@@ -726,19 +727,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
                       <Document
                         file={getFileUrl(previewDoc)}
                         loading={<div className="text-center text-muted-foreground"><Loader2 className="animate-spin mx-auto mb-2" /> Loading PDF...</div>}
-                        error={(error) => {
-                          console.error('PDF render error:', error);
-                          setPdfError(error?.message || 'Unknown PDF error');
-                          return (
-                            <div className="flex flex-col items-center justify-center p-4 text-destructive">
-                              <FileText className="h-12 w-12 mb-2" />
-                              <p>Failed to load PDF</p>
-                              <p className="text-sm text-muted-foreground mt-1 text-center">
-                                {pdfError || 'The file may be invalid, corrupted, or the PDF worker failed to load.'}
-                              </p>
-                            </div>
-                          );
-                        }}
+                        error={pdfError || 'Failed to load PDF'}
                         onLoadError={(error: Error) => {
                           console.error('PDF load error:', error);
                           setPdfError(error?.message || 'Unknown PDF error');
@@ -751,6 +740,28 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
                       <div className="text-center p-4 text-muted-foreground">
                         <Loader2 className="animate-spin mx-auto mb-2" />
                         <p>Initializing PDF viewer...</p>
+                      </div>
+                    )}
+                    {pdfError && (
+                      <div className="flex flex-col items-center justify-center p-4 text-destructive bg-background/80 absolute inset-0 z-10">
+                        <FileText className="h-12 w-12 mb-2" />
+                        <p className="font-bold">Failed to load PDF</p>
+                        <p className="text-sm text-muted-foreground mt-1 text-center">
+                          {pdfError}
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-4" 
+                          onClick={() => {
+                            if (previewDoc) {
+                              const url = getFileUrl(previewDoc);
+                              window.open(url, '_blank');
+                            }
+                          }}
+                        >
+                          <ExternalLink className="mr-2 h-4 w-4" /> Open in New Tab
+                        </Button>
                       </div>
                     )}
                   </div>

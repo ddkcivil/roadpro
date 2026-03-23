@@ -1,19 +1,26 @@
-# Fix /api/roads ingest 500 Error
+# PDF Render/Load Error Fix - Progress Tracker
 
-## Plan Summary
-Debug 500 on KML road ingestion: add logging, optimize DB save, handle large data.
+## Approved Plan Summary
+Fix react-pdf/pdfjs-dist errors ("PDF render error: undefined", "PDF load error: Rf 2") by:
+1. Version compatibility (downgrade pdfjs-dist)
+2. Worker configuration 
+3. Vite alias setup
 
-## Steps
-- [x] Understand files (api/roads.ts, dbConnect.ts, mongodb.ts)
-- [ ] Read/analyze api/_utils/kmlParser.ts
-- [ ] Add granular try-catch/logging to api/roads.ts
-- [ ] Optimize project save with MongoDB $push in api/roads.ts
-- [ ] Enhance connection timeouts in api/_utils/dbConnect.ts
-- [ ] Improve client error handling in services/api/realApiService.ts
-- [ ] Local test: npm run dev + UI ingest
-- [ ] Deploy to Vercel + check logs
-- [ ] Verify fix with browser_action/UI test
-- [ ] Update TODO_PROGRESS.md
+## Steps:
 
-## Next Step
-Local testing + Vercel deploy to check logs with new instrumentation.
+### Phase 1: Dependencies & Config
+- [x] **package.json**: Remove pdfjs-dist override, pin to ^4.7.432 ✅
+- [x] **npm install**: pdfjs-dist downgraded successfully ✅
+- [x] **lib/pdfjs-config.ts** (NEW): pdfjs worker setup ✅
+- [x] **vite.config.ts**: Add pdfjs worker alias ✅
+
+### Phase 2: Testing
+- [x] Restart `npm run dev` → http://localhost:3003/ ready ✅
+- [ ] Test AIChatModal: Upload PDF → check console for errors
+- [ ] Test OCR modules PDF upload
+
+### Phase 3: Code Cleanup (if needed)
+- [ ] Search for react-pdf imports, wrap with config
+- [ ] Remove unused PDF utils if confirmed
+
+**Current Status: Starting Phase 1 Step 1**

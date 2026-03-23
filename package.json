@@ -66,7 +66,7 @@
     "leaflet-geosearch": "^4.2.2",
     "lucide-react": "0.460.0",
     "mongoose": "^8.0.0",
-    "pdfjs-dist": "^5.4.530",
+    "pdfjs-dist": "^4.7.432",
     "qrcode.react": "^4.2.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
@@ -84,9 +84,6 @@
     "xlsx": "^0.18.5",
     "xml2js": "^0.6.2",
     "zod": "^4.3.6"
-  },
-  "overrides": {
-    "pdfjs-dist": "^5.4.530"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",

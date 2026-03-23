@@ -90,8 +90,9 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
         const pdfjs = pdfModule.pdfjs;
         
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          // Use the worker from the public directory which is more reliable in Vite
-          const workerUrl = '/pdfjs-worker/pdf.worker.min.mjs';
+          // Use the worker from the CDN that matches the exact version of the library
+          // this prevents version mismatch errors like "Rf 2"
+          const workerUrl = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
           pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
           console.log('[DocumentsModule] PDF workerSrc set to:', workerUrl);
         }
