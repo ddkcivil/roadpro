@@ -11,7 +11,9 @@ Fix react-pdf/pdfjs-dist errors ("PDF render error: undefined", "PDF load error:
 ### Phase 1: Dependencies & Config
 - [x] **package.json**: Remove pdfjs-dist override, pin to ^4.7.432 ✅
 - [x] **npm install**: pdfjs-dist downgraded successfully ✅
-- [x] **lib/pdfjs-config.ts** (NEW): pdfjs worker setup ✅
+- [x] **CDN Worker Setup**: Updated DocumentationHub and DocumentsModule to use version-matched unpkg CDN (Fixes "Rf 2" and "PDF render error: undefined") ✅
+- [x] **CSP Update**: Added blob: to connect-src in vercel.json to allow PDF loading ✅
+- [x] **Cleanup**: Removed redundant lib/pdfjs-config.ts (Fixed TS2307 error) ✅
 - [x] **vite.config.ts**: Add pdfjs worker alias ✅
 
 ### Phase 2: Testing
@@ -23,4 +25,4 @@ Fix react-pdf/pdfjs-dist errors ("PDF render error: undefined", "PDF load error:
 - [ ] Search for react-pdf imports, wrap with config
 - [ ] Remove unused PDF utils if confirmed
 
-**Current Status: Starting Phase 1 Step 1**
+**Current Status: Phase 1 ✅ | Phase 2: User testing PDF upload**
