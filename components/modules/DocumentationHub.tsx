@@ -110,17 +110,27 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
   const getFileUrl = useCallback((doc: ProjectDocument): string => {
     if (!doc.fileUrl) return '';
     
-    if (blobUrls[doc.id]) return blobUrls[doc.id];
+    // If it's a blob URL already cached (from a recent Base64 upload), return it
+    if (doc.fileUrl.startsWith('blob:')) {
+      return doc.fileUrl; 
+    }
     
+    // If it's a data URL (Base64 from a new upload), convert it to a Blob URL for immediate preview
+    // This will only be relevant for files that haven't been fully synced/saved with a permanent URL yet.
     if (doc.fileUrl.startsWith('data:')) {
-      const url = base64ToBlobUrl(doc.fileUrl);
+      const url = base64ToBlobUrl(doc.fileUrl); // Use the utility function
       if (url) {
+        // Cache it if it's a new blob URL
         setBlobUrls(prev => ({ ...prev, [doc.id]: url }));
         return url;
+      } else {
+        console.error('Failed to convert data URL to blob URL.');
+        return ''; // Return empty if conversion failed
       }
     }
     
-    return doc.fileUrl;
+    // If it's a permanent URL (like from GCS), return it directly
+    return doc.fileUrl; 
   }, [blobUrls]);
 
   useEffect(() => {
