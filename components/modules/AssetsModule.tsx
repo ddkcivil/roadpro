@@ -13,8 +13,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/comp
 import { Badge } from "~/components/ui/badge"
 import {
     CheckCircle2, Plus,
-    Trash2, Save, Edit, Car, Gauge, Wrench, QrCode
+    Trash2, Save, Edit, Car, Gauge, Wrench, QrCode,
+    History, AlertCircle, Calendar, ShieldCheck, ClipboardList
 } from 'lucide-react';
+import { MaintenanceLog } from '../../types';
 
 interface Props {
   project: Project;
@@ -25,6 +27,8 @@ interface Props {
 const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) => {
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+  const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
+  const [isAddLogModalOpen, setIsAddLogModalOpen] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<Vehicle | null>(null);
   const [assetForm, setAssetForm] = useState<Partial<Vehicle>>({
     plateNumber: '',
@@ -33,12 +37,27 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
     driver: '',
     agencyId: '',
     chainage: '',
-    gpsLocation: undefined
+    gpsLocation: undefined,
+    insuranceExpiry: '',
+    taxExpiry: '',
+    safetyExpiryDate: '',
+    lastRestockDate: ''
+  });
+  const [logForm, setLogForm] = useState<Partial<MaintenanceLog>>({
+    type: 'Routine Service',
+    description: '',
+    cost: 0,
+    status: 'Completed',
+    date: new Date().toISOString().split('T')[0]
   });
   const [coords, setCoords] = useState({ lat: '', lng: '' });
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   
   const assets = project.vehicles || [];
+
+  const canAdd = true; // All users can add assets
+  const canEdit = userRole === UserRole.ADMIN || userRole === UserRole.PROJECT_MANAGER || userRole === UserRole.SITE_ENGINEER;
+  const canDelete = userRole === UserRole.ADMIN || userRole === UserRole.PROJECT_MANAGER;
 
   const stats = useMemo(() => {
     const active = assets.filter(a => a.status === 'Active');
@@ -69,7 +88,11 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
       driver: asset.driver,
       agencyId: asset.agencyId || '',
       chainage: asset.chainage,
-      gpsLocation: asset.gpsLocation
+      gpsLocation: asset.gpsLocation,
+      insuranceExpiry: asset.insuranceExpiry || '',
+      taxExpiry: asset.taxExpiry || '',
+      safetyExpiryDate: asset.safetyExpiryDate || '',
+      lastRestockDate: asset.lastRestockDate || ''
     });
     setCoords({
       lat: asset.gpsLocation?.latitude?.toString() || '',
@@ -79,8 +102,57 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
     setIsAssetModalOpen(true);
   };
 
-  const canDelete = userRole === UserRole.ADMIN || userRole === UserRole.PROJECT_MANAGER;
-  
+  const handleShowMaintenance = (asset: Vehicle) => {
+    setSelectedAsset(asset);
+    setIsMaintenanceModalOpen(true);
+  };
+
+  const handleAddLog = () => {
+    setLogForm({
+      type: 'Routine Service',
+      description: '',
+      cost: 0,
+      status: 'Completed',
+      date: new Date().toISOString().split('T')[0]
+    });
+    setIsAddLogModalOpen(true);
+  };
+
+  const handleSaveLog = () => {
+    if (!selectedAsset || !logForm.description) return;
+
+    const newLog: MaintenanceLog = {
+      id: generateUniqueId(),
+      vehicleId: selectedAsset.id,
+      date: logForm.date || new Date().toISOString().split('T')[0],
+      type: logForm.type as any,
+      description: logForm.description,
+      cost: logForm.cost || 0,
+      status: logForm.status as any,
+    };
+
+    const updatedMaintenanceLogs = [...(selectedAsset.maintenanceLogs || []), newLog];
+    
+    // Auto-update status if log is "In Progress"
+    const newStatus = logForm.status === 'In Progress' ? 'Maintenance' : selectedAsset.status;
+
+    const updatedAssets = assets.map(asset => 
+      asset.id === selectedAsset.id 
+        ? { ...asset, maintenanceLogs: updatedMaintenanceLogs, status: newStatus as any } 
+        : asset
+    );
+
+    onProjectUpdate({
+      ...project,
+      vehicles: updatedAssets
+    });
+
+    setIsAddLogModalOpen(false);
+    // Refresh selected asset in view
+    const refreshedAsset = updatedAssets.find(a => a.id === selectedAsset.id);
+    if (refreshedAsset) setSelectedAsset(refreshedAsset);
+  };
+
   const handleDeleteAsset = (assetId: string) => {
     if (!canDelete) {
       alert('Only Admin and Project Manager can delete assets');
@@ -103,6 +175,9 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
 
   const handleSaveAsset = () => {
     // Validation
+    if (!canAdd && !editingAssetId) return;
+    if (!canEdit && editingAssetId) return;
+
     if (!assetForm.plateNumber?.trim()) {
       alert('Plate number is required');
       return;
@@ -156,7 +231,12 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
         driver: assetForm.driver || '',
         agencyId: assetForm.agencyId || undefined,
         chainage: assetForm.chainage,
-        gpsLocation: gpsLocation
+        gpsLocation: gpsLocation,
+        maintenanceLogs: [],
+        insuranceExpiry: assetForm.insuranceExpiry,
+        taxExpiry: assetForm.taxExpiry,
+        safetyExpiryDate: assetForm.safetyExpiryDate,
+        lastRestockDate: assetForm.lastRestockDate
       };
       
       onProjectUpdate({
@@ -171,7 +251,11 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
       type: '',
       status: 'Active',
       driver: '',
-      chainage: ''
+      chainage: '',
+      insuranceExpiry: '',
+      taxExpiry: '',
+      safetyExpiryDate: '',
+      lastRestockDate: ''
     });
     setCoords({ lat: '', lng: '' });
     setEditingAssetId(null);
@@ -184,10 +268,12 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
           <h5 className="text-xl font-black">Asset & Equipment Registry</h5>
           <p className="text-sm text-muted-foreground">Manage project vehicles, machinery, and equipment inventory</p>
         </div>
-        <Button onClick={handleAddAsset}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Asset
-        </Button>
+        {canAdd && (
+          <Button onClick={handleAddAsset}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Asset
+          </Button>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -256,7 +342,15 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
               <TableRow key={asset.id}>
                 <TableCell className="font-medium">{asset.plateNumber}</TableCell>
                 <TableCell>
-                  <Badge variant="outline">{asset.type}</Badge>
+                  <div className="flex flex-col gap-1">
+                    <Badge variant="outline">{asset.type}</Badge>
+                    {asset.insuranceExpiry && new Date(asset.insuranceExpiry) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) && (
+                      <Badge variant="destructive" className="text-[10px] py-0 h-4">Insurance Expiring</Badge>
+                    )}
+                    {asset.safetyExpiryDate && new Date(asset.safetyExpiryDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) && (
+                      <Badge variant="destructive" className="text-[10px] py-0 h-4">Refill Needed</Badge>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Badge
@@ -282,6 +376,20 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
                           <Button
                             variant="ghost"
                             size="icon"
+                            onClick={() => handleShowMaintenance(asset)}
+                          >
+                            <History className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Maintenance History</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => handleShowQRCode(asset)}
                           >
                             <QrCode className="h-4 w-4" />
@@ -290,35 +398,39 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
                         <TooltipContent>Show QR Code</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditAsset(asset)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Edit Asset</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-red-600 hover:text-red-700"
-                            onClick={() => handleDeleteAsset(asset.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Delete Asset</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    {canEdit && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditAsset(asset)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit Asset</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                    {canDelete && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-600 hover:text-red-700"
+                              onClick={() => handleDeleteAsset(asset.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Delete Asset</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -371,10 +483,66 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
                   <SelectItem value="Bulldozer">Bulldozer</SelectItem>
                   <SelectItem value="Crane">Crane</SelectItem>
                   <SelectItem value="Generator">Generator</SelectItem>
+                  <SelectItem value="Fire Extinguisher">Fire Extinguisher</SelectItem>
+                  <SelectItem value="First Aid Kit">First Aid Kit</SelectItem>
+                  <SelectItem value="Safety Signage">Safety Signage</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            
+            {/* Conditional Fields based on Asset Type */}
+            {['Truck', 'Excavator', 'Bulldozer', 'Crane'].includes(assetForm.type || '') && (
+              <>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="insuranceExpiry" className="text-right">Insurance Exp</Label>
+                  <Input
+                    id="insuranceExpiry"
+                    type="date"
+                    value={assetForm.insuranceExpiry || ''}
+                    onChange={(e) => setAssetForm({ ...assetForm, insuranceExpiry: e.target.value })}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="taxExpiry" className="text-right">Tax Expiry</Label>
+                  <Input
+                    id="taxExpiry"
+                    type="date"
+                    value={assetForm.taxExpiry || ''}
+                    onChange={(e) => setAssetForm({ ...assetForm, taxExpiry: e.target.value })}
+                    className="col-span-3"
+                  />
+                </div>
+              </>
+            )}
+
+            {assetForm.type === 'Fire Extinguisher' && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="safetyExpiryDate" className="text-right">Refill Date</Label>
+                <Input
+                  id="safetyExpiryDate"
+                  type="date"
+                  value={assetForm.safetyExpiryDate || ''}
+                  onChange={(e) => setAssetForm({ ...assetForm, safetyExpiryDate: e.target.value })}
+                  className="col-span-3"
+                />
+              </div>
+            )}
+
+            {assetForm.type === 'First Aid Kit' && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="lastRestockDate" className="text-right">Restock Date</Label>
+                <Input
+                  id="lastRestockDate"
+                  type="date"
+                  value={assetForm.lastRestockDate || ''}
+                  onChange={(e) => setAssetForm({ ...assetForm, lastRestockDate: e.target.value })}
+                  className="col-span-3"
+                />
+              </div>
+            )}
+
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="status" className="text-right">
                 Status
@@ -480,6 +648,142 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
             <Button onClick={() => setIsQRModalOpen(false)}>
               Close
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Maintenance History Modal */}
+      <Dialog open={isMaintenanceModalOpen} onOpenChange={setIsMaintenanceModalOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Maintenance History: {selectedAsset?.plateNumber}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Recent Logs</h4>
+              <Button size="sm" onClick={handleAddLog}>
+                <Plus className="h-4 w-4 mr-1" /> Add Log
+              </Button>
+            </div>
+
+            {selectedAsset?.maintenanceLogs && selectedAsset.maintenanceLogs.length > 0 ? (
+              <div className="space-y-3">
+                {selectedAsset.maintenanceLogs.slice().reverse().map((log) => (
+                  <Card key={log.id} className="bg-muted/30">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <Badge variant="outline" className="mb-1">{log.type}</Badge>
+                          <p className="text-sm font-medium">{log.description}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">{log.date}</p>
+                          <p className="text-sm font-bold text-primary">${log.cost}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={log.status === 'Completed' ? 'default' : 'secondary'}>
+                          {log.status}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 border-2 border-dashed rounded-lg">
+                <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground opacity-20 mb-2" />
+                <p className="text-sm text-muted-foreground">No maintenance logs found for this asset.</p>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button onClick={() => setIsMaintenanceModalOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Maintenance Log Modal */}
+      <Dialog open={isAddLogModalOpen} onOpenChange={setIsAddLogModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add Maintenance Log</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="logType" className="text-right">Type</Label>
+              <Select
+                value={logForm.type || 'Routine Service'}
+                onValueChange={(value) => setLogForm({ ...logForm, type: value as any })}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Routine Service">Routine Service</SelectItem>
+                  <SelectItem value="Repair">Repair</SelectItem>
+                  <SelectItem value="Inspection">Inspection</SelectItem>
+                  <SelectItem value="Breakdown">Breakdown</SelectItem>
+                  <SelectItem value="Tyre Change">Tyre Change</SelectItem>
+                  <SelectItem value="Oil Change">Oil Change</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="logDate" className="text-right">Date</Label>
+              <Input
+                id="logDate"
+                type="date"
+                value={logForm.date}
+                onChange={(e) => setLogForm({ ...logForm, date: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="logDesc" className="text-right">Description</Label>
+              <Input
+                id="logDesc"
+                value={logForm.description || ''}
+                onChange={(e) => setLogForm({ ...logForm, description: e.target.value })}
+                className="col-span-3"
+                placeholder="Work done details"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="logCost" className="text-right">Cost</Label>
+              <Input
+                id="logCost"
+                type="number"
+                value={logForm.cost}
+                onChange={(e) => setLogForm({ ...logForm, cost: parseFloat(e.target.value) })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="logStatus" className="text-right">Status</Label>
+              <Select
+                value={logForm.status || 'Completed'}
+                onValueChange={(value) => setLogForm({ ...logForm, status: value as any })}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                  <SelectItem value="In Progress">In Progress</SelectItem>
+                  <SelectItem value="Scheduled">Scheduled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddLogModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveLog}>Save Log Entry</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

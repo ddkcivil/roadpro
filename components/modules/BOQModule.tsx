@@ -45,6 +45,9 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
     const [isVOModalOpen, setIsVOModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [importFile, setImportFile] = useState<File | null>(null);
+
+    const canEdit = [UserRole.ADMIN, UserRole.PROJECT_MANAGER, UserRole.SITE_ENGINEER].includes(userRole);
+    const canDelete = [UserRole.ADMIN, UserRole.PROJECT_MANAGER].includes(userRole);
     
     // State for compact/full view toggle
     const [compactView, setCompactView] = useState(false);
@@ -172,6 +175,11 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
     
     const handleImportSubmit = () => {
         if (!importFile) return;
+
+        if (!canEdit) {
+            toast.error("Unauthorized", { description: "You don't have permission to import BOQ data." });
+            return;
+        }
     
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -277,6 +285,11 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
     };
 
     const handleCertifyMB = (sheet: MeasurementSheet) => {
+        if (!canEdit) {
+            toast.error("Unauthorized", { description: "You don't have permission to certify MB records." });
+            return;
+        }
+
         if ((sheet.status as string) === 'Certified') {
             toast.info("This MB record is already certified.");
             return;
@@ -404,7 +417,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsContent value="registry">
-                    <BOQRegistry project={project} settings={settings} onProjectUpdate={onProjectUpdate} compactView={compactView} />
+                    <BOQRegistry project={project} settings={settings} userRole={userRole} onProjectUpdate={onProjectUpdate} compactView={compactView} />
                 </TabsContent>
                 
                 <TabsContent value="mb">
@@ -456,7 +469,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                                             <TableCell className="text-center"><Badge variant={(sheet.status as string) === 'Certified' ? 'success' : 'default' as any}>{sheet.status}</Badge></TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-1">
-                                                    {(sheet.status as string) !== 'Certified' && (
+                                                    {(sheet.status as string) !== 'Certified' && canEdit && (
                                                         <TooltipProvider>
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
@@ -468,12 +481,14 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                                                             </Tooltip>
                                                         </TooltipProvider>
                                                     )}
-                                                    <Button variant="ghost" size="icon" onClick={() => {
-                                                        const updated = (project.measurementSheets || []).filter(s => s.id !== sheet.id);
-                                                        onProjectUpdate({ ...project, measurementSheets: updated });
-                                                    }}>
-                                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                                    </Button>
+                                                    {canDelete && (
+                                                        <Button variant="ghost" size="icon" onClick={() => {
+                                                            const updated = (project.measurementSheets || []).filter(s => s.id !== sheet.id);
+                                                            onProjectUpdate({ ...project, measurementSheets: updated });
+                                                        }}>
+                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                         </TableRow>

@@ -35,6 +35,10 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
+  const canAdd = true;
+  const canEdit = userRole === UserRole.ADMIN || userRole === UserRole.PROJECT_MANAGER || userRole === UserRole.SITE_ENGINEER;
+  const canDelete = userRole === UserRole.ADMIN || userRole === UserRole.PROJECT_MANAGER;
+
   const agencies = project.agencies?.filter(a => a.type === 'agency') || [];
   const subcontractors = project.agencies?.filter(a => a.type === 'subcontractor') || []; // Also considered agencies
   const agencyPayments = (project.agencyPayments || []).filter(p => p.agencyId && agencies.concat(subcontractors).some(a => a.id === p.agencyId));
@@ -123,8 +127,6 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
     setIsEditModalOpen(true);
   };
 
-  const canDelete = userRole === UserRole.ADMIN || userRole === UserRole.PROJECT_MANAGER;
-  
   const handleDeleteAgency = (agencyId: string) => {
     if (!canDelete) {
       showSnackbar('Only Admin and Project Manager can delete agencies', 'error');
@@ -149,6 +151,11 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
 
   const handleSaveAgency = () => {
     // Validation
+    if (!canEdit && (isEditModalOpen || agencyForm.id)) {
+      showSnackbar('Unauthorized: Insufficient permissions to edit agency', 'error');
+      return;
+    }
+
     if (!agencyForm.name?.trim()) {
       showSnackbar('Agency name is required', 'error');
       return;
@@ -385,9 +392,11 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
                       </div>
                     </div>
                     <div className="flex gap-2 mt-4">
-                      <Button variant="outline" size="sm" onClick={() => handleEditAgency(agency)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                      {canEdit && (
+                        <Button variant="outline" size="sm" onClick={() => handleEditAgency(agency)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button variant="outline" size="sm" onClick={() => setSelectedAgencyId(agency.id)}>
                         <Eye className="h-4 w-4" />
                       </Button>

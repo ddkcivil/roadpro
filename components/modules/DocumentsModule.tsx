@@ -33,7 +33,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import CommentsPanel from './CommentsPanel';
 import { ocrService } from '../../services/ai/ocrService';
-import { fileToBase64 } from '../../utils/data/documentUtils';
+import { fileToBase64, base64ToBlobUrl } from '../../utils/data/documentUtils';
 
 // Dynamically load PDF components when needed
 interface PdfComponents {
@@ -54,32 +54,6 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
   const [pdfComponents, setPdfComponents] = useState<PdfComponents | null>(null);
   const [blobUrls, setBlobUrls] = useState<Record<string, string>>({});
   const [previewUrl, setPreviewUrl] = useState<string>('');
-
-  const base64ToBlobUrl = useCallback((base64: string): string => {
-    console.log('[DocumentsModule] Attempting to convert base64 to blob URL.');
-    try {
-      const parts = base64.split(',');
-      if (parts.length < 2) {
-        console.error('[DocumentsModule] Base64 string is malformed (missing comma separator).');
-        return '';
-      }
-      
-      const byteString = atob(parts[1]);
-      const mimeString = parts[0].split(':')[1].split(';')[0];
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-      }
-      const blob = new Blob([ab], { type: mimeString });
-      const url = URL.createObjectURL(blob);
-      console.log('[DocumentsModule] Successfully created blob URL.');
-      return url;
-    } catch (error) {
-      console.error('[DocumentsModule] Error converting base64 to blob URL:', error);
-      return '';
-    }
-  }, []);
 
   const getFileUrl = useCallback((doc: ProjectDocument): string => {
     console.log('[DocumentsModule] getFileUrl called for doc:', doc.name);
@@ -107,7 +81,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
     
     console.log('[DocumentsModule] Returning original fileUrl:', doc.fileUrl);
     return doc.fileUrl;
-  }, [blobUrls, base64ToBlobUrl]);
+  }, [blobUrls]);
 
   useEffect(() => {
     const loadPdfComponents = async () => {
@@ -116,10 +90,8 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
         const pdfjs = pdfModule.pdfjs;
         
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          const workerUrl = new URL(
-            'pdfjs-dist/build/pdf.worker.min.mjs',
-            import.meta.url,
-          ).toString();
+          // Use the worker from the public directory which is more reliable in Vite
+          const workerUrl = '/pdfjs-worker/pdf.worker.min.mjs';
           pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
           console.log('[DocumentsModule] PDF workerSrc set to:', workerUrl);
         }

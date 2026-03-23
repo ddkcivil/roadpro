@@ -305,7 +305,7 @@ export async function connectToDatabase() {
       socketTimeoutMS: 45000, // 45s for slow connections
       maxPoolSize: 20, // More connections for concurrent ops
       retryWrites: true,
-      w: 'majority',
+      w: 1, // Changed from 'majority' to 1 for type compatibility
       family: 4, // IPv4 only for Vercel
     };
 

@@ -79,6 +79,9 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
     const subcontractorBills = project?.subcontractorBills || [];
     const approvedSheets = (project?.measurementSheets || [])?.filter(s => s.status === 'Approved');
 
+    const canEdit = [UserRole.ADMIN, UserRole.PROJECT_MANAGER, UserRole.SITE_ENGINEER].includes(userRole);
+    const canDelete = [UserRole.ADMIN, UserRole.PROJECT_MANAGER].includes(userRole);
+
     const calculateIPCDetails = (form: Partial<ContractBill>) => {
         const gross = (form.items || []).reduce((acc, item) => acc + (item.currentAmount || 0), 0);
         const cpa = Number(form.cpaAmount) || 0;
@@ -157,6 +160,10 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
     };
 
     const handleDeleteSubcontractorBill = (id: string) => {
+        if (!canDelete) {
+            toast.error('Only Admin and Project Manager can delete bills');
+            return;
+        }
         if (!confirm('Are you sure you want to delete this subcontractor bill?')) return;
         const updatedBills = subcontractorBills.filter(b => b.id !== id);
         onProjectUpdate({ ...project, subcontractorBills: updatedBills });
@@ -239,6 +246,10 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
     };
     
     const handleSaveSubcontractorBill = () => {
+        if (!canEdit) {
+            toast.error('Unauthorized: Insufficient permissions to save subcontractor bill');
+            return;
+        }
         const summary = calculateSubcontractorBillDetails(subcontractorBillForm);
         const isEdit = !!subcontractorBillForm.id;
         
@@ -295,6 +306,10 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
     };
 
     const handleDeleteIPC = (id: string) => {
+        if (!canDelete) {
+            toast.error('Only Admin and Project Manager can delete IPCs');
+            return;
+        }
         if (!confirm('Are you sure you want to delete this IPC?')) return;
         const updatedBills = bills.filter(b => b.id !== id);
         onProjectUpdate({ ...project, contractBills: updatedBills });
@@ -360,6 +375,10 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
     };
 
     const handleSaveIPC = () => {
+        if (!canEdit) {
+            toast.error('Unauthorized: Insufficient permissions to save IPC');
+            return;
+        }
         const isEdit = !!ipcForm.id;
         const finalIPC: ContractBill = {
             ...ipcForm,
@@ -509,15 +528,19 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                                     </div>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                    <Button variant="outline" size="sm" onClick={viewingSubcontractorBill ? handleEditSubcontractorBill : handleEditIPC}>
-                                        <Edit className="mr-2 h-4 w-4" />Edit
-                                    </Button>
-                                    <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => {
-                                        if (viewingSubcontractorBill) handleDeleteSubcontractorBill(viewingSubcontractorBill.id);
-                                        else if (viewingIpc) handleDeleteIPC(viewingIpc.id);
-                                    }}>
-                                        <Trash2 className="mr-2 h-4 w-4" />Delete
-                                    </Button>
+                                    {canEdit && (
+                                        <Button variant="outline" size="sm" onClick={viewingSubcontractorBill ? handleEditSubcontractorBill : handleEditIPC}>
+                                            <Edit className="mr-2 h-4 w-4" />Edit
+                                        </Button>
+                                    )}
+                                    {canDelete && (
+                                        <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => {
+                                            if (viewingSubcontractorBill) handleDeleteSubcontractorBill(viewingSubcontractorBill.id);
+                                            else if (viewingIpc) handleDeleteIPC(viewingIpc.id);
+                                        }}>
+                                            <Trash2 className="mr-2 h-4 w-4" />Delete
+                                        </Button>
+                                    )}
                                     <Button variant="outline" size="sm" onClick={() => setPrintPreviewOpen(true)}>
                                         <Printer className="mr-2 h-4 w-4" />Preview / Print
                                     </Button>

@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 interface BOQManagerProps {
   project: Project;
   settings: AppSettings;
+  userRole: UserRole;
   onProjectUpdate: (project: Project) => void;
   compactView?: boolean;
 }
@@ -34,11 +35,15 @@ interface BOQManagerProps {
 const BOQRegistry: React.FC<BOQManagerProps> = ({ 
   project, 
   settings, 
+  userRole,
   onProjectUpdate,
   compactView = false
 }) => {
   const [, startTransition] = useTransition();
   const currencySymbol = getCurrencySymbol(settings.currency);
+
+  const canEdit = [UserRole.ADMIN, UserRole.PROJECT_MANAGER, UserRole.SITE_ENGINEER].includes(userRole);
+  const canDelete = [UserRole.ADMIN, UserRole.PROJECT_MANAGER].includes(userRole);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<BOQItem | null>(null);
@@ -61,6 +66,10 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
   const itemsPerPage = 50;
 
   const handleEditClick = (item: BOQItem) => {
+    if (!canEdit) {
+      toast.error("Unauthorized", { description: "You don't have permission to edit BOQ items." });
+      return;
+    }
     setEditingItem({ ...item }); // Create a copy to edit
     setIsEditModalOpen(true);
   };
@@ -140,6 +149,10 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
   };
 
   const handleDeleteClick = (itemId: string) => {
+    if (!canDelete) {
+      toast.error("Unauthorized", { description: "You don't have permission to delete BOQ items." });
+      return;
+    }
     if (window.confirm('Are you sure you want to delete this BOQ item?')) {
       if (project) {
         const updatedBoq = project.boq.filter(item => item.id !== itemId);
@@ -262,36 +275,42 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
                     <TableCell className="text-right">{item.variationQuantity?.toLocaleString() || '0'}</TableCell>
                     <TableCell className="text-center">
                       <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="text-green-600 hover:text-green-700" 
-                              onClick={() => handleCertifyCompletion(item)}
-                              disabled={item.completedQuantity >= (item.quantity + (item.variationQuantity || 0))}
-                            >
-                              <CheckCircle2 className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Certify 100% Completion</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(item)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Edit Item</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(item.id)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Delete Item</TooltipContent>
-                        </Tooltip>
+                        {canEdit && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="text-green-600 hover:text-green-700" 
+                                onClick={() => handleCertifyCompletion(item)}
+                                disabled={item.completedQuantity >= (item.quantity + (item.variationQuantity || 0))}
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Certify 100% Completion</TooltipContent>
+                          </Tooltip>
+                        )}
+                        {canEdit && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" onClick={() => handleEditClick(item)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit Item</TooltipContent>
+                          </Tooltip>
+                        )}
+                        {canDelete && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(item.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete Item</TooltipContent>
+                          </Tooltip>
+                        )}
                       </TooltipProvider>
                     </TableCell>
                   </TableRow>

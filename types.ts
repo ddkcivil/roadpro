@@ -284,6 +284,21 @@ export interface InventoryTransaction {
   vendorName?: string;
 }
 
+export interface MaintenanceLog {
+  id: string;
+  vehicleId: string;
+  date: string;
+  type: 'Routine Service' | 'Repair' | 'Inspection' | 'Breakdown' | 'Tyre Change' | 'Oil Change' | 'Other';
+  description: string;
+  cost: number;
+  partsReplaced?: string[];
+  technicianName?: string;
+  odometerReading?: number;
+  nextServiceDate?: string;
+  nextServiceOdometer?: number;
+  status: 'Completed' | 'In Progress' | 'Scheduled';
+}
+
 export interface Vehicle {
   id: string;
   name?: string;
@@ -313,6 +328,12 @@ export interface Vehicle {
     longitude: number;
     timestamp: string;
   };
+  maintenanceLogs?: MaintenanceLog[];
+  insuranceExpiry?: string;
+  taxExpiry?: string;
+  nextServiceDate?: string;
+  safetyExpiryDate?: string; // for fire extinguishers
+  lastRestockDate?: string; // for first aid kits
 }
 
 export interface VehicleLog {

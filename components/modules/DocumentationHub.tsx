@@ -15,6 +15,7 @@ import {
     FileSpreadsheet, AlertTriangle, BookOpen, Printer,
     Eye, CloudRain
 } from 'lucide-react';
+import { base64ToBlobUrl } from '../../utils/data/documentUtils';
 
 import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
@@ -111,33 +112,11 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
     
     if (blobUrls[doc.id]) return blobUrls[doc.id];
     
-    // Direct data URLs can be very large and slow for PDF.js to parse sometimes, 
-    // but converting to Blob URL usually helps.
-    if (doc.fileUrl.startsWith('data:application/pdf') || doc.fileUrl.startsWith('data:image/')) {
-      try {
-        const parts = doc.fileUrl.split(',');
-        const mime = parts[0].match(/:(.*?);/)?.[1] || 'application/octet-stream';
-        const b64Data = parts[1];
-        const byteCharacters = atob(b64Data);
-        const byteArrays = [];
-
-        for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-          const slice = byteCharacters.slice(offset, offset + 512);
-          const byteNumbers = new Array(slice.length);
-          for (let i = 0; i < slice.length; i++) {
-            byteNumbers[i] = slice.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-          byteArrays.push(byteArray);
-        }
-
-        const blob = new Blob(byteArrays, { type: mime });
-        const url = URL.createObjectURL(blob);
+    if (doc.fileUrl.startsWith('data:')) {
+      const url = base64ToBlobUrl(doc.fileUrl);
+      if (url) {
         setBlobUrls(prev => ({ ...prev, [doc.id]: url }));
         return url;
-      } catch (error) {
-        console.error('Error converting base64 to blob URL:', error);
-        return doc.fileUrl;
       }
     }
     
@@ -151,10 +130,8 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
         const pdfjs = pdfModule.pdfjs;
         
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          const workerUrl = new URL(
-            'pdfjs-dist/build/pdf.worker.min.mjs',
-            import.meta.url,
-          ).toString();
+          // Use the worker from the public directory which is more reliable in Vite
+          const workerUrl = '/pdfjs-worker/pdf.worker.min.mjs';
           pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
         }
 
