@@ -69,6 +69,16 @@ export interface IMessage extends Document {
   updatedAt?: Date;
 }
 
+export interface IFile extends Document {
+  id: string;
+  name: string;
+  contentType: string;
+  data: Buffer;
+  size: number;
+  uploadDate: Date;
+  metadata?: any;
+}
+
 export interface IProject extends Document {
   id: string;
   name: string;
@@ -191,6 +201,16 @@ const messageSchema = new Schema<IMessage>({
   attachmentType: String,
 }, { timestamps: true });
 
+const fileSchema = new Schema<IFile>({
+  id: { type: String, required: true, unique: true, index: true },
+  name: { type: String, required: true },
+  contentType: { type: String, required: true },
+  data: { type: Buffer, required: true },
+  size: { type: Number, required: true },
+  uploadDate: { type: Date, default: Date.now },
+  metadata: Schema.Types.Mixed,
+}, { timestamps: true });
+
 const projectSchema = new Schema<IProject>({
   id: { type: String, required: true, unique: true, index: true },
   name: { type: String, required: true, index: true },
@@ -267,6 +287,7 @@ const PendingRegistration = mongoose.models.PendingRegistration || mongoose.mode
 const Project = mongoose.models.Project || mongoose.model<IProject>('Project', projectSchema);
 const AuditLog = mongoose.models.AuditLog || mongoose.model<IAuditLog>('AuditLog', auditLogSchema);
 const Message = mongoose.models.Message || mongoose.model<IMessage>('Message', messageSchema);
+const FileStore = mongoose.models.File || mongoose.model<IFile>('File', fileSchema);
 
 /**
  * Seeds an initial admin user if none exist
@@ -295,7 +316,7 @@ async function seedInitialAdmin(UserModel: Model<IUser>) {
 
 export async function connectToDatabase() {
   if (cached.conn) {
-    return { User, PendingRegistration, Project, AuditLog, Message, mongoose: cached.conn };
+    return { User, PendingRegistration, Project, AuditLog, Message, FileStore, mongoose: cached.conn };
   }
 
   if (!cached.promise) {
@@ -328,5 +349,5 @@ export async function connectToDatabase() {
     throw e;
   }
 
-  return { User, PendingRegistration, Project, AuditLog, Message, mongoose: cached.conn };
+  return { User, PendingRegistration, Project, AuditLog, Message, FileStore, mongoose: cached.conn };
 }

@@ -501,6 +501,7 @@ export interface ProjectDocument {
   letterDate?: string; // Date from the document itself
   correspondenceType?: 'incoming' | 'outgoing'; // Label for correspondence direction
   fileUrl?: string; // URL to access the document file
+  fileId?: string; // Dedicated binary storage ID
   currentVersion: number;
   versions: DocumentVersion[];
   createdBy: string;
@@ -1071,6 +1072,7 @@ export interface SitePhoto {
   location: string;
   category: 'Earthwork' | 'Structures' | 'Pavement' | 'General' | 'Safety';
   url: string;
+  fileId?: string; // Dedicated binary storage ID
   uploadedBy?: string;
   aiAnalysis?: any;
   isAnalyzed: boolean;

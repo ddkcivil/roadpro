@@ -52,89 +52,10 @@ const FOLDERS = ['General', 'Contracts', 'Drawings', 'Reports', 'Correspondence'
 
 const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
   const [pdfComponents, setPdfComponents] = useState<PdfComponents | null>(null);
-  const [blobUrls, setBlobUrls] = useState<Record<string, string>>({});
-  const [previewUrl, setPreviewUrl] = useState<string>('');
 
   const getFileUrl = useCallback((doc: ProjectDocument): string => {
-    console.log('[DocumentsModule] getFileUrl called for doc:', doc.name);
-    if (!doc.fileUrl) {
-      console.error('[DocumentsModule] doc.fileUrl is empty or undefined.');
-      return '';
-    }
-    if (blobUrls[doc.id]) {
-      console.log('[DocumentsModule] Returning cached blob URL.');
-      return blobUrls[doc.id];
-    }
-    
-    if (doc.fileUrl.startsWith('data:')) {
-      console.log('[DocumentsModule] File is a data URL. Attempting conversion.');
-      const url = base64ToBlobUrl(doc.fileUrl);
-      if (url) {
-        setBlobUrls(prev => ({ ...prev, [doc.id]: url }));
-        console.log('[DocumentsModule] Converted to blob URL:', url);
-        return url;
-      } else {
-        console.error('[DocumentsModule] Failed to convert data URL to blob URL.');
-        return ''; // Return empty if conversion failed
-      }
-    }
-    
-    console.log('[DocumentsModule] Returning original fileUrl:', doc.fileUrl);
-    return doc.fileUrl;
-  }, [blobUrls]);
-
-  useEffect(() => {
-    const loadPdfComponents = async () => {
-      try {
-        const pdfModule = await import('react-pdf');
-        const pdfjs = pdfModule.pdfjs;
-        
-        if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          // Use the worker from the CDN that matches the exact version of the library
-          // this prevents version mismatch errors like "Rf 2"
-          const workerUrl = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-          pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
-          console.log('[DocumentsModule] PDF workerSrc set to:', workerUrl);
-        }
-        
-        setPdfComponents({
-          Document: pdfModule.Document,
-          Page: pdfModule.Page,
-          pdfjs: pdfjs
-        });
-      } catch (error) {
-        console.warn('[DocumentsModule] Failed to load PDF components:', error);
-      }
-    };
-    loadPdfComponents();
-
-
-    return () => {
-      Object.values(blobUrls).forEach(url => {
-        if (url.startsWith('blob:')) {
-          URL.revokeObjectURL(url);
-        }
-      });
-    };
+    return doc.fileUrl || '';
   }, []);
-
-  const [activeFolder, setActiveFolder] = useState('General');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const [uploadMode, setUploadMode] = useState<'SIMPLE' | 'SCAN'>('SIMPLE');
-  const [scanStep, setScanStep] = useState<'IDLE' | 'PROCESSING' | 'REVIEW'>('IDLE');
-  const [scannedMetadata, setScannedMetadata] = useState<{ subject: string; refNo: string; date: string; letterDate: string; correspondenceType: 'incoming' | 'outgoing' | undefined; sender: string; recipient: string; subId: string; }>({ subject: '', refNo: '', date: '', letterDate: '', correspondenceType: undefined, sender: '', recipient: '', subId: '' });
-  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
-  const [previewDoc, setPreviewDoc] = useState<ProjectDocument | null>(null);
-
-  // Update preview URL when previewDoc changes
-  useEffect(() => {
-    if (previewDoc) {
-      setPreviewUrl(getFileUrl(previewDoc));
-    } else {
-      setPreviewUrl('');
-    }
-  }, [previewDoc, getFileUrl]);
 
   const Document = pdfComponents?.Document;
   const Page = pdfComponents?.Page;
@@ -235,53 +156,87 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
       const newDocs: ProjectDocument[] = [];
       const skippedDocs: string[] = [];
       
-      for (const f of uploadFiles) {
-          const existingDoc = (project.documents || []).find(doc => 
-              doc.name === f.name && 
-              Math.abs(parseFloat(doc.size) - parseFloat(`${(f.size / 1024 / 1024).toFixed(2)}`)) < 0.1
-          );
-          
-          if (existingDoc) {
-              skippedDocs.push(f.name);
-              continue;
+      const uploadToast = toast.loading(`Uploading ${uploadFiles.length} document(s) to cloud storage...`);
+      const { realApiService } = await import('../../services/api/realApiService');
+
+      try {
+          for (const f of uploadFiles) {
+              const existingDoc = (project.documents || []).find(doc => 
+                  doc.name === f.name && 
+                  Math.abs(parseFloat(doc.size) - parseFloat(`${(f.size / 1024 / 1024).toFixed(2)} MB`)) < 0.1
+              );
+              
+              if (existingDoc) {
+                  skippedDocs.push(f.name);
+                  continue;
+              }
+              
+              // 1. Convert to base64
+              const base64Data = await fileToBase64(f);
+              
+              // 2. Upload to binary store (MongoDB)
+              const uploadResult = await realApiService.uploadFile({
+                  name: f.name,
+                  contentType: f.type,
+                  base64Data,
+                  metadata: {
+                      projectId: project.id,
+                      folder: uploadTargetFolder,
+                      type: 'document'
+                  }
+              });
+
+              const docId = `doc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+              const isImage = f.type.includes('image') || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => f.name.toLowerCase().endsWith(ext));
+              const isPdf = f.type.includes('pdf') || f.name.toLowerCase().endsWith('.pdf');
+              
+              const newVersion: DocumentVersion = {
+                  id: `ver-${Date.now()}-${Math.random()}`, 
+                  version: 1, 
+                  date: new Date().toISOString().split('T')[0],
+                  size: `${(f.size / 1024 / 1024).toFixed(2)} MB`,
+                  filePath: uploadResult.url, // Store API URL
+                  uploadedBy: 'Current User'
+              };
+              
+              newDocs.push({
+                  id: docId, 
+                  name: f.name,
+                  type: isImage ? 'IMAGE' : isPdf ? 'PDF' : 'OTHER',
+                  date: scanStep === 'REVIEW' ? scannedMetadata.date : new Date().toISOString().split('T')[0],
+                  size: `${(f.size / 1024 / 1024).toFixed(2)} MB`, 
+                  folder: uploadTargetFolder,
+                  tags: scannedMetadata.subId ? [subcontractors.find(s => s.id === scannedMetadata.subId)?.name || ''] : [],
+                  subject: (scanStep === 'REVIEW' ? scannedMetadata.subject : '') || f.name.split('.')[0],
+                  refNo: scanStep === 'REVIEW' ? scannedMetadata.refNo : undefined,
+                  letterDate: scanStep === 'REVIEW' ? scannedMetadata.letterDate : undefined,
+                  correspondenceType: scanStep === 'REVIEW' ? scannedMetadata.correspondenceType : undefined,
+                  fileUrl: uploadResult.url, 
+                  fileId: uploadResult.id,
+                  currentVersion: 1, 
+                  versions: [newVersion],
+                  createdBy: 'Current User', 
+                  lastModified: new Date().toISOString().split('T')[0], 
+                  status: 'Active'
+              });
           }
           
-          const versionId = `ver-${Date.now()}-${Math.random()}`;
-          const newVersion: DocumentVersion = {
-              id: versionId, version: 1, date: new Date().toISOString().split('T')[0],
-              size: `${(f.size / 1024 / 1024).toFixed(2)} MB`,
-              filePath: `uploads/${Date.now()}_${f.name}`,
-              uploadedBy: 'Current User'
-          };
+          if (newDocs.length > 0) {
+              onProjectUpdate({ ...project, documents: [...(project.documents || []), ...newDocs] });
+          }
           
-          const fileUrl = await fileToBase64(f);
-          const isImage = f.type.includes('image') || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => f.name.toLowerCase().endsWith(ext));
-          const isPdf = f.type.includes('pdf') || f.name.toLowerCase().endsWith('.pdf');
+          toast.dismiss(uploadToast);
           
-          newDocs.push({
-              id: `doc-${Date.now()}-${Math.random()}`, name: f.name,
-              type: isImage ? 'IMAGE' : isPdf ? 'PDF' : 'OTHER',
-              date: scanStep === 'REVIEW' ? scannedMetadata.date : new Date().toISOString().split('T')[0],
-              size: `${(f.size / 1024 / 1024).toFixed(2)} MB`, folder: uploadTargetFolder,
-              tags: scannedMetadata.subId ? [subcontractors.find(s => s.id === scannedMetadata.subId)?.name || ''] : [],
-              subject: (scanStep === 'REVIEW' ? scannedMetadata.subject : '') || '',
-              refNo: scanStep === 'REVIEW' ? scannedMetadata.refNo : undefined,
-              letterDate: scanStep === 'REVIEW' ? scannedMetadata.letterDate : undefined,
-              correspondenceType: scanStep === 'REVIEW' ? scannedMetadata.correspondenceType : undefined,
-              fileUrl: fileUrl, currentVersion: 1, versions: [newVersion],
-              createdBy: 'Current User', lastModified: new Date().toISOString().split('T')[0], status: 'Active'
-          });
-      }
-      
-      if (newDocs.length > 0) {
-          onProjectUpdate({ ...project, documents: [...(project.documents || []), ...newDocs] });
-      }
-      
-      if (skippedDocs.length > 0) {
-          alert(`Skipped ${skippedDocs.length} duplicate document(s): ${skippedDocs.join(', ')}`);
-      }
-      if (newDocs.length > 0) {
-          alert(`Successfully added ${newDocs.length} document(s).`);
+          if (skippedDocs.length > 0) {
+              toast.info(`Skipped ${skippedDocs.length} duplicate document(s)`, { description: skippedDocs.join(', ') });
+          }
+          if (newDocs.length > 0) {
+              toast.success(`Successfully uploaded ${newDocs.length} document(s).`);
+          }
+      } catch (error) {
+          toast.dismiss(uploadToast);
+          toast.error("Upload Failed", { description: (error as Error).message });
+          console.error(error);
       }
       
       setUploadModalOpen(false);
@@ -334,45 +289,80 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
       return;
     }
     
-    const updatedDocs = [];
-    for (const doc of project.documents || []) {
-      if (doc.id === docId) {
-        const newVersionNumber = doc.versions.length + 1;
-        const versionId = `ver-${Date.now()}-${Math.random()}`;
-        
-        const newVersion: DocumentVersion = {
-          id: versionId, version: newVersionNumber, date: new Date().toISOString().split('T')[0],
-          size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-          filePath: `uploads/${Date.now()}_${file.name}`,
-          uploadedBy: 'Current User', notes: `Uploaded new version`
-        };
-        
-        const base64Data = await fileToBase64(file);
-        const isImage = file.type.includes('image') || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => file.name.toLowerCase().endsWith(ext));
-        const isPdf = file.type.includes('pdf') || file.name.toLowerCase().endsWith('.pdf');
-        
-        updatedDocs.push({
-          ...doc, type: isImage ? 'IMAGE' : isPdf ? 'PDF' : 'OTHER',
-          fileUrl: base64Data,
-          versions: [...doc.versions, newVersion],
-          currentVersion: newVersionNumber,
-          lastModified: new Date().toISOString().split('T')[0]
-        });
-      } else {
-        updatedDocs.push(doc);
-      }
-    }
-    
-    onProjectUpdate({ ...project, documents: updatedDocs });
-    
-    if (previewDoc?.id === docId) {
+    const uploadToast = toast.loading("Uploading new version...");
+    const { realApiService } = await import('../../services/api/realApiService');
+
+    try {
+      // 1. Convert to base64
       const base64Data = await fileToBase64(file);
-      setPreviewDoc(prev => {
-        if (!prev) return null;
-        const isImage = file.type.includes('image') || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => file.name.toLowerCase().endsWith(ext));
-        const isPdf = file.type.includes('pdf') || file.name.toLowerCase().endsWith('.pdf');
-        return { ...prev, type: isImage ? 'IMAGE' : isPdf ? 'PDF' : 'OTHER', fileUrl: base64Data };
+      
+      // 2. Upload to binary store
+      const uploadResult = await realApiService.uploadFile({
+          name: file.name,
+          contentType: file.type,
+          base64Data,
+          metadata: {
+              projectId: project.id,
+              docId: docId,
+              type: 'document-version'
+          }
       });
+
+      const updatedDocs = [];
+      for (const doc of project.documents || []) {
+        if (doc.id === docId) {
+          const newVersionNumber = doc.versions.length + 1;
+          const versionId = `ver-${Date.now()}-${Math.random()}`;
+          
+          const newVersion: DocumentVersion = {
+            id: versionId, 
+            version: newVersionNumber, 
+            date: new Date().toISOString().split('T')[0],
+            size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+            filePath: uploadResult.url,
+            uploadedBy: 'Current User', 
+            notes: `Uploaded new version`
+          };
+          
+          const isImage = file.type.includes('image') || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => file.name.toLowerCase().endsWith(ext));
+          const isPdf = file.type.includes('pdf') || file.name.toLowerCase().endsWith('.pdf');
+          
+          updatedDocs.push({
+            ...doc, 
+            type: isImage ? 'IMAGE' : isPdf ? 'PDF' : 'OTHER',
+            fileUrl: uploadResult.url,
+            fileId: uploadResult.id,
+            versions: [...doc.versions, newVersion],
+            currentVersion: newVersionNumber,
+            lastModified: new Date().toISOString().split('T')[0]
+          });
+        } else {
+          updatedDocs.push(doc);
+        }
+      }
+      
+      onProjectUpdate({ ...project, documents: updatedDocs });
+      
+      if (previewDoc?.id === docId) {
+        setPreviewDoc(prev => {
+          if (!prev) return null;
+          const isImage = file.type.includes('image') || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => file.name.toLowerCase().endsWith(ext));
+          const isPdf = file.type.includes('pdf') || file.name.toLowerCase().endsWith('.pdf');
+          return { 
+            ...prev, 
+            type: isImage ? 'IMAGE' : isPdf ? 'PDF' : 'OTHER', 
+            fileUrl: uploadResult.url,
+            fileId: uploadResult.id
+          };
+        });
+      }
+      
+      toast.dismiss(uploadToast);
+      toast.success("New Version Uploaded");
+    } catch (error) {
+      toast.dismiss(uploadToast);
+      toast.error("Failed to upload version", { description: (error as Error).message });
+      console.error(error);
     }
   };
   

@@ -85,18 +85,28 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole 
     const handleSavePhoto = async () => {
         if (!tempPreview || !tempFile) return;
 
-        const uploadToast = toast.loading("Saving photo to log...");
+        const uploadToast = toast.loading("Uploading photo to secure storage...");
 
         try {
-            // Convert the temporary blob URL to base64 data to store permanently
+            // 1. Convert to base64 for the API payload
             const base64Data = await new Promise<string>((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onloadend = () => {
-                    const result = reader.result as string;
-                    resolve(result);
-                };
+                reader.onloadend = () => resolve(reader.result as string);
                 reader.onerror = reject;
                 reader.readAsDataURL(tempFile);
+            });
+
+            // 2. Upload to binary store (MongoDB)
+            const { realApiService } = await import('../../services/api/realApiService');
+            const uploadResult = await realApiService.uploadFile({
+                name: tempFile.name,
+                contentType: tempFile.type,
+                base64Data,
+                metadata: {
+                    projectId: project.id,
+                    type: 'site-photo',
+                    category: uploadForm.category
+                }
             });
 
             const coordsInput = (uploadForm as any).coordinates || '';
@@ -104,7 +114,8 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole 
 
             const newPhoto: SitePhoto = {
                 id: `img-${Date.now()}`,
-                url: base64Data, // Store as base64 data URL
+                url: uploadResult.url, // Point to the new API URL
+                fileId: uploadResult.id, // Store the reference
                 date: uploadForm.date!,
                 caption: uploadForm.caption || 'Site Photo',
                 location: finalLocation,
@@ -118,7 +129,7 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole 
             });
             
             toast.dismiss(uploadToast);
-            toast.success("Photo Logged", { description: "The observation has been saved." });
+            toast.success("Photo Logged", { description: "The observation has been saved to the cloud." });
             setUploadModalOpen(false);
             setTempFile(null);
             setTempPreview(null);
@@ -130,7 +141,7 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole 
             });
         } catch (error) {
             toast.dismiss(uploadToast);
-            toast.error("Failed to save photo");
+            toast.error("Failed to save photo", { description: (error as Error).message });
             console.error(error);
         }
     };

@@ -321,6 +321,31 @@ class RealApiService {
    * Deletes a project
    */
   async deleteProject(id: string): Promise<void> {
+    // 1. Fetch project to get file IDs for cleanup
+    try {
+      const project = await this.getProject(id);
+      
+      // 2. Cleanup files in background (don't block project deletion)
+      const fileIds: string[] = [];
+      if (project.documents) {
+        project.documents.forEach((doc: any) => {
+          if (doc.fileId) fileIds.push(doc.fileId);
+        });
+      }
+      if (project.sitePhotos) {
+        project.sitePhotos.forEach((photo: any) => {
+          if (photo.fileId) fileIds.push(photo.fileId);
+        });
+      }
+
+      // Cleanup files
+      for (const fileId of fileIds) {
+        this.deleteFile(fileId).catch(err => console.error(`Failed to cleanup file ${fileId}:`, err));
+      }
+    } catch (err) {
+      console.warn('Could not fetch project for file cleanup before deletion');
+    }
+
     return this.fetchApi<void>(`/projects?id=${id}`, {
       method: 'DELETE',
     });
@@ -594,6 +619,34 @@ class RealApiService {
   async heartbeat(): Promise<void> {
     if (!navigator.onLine) return;
     return this.fetchApi<void>('/users?action=heartbeat', { method: 'POST' });
+  }
+
+  // --- File Management ---
+
+  /**
+   * Uploads a file to the dedicated binary store
+   */
+  async uploadFile(fileData: { name: string; contentType: string; base64Data: string; metadata?: any }): Promise<{ id: string; url: string; size: number }> {
+    return this.fetchApi<{ id: string; url: string; size: number }>('/files', {
+      method: 'POST',
+      body: JSON.stringify(fileData),
+    });
+  }
+
+  /**
+   * Deletes a file from the binary store
+   */
+  async deleteFile(fileId: string): Promise<void> {
+    return this.fetchApi<void>(`/files?id=${fileId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Generates the API URL for a file ID
+   */
+  getFileUrl(fileId: string): string {
+    return `/api/files?id=${fileId}`;
   }
 
   // --- Road Management ---
