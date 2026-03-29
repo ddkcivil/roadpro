@@ -955,7 +955,35 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
           }}
         >
           <Popup>
-            <div className="p-1 font-bold">{overlay.name} ({overlay.type})</div>
+            <div className="p-1">
+              <h3 className="font-bold text-lg border-b pb-1 mb-2">{overlay.name}</h3>
+              <p className="text-sm"><span className="text-gray-500">Type:</span> {overlay.type}</p>
+              
+              {/*
+                --- Status Display Placeholder ---
+                The MapOverlay type does not currently have a 'status' field.
+                To display status, the MapOverlay interface and its data source
+                would need to be updated to include a 'status' property.
+                This section assumes 'overlay.status' exists and displays it.
+                Example statuses and colors are provided.
+              */}
+              {overlay.status && (
+                <p className="text-sm flex items-center gap-2 mt-2">
+                  <span className="text-gray-500 font-medium">Status:</span>
+                  <Badge variant="outline" className={cn(
+                    overlay.status === 'Active' ? 'bg-green-500' :
+                    overlay.status === 'Under Construction' ? 'bg-orange-500' :
+                    overlay.status === 'Completed' ? 'bg-green-600' :
+                    overlay.status === 'Planned' ? 'bg-blue-500' :
+                    'bg-gray-500'
+                  )}>
+                    {overlay.status}
+                  </Badge>
+                </p>
+              )}
+              {/* End Status Display Placeholder */}
+
+            </div>
           </Popup>
         </Polyline>
       );
@@ -1294,6 +1322,30 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                         />
                       </div>
 
+                      {/* Road Structures Listing */}
+                      {layerVisibility.roadStructures && project.structures && project.structures.length > 0 && (
+                        <div className="pl-4 space-y-3 mt-2 border-l-2 border-blue-100">
+                          {project.structures.map((structure: StructureAsset) => (
+                            <div key={structure.id} className="flex flex-col min-w-0 pr-4">
+                              <span className="text-[11px] font-bold truncate leading-tight text-slate-600" title={structure.name}>
+                                {structure.name}
+                              </span>
+                              <span className="text-[9px] text-muted-foreground uppercase tracking-tighter font-medium">
+                                Type: {structure.type} | Chainage: {structure.chainage} | Status: {structure.status}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {layerVisibility.roadStructures && (!project.structures || project.structures.length === 0) && (
+                        <div className="text-center p-4 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">No Road Structures Added</p>
+                        </div>
+                      )}
+                      {/* End Road Structures Listing */}
+
+
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
@@ -1433,6 +1485,64 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                           onCheckedChange={() => toggleLayer('sitePhotos')} 
                         />
                       </div>
+
+                      {/* Site Photos Listing */}
+                      {layerVisibility.sitePhotos && project.sitePhotos && project.sitePhotos.length > 0 && (
+                        <div className="pl-4 space-y-3 mt-2 border-l-2 border-pink-100">
+                          {project.sitePhotos.map((photo) => (
+                            <div key={photo.id} className="flex items-center justify-between group">
+                              <div className="flex flex-col min-w-0 pr-4">
+                                <span className="text-[11px] font-bold truncate leading-tight text-slate-600" title={photo.caption}>
+                                  {photo.caption}
+                                </span>
+                                <span className="text-[9px] text-muted-foreground uppercase tracking-tighter font-medium">
+                                  {photo.category}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-6 w-6 p-0 text-pink-600 hover:text-pink-700 hover:bg-pink-50"
+                                  onClick={() => {
+                                    // Logic to zoom to photo location
+                                    if (photo.location) {
+                                      const coords = photo.location.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
+                                      if (coords) {
+                                        const lat = parseFloat(coords[1]);
+                                        const lng = parseFloat(coords[2]);
+                                        if (!isNaN(lat) && !isNaN(lng)) {
+                                          // Use L.latLngBounds for a single point
+                                          const photoBounds = L.latLngBounds([[lat, lng], [lat, lng]]); 
+                                          startTransition(() => {
+                                            setTargetBounds(photoBounds);
+                                          });
+                                          setTimeout(() => { // Clear bounds after a short delay
+                                            startTransition(() => {
+                                              setTargetBounds(null);
+                                            });
+                                          }, 1000);
+                                        }
+                                      }
+                                    }
+                                  }}
+                                  title="Zoom to photo"
+                                >
+                                  <Maximize size={12} />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {layerVisibility.sitePhotos && project.sitePhotos && project.sitePhotos.length === 0 && (
+                        <div className="text-center p-4 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">No Site Photos Uploaded</p>
+                        </div>
+                      )}
+                      {/* End Site Photos Listing */}
+
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
