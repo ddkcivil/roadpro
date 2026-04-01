@@ -221,7 +221,7 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
   const [, startTransition] = useTransition();
   const [viewMode, setViewMode] = useState<'LIST' | 'CREATE' | 'DETAIL' | 'EDIT'>('LIST');
   const [detailStructureId, setDetailStructureId] = useState<string | null>(null);
-  const [detailTab, setDetailTab] = useState("progress");
+  const [detailTab, setDetailTab] = useState("drawings");
   const [editingStructure, setEditingStructure] = useState<StructureAsset | null>(null);
   
   const [newStructure, setNewStructure] = useState<Partial<StructureAsset>>({
