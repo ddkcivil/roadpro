@@ -237,6 +237,14 @@ export interface StructureWorkLog {
   }[];
 }
 
+export interface StructureDrawing {
+  id: string;
+  name: string;
+  url: string;
+  uploadedDate: string;
+  uploadedBy?: string;
+}
+
 export interface StructureAsset {
   id: string;
   name: string; 
@@ -250,6 +258,7 @@ export interface StructureAsset {
   subcontractorId?: string;
   chainage?: string; // Chainage location on the road alignment
   lastUpdated?: string;
+  approvedDrawings?: StructureDrawing[];
 }
 
 export interface TaskDependency {

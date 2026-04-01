@@ -2,11 +2,13 @@ import React, { useState, useMemo, useTransition } from 'react';
 import { 
     Plus, ArrowLeft, HardHat, History, CheckCircle2,
     MapPin, X, Save, Microscope, Edit2, Trash2, Package,
-    Clock, CheckCircle, AlertTriangle, Search, FileText
+    Clock, CheckCircle, AlertTriangle, Search, FileText,
+    UploadCloud, ExternalLink
 } from 'lucide-react';
 import { 
     Project, StructureAsset, StructureType, 
-    StructureComponent, StructureTemplate, StructureWorkLog
+    StructureComponent, StructureTemplate, StructureWorkLog,
+    StructureDrawing
 } from '../../types';
 import { generateUniqueId } from '../../utils/uuidUtils';
 import { toast } from 'sonner';
@@ -248,8 +250,62 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
   const [isTemplateListOpen, setIsTemplateListOpen] = useState(false);
   const [templateName, setTemplateName] = useState('');
   
+  const [uploadingDrawing, setUploadingDrawing] = useState(false);
+  
   const structures: StructureAsset[] = project.structures || [];
   const selectedStructure = structures.find(s => s.id === detailStructureId);
+
+  const handleUploadDrawing = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0] || !selectedStructure) return;
+    
+    const file = e.target.files[0];
+    setUploadingDrawing(true);
+    
+    try {
+        // In a real app, we would upload to a server here.
+        // For this prototype, we'll create a local URL and mock the process.
+        const mockUrl = URL.createObjectURL(file);
+        
+        const newDrawing: StructureDrawing = {
+            id: generateUniqueId(),
+            name: file.name,
+            url: mockUrl,
+            uploadedDate: new Date().toISOString().split('T')[0],
+            uploadedBy: 'Current User'
+        };
+        
+        const updatedStructures = structures.map(s => 
+            s.id === selectedStructure.id ? {
+                ...s,
+                approvedDrawings: [...(s.approvedDrawings || []), newDrawing],
+                lastUpdated: new Date().toISOString()
+            } : s
+        ) as StructureAsset[];
+        
+        onProjectUpdate({ ...project, structures: updatedStructures });
+        toast.success("Drawing Attached Successfully");
+    } catch (error) {
+        toast.error("Failed to upload drawing");
+    } finally {
+        setUploadingDrawing(false);
+        e.target.value = ''; // Reset input
+    }
+  };
+
+  const handleDeleteDrawing = (drawingId: string) => {
+    if (!selectedStructure || !window.confirm("Permanently remove this drawing?")) return;
+    
+    const updatedStructures = structures.map(s => 
+        s.id === selectedStructure.id ? {
+            ...s,
+            approvedDrawings: (s.approvedDrawings || []).filter(d => d.id !== drawingId),
+            lastUpdated: new Date().toISOString()
+        } : s
+    ) as StructureAsset[];
+    
+    onProjectUpdate({ ...project, structures: updatedStructures });
+    toast.success("Drawing Removed");
+  };
   const structureTemplates: StructureTemplate[] = project.structureTemplates || [];
 
   const linkedTests = useMemo(() => {
@@ -600,11 +656,94 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
               </div>
 
               <Tabs value={detailTab} onValueChange={setDetailTab} className="mb-6">
-                  <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 rounded-2xl h-12">
+                  <TabsList className="grid w-full grid-cols-4 bg-muted/50 p-1 rounded-2xl h-12">
                       <TabsTrigger value="progress" className="rounded-xl font-black uppercase tracking-widest text-[10px]"><HardHat className="mr-2 h-4 w-4" /> Execution</TabsTrigger>
+                      <TabsTrigger value="drawings" className="rounded-xl font-black uppercase tracking-widest text-[10px]"><FileText className="mr-2 h-4 w-4" /> Drawings</TabsTrigger>
                       <TabsTrigger value="quality" className="rounded-xl font-black uppercase tracking-widest text-[10px]"><Microscope className="mr-2 h-4 w-4" /> QC & Tests</TabsTrigger>
                       <TabsTrigger value="analytics" className="rounded-xl font-black uppercase tracking-widest text-[10px]"><Clock className="mr-2 h-4 w-4" /> Timeline</TabsTrigger>
                   </TabsList>
+
+                  <TabsContent value="drawings" className="py-4 space-y-6">
+                    <Card className="rounded-3xl border-none shadow-xl glass overflow-hidden">
+                        <CardHeader className="flex flex-row items-center justify-between bg-muted/30 pb-4">
+                            <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                <FileText size={16} className="text-primary" />
+                                Approved Structural Drawings
+                            </CardTitle>
+                            <div className="relative">
+                                <Button size="sm" className="rounded-xl text-[10px] font-black uppercase" disabled={uploadingDrawing}>
+                                    {uploadingDrawing ? 'Uploading...' : <><Plus size={12} className="mr-1" /> Attach Drawing</>}
+                                </Button>
+                                <input 
+                                    type="file" 
+                                    className="absolute inset-0 opacity-0 cursor-pointer" 
+                                    onChange={handleUploadDrawing}
+                                    accept=".pdf,.dwg,.jpg,.jpeg,.png"
+                                    disabled={uploadingDrawing}
+                                />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            {selectedStructure.approvedDrawings && selectedStructure.approvedDrawings.length > 0 ? (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-muted/10">
+                                            <TableHead className="text-[9px] font-black uppercase">Drawing Name</TableHead>
+                                            <TableHead className="text-[9px] font-black uppercase">Uploaded Date</TableHead>
+                                            <TableHead className="text-[9px] font-black uppercase text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {selectedStructure.approvedDrawings.map(drawing => (
+                                            <TableRow key={drawing.id} className="hover:bg-muted/5 group">
+                                                <TableCell className="py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="bg-primary/10 p-2 rounded-lg">
+                                                            <FileText size={16} className="text-primary" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-sm">{drawing.name}</p>
+                                                            <p className="text-[9px] text-muted-foreground uppercase font-black">Ref: {drawing.id.slice(-6).toUpperCase()}</p>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-xs font-medium text-muted-foreground">
+                                                    {drawing.uploadedDate}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="icon" 
+                                                            className="h-8 w-8 text-primary"
+                                                            onClick={() => window.open(drawing.url, '_blank')}
+                                                        >
+                                                            <ExternalLink size={14} />
+                                                        </Button>
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="icon" 
+                                                            className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            onClick={() => handleDeleteDrawing(drawing.id)}
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            ) : (
+                                <div className="text-center py-20 opacity-40">
+                                    <UploadCloud size={48} className="mx-auto mb-4" />
+                                    <p className="text-xs font-black uppercase tracking-widest">No drawings attached to this asset</p>
+                                    <p className="text-[10px] mt-1">Upload approved GFC drawings for field reference</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                  </TabsContent>
 
                   <TabsContent value="progress" className="py-4 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
