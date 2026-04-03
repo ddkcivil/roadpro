@@ -12,7 +12,7 @@ import {
   Clock, TrendingUp, DollarSign, 
   Layers, Sparkles,
   FileDown, Settings, GripVertical, ShieldCheck, AlertTriangle, Info,
-  ChevronRight
+  ChevronRight, CloudLightning
 } from 'lucide-react';
 
 import { Button } from '~/components/ui/button';
@@ -24,6 +24,7 @@ import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group';
 import { TooltipProvider } from '~/components/ui/tooltip';
 import { Separator } from '~/components/ui/separator';
 import { motion } from 'framer-motion';
+import WeatherWidget from './WeatherWidget';
 
 interface Props {
   project: Project;
@@ -403,20 +404,10 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
             </CardContent>
           </Card>
 
-          {/* Site Intelligence Piece */}
-          <Card className="md:col-span-4 lg:col-span-3 rounded-[2.5rem] grad-slate text-white border-none p-10 flex flex-col justify-between relative overflow-hidden shadow-2xl">
-            <div className="absolute bottom-[-40px] right-[-40px] w-48 h-48 bg-white/5 rounded-full blur-3xl" />
-            <div className="relative z-10">
-              <Sparkles className="text-amber-400 mb-6" size={32} />
-              <h3 className="text-2xl font-black tracking-tight leading-tight">Site <br />Intelligence</h3>
-              <p className="text-xs font-medium text-white/60 mt-4 leading-relaxed">
-                Project AI has analyzed <span className="text-white font-bold">124</span> data points today. No critical bottlenecks detected in current workflow.
-              </p>
-            </div>
-            <Button variant="ghost" className="relative z-10 w-full mt-8 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-black text-[10px] uppercase tracking-widest border-none">
-              Analyze Deeply
-            </Button>
-          </Card>
+          {/* Site Weather & Intelligence */}
+          <div className="md:col-span-4 lg:col-span-3">
+             <WeatherWidget />
+          </div>
 
         </div>
       </div>
