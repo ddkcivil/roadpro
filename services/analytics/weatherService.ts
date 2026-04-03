@@ -119,3 +119,56 @@ export const fetchWeather = async (lat: number, lng: number): Promise<WeatherInf
         };
     }
 };
+
+export interface MonthlyWeatherSummary {
+    month: string;
+    location: string;
+    avgHigh: number;
+    avgLow: number;
+    avgRainfall: number;
+    rainyDays: number;
+    avgHumidity: number;
+    avgWindSpeed: number;
+    sunshineHours: number;
+    summary: string;
+    travelTip: string;
+}
+
+/**
+ * Fetches monthly weather averages for a location.
+ * For now, returns static data for Butwal in February as requested.
+ */
+export const fetchMonthlySummary = async (month: string, location: string): Promise<MonthlyWeatherSummary> => {
+    // In a real app, this would fetch from an API or a database of climate normals
+    // Providing requested data for Butwal in February
+    if (month.toLowerCase() === 'february' || month.toLowerCase() === 'feb') {
+        return {
+            month: 'February',
+            location: 'Butwal, Nepal',
+            avgHigh: 24,
+            avgLow: 9,
+            avgRainfall: 24, // mm
+            rainyDays: 2,
+            avgHumidity: 67,
+            avgWindSpeed: 4.3,
+            sunshineHours: 7.1,
+            summary: "Mild and dry winter weather, transitioning towards spring. Clear or partly cloudy skies prevail about 85% of the time.",
+            travelTip: "Best time for outdoor activities. Pack light layers: t-shirts for warm afternoons and a light jacket for chilly mornings."
+        };
+    }
+    
+    // Default/Placeholder for other months
+    return {
+        month: month,
+        location: location,
+        avgHigh: 25,
+        avgLow: 15,
+        avgRainfall: 50,
+        rainyDays: 5,
+        avgHumidity: 60,
+        avgWindSpeed: 10,
+        sunshineHours: 6,
+        summary: "Weather data pending for this month.",
+        travelTip: "Check local forecasts before planning outdoor work."
+    };
+};
