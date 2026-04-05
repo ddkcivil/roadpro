@@ -53,6 +53,31 @@ const FOLDERS = ['General', 'Contracts', 'Drawings', 'Reports', 'Correspondence'
 const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
   const [pdfComponents, setPdfComponents] = useState<PdfComponents | null>(null);
 
+  useEffect(() => {
+    const loadPdfComponents = async () => {
+      try {
+        const pdfModule = await import('react-pdf');
+        const pdfjs = pdfModule.pdfjs;
+
+        if (pdfjs && pdfjs.GlobalWorkerOptions) {
+          // Use the worker from the CDN that matches the exact version of the library
+          // this prevents version mismatch errors
+          const workerUrl = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+          pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+        }
+
+        setPdfComponents({
+          Document: pdfModule.Document,
+          Page: pdfModule.Page,
+          pdfjs: pdfjs
+        });
+      } catch (error) {
+        console.warn('Failed to load PDF components:', error);
+      }
+    };
+    loadPdfComponents();
+  }, []);
+
   const getFileUrl = useCallback((doc: ProjectDocument): string => {
     return doc.fileUrl || '';
   }, []);

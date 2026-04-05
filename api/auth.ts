@@ -47,8 +47,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       const csrfToken = CSRFProtection.generateToken();
 
       const cookieOptions = [
-        `roadmaster-token=${token}; HttpOnly; Path=/; SameSite=Strict; Max-Age=86400`,
-        `csrf-token=${csrfToken}; Path=/; SameSite=Strict; Max-Age=86400`
+        `roadmaster-token=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=86400`,
+        `csrf-token=${csrfToken}; Path=/; SameSite=Lax; Max-Age=86400`
       ];
       
       if (process.env.NODE_ENV === 'production') {
@@ -104,7 +104,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         });
 
         const cookieOptions = [
-          `roadmaster-token=${newToken}; HttpOnly; Path=/; SameSite=Strict; Max-Age=86400`
+          `roadmaster-token=${newToken}; HttpOnly; Path=/; SameSite=Lax; Max-Age=86400`
         ];
         
         if (process.env.NODE_ENV === 'production') {
