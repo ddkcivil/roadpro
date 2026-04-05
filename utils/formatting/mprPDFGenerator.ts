@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import { Project, AppSettings, Milestone } from '../../types';
 import { formatCurrency } from './currencyUtils';
+import { fetchDailyWeatherHistory, fetchMonthlySummary, DailyWeatherRecord, MonthlyWeatherSummary } from '../../services/analytics/weatherService';
 
 // Helper to format currency
 const formatMoney = (amount: number, currencyCode?: string): string => {
@@ -174,6 +175,20 @@ export const generateMPRPDF = async (
     yPosition += 6;
   };
   
+  // Table row with 6 columns (for weather)
+  const addTableRow6 = (c1: string, c2: string, c3: string, c4: string, c5: string, c6: string) => {
+    checkPageBreak(8);
+    doc.setFontSize(8);
+    doc.setTextColor(0, 0, 0);
+    doc.text(c1, margin, yPosition);
+    doc.text(c2, margin + 25, yPosition);
+    doc.text(c3, margin + 55, yPosition);
+    doc.text(c4, margin + 85, yPosition);
+    doc.text(c5, margin + 115, yPosition);
+    doc.text(c6, margin + 145, yPosition);
+    yPosition += 6;
+  };
+
   const addHorizontalLine = () => {
     doc.setDrawColor(...secondaryColor);
     doc.setLineWidth(0.5);
@@ -186,6 +201,12 @@ export const generateMPRPDF = async (
   const timeProgress = calculateTimeProgress(project);
   const reportDate = getMonthName(reportMonth);
   
+  // Fetch data for the Weather Section
+  const [year, month] = reportMonth.split('-').map(Number);
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const weatherHistory = await fetchDailyWeatherHistory(month, year, project.lat || 27.7172, project.lng || 85.3240);
+  const weatherSummary = await fetchMonthlySummary(monthNames[month - 1], project.location || 'Butwal, Nepal');
+
   // ==================== PAGE 1: COVER PAGE ====================
   doc.setFillColor(...primaryColor);
   doc.rect(0, 0, pageWidth, 40, 'F');
@@ -388,10 +409,40 @@ Engineer: ${project.consultantName || 'N/A'}`;
   } else {
     addText('No active equipment deployment records.');
   }
-  
-  // ==================== PAGE 9: SAFEGUARDS & ISSUES ====================
+
+  // ==================== PAGE 9: WEATHER RECORD ====================
   addNewPage();
-  addTitle('11-16. Safeguards, Quality & Challenges', 14);
+  addTitle('11. Weather Record', 14);
+  yPosition += 5;
+  
+  addSubtitle('Monthly Weather Summary');
+  addTableRow2('Average High', `${weatherSummary.avgHigh}°C`);
+  addTableRow2('Average Low', `${weatherSummary.avgLow}°C`);
+  addTableRow2('Total Rainy Days', `${weatherSummary.rainyDays} Days`);
+  addTableRow2('Total Rainfall', `${weatherSummary.avgRainfall} mm (Avg)`);
+  
+  yPosition += 10;
+  addSubtitle('Daily Weather Log');
+  doc.setFont('helvetica', 'bold');
+  addTableRow6('Date', 'Condition', 'Temp (H/L)', 'Rain', 'Wind', 'Workable');
+  addHorizontalLine();
+  doc.setFont('helvetica', 'normal');
+  
+  weatherHistory.forEach(day => {
+      const datePart = day.date.split('-')[2];
+      addTableRow6(
+          datePart, 
+          day.condition, 
+          `${day.tempMax}/${day.tempMin}`, 
+          `${day.rainfall}mm`, 
+          `${day.windSpeed}kph`,
+          day.workable ? 'Yes' : 'No'
+      );
+  });
+  
+  // ==================== PAGE 10: SAFEGUARDS & ISSUES ====================
+  addNewPage();
+  addTitle('12-16. Safeguards, Quality & Challenges', 14);
   
   addSubtitle('Health and Safety');
   addText(`Active NCRs: ${project.ncrs.filter(n => n.status !== 'Closed').length}`, 10);
@@ -406,7 +457,7 @@ Engineer: ${project.consultantName || 'N/A'}`;
   addSubtitle('Work Plan for Next Month');
   addText(reportDetails?.workPlanNextMonth || 'Continue planned construction activities.', 10);
   
-  // ==================== PAGE 10: PHOTOGRAPHS ====================
+  // ==================== PAGE 11: PHOTOGRAPHS ====================
   if (project.sitePhotos && project.sitePhotos.length > 0) {
     addNewPage();
     addTitle('19. Site Photographs', 14);

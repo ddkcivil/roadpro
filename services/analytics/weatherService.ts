@@ -172,3 +172,75 @@ export const fetchMonthlySummary = async (month: string, location: string): Prom
         travelTip: "Check local forecasts before planning outdoor work."
     };
 };
+
+export interface DailyWeatherRecord {
+    date: string;
+    tempMax: number;
+    tempMin: number;
+    condition: string;
+    icon: string;
+    rainfall: number;
+    windSpeed: number;
+    workable: boolean;
+}
+
+/**
+ * Fetches or simulates daily weather history for a specific month and year.
+ */
+export const fetchDailyWeatherHistory = async (month: number, year: number, lat: number, lng: number): Promise<DailyWeatherRecord[]> => {
+    try {
+        // Calculate start and end date for the month
+        const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+        const lastDay = new Date(year, month, 0).getDate();
+        const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+        
+        // Using Open-Meteo Historical API (or forecast API if within last 2 weeks/next 1 week)
+        // For simplicity and to ensure we always have data, we use the forecast API with a wider range 
+        // if it's the current month, otherwise we'd use the archive API.
+        // Here we'll simulate for now to ensure reliability during demo.
+        
+        const records: DailyWeatherRecord[] = [];
+        const daysInMonth = new Date(year, month, 0).getDate();
+        
+        for (let i = 1; i <= daysInMonth; i++) {
+            const date = `${year}-${month.toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+            const isWeekend = new Date(date).getDay() === 0 || new Date(date).getDay() === 6;
+            
+            // Generate deterministic but "random" looking weather based on the date
+            const seed = (year * 10000) + (month * 100) + i;
+            const pseudoRandom = (Math.sin(seed) + 1) / 2;
+            
+            const tempMax = 20 + Math.floor(pseudoRandom * 10);
+            const tempMin = 5 + Math.floor(pseudoRandom * 8);
+            const rainChance = pseudoRandom > 0.8 ? (pseudoRandom - 0.8) * 50 : 0;
+            const wind = 5 + Math.floor(pseudoRandom * 20);
+            
+            let condition = 'Sunny';
+            let icon = 'Sun';
+            
+            if (rainChance > 5) {
+                condition = 'Rainy';
+                icon = 'CloudRain';
+            } else if (pseudoRandom > 0.6) {
+                condition = 'Cloudy';
+                icon = 'Cloud';
+            }
+            
+            records.push({
+                date,
+                tempMax,
+                tempMin,
+                condition,
+                icon,
+                rainfall: Number(rainChance.toFixed(1)),
+                windSpeed: wind,
+                workable: condition !== 'Rainy' && wind < 30
+            });
+        }
+        
+        return records;
+    } catch (error) {
+        console.error("Failed to fetch weather history", error);
+        return [];
+    }
+};

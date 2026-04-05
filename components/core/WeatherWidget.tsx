@@ -2,15 +2,16 @@ import { useState, useEffect } from 'react';
 import { 
   Sun, Wind, Droplets, Cloud, CloudRain, CloudSnow, 
   CloudLightning, AlertTriangle, CloudFog, Thermometer,
-  CloudSun, Calendar, ChevronRight
+  CloudSun, Calendar, ChevronRight, List
 } from 'lucide-react';
-import { fetchWeather, fetchMonthlySummary, MonthlyWeatherSummary } from '../../services/analytics/weatherService';
+import { fetchWeather, fetchMonthlySummary, MonthlyWeatherSummary, fetchDailyWeatherHistory, DailyWeatherRecord } from '../../services/analytics/weatherService';
 import { WeatherInfo } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Badge } from '~/components/ui/badge';
 import { Skeleton } from '~/components/ui/skeleton';
 import { cn } from '~/lib/utils';
 import { Button } from '~/components/ui/button';
+import { ScrollArea } from '~/components/ui/scroll-area';
 
 const WeatherIcon = ({ icon, className }: { icon: string; className?: string }) => {
   switch (icon) {
@@ -27,7 +28,8 @@ const WeatherIcon = ({ icon, className }: { icon: string; className?: string }) 
 const WeatherWidget = () => {
   const [weather, setWeather] = useState<WeatherInfo | null>(null);
   const [monthlySummary, setMonthlySummary] = useState<MonthlyWeatherSummary | null>(null);
-  const [showMonthly, setShowMonthly] = useState(false);
+  const [dailyHistory, setDailyHistory] = useState<DailyWeatherRecord[]>([]);
+  const [viewState, setViewState] = useState<'LIVE' | 'SUMMARY' | 'HISTORY'>('LIVE');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -36,14 +38,18 @@ const WeatherWidget = () => {
       try {
         const lat = 27.7172; 
         const lng = 85.3240;
+        const now = new Date();
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         
-        const [currentData, monthlyData] = await Promise.all([
+        const [currentData, monthlyData, historyData] = await Promise.all([
             fetchWeather(lat, lng),
-            fetchMonthlySummary('February', 'Butwal, Nepal')
+            fetchMonthlySummary(monthNames[now.getMonth()], 'Butwal, Nepal'),
+            fetchDailyWeatherHistory(now.getMonth() + 1, now.getFullYear(), lat, lng)
         ]);
         
         setWeather(currentData);
         setMonthlySummary(monthlyData);
+        setDailyHistory(historyData);
       } catch (err) {
         console.error("Failed to load weather", err);
         setError(true);
@@ -89,9 +95,23 @@ const WeatherWidget = () => {
     );
   }
 
+  const toggleView = () => {
+    if (viewState === 'LIVE') setViewState('SUMMARY');
+    else if (viewState === 'SUMMARY') setViewState('HISTORY');
+    else setViewState('LIVE');
+  };
+
+  const getButtonText = () => {
+    if (viewState === 'LIVE') return "Summary";
+    if (viewState === 'SUMMARY') return "Daily Logs";
+    return "Back Live";
+  };
+
+  const currentMonthName = new Date().toLocaleString('default', { month: 'long' });
+
   return (
     <Card className="h-full border-border/40 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl shadow-md overflow-hidden group hover:shadow-lg transition-all duration-300">
-      {!showMonthly && (
+      {viewState === 'LIVE' && (
         <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
           <WeatherIcon icon={weather.icon} className="w-24 h-24" />
         </div>
@@ -100,21 +120,23 @@ const WeatherWidget = () => {
       <CardHeader className="pb-2 relative z-10">
         <div className="flex justify-between items-center">
           <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
-            {showMonthly ? <><Calendar size={14} className="text-primary" /> Monthly Summary</> : "Site Conditions"}
+            {viewState === 'SUMMARY' ? <><Calendar size={14} className="text-primary" /> {currentMonthName} Summary</> : 
+             viewState === 'HISTORY' ? <><List size={14} className="text-primary" /> Daily Logs</> : 
+             "Site Conditions"}
           </CardTitle>
           <Button 
             variant="ghost" 
             size="sm" 
             className="h-6 text-[9px] font-black uppercase tracking-tighter"
-            onClick={() => setShowMonthly(!showMonthly)}
+            onClick={toggleView}
           >
-            {showMonthly ? "Live Data" : "February Summary"} <ChevronRight size={10} className="ml-1" />
+            {getButtonText()} <ChevronRight size={10} className="ml-1" />
           </Button>
         </div>
       </CardHeader>
       
       <CardContent className="relative z-10">
-        {showMonthly && monthlySummary ? (
+        {viewState === 'SUMMARY' && monthlySummary ? (
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                 <div className="flex items-center justify-between mb-4">
                     <div>
@@ -167,6 +189,36 @@ const WeatherWidget = () => {
                         <p className="text-xs font-black">{monthlySummary.avgWindSpeed}kph</p>
                     </div>
                 </div>
+            </div>
+        ) : viewState === 'HISTORY' ? (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <ScrollArea className="h-64 pr-4">
+                    <div className="space-y-2">
+                        {dailyHistory.map((record, i) => (
+                            <div key={i} className="flex items-center justify-between p-2 rounded-xl bg-muted/20 border border-border/40 hover:bg-muted/40 transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <div className="text-center min-w-[30px]">
+                                        <p className="text-[10px] font-black">{record.date.split('-')[2]}</p>
+                                        <p className="text-[8px] font-bold text-muted-foreground uppercase">{new Date(record.date).toLocaleString('default', { weekday: 'short' })}</p>
+                                    </div>
+                                    <WeatherIcon icon={record.icon} className="w-5 h-5" />
+                                    <div>
+                                        <p className="text-[10px] font-black italic">{record.tempMax}° / {record.tempMin}°</p>
+                                        <p className="text-[8px] font-bold text-muted-foreground uppercase">{record.condition}</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <Badge variant={record.workable ? "secondary" : "destructive" as any} className="text-[8px] font-black py-0 px-1">
+                                        {record.workable ? "WORKABLE" : "STOCKED"}
+                                    </Badge>
+                                    {record.rainfall > 0 && (
+                                        <p className="text-[8px] font-bold text-blue-500 mt-0.5">{record.rainfall}mm</p>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </ScrollArea>
             </div>
         ) : (
             <div className="animate-in fade-in slide-in-from-left-4 duration-500">
