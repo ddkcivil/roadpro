@@ -37,7 +37,12 @@ import {
   ChevronLeft,
   ChevronRight,
   BarChart3,
-  Trash2
+  Trash2,
+  AlertOctagon,
+  FileQuestion,
+  Beaker,
+  TreePine,
+  Info
 } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import { toast } from 'sonner';
@@ -396,6 +401,10 @@ interface LayerVisibility {
   kml: boolean;
   roadAlignments: boolean;
   roadStructures: boolean;
+  rfis: boolean;
+  ncrs: boolean;
+  labTests: boolean;
+  environmental: boolean;
 }
 
 // Helper Component for Linear Monitoring Info
@@ -451,6 +460,10 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
     kml: true,
     roadAlignments: true,
     roadStructures: true,
+    rfis: true,
+    ncrs: true,
+    labTests: true,
+    environmental: true,
   });
 
   const confirmDeleteKML = useCallback(() => {
@@ -994,18 +1007,15 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
   const sitePhotoMarkers = useMemo(() => {
     if (!project.sitePhotos || !layerVisibility.sitePhotos) return [];
     return project.sitePhotos.map((photo: SitePhoto) => {
-      if (!photo.location) return null;
-      const coords = photo.location.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
-      if (!coords) return null;
-      const lat = parseFloat(coords[1]);
-      const lng = parseFloat(coords[2]);
+      const pos = parseLocation(photo.location);
+      if (!pos) return null;
       
-      const nearestKML = getNearestChainage(L.latLng(lat, lng));
+      const nearestKML = getNearestChainage(L.latLng(pos[0], pos[1]));
 
       return (
         <Marker
           key={`photo-${photo.id}`}
-          position={[lat, lng]}
+          position={pos}
           icon={createCustomIcon('#ec4899', '📸')}
         >
           <Popup maxWidth={300}>
@@ -1026,7 +1036,161 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
         </Marker>
       );
     }).filter(Boolean);
-  }, [project.sitePhotos, layerVisibility.sitePhotos]);
+  }, [project.sitePhotos, layerVisibility.sitePhotos, getNearestChainage]);
+
+  // RFI markers
+  const rfiMarkers = useMemo(() => {
+    if (!project.rfis || !layerVisibility.rfis) return [];
+    return project.rfis.map(rfi => {
+      const pos = parseLocation(rfi.location);
+      if (!pos) return null;
+      
+      const color = rfi.status === 'Open' ? '#f59e0b' : rfi.status === 'Approved' ? '#10b981' : '#64748b';
+      
+      return (
+        <Marker
+          key={`rfi-${rfi.id}`}
+          position={pos}
+          icon={createCustomIcon(color, '❓')}
+        >
+          <Popup>
+            <div className="p-2 min-w-[200px]">
+              <div className="flex items-center gap-2 mb-2 border-b pb-1">
+                <FileQuestion className="text-amber-500 w-4 h-4" />
+                <h3 className="font-bold text-sm">RFI: {rfi.rfiNumber}</h3>
+              </div>
+              <p className="text-xs mb-2 font-medium text-slate-600">{rfi.description}</p>
+              <div className="space-y-1">
+                <p className="text-[10px] flex justify-between"><span className="text-gray-400 font-bold">DATE:</span> <span>{new Date(rfi.date).toLocaleDateString()}</span></p>
+                <p className="text-[10px] flex justify-between"><span className="text-gray-400 font-bold">STATUS:</span> <Badge variant="outline" className="h-4 text-[8px] font-black">{rfi.status}</Badge></p>
+              </div>
+            </div>
+          </Popup>
+        </Marker>
+      );
+    }).filter(Boolean);
+  }, [project.rfis, layerVisibility.rfis]);
+
+  // NCR markers
+  const ncrMarkers = useMemo(() => {
+    if (!project.ncrs || !layerVisibility.ncrs) return [];
+    return project.ncrs.map(ncr => {
+      const pos = parseLocation(ncr.location);
+      if (!pos) return null;
+      
+      const color = ncr.severity === 'Critical' || ncr.severity === 'High' ? '#ef4444' : '#f97316';
+      
+      return (
+        <Marker
+          key={`ncr-${ncr.id}`}
+          position={pos}
+          icon={createCustomIcon(color, '⚠️')}
+        >
+          <Popup>
+            <div className="p-2 min-w-[200px]">
+              <div className="flex items-center gap-2 mb-2 border-b pb-1">
+                <AlertOctagon className="text-red-500 w-4 h-4" />
+                <h3 className="font-bold text-sm">NCR: {ncr.ncrNumber}</h3>
+              </div>
+              <p className="text-xs mb-2 font-medium text-slate-600">{ncr.description}</p>
+              <div className="space-y-1">
+                <p className="text-[10px] flex justify-between"><span className="text-gray-400 font-bold">SEVERITY:</span> <span className="text-red-600 font-black uppercase">{ncr.severity}</span></p>
+                <p className="text-[10px] flex justify-between"><span className="text-gray-400 font-bold">STATUS:</span> <Badge className="h-4 text-[8px] font-black">{ncr.status}</Badge></p>
+              </div>
+            </div>
+          </Popup>
+        </Marker>
+      );
+    }).filter(Boolean);
+  }, [project.ncrs, layerVisibility.ncrs]);
+
+  // Lab Test markers
+  const labTestMarkers = useMemo(() => {
+    if (!project.labTests || !layerVisibility.labTests) return [];
+    return project.labTests.map(test => {
+      const pos = parseLocation(test.location);
+      if (!pos) return null;
+      
+      const color = test.result === 'Pass' ? '#10b981' : test.result === 'Fail' ? '#ef4444' : '#f59e0b';
+      
+      return (
+        <Marker
+          key={`lab-${test.id}`}
+          position={pos}
+          icon={createCustomIcon(color, '🧪')}
+        >
+          <Popup>
+            <div className="p-2 min-w-[200px]">
+              <div className="flex items-center gap-2 mb-2 border-b pb-1">
+                <Beaker className="text-indigo-500 w-4 h-4" />
+                <h3 className="font-bold text-sm">{test.testName}</h3>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] flex justify-between"><span className="text-gray-400 font-bold">SAMPLE ID:</span> <span className="font-bold">{test.sampleId}</span></p>
+                <p className="text-[10px] flex justify-between"><span className="text-gray-400 font-bold">RESULT:</span> 
+                  <span className={cn(
+                    "font-black uppercase",
+                    test.result === 'Pass' ? "text-green-600" : test.result === 'Fail' ? "text-red-600" : "text-amber-600"
+                  )}>{test.result}</span>
+                </p>
+                <p className="text-[10px] flex justify-between"><span className="text-gray-400 font-bold">DATE:</span> <span>{new Date(test.date).toLocaleDateString()}</span></p>
+              </div>
+            </div>
+          </Popup>
+        </Marker>
+      );
+    }).filter(Boolean);
+  }, [project.labTests, layerVisibility.labTests]);
+
+  // Environmental markers
+  const environmentalMarkers = useMemo(() => {
+    if (!project.environmentRegistry || !layerVisibility.environmental) return [];
+    const treeLogs = project.environmentRegistry.treeLogs || [];
+    const sprinkleLogs = project.environmentRegistry.sprinklingLogs || [];
+
+    const treeMarkers = treeLogs.map(log => {
+      const pos = parseLocation(log.location);
+      if (!pos) return null;
+      const color = log.action === 'Removed' ? '#64748b' : '#10b981';
+      return (
+        <Marker key={`tree-${log.id}`} position={pos} icon={createCustomIcon(color, '🌳')}>
+          <Popup>
+            <div className="p-2 min-w-[150px]">
+              <div className="flex items-center gap-2 mb-2 border-b pb-1">
+                <TreePine className="text-green-600 w-4 h-4" />
+                <h3 className="font-bold text-sm">Environmental: {log.action}</h3>
+              </div>
+              <p className="text-xs"><span className="text-gray-400 font-bold">SPECIES:</span> {log.species}</p>
+              <p className="text-xs"><span className="text-gray-400 font-bold">COUNT:</span> {log.count}</p>
+              <p className="text-[10px] text-gray-400 mt-2 italic">{new Date(log.date).toLocaleDateString()}</p>
+            </div>
+          </Popup>
+        </Marker>
+      );
+    });
+
+    const sprinkleMarkers = sprinkleLogs.map(log => {
+      const pos = parseLocation(log.location || log.area);
+      if (!pos) return null;
+      return (
+        <Marker key={`sprinkle-${log.id}`} position={pos} icon={createCustomIcon('#3b82f6', '💦')}>
+          <Popup>
+            <div className="p-2 min-w-[150px]">
+              <div className="flex items-center gap-2 mb-2 border-b pb-1">
+                <Info className="text-blue-500 w-4 h-4" />
+                <h3 className="font-bold text-sm">Dust Control</h3>
+              </div>
+              <p className="text-xs"><span className="text-gray-400 font-bold">VOLUME:</span> {log.volume} {log.unit}</p>
+              <p className="text-xs"><span className="text-gray-400 font-bold">OPERATOR:</span> {log.operator}</p>
+              <p className="text-[10px] text-gray-400 mt-2 italic">{new Date(log.date).toLocaleDateString()}</p>
+            </div>
+          </Popup>
+        </Marker>
+      );
+    });
+
+    return [...treeMarkers, ...sprinkleMarkers].filter(Boolean);
+  }, [project.environmentRegistry, layerVisibility.environmental]);
 
   // Linear Works Layer
   const linearWorksLayers = useMemo(() => {
@@ -1212,6 +1376,10 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
             {layerVisibility.overlays && mapOverlayLayers}
             {layerVisibility.sitePhotos && sitePhotoMarkers}
             {layerVisibility.linearWorks && linearWorksLayers}
+            {layerVisibility.rfis && rfiMarkers}
+            {layerVisibility.ncrs && ncrMarkers}
+            {layerVisibility.labTests && labTestMarkers}
+            {layerVisibility.environmental && environmentalMarkers}
             
             {layerVisibility.kml && project.kmlData && project.kmlData.map(kml => (
               <KMLDataLayer key={kml.id} kml={kml} />
@@ -1223,6 +1391,41 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
               onComplete={handleSaveDrawing} 
               onCancel={() => setIsDrawing(false)} 
             />
+
+            {/* Map Legend Overlay */}
+            <div className="absolute bottom-6 left-6 z-[1000] pointer-events-none">
+              <Card className="bg-white/80 backdrop-blur-md border-2 border-slate-200/50 shadow-2xl p-3 w-48 rounded-2xl pointer-events-auto">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+                  <Info size={12} className="text-primary" /> Map Legend
+                </p>
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded-full bg-amber-500 border-2 border-white shadow-sm flex items-center justify-center text-[10px]">❓</div>
+                    <span className="text-[10px] font-bold text-slate-600">Open RFIs</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded-full bg-red-500 border-2 border-white shadow-sm flex items-center justify-center text-[10px]">⚠️</div>
+                    <span className="text-[10px] font-bold text-slate-600">Critical NCRs</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded-full bg-green-500 border-2 border-white shadow-sm flex items-center justify-center text-[10px]">🧪</div>
+                    <span className="text-[10px] font-bold text-slate-600">Passed Tests</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded-full bg-indigo-500 border-2 border-white shadow-sm flex items-center justify-center text-[10px]">🏗️</div>
+                    <span className="text-[10px] font-bold text-slate-600">Structures</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded-full bg-pink-500 border-2 border-white shadow-sm flex items-center justify-center text-[10px]">📸</div>
+                    <span className="text-[10px] font-bold text-slate-600">Site Photos</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded-full bg-blue-500 border-2 border-white shadow-sm flex items-center justify-center text-[10px]">🌳</div>
+                    <span className="text-[10px] font-bold text-slate-600">Environment</span>
+                  </div>
+                </div>
+              </Card>
+            </div>
 
             {/* Scale control and other leaflet defaults can be added here */}
           </MapContainer>
@@ -1452,6 +1655,70 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                             </div>
                           </div>
                         )}
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-amber-100 text-amber-600 rounded-lg">
+                            <FileQuestion size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">RFIs</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Information Requests</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.rfis} 
+                          onCheckedChange={() => toggleLayer('rfis')} 
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-red-100 text-red-600 rounded-lg">
+                            <AlertOctagon size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">NCRs</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Non-Conformity Records</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.ncrs} 
+                          onCheckedChange={() => toggleLayer('ncrs')} 
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                            <Beaker size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Quality Tests</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Lab Sample Results</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.labTests} 
+                          onCheckedChange={() => toggleLayer('labTests')} 
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-green-100 text-green-600 rounded-lg">
+                            <TreePine size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Environmental</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Tree & Dust Logs</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.environmental} 
+                          onCheckedChange={() => toggleLayer('environmental')} 
+                        />
                       </div>
 
                       <div className="flex items-center justify-between">
@@ -1691,21 +1958,39 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                     </AccordionTrigger>
                     <AccordionContent className="pt-2 pb-4">
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="bg-slate-50 p-2 rounded-lg border">
-                          <p className="text-[10px] text-slate-500 font-bold uppercase">Fixed Assets</p>
-                          <p className="text-xl font-black">{project.structures?.length || 0}</p>
+                        <div className="bg-slate-50 p-2 rounded-lg border border-blue-100">
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">Structures</p>
+                          <p className="text-xl font-black text-blue-600">{project.structures?.length || 0}</p>
                         </div>
-                        <div className="bg-slate-50 p-2 rounded-lg border">
-                          <p className="text-[10px] text-slate-500 font-bold uppercase">Mobile Assets</p>
-                          <p className="text-xl font-black">{project.vehicles?.length || 0}</p>
+                        <div className="bg-slate-50 p-2 rounded-lg border border-green-100">
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">Equipment</p>
+                          <p className="text-xl font-black text-green-600">{project.vehicles?.length || 0}</p>
                         </div>
-                        <div className="bg-slate-50 p-2 rounded-lg border">
+                        <div className="bg-slate-50 p-2 rounded-lg border border-amber-100">
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">Open RFIs</p>
+                          <p className="text-xl font-black text-amber-600">{(project.rfis || []).filter(r => r.status === 'Open').length}</p>
+                        </div>
+                        <div className="bg-slate-50 p-2 rounded-lg border border-red-100">
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">Active NCRs</p>
+                          <p className="text-xl font-black text-red-600">{(project.ncrs || []).filter(n => n.status !== 'Closed').length}</p>
+                        </div>
+                        <div className="bg-slate-50 p-2 rounded-lg border border-indigo-100">
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">Lab Tests</p>
+                          <p className="text-xl font-black text-indigo-600">{project.labTests?.length || 0}</p>
+                        </div>
+                        <div className="bg-slate-50 p-2 rounded-lg border border-emerald-100">
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">Environ. Logs</p>
+                          <p className="text-xl font-black text-emerald-600">
+                            {(project.environmentRegistry?.treeLogs?.length || 0) + (project.environmentRegistry?.sprinklingLogs?.length || 0)}
+                          </p>
+                        </div>
+                        <div className="bg-slate-50 p-2 rounded-lg border border-pink-100">
                           <p className="text-[10px] text-slate-500 font-bold uppercase">Photos</p>
-                          <p className="text-xl font-black">{project.sitePhotos?.length || 0}</p>
+                          <p className="text-xl font-black text-pink-600">{project.sitePhotos?.length || 0}</p>
                         </div>
                         <div className="bg-slate-50 p-2 rounded-lg border">
                           <p className="text-[10px] text-slate-500 font-bold uppercase">Staff</p>
-                          <p className="text-xl font-black">{project.staffLocations?.length || 0}</p>
+                          <p className="text-xl font-black text-slate-900">{project.staffLocations?.length || 0}</p>
                         </div>
                       </div>
                     </AccordionContent>
