@@ -1509,6 +1509,50 @@ const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, setting
                         />
                       </div>
 
+                      {/* Road Alignments Listing */}
+                      {layerVisibility.roadAlignments && project.roads && project.roads.length > 0 && (
+                        <div className="pl-4 space-y-3 mt-2 border-l-2 border-indigo-100">
+                          {project.roads.flatMap(road => road.alignments || []).map((alignment) => (
+                            <div key={alignment.id} className="flex items-center justify-between group">
+                              <div className="flex flex-col min-w-0 pr-4">
+                                <span className="text-[11px] font-bold truncate leading-tight text-slate-600" title={alignment.name}>
+                                  {alignment.name}
+                                </span>
+                                <span className="text-[9px] text-muted-foreground uppercase tracking-tighter font-medium">
+                                  {alignment.type} | {alignment.totalLength.toFixed(0)}m
+                                </span>
+                              </div>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                                onClick={() => {
+                                  // Find alignment coords and zoom
+                                  if (alignment.coordinates && alignment.coordinates.length > 0) {
+                                    const bounds = L.latLngBounds(alignment.coordinates as L.LatLngExpression[]);
+                                    startTransition(() => {
+                                      setTargetBounds(bounds);
+                                    });
+                                    setTimeout(() => {
+                                      startTransition(() => setTargetBounds(null));
+                                    }, 1000);
+                                  }
+                                }}
+                                title="Zoom to alignment"
+                              >
+                                <Maximize size={12} />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {layerVisibility.roadAlignments && (!project.roads || project.roads.length === 0) && (
+                        <div className="text-center p-4 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">No Road Alignments Added</p>
+                        </div>
+                      )}
+
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
