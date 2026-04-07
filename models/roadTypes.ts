@@ -21,11 +21,14 @@ export interface Alignment {
   id: string;
   roadId: string;
   name: string; // e.g., "Pavement Main", "Drainage Left"
-  type: 'Pavement' | 'Drainage' | 'Footpath' | 'Kerb' | 'pavement' | 'drainage' | 'footpath' | 'kerb' | 'service';
+  type: 'Pavement' | 'Drainage' | 'Footpath' | 'Kerb' | 'pavement' | 'drainage' | 'footpath' | 'kerb' | 'service' | 'subgrade' | 'sub-base' | 'base' | 'asphalt';
   coordinates: LatLngExpression[]; // polyline coords from KML
   chainagePoints: ChainagePoint[];
   totalLength: number;
   kmlData?: string; // raw KML XML
+  status?: 'Not Started' | 'In Progress' | 'Completed' | 'Delayed';
+  progress?: number; // 0 to 100
+  lastUpdated?: string;
 }
 
 export interface Structure {
@@ -38,6 +41,8 @@ export interface Structure {
   geometry?: Point | LatLngExpression[] | { type: 'Polygon'; coordinates: LatLngExpression[][] };
   alignments: string[]; // linked alignment IDs
   properties: Record<string, any>;
+  status?: 'Not Started' | 'In Progress' | 'Completed';
+  lastUpdated?: string;
 }
 
 export interface Road {

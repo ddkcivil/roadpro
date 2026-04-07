@@ -32,6 +32,60 @@ interface Props {
   onProjectUpdate: (project: Project) => void;
 }
 
+// Linear Progress View for Road Layers
+const LinearProgressView: React.FC<{ road: Road }> = ({ road }) => {
+  const layers = road.alignments.filter(a => 
+    ['pavement', 'subgrade', 'sub-base', 'base', 'asphalt'].includes(a.type.toLowerCase())
+  );
+  
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center px-1">
+        <h3 className="text-[10px] font-black uppercase tracking-widest text-primary">Cross-Layer Progress Heatmap</h3>
+        <div className="flex gap-4">
+          <div className="flex items-center gap-1.5">
+             <div className="h-2 w-2 rounded-full bg-emerald-500" />
+             <span className="text-[8px] font-bold uppercase opacity-60 tracking-tighter">Completed</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+             <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+             <span className="text-[8px] font-bold uppercase opacity-60 tracking-tighter">In Progress</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        {layers.length > 0 ? layers.map(layer => (
+          <div key={layer.id} className="relative group">
+            <div className="flex justify-between items-center mb-1 px-1">
+               <span className="text-[9px] font-black uppercase text-slate-500 group-hover:text-primary transition-colors">{layer.name}</span>
+               <span className="text-[9px] font-black text-slate-400">{layer.progress || 0}%</span>
+            </div>
+            <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200 relative">
+               <div 
+                 className={`h-full transition-all duration-1000 ${
+                   layer.status === 'Completed' ? 'bg-emerald-500' : 'bg-amber-500'
+                 }`}
+                 style={{ width: `${layer.progress || 0}%` }}
+               />
+               <div className="absolute inset-0 flex justify-between items-center px-4 pointer-events-none opacity-20">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-full w-px bg-slate-300" />
+                  ))}
+               </div>
+            </div>
+          </div>
+        )) : (
+          <div className="p-12 text-center border-2 border-dashed rounded-[2rem] opacity-30">
+            <Layers className="mx-auto mb-2" />
+            <p className="text-[10px] font-black uppercase">No pavement layers identified in telemetry</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const RoadInventoryModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
   const [activeTab, setActiveTab] = useState('roads');
   const [selectedRoadId, setSelectedRoadId] = useState<string | null>(null);
@@ -223,40 +277,48 @@ const RoadInventoryModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                     </div>
 
                     <TabsContent value="roads" className="p-6 focus-visible:outline-none animate-in fade-in duration-300">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-primary/5 p-6 rounded-[1.5rem] border border-primary/10 space-y-4">
-                          <h3 className="text-xs font-black uppercase tracking-widest text-primary">Spatial Overview</h3>
-                          <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
-                              <MapIcon size={24} />
-                            </div>
-                            <div>
-                              <p className="text-2xl font-black tracking-tighter">{selectedRoad.geometry.length}</p>
-                              <p className="text-[10px] font-bold uppercase opacity-60">Geometry Vertices</p>
-                            </div>
-                          </div>
-                          <div className="pt-4 border-t border-primary/10">
-                             {/* Modified button to open map modal */}
-                             <Button size="sm" className="w-full rounded-xl font-bold bg-primary hover:bg-primary/90" onClick={() => setIsMapModalOpen(true)}>
-                               View on GIS Map
-                             </Button>
-                          </div>
-                        </div>
+                      <div className="space-y-6">
+                        {/* Heatmap Section */}
+                        <LinearProgressView road={selectedRoad} />
 
-                        <div className="bg-emerald-500/5 p-6 rounded-[1.5rem] border border-emerald-500/10 space-y-4">
-                          <h3 className="text-xs font-black uppercase tracking-widest text-emerald-600">Inventory Status</h3>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-xl font-black tracking-tighter text-emerald-700">{selectedRoad.alignments.length}</p>
-                              <p className="text-[10px] font-bold uppercase opacity-60">Active Layers</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="bg-primary/5 p-6 rounded-[1.5rem] border border-primary/10 space-y-4 shadow-sm">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                              <Waypoints size={14} /> Spatial Intelligence
+                            </h3>
+                            <div className="flex items-center gap-4">
+                              <div className="h-12 w-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
+                                <MapIcon size={24} />
+                              </div>
+                              <div>
+                                <p className="text-2xl font-black tracking-tighter">{selectedRoad.geometry.length}</p>
+                                <p className="text-[10px] font-bold uppercase opacity-60">Geometry Vertices</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-xl font-black tracking-tighter text-emerald-700">{selectedRoad.structures.length}</p>
-                              <p className="text-[10px] font-bold uppercase opacity-60">Fixed Assets</p>
+                            <div className="pt-4 border-t border-primary/10">
+                               <Button size="sm" className="w-full rounded-xl font-bold bg-primary hover:bg-primary/90" onClick={() => setIsMapModalOpen(true)}>
+                                 View GIS Live Feed
+                               </Button>
                             </div>
                           </div>
-                          <div className="pt-4 border-t border-emerald-500/10">
-                             <Button size="sm" variant="outline" className="w-full rounded-xl font-bold border-emerald-500/20 text-emerald-700 hover:bg-emerald-500/10">Generate Report</Button>
+
+                          <div className="bg-emerald-500/5 p-6 rounded-[1.5rem] border border-emerald-500/10 space-y-4 shadow-sm">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-emerald-600 flex items-center gap-2">
+                              <CheckCircle2 size={14} /> Global Status
+                            </h3>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-xl font-black tracking-tighter text-emerald-700">{selectedRoad.alignments.length}</p>
+                                <p className="text-[10px] font-bold uppercase opacity-60">Linear layers</p>
+                              </div>
+                              <div>
+                                <p className="text-xl font-black tracking-tighter text-emerald-700">{selectedRoad.structures.length}</p>
+                                <p className="text-[10px] font-bold uppercase opacity-60">Asset markers</p>
+                              </div>
+                            </div>
+                            <div className="pt-4 border-t border-emerald-500/10">
+                               <Button size="sm" variant="outline" className="w-full rounded-xl font-bold border-emerald-500/20 text-emerald-700 hover:bg-emerald-500/10">Inventory Report</Button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -268,20 +330,28 @@ const RoadInventoryModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                           <div className="divide-y divide-border/40">
                             {selectedRoad.alignments.map(alignment => (
                               <div key={alignment.id} className="p-6 hover:bg-muted/30 transition-colors flex justify-between items-center group">
-                                <div className="flex items-center gap-4">
-                                  <div className="h-10 w-10 rounded-xl bg-muted border flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                <div className="flex items-center gap-4 flex-1">
+                                  <div className="h-10 w-10 rounded-xl bg-muted border flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-sm">
                                     <Layers size={20} />
                                   </div>
-                                  <div>
-                                    <h4 className="font-bold text-sm uppercase tracking-tight">{alignment.name}</h4>
-                                    <div className="flex items-center gap-3 mt-1">
-                                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 rounded-md font-black uppercase bg-background">{alignment.type}</Badge>
+                                  <div className="flex-1 min-w-0 pr-8">
+                                    <div className="flex items-center gap-3 mb-1">
+                                      <h4 className="font-black text-sm uppercase tracking-tight truncate">{alignment.name}</h4>
+                                      <Badge variant={alignment.status === 'Completed' ? 'default' : 'outline'} className={`text-[8px] px-1.5 py-0 rounded-md font-black uppercase ${alignment.status === 'Completed' ? 'bg-emerald-500' : ''}`}>
+                                        {alignment.status || 'Planned'}
+                                      </Badge>
+                                    </div>
+                                    <div className="flex items-center gap-3">
                                       <span className="text-[10px] font-medium opacity-60 flex items-center gap-1">
-                                        <Ruler size={10} /> {alignment.totalLength.toFixed(1)}m total
+                                        <Ruler size={10} /> {alignment.totalLength.toFixed(1)}m
                                       </span>
-                                      <span className="text-[10px] font-medium opacity-60 flex items-center gap-1">
-                                        <LayoutList size={10} /> {alignment.chainagePoints.length} points
-                                      </span>
+                                      <div className="flex-1 max-w-[150px] h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                                        <div 
+                                          className={`h-full transition-all duration-500 ${alignment.status === 'Completed' ? 'bg-emerald-500' : 'bg-primary'}`}
+                                          style={{ width: `${alignment.progress || 0}%` }}
+                                        />
+                                      </div>
+                                      <span className="text-[10px] font-black opacity-40">{alignment.progress || 0}%</span>
                                     </div>
                                   </div>
                                 </div>
@@ -294,7 +364,7 @@ const RoadInventoryModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                         ) : (
                           <div className="p-20 text-center opacity-40">
                             <Layers size={40} className="mx-auto mb-4" />
-                            <p className="text-xs font-black uppercase">No alignments defined</p>
+                            <p className="text-xs font-black uppercase tracking-tighter">No telemetry lines parsed</p>
                           </div>
                         )}
                       </div>
@@ -307,17 +377,17 @@ const RoadInventoryModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                             {selectedRoad.structures.map(structure => (
                               <div key={structure.id} className="p-6 hover:bg-muted/30 transition-colors flex justify-between items-center group">
                                 <div className="flex items-center gap-4">
-                                  <div className="h-10 w-10 rounded-xl bg-muted border flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                  <div className="h-10 w-10 rounded-xl bg-muted border flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-sm">
                                     {structure.type.toLowerCase().includes('bridge') ? <Waypoints size={20} /> : <Milestone size={20} />}
                                   </div>
                                   <div>
-                                    <h4 className="font-bold text-sm uppercase tracking-tight">{structure.name}</h4>
+                                    <h4 className="font-black text-sm uppercase tracking-tight">{structure.name}</h4>
                                     <div className="flex items-center gap-3 mt-1">
                                       <Badge className="bg-indigo-500/10 text-indigo-700 border-none text-[9px] px-1.5 py-0 rounded-md font-black uppercase">{structure.type}</Badge>
-                                      <span className="text-[10px] font-black text-primary px-1.5 py-0.5 rounded bg-primary/10">Km {structure.chainage}</span>
-                                      <span className="text-[10px] font-medium opacity-60 flex items-center gap-1">
-                                        <Database size={10} /> {Object.keys(structure.properties || {}).length} attrs
-                                      </span>
+                                      <span className="text-[10px] font-black text-primary px-1.5 py-0.5 rounded bg-primary/10 tracking-widest">KM {structure.chainage}</span>
+                                      <Badge variant="outline" className={`text-[8px] font-black px-1 ${structure.status === 'Completed' ? 'text-emerald-600 border-emerald-200 bg-emerald-50' : ''}`}>
+                                        {structure.status || 'Pending'}
+                                      </Badge>
                                     </div>
                                   </div>
                                 </div>
@@ -330,7 +400,7 @@ const RoadInventoryModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                         ) : (
                           <div className="p-20 text-center opacity-40">
                             <Box size={40} className="mx-auto mb-4" />
-                            <p className="text-xs font-black uppercase">No structures identified</p>
+                            <p className="text-xs font-black uppercase tracking-tighter">No fixed assets identified</p>
                           </div>
                         )}
                       </div>

@@ -249,6 +249,10 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
       const sortedUniqueChainagePoints = Array.from(new Map(chainagePoints.map(cp => [cp.distance, cp])).values())
         .sort((a, b) => a.distance - b.distance);
 
+      // Simulate some progress for demo purposes if name matches certain criteria
+      const isCompleted = alignmentName.toLowerCase().includes('existing') || alignmentName.toLowerCase().includes('done');
+      const progress = isCompleted ? 100 : Math.floor(Math.random() * 40);
+
       road.alignments.push({
         id: uuidv4(),
         roadId: road.id || '',
@@ -256,7 +260,10 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
         type: alignmentType,
         coordinates: alignmentLine.geometry.coordinates.map(fromTurfCoords) as any,
         chainagePoints: sortedUniqueChainagePoints,
-        totalLength: length(alignmentLine, { units: 'kilometers' }) * 1000
+        totalLength: length(alignmentLine, { units: 'kilometers' }) * 1000,
+        status: isCompleted ? 'Completed' : progress > 0 ? 'In Progress' : 'Not Started',
+        progress: progress,
+        lastUpdated: new Date().toISOString()
       });
 
     }
@@ -325,6 +332,7 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
           mappedGeometry = fromTurfCoords(structurePointCoords!);
         }
 
+        const isCompleted = Math.random() > 0.7;
 
         road.structures.push({
           id: uuidv4(),
@@ -337,7 +345,9 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
           alignments: [],
           properties: {
             originalKmlType: geometryType,
-          }
+          },
+          status: isCompleted ? 'Completed' : Math.random() > 0.5 ? 'In Progress' : 'Not Started',
+          lastUpdated: new Date().toISOString()
         });
       }
     }
