@@ -48,6 +48,10 @@ export interface Structure {
 export interface Road {
   id: string;
   name: string;
+  category?: string;
+  description?: string;
+  surfaceType?: string;
+  lanes?: number;
   geometry: ProjectPoint[];
   chainageOffset: number;
   alignments: Alignment[];

@@ -95,12 +95,44 @@ const RoadInventoryModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isMapModalOpen, setIsMapModalOpen] = useState(false); // State for map modal
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editRoadData, setEditRoadData] = useState<Partial<Road>>({});
 
   const [selectedKmlId, setSelectedKmlId] = useState<string>('manual');
 
   const roads = project.roads || [];
   const projectKmls = project.kmlData || [];
   const selectedRoad = roads.find(r => r.id === selectedRoadId);
+
+  const openEditModal = (road: Road) => {
+    setEditRoadData({
+      name: road.name,
+      category: road.category || 'National Highway',
+      surfaceType: road.surfaceType || 'Asphalt',
+      lanes: road.lanes || 2,
+      chainageOffset: road.chainageOffset || 0,
+      description: road.description || ''
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateRoadDetails = () => {
+    if (!selectedRoadId || !editRoadData.name) return;
+    
+    const updatedRoads = roads.map(r => 
+      r.id === selectedRoadId 
+        ? { ...r, ...editRoadData } 
+        : r
+    );
+    
+    onProjectUpdate({
+      ...project,
+      roads: updatedRoads
+    });
+    
+    setIsEditModalOpen(false);
+    toast.success("Road details updated successfully");
+  };
 
   const handleImportKml = async () => {
     let contentToProcess = kmlContent;
@@ -249,11 +281,13 @@ const RoadInventoryModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="rounded-xl"><MoreVertical size={20} /></Button>
+                        <Button variant="ghost" size="icon" className="rounded-xl hover:bg-primary/10 transition-colors"><MoreVertical size={20} /></Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="rounded-2xl border-none glass shadow-2xl">
-                        <DropdownMenuItem className="rounded-xl font-bold text-xs"><Edit className="mr-2 h-4 w-4" /> Rename Road</DropdownMenuItem>
-                        <DropdownMenuItem className="rounded-xl font-bold text-xs text-destructive hover:bg-destructive/10" onClick={() => handleDeleteRoad(selectedRoad.id)}>
+                      <DropdownMenuContent align="end" className="rounded-2xl border-none glass shadow-2xl p-2 w-48">
+                        <DropdownMenuItem className="rounded-xl font-bold text-xs py-2.5 cursor-pointer" onClick={() => openEditModal(selectedRoad)}>
+                          <Edit className="mr-2 h-4 w-4 text-primary" /> Edit Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="rounded-xl font-bold text-xs py-2.5 cursor-pointer text-destructive hover:bg-destructive/10" onClick={() => handleDeleteRoad(selectedRoad.id)}>
                           <Trash2 className="mr-2 h-4 w-4" /> Delete Road
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -261,6 +295,24 @@ const RoadInventoryModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-6 py-4 bg-muted/10 border-b border-border/40">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Category</p>
+                      <p className="text-xs font-black text-slate-700 italic">{selectedRoad.category || 'National Highway'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Surface</p>
+                      <p className="text-xs font-black text-slate-700 italic">{selectedRoad.surfaceType || 'Asphalt'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Lanes</p>
+                      <p className="text-xs font-black text-slate-700 italic">{selectedRoad.lanes || 2} Lanes</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Chainage Offset</p>
+                      <p className="text-xs font-black text-slate-700 italic">{selectedRoad.chainageOffset}m</p>
+                    </div>
+                  </div>
                   <Tabs value={activeTab} onValueChange={setActiveTab}>
                     <div className="px-6 pt-4">
                       <TabsList className="bg-muted/40 p-1 rounded-2xl border border-border/20">
@@ -569,6 +621,102 @@ const RoadInventoryModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                />
              )}
           </DialogContent>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Road Details Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[550px] rounded-[2.5rem] glass border-none shadow-2xl overflow-hidden p-0">
+          <div className="bg-slate-900 p-8 text-white relative">
+             <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12 scale-150">
+                <Edit size={80} />
+             </div>
+             <DialogHeader>
+               <DialogTitle className="text-2xl font-black tracking-tighter uppercase italic flex items-center gap-3">
+                  <Edit className="h-6 w-6 text-primary" /> Edit Road Details
+               </DialogTitle>
+               <DialogDescription className="text-slate-400 font-bold uppercase tracking-widest text-[9px]">
+                  Update spatial metadata and administrative details
+               </DialogDescription>
+             </DialogHeader>
+          </div>
+          
+          <div className="p-8 grid grid-cols-2 gap-6">
+            <div className="col-span-2 space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-primary">Road Name</Label>
+              <Input 
+                className="rounded-2xl border-none bg-muted/50 h-11 font-bold focus-visible:ring-primary/20"
+                value={editRoadData.name || ''}
+                onChange={e => setEditRoadData({...editRoadData, name: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-primary">Category</Label>
+              <select 
+                className="w-full rounded-2xl border-none bg-muted/50 h-11 font-bold px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer"
+                value={editRoadData.category || ''}
+                onChange={e => setEditRoadData({...editRoadData, category: e.target.value})}
+              >
+                <option value="National Highway">National Highway</option>
+                <option value="Provincial Road">Provincial Road</option>
+                <option value="Urban Road">Urban Road</option>
+                <option value="Feeder Road">Feeder Road</option>
+                <option value="Rural Road">Rural Road</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-primary">Surface Type</Label>
+              <select 
+                className="w-full rounded-2xl border-none bg-muted/50 h-11 font-bold px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer"
+                value={editRoadData.surfaceType || ''}
+                onChange={e => setEditRoadData({...editRoadData, surfaceType: e.target.value})}
+              >
+                <option value="Asphalt">Asphalt (Flexible)</option>
+                <option value="Concrete">Concrete (Rigid)</option>
+                <option value="Gravel">Gravel/WBM</option>
+                <option value="Earthen">Earthen</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-primary">Lane Count</Label>
+              <Input 
+                type="number"
+                className="rounded-2xl border-none bg-muted/50 h-11 font-bold focus-visible:ring-primary/20"
+                value={editRoadData.lanes || 2}
+                onChange={e => setEditRoadData({...editRoadData, lanes: parseInt(e.target.value)})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-primary">Chainage Offset (m)</Label>
+              <Input 
+                type="number"
+                className="rounded-2xl border-none bg-muted/50 h-11 font-bold focus-visible:ring-primary/20"
+                value={editRoadData.chainageOffset || 0}
+                onChange={e => setEditRoadData({...editRoadData, chainageOffset: parseInt(e.target.value)})}
+              />
+            </div>
+
+            <div className="col-span-2 space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-primary">Description</Label>
+              <textarea 
+                className="w-full h-24 rounded-2xl border-none bg-muted/50 p-4 font-bold text-sm focus:ring-2 focus:ring-primary/20 outline-none resize-none"
+                placeholder="Brief description of this road entity..."
+                value={editRoadData.description || ''}
+                onChange={e => setEditRoadData({...editRoadData, description: e.target.value})}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="p-8 bg-muted/20 border-t border-border/40 gap-3">
+            <Button variant="ghost" className="rounded-2xl font-bold px-8" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+            <Button className="rounded-2xl font-black uppercase tracking-widest px-8 shadow-lg shadow-primary/20" onClick={handleUpdateRoadDetails}>
+               Save Changes
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
