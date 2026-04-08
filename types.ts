@@ -364,6 +364,7 @@ export interface DocumentVersion {
   date: string;
   size: string;
   filePath: string; // Path to the actual file
+  blobUrl?: string; // URL to the file in Vercel Blob
   uploadedBy: string;
   notes?: string;
 }
@@ -496,6 +497,7 @@ export interface AuditLog {
 
 export interface ProjectDocument {
   id: string;
+  projectId?: string; // Link to the project
   name: string;
   type: string;
   date: string; // Scanning date

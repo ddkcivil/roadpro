@@ -151,6 +151,38 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(500).json({ error: 'Failed to update location', details: error.message });
       }
     }
+
+    // Default PATCH for granular field updates
+    const userRole = (req as any).user?.role;
+    if (userRole !== 'Admin' && userRole !== 'ADMIN' && userRole !== 'Project Manager') {
+      return res.status(403).json({ error: 'Only admins or project managers can update projects' });
+    }
+
+    if (!id || typeof id !== 'string') {
+      return res.status(400).json({ error: 'Project ID is required' });
+    }
+
+    try {
+      const { Project } = await connectToDatabase();
+      const patchData = { ...req.body };
+      
+      // Prevent overwriting ID
+      delete patchData.id;
+      delete patchData._id;
+      delete patchData.__v;
+
+      const updatedProject = await Project.findOneAndUpdate(
+        { id: id as string },
+        { $set: { ...patchData, updatedAt: new Date().toISOString() } },
+        { new: true, runValidators: true }
+      );
+
+      if (!updatedProject) return res.status(404).json({ error: 'Project not found' });
+      return res.status(200).json(updatedProject);
+    } catch (error: any) {
+      console.error('Failed to patch project:', error);
+      return res.status(500).json({ error: 'Failed to patch project', details: error.message });
+    }
   }
 
   if (req.method === 'DELETE') {

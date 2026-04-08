@@ -12,6 +12,8 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, '.'),
       '~': path.resolve(__dirname, '.'),
+      '@vercel/postgres': path.resolve(__dirname, 'api/node_modules/@vercel/postgres'),
+      '@vercel/blob': path.resolve(__dirname, 'api/node_modules/@vercel/blob'),
     },
     exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
   },

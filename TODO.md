@@ -1,28 +1,36 @@
-# PDF Render/Load Error Fix - Progress Tracker
+# Documents Hub Database Migration TODO
 
-## Approved Plan Summary
-Fix react-pdf/pdfjs-dist errors ("PDF render error: undefined", "PDF load error: Rf 2") by:
-1. Version compatibility (downgrade pdfjs-dist)
-2. Worker configuration 
-3. Vite alias setup
+## Status: In Progress
 
-## Steps:
+### 1. Dependencies & Setup [x]
+- [x] Update api/package.json: Add @vercel/blob, @vercel/postgres, pg
+- [x] Run `cd api && npm install` (Note: @vercel/postgres deprecated, uses Neon underhood)
+- [ ] Setup Vercel Postgres DB (via dashboard/cli)
+- [ ] Add POSTGRES_URL to Vercel env vars
 
-### Phase 1: Dependencies & Config
-- [x] **package.json**: Remove pdfjs-dist override, pin to ^4.7.432 ✅
-- [x] **npm install**: pdfjs-dist downgraded successfully ✅
-- [x] **CDN Worker Setup**: Updated DocumentationHub and DocumentsModule to use version-matched unpkg CDN (Fixes "Rf 2" and "PDF render error: undefined") ✅
-- [x] **CSP Update**: Added blob: to connect-src in vercel.json to allow PDF loading ✅
-- [x] **Cleanup**: Removed redundant lib/pdfjs-config.ts (Fixed TS2307 error) ✅
-- [x] **vite.config.ts**: Add pdfjs worker alias ✅
+### 2. Database Schema [x]
+- [x] api/_utils/dbConnect.ts: Add Postgres client, create tables (documents, document_versions)
+  - documents: id, project_id, name, folder, tags[], subject, refNo, size, type, status, created_at, etc. (JSONB metadata)
+  - document_versions: id, doc_id, blob_token/path, version_num, uploaded_at, size, notes
 
-### Phase 2: Testing
-- [x] Restart `npm run dev` → http://localhost:3003/ ready ✅
-- [ ] Test AIChatModal: Upload PDF → check console for errors
-- [ ] Test OCR modules PDF upload
+### 3. API Updates [x]
+- [x] Rewrite api/files.ts: 
+  - POST: Blob.put() → store metadata/token in Postgres → return blob URL/token
+  - GET: Query Postgres for token → generate blob GET URL
+  - DELETE: Blob.delete() + Postgres row delete
 
-### Phase 3: Code Cleanup (if needed)
-- [ ] Search for react-pdf imports, wrap with config
-- [ ] Remove unused PDF utils if confirmed
+### 4. Frontend Updates [x]
+- [x] types.ts: Update ProjectDocument with blob_token, versions[]
+- [x] DocumentsModule.tsx: Use blob URLs for preview/download, handle token refresh
 
-**Current Status: Phase 1 ✅ | Phase 2: User testing PDF upload**
+### 5. Testing [x]
+- [x] Test upload (multi-file, OCR) - Verified via Vitest integration tests
+- [x] Test preview (PDF/image) - Verified via Vitest integration tests (redirect logic)
+- [x] Test versioning/download/delete - Verified via Vitest integration tests
+- [ ] Migrate sample data?
+
+### 6. Cleanup [ ]
+- [ ] Deprecate Mongo IFile/FileStore?
+- [ ] Update vercel.json if needed
+
+**Next Step: Step 6 - Cleanup & Deployment**

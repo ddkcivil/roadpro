@@ -1,5 +1,6 @@
 import mongoose, { Schema, Model, Document } from 'mongoose';
 import bcrypt from 'bcrypt';
+import { sql } from '@vercel/postgres';
 
 const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/roadpro';
 
@@ -290,6 +291,49 @@ const Message = mongoose.models.Message || mongoose.model<IMessage>('Message', m
 const FileStore = mongoose.models.File || mongoose.model<IFile>('File', fileSchema);
 
 /**
+ * Postgres document tables setup
+ */
+async function setupDocumentTables() {
+  try {
+    // Create documents table
+    await sql`
+      CREATE TABLE IF NOT EXISTS project_documents (
+        id TEXT PRIMARY KEY,
+        project_id TEXT,
+        name TEXT NOT NULL,
+        folder TEXT,
+        tags TEXT[],
+        subject TEXT,
+        ref_no TEXT,
+        size BIGINT,
+        type TEXT,
+        status TEXT,
+        metadata JSONB,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
+    // Create document_versions table
+    await sql`
+      CREATE TABLE IF NOT EXISTS document_versions (
+        id TEXT PRIMARY KEY,
+        doc_id TEXT NOT NULL REFERENCES project_documents(id) ON DELETE CASCADE,
+        blob_url TEXT NOT NULL,
+        version_num INTEGER NOT NULL,
+        uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        size BIGINT,
+        notes TEXT
+      )
+    `;
+    console.log('Postgres document tables verified/created.');
+  } catch (error) {
+    console.error('Failed to setup Postgres document tables:', error);
+    // Don't throw here to allow MongoDB part to work even if Postgres fails (e.g. env vars not set)
+  }
+}
+
+/**
  * Seeds an initial admin user if none exist
  */
 async function seedInitialAdmin(UserModel: Model<IUser>) {
@@ -342,6 +386,9 @@ export async function connectToDatabase() {
     
     // Seed initial admin if needed (only on first connection)
     await seedInitialAdmin(User);
+    
+    // Setup Postgres tables for documents
+    await setupDocumentTables();
     
   } catch (e) {
     cached.promise = null;

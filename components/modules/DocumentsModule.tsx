@@ -79,7 +79,8 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
   }, []);
 
   const getFileUrl = useCallback((doc: ProjectDocument): string => {
-    return doc.fileUrl || '';
+    const currentVersion = doc.versions.find(v => v.version === doc.currentVersion);
+    return currentVersion?.blobUrl || currentVersion?.filePath || doc.fileUrl || '';
   }, []);
 
   const Document = pdfComponents?.Document;
@@ -199,28 +200,35 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
               // 1. Convert to base64
               const base64Data = await fileToBase64(f);
               
-              // 2. Upload to binary store (MongoDB)
+              // 2. Upload to binary store (Vercel Blob via Postgres)
               const uploadResult = await realApiService.uploadFile({
                   name: f.name,
                   contentType: f.type,
                   base64Data,
+                  projectId: project.id,
+                  folder: uploadTargetFolder,
+                  tags: scannedMetadata.subId ? [subcontractors.find(s => s.id === scannedMetadata.subId)?.name || ''] : [],
+                  subject: (scanStep === 'REVIEW' ? scannedMetadata.subject : '') || f.name.split('.')[0],
+                  refNo: scanStep === 'REVIEW' ? scannedMetadata.refNo : undefined,
                   metadata: {
-                      projectId: project.id,
-                      folder: uploadTargetFolder,
-                      type: 'document'
+                      letterDate: scanStep === 'REVIEW' ? scannedMetadata.letterDate : undefined,
+                      correspondenceType: scanStep === 'REVIEW' ? scannedMetadata.correspondenceType : undefined,
+                      sender: scanStep === 'REVIEW' ? scannedMetadata.sender : undefined,
+                      recipient: scanStep === 'REVIEW' ? scannedMetadata.recipient : undefined,
                   }
               });
 
-              const docId = `doc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+              const docId = uploadResult.id;
               const isImage = f.type.includes('image') || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => f.name.toLowerCase().endsWith(ext));
               const isPdf = f.type.includes('pdf') || f.name.toLowerCase().endsWith('.pdf');
               
               const newVersion: DocumentVersion = {
-                  id: `ver-${Date.now()}-${Math.random()}`, 
+                  id: uploadResult.versionId || `ver-${Date.now()}-${Math.random()}`, 
                   version: 1, 
                   date: new Date().toISOString().split('T')[0],
                   size: `${(f.size / 1024 / 1024).toFixed(2)} MB`,
-                  filePath: uploadResult.url, // Store API URL
+                  filePath: uploadResult.url, 
+                  blobUrl: uploadResult.blobUrl,
                   uploadedBy: 'Current User'
               };
               
@@ -326,10 +334,11 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
           name: file.name,
           contentType: file.type,
           base64Data,
+          docId: docId,
+          projectId: project.id,
           metadata: {
-              projectId: project.id,
-              docId: docId,
-              type: 'document-version'
+              type: 'document-version',
+              notes: 'Uploaded new version'
           }
       });
 
@@ -337,7 +346,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
       for (const doc of project.documents || []) {
         if (doc.id === docId) {
           const newVersionNumber = doc.versions.length + 1;
-          const versionId = `ver-${Date.now()}-${Math.random()}`;
+          const versionId = uploadResult.versionId || `ver-${Date.now()}-${Math.random()}`;
           
           const newVersion: DocumentVersion = {
             id: versionId, 
@@ -345,6 +354,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
             date: new Date().toISOString().split('T')[0],
             size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
             filePath: uploadResult.url,
+            blobUrl: uploadResult.blobUrl,
             uploadedBy: 'Current User', 
             notes: `Uploaded new version`
           };

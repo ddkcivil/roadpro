@@ -318,6 +318,16 @@ class RealApiService {
   }
 
   /**
+   * Updates specific fields of an existing project (granular update)
+   */
+  async patchProject(id: string, patchData: Partial<Project>): Promise<Project> {
+    return this.fetchApi<Project>(`/projects?id=${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(this.sanitizeProjectForApi(patchData)),
+    });
+  }
+
+  /**
    * Deletes a project
    */
   async deleteProject(id: string): Promise<void> {
@@ -626,8 +636,19 @@ class RealApiService {
   /**
    * Uploads a file to the dedicated binary store
    */
-  async uploadFile(fileData: { name: string; contentType: string; base64Data: string; metadata?: any }): Promise<{ id: string; url: string; size: number }> {
-    return this.fetchApi<{ id: string; url: string; size: number }>('/files', {
+  async uploadFile(fileData: { 
+    name: string; 
+    contentType: string; 
+    base64Data: string; 
+    projectId?: string;
+    docId?: string;
+    folder?: string;
+    tags?: string[];
+    subject?: string;
+    refNo?: string;
+    metadata?: any;
+  }): Promise<{ id: string; url: string; size: number; blobUrl?: string; versionId?: string }> {
+    return this.fetchApi<{ id: string; url: string; size: number; blobUrl?: string; versionId?: string }>('/files', {
       method: 'POST',
       body: JSON.stringify(fileData),
     });
