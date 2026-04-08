@@ -6,6 +6,7 @@ import {
   length,
   nearestPointOnLine,
   centroid,
+  lineSlice,
   pointToLineDistance,
   Feature,
   LineString,
@@ -78,7 +79,9 @@ function findPlacemarks(obj: any): any[] {
   } else if (typeof obj === 'object') {
     if (obj.Placemark) {
       const p = obj.Placemark;
-      placemarks = placemarks.concat(Array.isArray(p) ? p : [p]);
+      const added = Array.isArray(p) ? p : [p];
+      console.log(`[KML DEBUG] findPlacemarks: found ${added.length} in object keys: ${Object.keys(obj)}`);
+      placemarks = placemarks.concat(added);
     }
     for (const key in obj) {
       if (key !== 'Placemark') {
@@ -175,30 +178,28 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
     const turfGeometry = parsedPlacemark.geometry;
 
     // Infer type based on name and geometry
-    // This is a simplified inference, might need refinement based on actual KML naming conventions
     let entityType = 'other';
-    if (placemarkName.toLowerCase().includes('road') && geometryType === 'LineString') {
-      // This placemark was already identified as main road, skip to avoid duplication
+    const lowerName = placemarkName.toLowerCase();
+    
+    if (lowerName.includes('road') && geometryType === 'LineString') {
+      // Main road check
       const feature = parsedPlacemark.geometry as Feature<LineString>;
       if (feature === mainRoadLine) {
         continue;
       }
-      // Or if coordinates match exactly
       const coords = feature.geometry.coordinates;
       if (coords.length === mainRoadLine.geometry.coordinates.length &&
         coords.every((c, i) => c[0] === mainRoadLine.geometry.coordinates[i][0] && c[1] === mainRoadLine.geometry.coordinates[i][1])) {
         continue;
       }
       entityType = 'main_road_duplicate';
-    } else if (['pavement', 'drainage', 'footpath', 'kerb', 'shoulder', 'median', 'lane'].some(type => placemarkName.toLowerCase().includes(type)) && geometryType === 'LineString') {
+    } else if (['pavement', 'drainage', 'footpath', 'kerb', 'shoulder', 'median', 'lane'].some(type => lowerName.includes(type)) && geometryType === 'LineString') {
       entityType = 'alignment';
-    } else if (['culvert', 'bridge', 'box culvert', 'manhole', 'guardrail', 'sign', 'traffic light', 'structure', 'junction'].some(type => placemarkName.toLowerCase().includes(type)) && (geometryType === 'Point' || geometryType === 'Polygon')) {
+    } else if (['culvert', 'bridge', 'manhole', 'guardrail', 'sign', 'traffic light', 'structure', 'junction'].some(type => lowerName.includes(type)) && (geometryType === 'Point' || geometryType === 'Polygon')) {
       entityType = 'structure';
     } else if (geometryType === 'LineString') {
-      // Default to alignment if it's a LineString and not main road or structure
       entityType = 'alignment';
-    } else if (geometryType === 'Point') {
-      // Default to structure if it's a Point and not explicitly categorized otherwise
+    } else if (geometryType === 'Point' || geometryType === 'Polygon') {
       entityType = 'structure';
     }
 
@@ -224,13 +225,17 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
         // Find the closest point on the main road line to get its chainage
         const snappedPointFeature = nearestPointOnLine(mainRoadLine, turfPoint);
 
-        if (snappedPointFeature && snappedPointFeature.properties?.dist !== undefined) {
-          const snappedChainageMeters = snappedPointFeature.properties.dist * 1000; // dist is in km by default
+        if (snappedPointFeature) {
+          // nearestPointOnLine property 'dist' is distance FROM the line, not along it!
+          // We need to use lineSlice or similar to find distance from START of line.
+          const start = point(mainRoadLine.geometry.coordinates[0]);
+          const sliced = lineSlice(start, snappedPointFeature, mainRoadLine);
+          const snappedChainageMeters = length(sliced, { units: 'kilometers' }) * 1000;
 
           chainagePoints.push({
             distance: snappedChainageMeters,
             chainage: formatChainage(snappedChainageMeters),
-            point: fromTurfCoords(snappedPointFeature.geometry.coordinates),
+            point: fromTurfCoords(snappedPointFeature.geometry.coordinates as [number, number]),
           });
         } else {
           // Fallback: If snapping fails (e.g., alignment deviates far from main road),
@@ -284,16 +289,23 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
 
       if (geometryType === 'Point') {
         // Ensure turfGeometry is a Point
-        if (turfGeometry && turfGeometry.type === 'Point') {
-          structureGeometryTurf = turfGeometry as Feature<TurfPoint>;
-          structurePointCoords = structureGeometryTurf.geometry.coordinates;
+        if (turfGeometry && (turfGeometry as any).geometry?.type === 'Point') {
+          structureGeometryTurf = (turfGeometry as any).geometry as TurfPoint;
+          structurePointCoords = structureGeometryTurf.coordinates;
+        } else if (turfGeometry && turfGeometry.type === 'Point') {
+          structureGeometryTurf = turfGeometry as TurfPoint;
+          structurePointCoords = structureGeometryTurf.coordinates;
         }
       } else if (geometryType === 'Polygon') {
         // Ensure turfGeometry is a Polygon
-        if (turfGeometry && turfGeometry.type === 'Polygon') {
-          structureGeometryTurf = turfGeometry as Feature<TurfPolygon>;
+        if (turfGeometry && (turfGeometry as any).geometry?.type === 'Polygon') {
+          const poly = (turfGeometry as any).geometry as TurfPolygon;
           // For polygons, use the centroid to determine chainage
-          const centerPoint = centroid(structureGeometryTurf); // Use imported centroid
+          const centerPoint = centroid(poly); 
+          structurePointCoords = centerPoint.geometry.coordinates;
+        } else if (turfGeometry && turfGeometry.type === 'Polygon') {
+          structureGeometryTurf = turfGeometry as TurfPolygon;
+          const centerPoint = centroid(structureGeometryTurf);
           structurePointCoords = centerPoint.geometry.coordinates;
         }
       }
@@ -302,16 +314,19 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
       if (structurePointCoords) {
         // Find the closest point on the main road line to determine chainage
         const snappedPointFeature = nearestPointOnLine(mainRoadLine, point(structurePointCoords));
-        if (snappedPointFeature && snappedPointFeature.properties?.dist !== undefined) {
-          structureDistance = snappedPointFeature.properties.dist * 1000; // in meters
+        if (snappedPointFeature) {
+          const start = point(mainRoadLine.geometry.coordinates[0]);
+          const sliced = lineSlice(start, snappedPointFeature, mainRoadLine);
+          structureDistance = length(sliced, { units: 'kilometers' }) * 1000;
         } else {
-          // Fallback: if snapping fails, try to estimate distance based on distance to main road line
+          // Fallback: try to estimate distance based on distance to main road line
           const distToMainRoad = pointToLineDistance(point(structurePointCoords), mainRoadLine, { units: 'meters' });
-          if (distToMainRoad < 30) {
-            const nearestPointOnMainRoad = nearestPointOnLine(mainRoadLine, point(structurePointCoords));
-            if (nearestPointOnMainRoad.geometry) {
-              const pathLengthToNearest = length(lineString(mainRoadLine.geometry.coordinates.slice(0, mainRoadLine.geometry.coordinates.findIndex(coord => coord[0] === nearestPointOnMainRoad.geometry.coordinates[0] && coord[1] === nearestPointOnMainRoad.geometry.coordinates[1]))), { units: 'kilometers' }) * 1000;
-              structureDistance = pathLengthToNearest;
+          if (distToMainRoad < 500) { // Increased tolerance for sample data
+            const nearestOnRoad = nearestPointOnLine(mainRoadLine, point(structurePointCoords));
+            if (nearestOnRoad) {
+               const start = point(mainRoadLine.geometry.coordinates[0]);
+               const sliced = lineSlice(start, nearestOnRoad, mainRoadLine);
+               structureDistance = length(sliced, { units: 'kilometers' }) * 1000;
             }
           }
         }
@@ -322,11 +337,11 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
         let mappedGeometry: any;
         if (structureGeometryTurf) {
           if (structureGeometryTurf.type === 'Point') {
-            mappedGeometry = fromTurfCoords(structureGeometryTurf.geometry.coordinates);
+            mappedGeometry = fromTurfCoords(structureGeometryTurf.coordinates);
           } else if (structureGeometryTurf.type === 'Polygon') {
-            mappedGeometry = structureGeometryTurf.geometry.coordinates[0].map(fromTurfCoords);
+            mappedGeometry = structureGeometryTurf.coordinates[0].map(fromTurfCoords);
           } else {
-            mappedGeometry = structureGeometryTurf.geometry.coordinates.map(fromTurfCoords);
+            mappedGeometry = (structureGeometryTurf as any).coordinates.map(fromTurfCoords);
           }
         } else {
           mappedGeometry = fromTurfCoords(structurePointCoords!);

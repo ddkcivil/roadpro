@@ -26,6 +26,8 @@
 
 ## Phase 5: Testing & Refinement
 - [x] Expand tests (kmlParser, RoadDataManager)
-- [ ] Manual testing with KML samples
+- [x] Refine KML Ingestion: Fix chainage calculation (use distance along line), improve entity inference, fix geometry extraction bug.
+- [x] Manual testing with KML samples (Verified via integration test scripts)
 
-**Current Step: Phase 5 - Manual testing and refinement**
+**Current Status: Core Data Ingestion and Management Complete.**
+Next steps involve Phase 4 (UI/Visualization) which is out of scope for the current migration task.
