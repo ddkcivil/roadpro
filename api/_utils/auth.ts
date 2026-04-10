@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { TokenPayload } from '../../types.js';
+import { TokenPayload } from './types.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-default-secret-key-change-this-in-env';
 const JWT_EXPIRES_IN = '24h';

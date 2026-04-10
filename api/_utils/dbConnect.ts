@@ -70,15 +70,6 @@ export interface IMessage extends Document {
   updatedAt?: Date;
 }
 
-export interface IFile extends Document {
-  id: string;
-  name: string;
-  contentType: string;
-  data: Buffer;
-  size: number;
-  uploadDate: Date;
-  metadata?: any;
-}
 
 export interface IProject extends Document {
   id: string;
@@ -202,16 +193,6 @@ const messageSchema = new Schema<IMessage>({
   attachmentType: String,
 }, { timestamps: true });
 
-const fileSchema = new Schema<IFile>({
-  id: { type: String, required: true, unique: true, index: true },
-  name: { type: String, required: true },
-  contentType: { type: String, required: true },
-  data: { type: Buffer, required: true },
-  size: { type: Number, required: true },
-  uploadDate: { type: Date, default: Date.now },
-  metadata: Schema.Types.Mixed,
-}, { timestamps: true });
-
 const projectSchema = new Schema<IProject>({
   id: { type: String, required: true, unique: true, index: true },
   name: { type: String, required: true, index: true },
@@ -288,7 +269,6 @@ const PendingRegistration = mongoose.models.PendingRegistration || mongoose.mode
 const Project = mongoose.models.Project || mongoose.model<IProject>('Project', projectSchema);
 const AuditLog = mongoose.models.AuditLog || mongoose.model<IAuditLog>('AuditLog', auditLogSchema);
 const Message = mongoose.models.Message || mongoose.model<IMessage>('Message', messageSchema);
-const FileStore = mongoose.models.File || mongoose.model<IFile>('File', fileSchema);
 
 /**
  * Postgres document tables setup
@@ -301,17 +281,17 @@ async function setupDocumentTables() {
         id TEXT PRIMARY KEY,
         project_id TEXT,
         name TEXT NOT NULL,
-        folder TEXT,
+        folder TEXT DEFAULT 'General',
         tags TEXT[],
         subject TEXT,
         ref_no TEXT,
         size BIGINT,
         type TEXT,
-        status TEXT,
-        metadata JSONB,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-      )
+        status TEXT DEFAULT 'Active',
+        metadata JSONB DEFAULT '{}',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
     `;
 
     // Create document_versions table
@@ -321,15 +301,14 @@ async function setupDocumentTables() {
         doc_id TEXT NOT NULL REFERENCES project_documents(id) ON DELETE CASCADE,
         blob_url TEXT NOT NULL,
         version_num INTEGER NOT NULL,
-        uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         size BIGINT,
+        uploaded_at TIMESTAMPTZ DEFAULT NOW(),
         notes TEXT
-      )
+      );
     `;
-    console.log('Postgres document tables verified/created.');
+    console.log('Postgres document tables verified.');
   } catch (error) {
-    console.error('Failed to setup Postgres document tables:', error);
-    // Don't throw here to allow MongoDB part to work even if Postgres fails (e.g. env vars not set)
+    console.error('Failed to setup document tables:', error);
   }
 }
 
@@ -360,7 +339,7 @@ async function seedInitialAdmin(UserModel: Model<IUser>) {
 
 export async function connectToDatabase() {
   if (cached.conn) {
-    return { User, PendingRegistration, Project, AuditLog, Message, FileStore, mongoose: cached.conn };
+    return { User, PendingRegistration, Project, AuditLog, Message, mongoose: cached.conn };
   }
 
   if (!cached.promise) {
@@ -396,5 +375,5 @@ export async function connectToDatabase() {
     throw e;
   }
 
-  return { User, PendingRegistration, Project, AuditLog, Message, FileStore, mongoose: cached.conn };
+  return { User, PendingRegistration, Project, AuditLog, Message, mongoose: cached.conn };
 }

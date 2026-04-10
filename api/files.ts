@@ -10,7 +10,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { id } = req.query;
   
   // Ensure database connections and tables are ready
-  const { FileStore } = await connectToDatabase();
+  await connectToDatabase();
 
   if (req.method === 'GET') {
     if (!id || typeof id !== 'string') {
@@ -38,16 +38,6 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       
       if (verRows.length > 0) {
         return res.redirect(verRows[0].blob_url);
-      }
-
-      // 3. Fallback to MongoDB (Legacy storage)
-      const legacyFile = await FileStore.findOne({ id }).lean();
-      if (legacyFile) {
-        // Legacy file sends data directly
-        res.setHeader('Content-Type', (legacyFile as any).contentType);
-        res.setHeader('Content-Length', (legacyFile as any).size);
-        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-        return res.status(200).send((legacyFile as any).data);
       }
 
       return res.status(404).json({ error: 'File not found' });
@@ -167,15 +157,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       }
 
       // Delete from Postgres (cascading delete should handle versions)
-      const { rowCount } = await sql`DELETE FROM project_documents WHERE id = ${id}`;
-      
-      // 3. Fallback to MongoDB (Legacy storage) if not found in Postgres
-      if (rowCount === 0) {
-        const legacyFile = await FileStore.findOne({ id });
-        if (legacyFile) {
-          await FileStore.deleteOne({ id });
-        }
-      }
+      await sql`DELETE FROM project_documents WHERE id = ${id}`;
       
       return res.status(204).end();
     } catch (error: any) {

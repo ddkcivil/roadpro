@@ -1,7 +1,7 @@
 import React, { useState, useMemo, startTransition } from 'react';
 import { 
     Plus, TrendingUp, Receipt, FileDiff, X, BarChart4, FileSpreadsheet, Upload,
-    Maximize2, Minimize2, AlertTriangle, CheckCircle2, Trash2
+    Maximize2, Minimize2, AlertTriangle, CheckCircle2, Trash2, Pencil
 } from 'lucide-react';
 import { Project, UserRole, AppSettings, BOQItem, VariationOrder, MeasurementSheet, MeasurementSheetEntry } from '../../types';
 import * as XLSX from 'xlsx';
@@ -265,23 +265,36 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
     const handleSaveMB = () => {
         if (!newMB.title || !newMB.entries?.length) return;
         const totalAmount = newMB.entries.reduce((acc, e) => acc + e.amount, 0);
+        
         const finalMB: MeasurementSheet = {
             ...newMB,
-            id: `mb-${Date.now()}`,
+            id: newMB.id || `mb-${Date.now()}`,
             totalAmount,
-            status: 'Approved'
+            status: newMB.status === 'Draft' ? 'Draft' : 'Approved'
         } as MeasurementSheet;
 
-        onProjectUpdate({ ...project, measurementSheets: [...(project.measurementSheets || []), finalMB] });
+        let updatedSheets;
+        if (newMB.id) {
+            updatedSheets = (project.measurementSheets || []).map(s => s.id === newMB.id ? finalMB : s);
+        } else {
+            updatedSheets = [...(project.measurementSheets || []), finalMB];
+        }
+
+        onProjectUpdate({ ...project, measurementSheets: updatedSheets });
         setIsMBModalOpen(false);
         setNewMB({
-            sheetNumber: `MB-${(project.measurementSheets?.length || 0) + 2}`,
+            sheetNumber: `MB-${(project.measurementSheets?.length || 0) + 1}`,
             title: '',
             date: new Date().toISOString().split('T')[0],
             entries: [],
             status: 'Draft'
         });
-        toast.success("MB Entry Saved & Approved");
+        toast.success(newMB.id ? "MB Record Updated" : "MB Entry Saved & Approved");
+    };
+
+    const handleEditMB = (sheet: MeasurementSheet) => {
+        setNewMB(sheet);
+        setIsMBModalOpen(true);
     };
 
     const handleCertifyMB = (sheet: MeasurementSheet) => {
@@ -443,7 +456,16 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                                     <TooltipContent>Generate MB from Structural logs</TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
-                            <Button onClick={() => setIsMBModalOpen(true)}><Plus className="mr-2 h-4 w-4" /> New Entry</Button>
+                            <Button onClick={() => {
+                                setNewMB({
+                                    sheetNumber: `MB-${((project?.measurementSheets || [])?.length || 0) + 1}`,
+                                    title: '',
+                                    date: new Date().toISOString().split('T')[0],
+                                    entries: [],
+                                    status: 'Draft'
+                                });
+                                setIsMBModalOpen(true);
+                            }}><Plus className="mr-2 h-4 w-4" /> New Entry</Button>
                         </div>
                     </div>
                     <Card>
@@ -470,16 +492,28 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-1">
                                                     {(sheet.status as string) !== 'Certified' && canEdit && (
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button variant="ghost" size="icon" onClick={() => handleCertifyMB(sheet)}>
-                                                                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>Certify & Update BOQ</TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
+                                                        <>
+                                                            <TooltipProvider>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button variant="ghost" size="icon" onClick={() => handleEditMB(sheet)}>
+                                                                            <Pencil className="h-4 w-4 text-primary" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>Edit MB Record</TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                            <TooltipProvider>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button variant="ghost" size="icon" onClick={() => handleCertifyMB(sheet)}>
+                                                                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>Certify & Update BOQ</TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        </>
                                                     )}
                                                     {canDelete && (
                                                         <Button variant="ghost" size="icon" onClick={() => {
@@ -526,7 +560,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
             <Dialog open={isMBModalOpen} onOpenChange={setIsMBModalOpen}>
                 <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2"><FileSpreadsheet className="text-primary" /> New Measurement Record</DialogTitle>
+                        <DialogTitle className="flex items-center gap-2"><FileSpreadsheet className="text-primary" /> {newMB.id ? 'Edit Measurement Record' : 'New Measurement Record'}</DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-2 gap-4">

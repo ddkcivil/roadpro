@@ -1,12 +1,12 @@
 # Documents Hub Database Migration TODO
 
-## Status: In Progress
+## Status: Completed
 
 ### 1. Dependencies & Setup [x]
 - [x] Update api/package.json: Add @vercel/blob, @vercel/postgres, pg
-- [x] Run `cd api && npm install` (Note: @vercel/postgres deprecated, uses Neon underhood)
-- [ ] Setup Vercel Postgres DB (via dashboard/cli)
-- [ ] Add POSTGRES_URL to Vercel env vars
+- [x] Run `cd api && npm install`
+- [x] Setup Vercel Postgres DB (via dashboard/cli)
+- [x] Add POSTGRES_URL to Vercel env vars
 
 ### 2. Database Schema [x]
 - [x] api/_utils/dbConnect.ts: Add Postgres client, create tables (documents, document_versions)
@@ -27,10 +27,10 @@
 - [x] Test upload (multi-file, OCR) - Verified via Vitest integration tests
 - [x] Test preview (PDF/image) - Verified via Vitest integration tests (redirect logic)
 - [x] Test versioning/download/delete - Verified via Vitest integration tests
-- [ ] Migrate sample data?
+- [x] Migrate sample data? - Sample data migration tested.
 
-### 6. Cleanup [ ]
-- [ ] Deprecate Mongo IFile/FileStore?
-- [ ] Update vercel.json if needed
+### 6. Cleanup [x]
+- [x] Deprecate Mongo IFile/FileStore? - Removed legacy Mongo fallbacks in api/files.ts and dbConnect.ts.
+- [x] Update vercel.json if needed - Verified.
 
-**Next Step: Step 6 - Cleanup & Deployment**
+**Status: Complete**
