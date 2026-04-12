@@ -9,6 +9,8 @@ import { AuditService } from '../services/analytics/auditService';
 import { sanitizationUtils } from '../utils/validation/sanitizationUtils';
 import { useAsyncPersistedReducer } from './usePersistence';
 import { useRateLimit } from './useRateLimit';
+import { supabase } from '../lib/supabase';
+
 
 interface ProjectsState {
   projects: Project[];
@@ -134,11 +136,12 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
     if (!state.selectedProjectId) return;
     try {
       // --- Supabase Integration ---
-      const { data: updatedProject, error } = await supabaseAdmin
+      const { data: updatedProject, error } = await supabase
         .from('projects')
         .select('*') // Fetch all project details
         .eq('id', state.selectedProjectId) // Filter by the selected project ID
         .single(); // Expect a single project
+
 
       if (error) throw error;
       if (!updatedProject) throw new Error('Project not found after refresh.');
@@ -199,8 +202,9 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
       lastLocationUpdateRef.current = now;
       try {
         // --- Supabase Integration ---
-        const { error } = await supabaseAdmin
+        const { error } = await supabase
           .from('staffLocations') // Assuming a table named 'staffLocations'
+
           .upsert([ // Use upsert to either insert or update
             {
               project_id: projectId,
@@ -230,8 +234,9 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
       dispatch({ type: 'FETCH_START' });
     });
     try {
-      const { data: fetchedProjects, error } = await supabaseAdmin
+      const { data: fetchedProjects, error } = await supabase
         .from('projects')
+
         .select('*') // Select all columns, adjust as needed
         .order('created_at', { ascending: false }); // Example: order by creation date
 
@@ -241,7 +246,8 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
         throw new Error('No projects found or error fetching projects.');
       }
 
-      const processedProjects = (fetchedProjects || []).map(p => prepareProjectWithMaterials(p));
+      const processedProjects = (fetchedProjects || []).map((p: any) => prepareProjectWithMaterials(p));
+
       
       startTransition(() => {
         dispatch({ type: 'FETCH_SUCCESS', payload: processedProjects });
@@ -309,19 +315,20 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
       let backendProjectResult: { data: Project | null, error: any };
       
       if (isUpdate) {
-        backendProjectResult = await supabaseAdmin
+        backendProjectResult = await supabase
           .from('projects')
           .update(sanitizedProjectData)
           .eq('id', sanitizedProjectData.id)
           .select('*')
           .single();
       } else {
-        backendProjectResult = await supabaseAdmin
+        backendProjectResult = await supabase
           .from('projects')
           .insert({ ...sanitizedProjectData, id: sanitizedProjectData.id }) // Ensure ID is included if generated locally
           .select('*')
           .single();
       }
+
 
       if (backendProjectResult.error) throw backendProjectResult.error;
 
@@ -362,7 +369,9 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
         description: `Changes kept locally but failed to sync: ${errorMsg}`,
       });
     }
-  }, [state.projects, state.selectedProjectId, debouncedBackendSave, currentUser, dispatch, baseProject]); // Added baseProject and dispatch to dependency array
+  }, [state.projects, state.selectedProjectId, debouncedBackendSave, currentUser, dispatch]);
+
+
 
 
   const deleteProject = async (projectId: string) => {
@@ -380,8 +389,9 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
       }
 
       // --- Supabase Integration ---
-      const { error: deleteError } = await supabaseAdmin
+      const { error: deleteError } = await supabase
         .from('projects')
+
         .delete()
         .eq('id', projectId);
 
