@@ -9,6 +9,7 @@ vi.mock('../../services/api/apiService', () => ({
   apiService: {
     loginUser: vi.fn(),
     submitRegistration: vi.fn(),
+    submitAuditLog: vi.fn(),
   },
 }));
 
