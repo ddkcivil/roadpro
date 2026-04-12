@@ -49,8 +49,7 @@ export default defineConfig(({ mode }) => {
       exclude: [
         'sql.js',
         'pdfjs-dist',
-        'react-pdf',
-        'mongoose'
+        'react-pdf'
       ]
     },
     css: {
