@@ -51,103 +51,59 @@ interface Props {
 const FOLDERS = ['General', 'Contracts', 'Drawings', 'Reports', 'Correspondence', 'Financials', 'Sub-Docs'];
 
 const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
-  const [pdfComponents, setPdfComponents] = useState<PdfComponents | null>(null);
+  const [activeFolder, setActiveFolder] = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploadMode, setUploadMode] = useState<'SIMPLE' | 'SCAN'>('SIMPLE');
+  const [scanStep, setScanStep] = useState<'IDLE' | 'PROCESSING' | 'REVIEW'>('IDLE');
+  const [scannedMetadata, setScannedMetadata] = useState<{
+    subject: string;
+    refNo: string;
+    date: string;
+    letterDate: string;
+    correspondenceType: string;
+    sender: string;
+    recipient: string;
+    subId: string;
+  }>({
+    subject: '',
+    refNo: '',
+    date: new Date().toISOString().split('T')[0],
+    letterDate: '',
+    correspondenceType: 'incoming',
+    sender: '',
+    recipient: '',
+    subId: ''
+  });
+  const [previewDoc, setPreviewDoc] = useState<ProjectDocument | null>(null);
+  const [activeFolder, setActiveFolder] = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploadMode, setUploadMode] = useState<'SIMPLE' | 'SCAN'>('SIMPLE');
+  const [scanStep, setScanStep] = useState<'IDLE' | 'PROCESSING' | 'REVIEW'>('IDLE');
+  const [scannedMetadata, setScannedMetadata] = useState<{
+    subject: string;
+    refNo: string;
+    date: string;
+    letterDate: string;
+    correspondenceType: string;
+    sender: string;
+    recipient: string;
+    subId: string;
+  }>({
+    subject: '',
+    refNo: '',
+    date: new Date().toISOString().split('T')[0],
+    letterDate: '',
+    correspondenceType: 'incoming',
+    sender: '',
+    recipient: '',
+    subId: ''
+  });
+  const [previewDoc, setPreviewDoc] = useState<ProjectDocument | null>(null);
 
-  useEffect(() => {
-    const loadPdfComponents = async () => {
-      try {
-        const pdfModule = await import('react-pdf');
-        const pdfjs = pdfModule.pdfjs;
-
-        if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          // Use the worker from the CDN that matches the exact version of the library
-          // this prevents version mismatch errors
-          const workerUrl = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-          pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
-        }
-
-        setPdfComponents({
-          Document: pdfModule.Document,
-          Page: pdfModule.Page,
-          pdfjs: pdfjs
-        });
-      } catch (error) {
-        console.warn('Failed to load PDF components:', error);
-      }
-    };
-    loadPdfComponents();
-  }, []);
-
-  const getFileUrl = useCallback((doc: ProjectDocument): string => {
-    const currentVersion = doc.versions.find(v => v.version === doc.currentVersion);
-    return currentVersion?.blobUrl || currentVersion?.filePath || doc.fileUrl || '';
-  }, []);
-
-  const Document = pdfComponents?.Document;
-  const Page = pdfComponents?.Page;
-  const [newTagInput, setNewTagInput] = useState('');
-
-  const [currentPageState, setCurrentPageState] = useState(1);
-  const [numPagesState, setNumPagesState] = useState<number | null>(null);
-  const [scaleState, setScaleState] = useState(1.0);
-
-  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-    setNumPagesState(numPages);
-    setCurrentPageState(1);
-  };
-
-  const goToPrevPage = () => setCurrentPageState(prev => Math.max(1, prev - 1));
-  const goToNextPage = () => (numPagesState !== null) && setCurrentPageState(prev => Math.min(numPagesState, prev + 1));
-  const zoomIn = () => setScaleState(prev => Math.min(2, prev + 0.2));
-  const zoomOut = () => setScaleState(prev => Math.max(0.5, prev - 0.2));
-
-  const subcontractors = project.agencies?.filter(agency => agency.type === 'subcontractor') || [];
-
-  const filteredDocuments = useMemo(() => {
-    return (project.documents || []).filter(doc =>
-        (doc.folder === activeFolder || activeFolder === 'All') &&
-        (doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         doc.subject?.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [project.documents, activeFolder, searchTerm]);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files) {
-          setUploadFiles(Array.from(e.target.files));
-      }
-  };
-
-  const handleScanAnalysis = async () => {
-      if (uploadFiles.length === 0) return;
-      setScanStep('PROCESSING');
-      
-      const file = uploadFiles[0];
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-          await ocrService.initialize();
-          const result = await ocrService.processDocument(file);
-          const extractedData = result.structuredData;
-          const subject = extractedData.subjects?.[0] || extractedData.invoices?.[0] || extractedData.codes?.[0] || 'Document Analysis';
-          const refNo = extractedData.refs?.[0] || extractedData.codes?.[0] || extractedData.invoices?.[0] || '';
-          const letterDate = extractedData.dates?.[0] || '';
-          const scanDate = new Date().toISOString().split('T')[0];
-          const sender = extractedData.senders?.[0] || extractedData.contractors?.[0] || 'Unknown';
-          const recipient = extractedData.recipients?.[0] || 'Project Team';
-          const correspondenceType = sender.includes('Project') || sender.includes('Team') ? 'outgoing' : 'incoming';
-          
-          setScannedMetadata({
-              subject: subject, refNo: refNo, date: scanDate, letterDate: letterDate,
-              correspondenceType: correspondenceType, sender: sender, recipient: recipient, subId: ''
-          });
-          setScanStep('REVIEW');
-      };
-      reader.readAsDataURL(file);
-  };
-
-  const handleAddTag = (docId: string, tag: string) => {
-    const trimmedTag = tag.trim();
-    if (!trimmedTag) return;
-    
     const updatedDocs = (project.documents || []).map(d => {
         if (d.id === docId) {
             const currentTags = d.tags || [];

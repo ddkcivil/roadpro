@@ -1,21 +1,6 @@
-import jwt from 'jsonwebtoken';
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import { supabasePublic } from './supabaseClient.js';
 import { TokenPayload } from './types.js';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-default-secret-key-change-this-in-env';
-const JWT_EXPIRES_IN = '24h';
-
-export const generateToken = (payload: TokenPayload): string => {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-};
-
-export const verifyToken = (token: string, ignoreExpiration = false): TokenPayload | null => {
-  try {
-    return jwt.verify(token, JWT_SECRET, { ignoreExpiration }) as TokenPayload;
-  } catch (error) {
-    return null;
-  }
-};
 
 export const withAuth = (handler: Function, options: { ignoreExpiration?: boolean } = {}) => async (req: VercelRequest, res: VercelResponse) => {
   let token = null;
@@ -37,14 +22,27 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
     return res.status(401).json({ error: 'Unauthorized: No token provided' });
   }
 
-  const decoded = verifyToken(token, options.ignoreExpiration);
+  try {
+    const { data: { user }, error } = await supabasePublic.auth.getUser(token);
 
-  if (!decoded) {
-    return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+    if (error || !user) {
+      return res.status(401).json({ error: 'Unauthorized: Invalid token', details: error?.message });
+    }
+
+    // Map Supabase user to the legacy TokenPayload structure for compatibility
+    const decoded: TokenPayload = {
+      userId: user.id,
+      email: user.email || '',
+      role: user.user_metadata?.role || 'SITE_ENGINEER', // Default role if not found
+    };
+
+    // Add user data to request object for use in handlers
+    (req as any).user = decoded;
+
+    return handler(req, res);
+  } catch (err: any) {
+    console.error('Auth middleware error:', err);
+    return res.status(500).json({ error: 'Authentication failed', details: err.message });
   }
-
-  // Add user data to request object for use in handlers
-  (req as any).user = decoded;
-
-  return handler(req, res);
 };
+

@@ -1,36 +1,36 @@
-# Documents Hub Database Migration TODO
+# MyRoad Vite - Supabase Migration TODO
 
-## Status: Completed
+## Phase 1: Setup & Dependencies [4/4] ✅
+- [x] Fix api/package.json: Remove mongoose/bcrypt, add @supabase/supabase-js
+- [x] `cd api && npm install`
+- [x] Backup/rename api/_utils/dbConnect.ts → dbConnect_mongo_backup.ts
+- [x] Test: `curl http://localhost:3000/api/health` (pending env vars)
 
-### 1. Dependencies & Setup [x]
-- [x] Update api/package.json: Add @vercel/blob, @vercel/postgres, pg
-- [x] Run `cd api && npm install`
-- [x] Setup Vercel Postgres DB (via dashboard/cli)
-- [x] Add POSTGRES_URL to Vercel env vars
+## Phase 2: Core Schema Migration [0/5] ⏳
+- [ ] 2.1 Remove old mongoose schemas from backup/api/_utils/dbConnect.ts
+- [ ] 2.2 **MANUAL**: Create Supabase project → tables + RLS
+- [ ] 2.3 **MANUAL**: Migrate seed data (admin user)
+- [ ] 2.4 api/auth.ts → supabase.auth
+- [ ] 2.5 api/users.ts → supabase CRUD
 
-### 2. Database Schema [x]
-- [x] api/_utils/dbConnect.ts: Add Postgres client, create tables (documents, document_versions)
-  - documents: id, project_id, name, folder, tags[], subject, refNo, size, type, status, created_at, etc. (JSONB metadata)
-  - document_versions: id, doc_id, blob_token/path, version_num, uploaded_at, size, notes
+## Phase 3: Main API Routes [0/6] ⏳
+- [x] 3.1 api/projects.ts
+- [ ] 3.2 api/roads.ts
+- [ ] 3.3 api/audit.ts
+- [ ] 3.4 api/messages.ts
+- [ ] 3.5 api/registrations.ts
+- [ ] 3.6 api/staff/index.ts
 
-### 3. API Updates [x]
-- [x] Rewrite api/files.ts: 
-  - POST: Blob.put() → store metadata/token in Postgres → return blob URL/token
-  - GET: Query Postgres for token → generate blob GET URL
-  - DELETE: Blob.delete() + Postgres row delete
+## Phase 4: Supporting Routes [0/4] ⏳
+- [x] 4.1 api/files.ts (Storage)
+- [x] 4.2 api/health.ts (Supabase status)
+- [x] 4.3 Remove MONGODB_URI env vars
+- [x] 4.4 Frontend hooks check
 
-### 4. Frontend Updates [x]
-- [x] types.ts: Update ProjectDocument with blob_token, versions[]
-- [x] DocumentsModule.tsx: Use blob URLs for preview/download, handle token refresh
+## Phase 5: Testing & Deploy [0/3] ⏳
+- [ ] 5.1 API testing
+- [ ] 5.2 Vercel deploy
+- [ ] 5.3 RLS verification
 
-### 5. Testing [x]
-- [x] Test upload (multi-file, OCR) - Verified via Vitest integration tests
-- [x] Test preview (PDF/image) - Verified via Vitest integration tests (redirect logic)
-- [x] Test versioning/download/delete - Verified via Vitest integration tests
-- [x] Migrate sample data? - Sample data migration tested.
-
-### 6. Cleanup [x]
-- [x] Deprecate Mongo IFile/FileStore? - Removed legacy Mongo fallbacks in api/files.ts and dbConnect.ts.
-- [x] Update vercel.json if needed - Verified.
-
-**Status: Complete**
+**Current Step:** Phase 2.1 - Clean mongoose from dbConnect.ts
+**Note:** Manual Supabase setup (2.2-2.3) required before code migrations.

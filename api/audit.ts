@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { connectToDatabase } from './_utils/dbConnect.js';
+import { supabaseAdmin } from './_utils/supabaseClient.js';
 import { withErrorHandler } from './_utils/errorHandler.js';
 import { withAuth } from './_utils/auth.js';
 
@@ -11,44 +11,60 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-      const { AuditLog } = await connectToDatabase();
       const { userId, action, entityType, limit = '100', offset = '0' } = req.query;
       
-      const query: any = {};
-      if (userId) query.userId = userId;
-      if (action) query.action = action;
-      if (entityType) query.entityType = entityType;
+      let queryBuilder = supabaseAdmin.from('audit_logs').select('*', { count: 'exact' });
 
-      const logs = await AuditLog.find(query)
-        .sort({ timestamp: -1 })
-        .limit(parseInt(limit as string))
-        .skip(parseInt(offset as string));
+      if (userId) queryBuilder = queryBuilder.eq('user_id', userId);
+      if (action) queryBuilder = queryBuilder.eq('action', action);
+      if (entityType) queryBuilder = queryBuilder.eq('entity_type', entityType);
+
+      const limitNum = parseInt(limit as string);
+      const offsetNum = parseInt(offset as string);
+
+      const { data, count: total, error } = await queryBuilder
+        .order('timestamp', { ascending: false })
+        .range(offsetNum, offsetNum + limitNum - 1);
       
-      const total = await AuditLog.countDocuments(query);
+      if (error) throw error;
 
-      return res.status(200).json({ logs, total });
+      return res.status(200).json({ logs: data || [], total: total || 0 });
     } catch (error: any) {
       console.error('Failed to fetch audit logs:', error);
-      return res.status(500).json({ error: 'Failed to fetch audit logs', details: error.message });
+      throw error;
     }
   } 
   
   if (req.method === 'POST') {
     try {
-      const { AuditLog } = await connectToDatabase();
       const logData = req.body;
 
-      if (!logData.id || !logData.userId || !logData.action) {
+      if (!logData.userId || !logData.action) {
         return res.status(400).json({ error: 'Invalid log data' });
       }
 
-      const newLog = new AuditLog(logData);
-      await newLog.save();
+      const { data: newLog, error } = await supabaseAdmin
+        .from('audit_logs')
+        .insert({
+          user_id: logData.userId,
+          user_name: logData.userName,
+          action: logData.action,
+          entity_type: logData.entityType,
+          entity_id: logData.entityId,
+          entity_name: logData.entityName,
+          severity: logData.severity || 'INFO',
+          metadata: logData.metadata || {},
+          timestamp: logData.timestamp || new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
 
       return res.status(201).json(newLog);
     } catch (error: any) {
       console.error('Failed to save audit log:', error);
-      return res.status(500).json({ error: 'Failed to save audit log', details: error.message });
+      throw error;
     }
   }
 
@@ -56,3 +72,4 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 };
 
 export default withErrorHandler(withAuth(handler));
+

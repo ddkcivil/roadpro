@@ -133,14 +133,24 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
   const refreshCurrentProject = useCallback(async () => {
     if (!state.selectedProjectId) return;
     try {
-      const updatedProject = await apiService.getProject(state.selectedProjectId);
+      // --- Supabase Integration ---
+      const { data: updatedProject, error } = await supabaseAdmin
+        .from('projects')
+        .select('*') // Fetch all project details
+        .eq('id', state.selectedProjectId) // Filter by the selected project ID
+        .single(); // Expect a single project
+
+      if (error) throw error;
+      if (!updatedProject) throw new Error('Project not found after refresh.');
+
       const processedProject = prepareProjectWithMaterials(updatedProject);
       
       startTransition(() => {
         dispatch({ 
           type: 'UPDATE_PROJECTS', 
           payload: state.projects.map(p => p.id === processedProject.id ? {
-            ...p,
+            ...p, // Keep existing project data for other projects
+            // Update the specific project with fresh data
             staffLocations: processedProject.staffLocations,
             vehicles: processedProject.vehicles,
             updatedAt: processedProject.updatedAt,
@@ -149,9 +159,9 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
         });
       });
     } catch (error) {
-      console.warn('[SYNC] Failed to background refresh project:', error);
+      console.warn('[SYNC] Failed to background refresh project from Supabase:', error);
     }
-  }, [state.selectedProjectId, state.projects]);
+  }, [state.selectedProjectId, state.projects, currentUser, dispatch]);
 
   const lastLocationUpdateRef = useRef<number>(0);
   const LOCATION_THROTTLE = 10000; // 10 seconds
@@ -166,13 +176,16 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
           staffLocations: [
             ...(p.staffLocations || []).filter(l => l.userId !== currentUser?.id),
             {
-              id: `loc-${currentUser?.id}`,
+              // Assuming a structure for staffLocation entry. Adjust 'id' and other fields as per Supabase schema.
+              // If staffLocations is an array of objects, you might need to generate a unique ID for this entry or rely on Supabase's auto-generated IDs if upserting.
+              // For simplicity, using a user-specific ID and timestamp.
+              id: `loc-${currentUser?.id}-${Date.now()}`, // Unique ID for this location entry
               userId: currentUser?.id,
-              userName: currentUser?.name || 'Staff',
-              role: currentUser?.role || 'Staff',
+              userName: currentUser?.name || 'Staff', // Fallback name
+              role: currentUser?.role || 'Staff', // Fallback role
               latitude,
               longitude,
-              status: 'Active',
+              status: 'Active', // Assuming a status field
               timestamp: new Date().toISOString()
             }
           ]
@@ -185,9 +198,29 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
     if (now - lastLocationUpdateRef.current > LOCATION_THROTTLE) {
       lastLocationUpdateRef.current = now;
       try {
-        await apiService.updateStaffLocation(projectId, latitude, longitude);
+        // --- Supabase Integration ---
+        const { error } = await supabaseAdmin
+          .from('staffLocations') // Assuming a table named 'staffLocations'
+          .upsert([ // Use upsert to either insert or update
+            {
+              project_id: projectId,
+              user_id: currentUser?.id,
+              latitude: latitude,
+              longitude: longitude,
+              timestamp: new Date().toISOString(),
+              // Add other fields as necessary based on your schema
+              // e.g., status: 'Active'
+            }
+          ], { onConflict: 'project_id, user_id' }); // Define unique constraint for upsert
+
+        if (error) {
+          throw error;
+        }
+        // No specific success toast here, as it's a background update
       } catch (error) {
-        console.warn('[GPS] Failed to sync location to backend:', error);
+        console.warn('[GPS] Failed to sync location to Supabase backend:', error);
+        // Consider adding a toast notification for critical failures if needed,
+        // but for location updates, a warning might suffice.
       }
     }
   }, [state.projects, currentUser, dispatch]);
@@ -197,16 +230,27 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
       dispatch({ type: 'FETCH_START' });
     });
     try {
-      const response = await apiService.getProjects(page);
-      const fetchedProjects = response.data;
+      const { data: fetchedProjects, error } = await supabaseAdmin
+        .from('projects')
+        .select('*') // Select all columns, adjust as needed
+        .order('created_at', { ascending: false }); // Example: order by creation date
+
+      if (error) throw error;
+
+      if (!fetchedProjects) {
+        throw new Error('No projects found or error fetching projects.');
+      }
+
+      const processedProjects = (fetchedProjects || []).map(p => prepareProjectWithMaterials(p));
+      
       startTransition(() => {
-        dispatch({ type: 'FETCH_SUCCESS', payload: fetchedProjects });
+        dispatch({ type: 'FETCH_SUCCESS', payload: processedProjects });
       });
-      DataCache.set(getCacheKey('projects'), fetchedProjects, { ttl: 10 * 60 * 1000 });
+      DataCache.set(getCacheKey('projects'), processedProjects, { ttl: 10 * 60 * 1000 });
     } catch (error: any) {
-      console.error('Failed to fetch projects from database:', error);
+      console.error('Failed to fetch projects from Supabase:', error);
       startTransition(() => {
-        dispatch({ type: 'FETCH_ERROR', payload: error.message || 'Failed to connect to the database.' });
+        dispatch({ type: 'FETCH_ERROR', payload: error.message || 'Failed to fetch projects from Supabase.' });
       });
     }
   };
@@ -237,7 +281,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
     const completeProjectData: Project = {
       ...baseProject,
       ...project,
-      id: targetProjectId || `proj-${Date.now()}`,
+      id: targetProjectId || `proj-${Date.now()}`, // Use Date.now() as a fallback ID generator, or consider uuidv4
       updatedAt: new Date().toISOString(),
     } as Project;
 
@@ -259,7 +303,67 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
 
     // Background debounced backend save
     debouncedBackendSave(sanitizedProjectData, baseProject, isUpdate);
-  }, [state.projects, state.selectedProjectId, debouncedBackendSave]);
+
+    // --- Supabase Integration ---
+    try {
+      let backendProjectResult: { data: Project | null, error: any };
+      
+      if (isUpdate) {
+        backendProjectResult = await supabaseAdmin
+          .from('projects')
+          .update(sanitizedProjectData)
+          .eq('id', sanitizedProjectData.id)
+          .select('*')
+          .single();
+      } else {
+        backendProjectResult = await supabaseAdmin
+          .from('projects')
+          .insert({ ...sanitizedProjectData, id: sanitizedProjectData.id }) // Ensure ID is included if generated locally
+          .select('*')
+          .single();
+      }
+
+      if (backendProjectResult.error) throw backendProjectResult.error;
+
+      const backendProject = backendProjectResult.data as Project;
+
+      if (currentUser) {
+        await AuditService.logDataModification(
+          currentUser.id, 
+          currentUser.name, 
+          isUpdate ? 'UPDATE' : 'CREATE', 
+          'project', 
+          backendProject.id, 
+          backendProject.name,
+          baseProject, // Use baseProject for comparison
+          backendProject // Use the returned backendProject for the new state
+        );
+      }
+
+      // Update state with the confirmed backend data and sync cache
+      startTransition(() => {
+        const finalProjects = state.projects.map(p => p.id === backendProject.id ? backendProject : p);
+        dispatch({ type: 'UPDATE_PROJECTS', payload: finalProjects });
+        debouncedCacheSync(finalProjects);
+      });
+
+      toast.success(isUpdate ? "Project Updated" : "Project Created", {
+        description: `${completeProjectData.name} has been synchronized with the cloud.`,
+      });
+
+    } catch (error: any) {
+      console.error('[ERROR] Failed to save project to Supabase backend:', error);
+      // Rollback optimistic update if save fails
+      startTransition(() => {
+        dispatch({ type: 'UPDATE_PROJECTS', payload: state.projects }); // Revert to current state from reducer
+      });
+      const errorMsg = error.message || 'Unknown server error';
+      toast.error("Cloud Sync Failed", {
+        description: `Changes kept locally but failed to sync: ${errorMsg}`,
+      });
+    }
+  }, [state.projects, state.selectedProjectId, debouncedBackendSave, currentUser, dispatch, baseProject]); // Added baseProject and dispatch to dependency array
+
 
   const deleteProject = async (projectId: string) => {
     const previousProjects = [...state.projects];
@@ -275,7 +379,15 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
         setSelectedProjectId(null);
       }
 
-      await apiService.deleteProject(projectId);
+      // --- Supabase Integration ---
+      const { error: deleteError } = await supabaseAdmin
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+
+      if (deleteError) throw deleteError;
+
+      // If deletion from Supabase is successful
       if (currentUser && projectToDelete) {
         await AuditService.logDataModification(
           currentUser.id, 
@@ -284,7 +396,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
           'project', 
           projectId, 
           projectToDelete.name,
-          projectToDelete,
+          projectToDelete, // Pass the project data before deletion for audit log
           undefined
         );
       }
@@ -294,15 +406,16 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
         description: "The project has been permanently removed from the database.",
       });
     } catch (error: any) {
+      // Rollback optimistic update if deletion fails
       startTransition(() => {
         dispatch({ type: 'UPDATE_PROJECTS', payload: previousProjects });
       });
       if (state.selectedProjectId === null && projectToDelete) {
-         setSelectedProjectId(projectId);
+         setSelectedProjectId(projectId); // Restore selected project if it was the one deleted
       }
       
-      console.error('[ERROR] Failed to delete project from backend:', error);
-      const errorMsg = error.response?.data?.details || error.message || 'Unknown server error';
+      console.error('[ERROR] Failed to delete project from Supabase backend:', error);
+      const errorMsg = error.message || 'Unknown server error';
       toast.error("Delete Failed", {
         description: `Rollback applied. Server responded with: ${errorMsg}`,
       });
