@@ -12,20 +12,24 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-      const { email, password } = req.body;
-
-      if (!email || !password) {
-        return res.status(400).json({ error: 'Email and password are required' });
+      console.log(`[AUTH] Login attempt for: ${email}`);
+      
+      if (!supabasePublic.auth) {
+         console.error('[AUTH] supabasePublic.auth is undefined! Client init failure.');
+         return res.status(500).json({ error: 'Supabase client init failure' });
       }
 
       const { data, error } = await supabasePublic.auth.signInWithPassword({
-        email: email.toLowerCase(),
+        email: email.trim().toLowerCase(),
         password,
       });
 
+
       if (error) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+        console.warn(`[AUTH] Login failed for ${email}:`, error.message);
+        return res.status(401).json({ error: 'Invalid credentials', details: error.message });
       }
+
 
       if (!data.user || !data.session) {
         return res.status(401).json({ error: 'Login failed - no session' });

@@ -15,9 +15,9 @@
 
 ## Phase 3: Main API Routes [0/6] ⏳
 - [x] 3.1 api/projects.ts
-- [ ] 3.2 api/roads.ts 
-- [ ] 3.3 api/audit.ts
-- [ ] 3.4 api/messages.ts
+- [x] 3.2 api/roads.ts 
+- [x] 3.3 api/audit.ts
+- [x] 3.4 api/messages.ts
 - [ ] 3.5 api/registrations.ts
 - [ ] 3.6 api/staff/index.ts
 
@@ -31,4 +31,4 @@
 - [ ] 5.2 Vercel deploy
 - [ ] 5.3 RLS verification
 
-**Current Step:** Phase 3.2 - api/roads.ts → supabase CRUD
+**Current Step:** Phase 3.5 - api/registrations.ts → supabase CRUD
