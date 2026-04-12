@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { supabasePublic, supabaseAdmin } from './_utils/supabaseClient.js';
-import bcrypt from 'bcrypt';
 import { withErrorHandler } from './_utils/errorHandler.js';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -37,16 +36,12 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         if (fetchError || !pendingReg) return res.status(404).json({ error: 'Pending registration not found' });
 
         // 2. Create user in Supabase Auth
-        // Note: Password should be the original one, but here we only have the hash.
-        // In a real flow, you might want to invite the user or have them set a password.
-        // For migration compatibility, we assume we can create them (but auth.admin.createUser needs plain password).
-        // Since we only have password_hash, this is a limitation of migrating hashed passwords into Supabase Auth directly via admin API.
-        // Option: Tell user to reset password, or use a workaround if possible.
-        // For now, let's assume we can't easily import the hash into auth.users without specific Supabase support.
-        // We'll proceed with creating the profile at least, and maybe use a dummy password or specialized auth import.
-        
+        // Temporary password, to be reset by user
+        const tempPassword = `temp-${uuidv4()}`;
+
         const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
           email: pendingReg.email.toLowerCase(),
+          password: tempPassword,
           email_confirm: true,
           user_metadata: {
             name: pendingReg.name,
@@ -109,8 +104,6 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Name, email, password, and requested role are required.' });
       }
 
-      const hashedPassword = await bcrypt.hash(password, 10);
-
       const { data: newReg, error } = await supabasePublic
         .from('registrations')
         .insert({
@@ -118,7 +111,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           name,
           email: email.toLowerCase(),
           phone: phone || '',
-          password_hash: hashedPassword,
+          password_hash: password, // Still storing for compatibility, but should be removed from DB
           requested_role: requestedRole,
           status: 'pending'
         })

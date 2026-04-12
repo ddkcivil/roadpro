@@ -12,7 +12,14 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     }
 
     try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+      }
+
       console.log(`[AUTH] Login attempt for: ${email}`);
+
       
       if (!supabasePublic.auth) {
          console.error('[AUTH] supabasePublic.auth is undefined! Client init failure.');
