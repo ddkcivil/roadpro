@@ -371,9 +371,6 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
     }
   }, [state.projects, state.selectedProjectId, debouncedBackendSave, currentUser, dispatch]);
 
-
-
-
   const deleteProject = async (projectId: string) => {
     const previousProjects = [...state.projects];
     const projectToDelete = state.projects.find(p => p.id === projectId);
@@ -391,7 +388,6 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
       // --- Supabase Integration ---
       const { error: deleteError } = await supabase
         .from('projects')
-
         .delete()
         .eq('id', projectId);
 
