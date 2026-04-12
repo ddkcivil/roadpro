@@ -74,22 +74,25 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       console.log(`[API/ROADS] 3. Updating project ${projectId} with new road data...`);
       const updateStartTime = Date.now();
       
-      // Assuming 'projects' table has a JSONB column named 'roads' to store an array of road objects.
-      // If 'roads' should be a separate table, this logic would change significantly (e.g., insert into 'roads' table and link to project).
-      const { data: updatedProject, error } = await supabaseAdmin
+      // Execute RPC to append road to the project's roads array
+      const { error: rpcError } = await supabaseAdmin.rpc('append_road_to_project', {
+        project_id: projectId,
+        new_road_data: roadWithId
+      });
+
+      if (rpcError) throw rpcError;
+
+      // Update updatedAt timestamp
+      const { data: updatedProject, error: updateError } = await supabaseAdmin
         .from('projects')
         .update({
-          roads: supabaseAdmin.rpc('append_road_to_project', { // Using a Supabase function for safe array append
-            project_id: projectId,
-            new_road_data: roadWithId
-          }),
           updatedAt: new Date().toISOString()
         })
         .eq('id', projectId)
-        .select('id, roads') // Select relevant fields to confirm
+        .select('id, roads')
         .single();
 
-      if (error) throw error;
+      if (updateError) throw updateError;
       
       if (!updatedProject) {
           console.error('[API/ROADS] Project not found or update failed after upsert.');

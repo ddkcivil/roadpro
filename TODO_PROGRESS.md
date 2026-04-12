@@ -11,7 +11,7 @@
 - [ ] 2.2 Manual: Create Supabase project → tables + RLS  
 - [ ] 2.3 Migrate seed data (admin user)
 - [x] 2.4 api/auth.ts → supabase.auth **(migrated to supabasePublic.auth.signInWithPassword etc.)**
-- [ ] 2.5 api/users.ts → supabase CRUD
+- [x] 2.5 api/users.ts → supabase CRUD
 
 ## Phase 3: Main API Routes [0/6] ⏳
 - [x] 3.1 api/projects.ts
@@ -31,4 +31,4 @@
 - [ ] 5.2 Vercel deploy
 - [ ] 5.3 RLS verification
 
-**Current Step:** Phase 2.5 - api/users.ts → supabase CRUD
+**Current Step:** Phase 3.2 - api/roads.ts → supabase CRUD
