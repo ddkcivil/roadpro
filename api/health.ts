@@ -17,6 +17,7 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
     const hasGemini = envVars.includes('VITE_GEMINI_API_KEY');
     const hasOpenAI = envVars.includes('VITE_OPENAI_API_KEY');
     
+    console.log('--- HEALTH CHECK RUNNING ---');
     console.log('Environment variables check:', { hasSupabaseUrl: !!hasSupabaseUrl, hasSupabaseKey: !!hasSupabaseKey, hasDeepSeek, hasGemini, hasOpenAI });
 
     /*
