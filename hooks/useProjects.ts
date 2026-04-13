@@ -238,7 +238,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
         .from('projects')
 
         .select('*') // Select all columns, adjust as needed
-        .order('created_at', { ascending: false }); // Example: order by creation date
+        .order('createdAt', { ascending: false }); // Example: order by creation date
 
       if (error) throw error;
 

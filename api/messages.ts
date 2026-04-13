@@ -37,14 +37,11 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           queryBuilder = queryBuilder.eq('receiverId', 'general');
         } else {
           // Private chat: messages where sender and receiver match currentUser and receiverId in any order
-          queryBuilder = queryBuilder.or(`senderId.eq.${currentUser.userId},receiverId.eq.${receiverId}`, { foreignTable: `senderId.eq.${receiverId},receiverId.eq.${currentUser.userId}` });
+          queryBuilder = queryBuilder.or(`and(senderId.eq.${currentUser.userId},receiverId.eq.${receiverId}),and(senderId.eq.${receiverId},receiverId.eq.${currentUser.userId})`);
         }
       } else {
         // All messages for the project that the user is involved in (sender or receiver or general)
-        queryBuilder = queryBuilder.or(
-          `receiverId.eq.general,senderId.eq.${currentUser.userId},receiverId.eq.${currentUser.userId}`,
-          {}
-        );
+        queryBuilder = queryBuilder.or(`receiverId.eq.general,senderId.eq.${currentUser.userId},receiverId.eq.${currentUser.userId}`);
       }
 
       // Apply timestamp filter for 'after'

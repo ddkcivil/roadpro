@@ -58,6 +58,20 @@ class RealApiService {
    */
   private async fetchWithRetry<T>(endpoint: string, options?: RequestInit, retries = 3): Promise<T> {
     try {
+      // Guard: Don't perform recursive retries or automatic refreshes for auth endpoints
+      if (endpoint.includes('/auth/')) {
+        const response = await fetch(`/api${endpoint}`, {
+          ...options,
+          headers: { 'Content-Type': 'application/json', ...options?.headers as any },
+          credentials: 'include',
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Auth request failed with status ${response.status}`);
+        }
+        return response.json();
+      }
+
       const encryptedToken = localStorage.getItem('roadmaster-token');
       const token = encryptedToken ? encryptionUtils.decrypt<string>(encryptedToken) : null;
       const csrfToken = localStorage.getItem('roadmaster-csrf-token');
@@ -78,12 +92,10 @@ class RealApiService {
       const response = await fetch(`/api${endpoint}`, {
         ...options,
         headers,
-        // Ensure cookies (HttpOnly auth cookie) are sent to the server
-        // so endpoints that rely on cookie-based auth (refresh) receive the token.
         credentials: (options as any)?.credentials ?? 'include',
       });
 
-      if (response.status === 401 && !endpoint.includes('/auth/') && !this.isRefreshing) {
+      if (response.status === 401 && !this.isRefreshing) {
         // Token expired, try to refresh
         this.isRefreshing = true;
         try {
@@ -104,8 +116,8 @@ class RealApiService {
       }
 
       if (!response.ok) {
-        // Handle persistent 401s even after refresh attempts
-        if (response.status === 401 && !endpoint.includes('/auth/')) {
+        // Handle persistent 401s
+        if (response.status === 401) {
           this.handleAuthFailure();
         }
 
@@ -125,7 +137,6 @@ class RealApiService {
       return response.json();
     } catch (error) {
       if (retries > 0 && !navigator.onLine) {
-        // Don't retry if we're clearly offline
         throw error;
       }
       if (retries > 0) {

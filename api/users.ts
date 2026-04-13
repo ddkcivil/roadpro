@@ -16,7 +16,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   // --- HEARTBEAT (already using Supabase) ---
   if (req.method === 'POST' && action === 'heartbeat') {
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-    const { error } = await supabasePublic
+    const { error } = await supabaseAdmin
       .from('profiles')
       .update({ last_seen: new Date().toISOString() })
       .eq('id', userId);
@@ -37,10 +37,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         if (!data) return res.status(404).json({ error: 'User not found' });
         return res.status(200).json(data);
       } else {
-        // Fetch all users, assuming admin can see all
-        if (userRole !== 'Admin' && userRole !== 'ADMIN') {
-          return res.status(403).json({ error: 'Only admins can list all users' });
-        }
+        // Fetch all users for chat/messaging feature
         const { data, error } = await query;
         if (error) throw error;
         return res.status(200).json(data);

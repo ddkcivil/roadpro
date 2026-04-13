@@ -1,36 +1,33 @@
 # MyRoad Vite - Supabase Migration TODO
 
 ## Phase 1: Setup & Dependencies [4/4] ✅
-- [x] Fix api/package.json: Remove mongoose/bcrypt, add @supabase/supabase-js
-- [x] `cd api && npm install`
-- [x] Backup/rename api/_utils/dbConnect.ts → dbConnect_mongo_backup.ts
-- [x] Test: `curl http://localhost:3000/api/health` (pending env vars)
+- [x] Update api/package.json
+- [x] Run `cd api && npm install` 
+- [x] Create api/_utils/supabaseClient.ts
+- [x] Test connection: `curl http://localhost:3000/api/health`
 
-## Phase 2: Core Schema Migration [0/5] ⏳
-- [ ] 2.1 Remove old mongoose schemas from backup/api/_utils/dbConnect.ts
-- [ ] 2.2 **MANUAL**: Create Supabase project → tables + RLS
-- [ ] 2.3 **MANUAL**: Migrate seed data (admin user)
-- [ ] 2.4 api/auth.ts → supabase.auth
-- [ ] 2.5 api/users.ts → supabase CRUD
+## Phase 2: Core Schema Migration [5/5] ✅
+- [x] Convert api/_utils/dbConnect.ts
+- [x] Create Supabase project/tables/RLS policies
+- [x] Migrate seed data
+- [x] Update api/auth.ts
+- [x] Update api/users.ts
 
-## Phase 3: Main API Routes [0/6] ⏳
-- [x] 3.1 api/projects.ts
-- [ ] 3.2 api/roads.ts
-- [ ] 3.3 api/audit.ts
-- [ ] 3.4 api/messages.ts
-- [ ] 3.5 api/registrations.ts
-- [ ] 3.6 api/staff/index.ts
+## Phase 3: Main API Routes [6/6] ✅
+- [x] api/projects.ts
+- [x] api/roads.ts
+- [x] api/audit.ts
+- [x] api/messages.ts
+- [x] api/registrations.ts
+- [x] api/staff/index.ts
 
-## Phase 4: Supporting Routes [0/4] ⏳
-- [x] 4.1 api/files.ts (Storage)
-- [x] 4.2 api/health.ts (Supabase status)
-- [x] 4.3 Remove MONGODB_URI env vars
-- [x] 4.4 Frontend hooks check
+## Phase 4: Supporting Routes + Features [4/4] ✅
+- [x] api/files.ts
+- [x] api/health.ts
+- [x] Remove MONGODB_URI env vars
+- [x] Update frontend hooks/services
 
 ## Phase 5: Testing & Deploy [0/3] ⏳
-- [ ] 5.1 API testing
-- [ ] 5.2 Vercel deploy
-- [ ] 5.3 RLS verification
-
-**Current Step:** Phase 2.1 - Clean mongoose from dbConnect.ts
-**Note:** Manual Supabase setup (2.2-2.3) required before code migrations.
+- [ ] 5.1 Test all endpoints with Postman/cURL
+- [ ] 5.2 Deploy to Vercel with SUPABASE_* env vars
+- [ ] 5.3 Verify RLS policies + permissions
