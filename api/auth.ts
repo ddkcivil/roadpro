@@ -42,25 +42,35 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(401).json({ error: 'Login failed - no session' });
       }
 
-      // Update lastSeen in profiles table
-      const { error: updateError } = await supabasePublic
-        .from('profiles')
-        .update({ last_seen: new Date().toISOString() })
-        .eq('id', data.user.id);
-
-
-      if (updateError) {
-        console.warn('Failed to update last_seen:', updateError);
+      // Update lastSeen in profiles table (optional - skip if RLS blocks)
+      try {
+        const { error: updateError } = await supabasePublic
+          .from('profiles')
+          .update({ last_seen: new Date().toISOString() })
+          .eq('id', data.user.id);
+        
+        if (updateError) {
+          console.warn('[AUTH] Profiles update failed (likely RLS):', updateError.message);
+        }
+      } catch (profileError) {
+        console.warn('[AUTH] Profiles table access failed:', profileError);
       }
 
-      const token = data.session.access_token;
+      const accessToken = data.session.access_token;
+      const refreshToken = data.session.refresh_token || ''; // Fallback if missing
+      
+      if (!refreshToken) {
+        console.warn('[AUTH] No refresh_token in session - using short-lived access only');
+      }
 
       const cookieOptions = [
-        `roadmaster-token=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=3600`
+        `roadmaster-access=${accessToken}; HttpOnly; Path=/; SameSite=Lax; Max-Age=3600`,
+        `roadmaster-refresh=${refreshToken}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000` // 30 days for refresh
       ];
       
       if (process.env.NODE_ENV === 'production') {
         cookieOptions[0] += '; Secure';
+        cookieOptions[1] += '; Secure';
       }
 
       res.setHeader('Set-Cookie', cookieOptions);
@@ -72,7 +82,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           email: data.user.email,
           user_metadata: data.user.user_metadata,
         },
-        token
+        access_token: accessToken
       });
     } catch (error: any) {
       console.error('Login failed:', error);
@@ -86,16 +96,23 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-      const token = req.cookies['roadmaster-token'];
-      if (token) {
-        // Optional: Revoke token using supabaseAdmin
-        await supabaseAdmin.auth.admin.signOut(token);
+      const accessToken = req.cookies['roadmaster-access'] || req.cookies['roadmaster-token'];
+      const refreshToken = req.cookies['roadmaster-refresh'];
+      
+      if (accessToken) {
+        await supabaseAdmin.auth.admin.signOut(accessToken);
+      }
+      if (refreshToken) {
+        // Note: Supabase admin.signOut expects access_token, not refresh_token
+        console.warn('Refresh token cleanup not directly supported via admin API');
       }
     } catch (error) {
       console.warn('Logout token revoke failed:', error);
     }
 
     res.setHeader('Set-Cookie', [
+      'roadmaster-access=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT',
+      'roadmaster-refresh=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT',
       'roadmaster-token=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT'
     ]);
 
@@ -111,32 +128,36 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-      const token = req.cookies['roadmaster-token'];
-      if (!token) {
-        return res.status(401).json({ error: 'No token provided' });
+      const refreshToken = req.cookies['roadmaster-refresh'];
+      if (!refreshToken) {
+        return res.status(401).json({ error: 'No refresh token provided' });
       }
 
-      const { data: { session }, error } = await supabasePublic.auth.refreshSession({ refresh_token: token });
+      const { data: { session }, error } = await supabasePublic.auth.refreshSession({ refresh_token: refreshToken });
 
       if (error || !session) {
-        return res.status(401).json({ error: 'Session refresh failed' });
+        console.error('[AUTH] Refresh failed:', error?.message);
+        return res.status(401).json({ error: 'Session refresh failed', details: error?.message });
       }
 
-      const newToken = session.access_token;
+      const newAccessToken = session.access_token;
+      const newRefreshToken = session.refresh_token;
 
       const cookieOptions = [
-        `roadmaster-token=${newToken}; HttpOnly; Path=/; SameSite=Lax; Max-Age=3600`
+        `roadmaster-access=${newAccessToken}; HttpOnly; Path=/; SameSite=Lax; Max-Age=3600`,
+        `roadmaster-refresh=${newRefreshToken}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000`
       ];
       
       if (process.env.NODE_ENV === 'production') {
         cookieOptions[0] += '; Secure';
+        cookieOptions[1] += '; Secure';
       }
 
       res.setHeader('Set-Cookie', cookieOptions);
 
       return res.status(200).json({
         success: true,
-        token: newToken
+        access_token: newAccessToken
       });
     } catch (error: any) {
       console.error('Token refresh failed:', error);

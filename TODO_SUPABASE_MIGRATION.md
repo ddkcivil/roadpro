@@ -6,35 +6,32 @@
 - [x] Create api/_utils/supabaseClient.ts (replace dbConnect.ts)
 - [x] Test connection: `curl http://localhost:3000/api/health`
 
-## Phase 2: Core Schema Migration [0/5]
-- [ ] Convert api/_utils/dbConnect.ts → backup + remove mongoose schemas
-- [ ] Create Supabase project/tables/RLS policies
-- [ ] Migrate seed data (admin user)
-- [ ] Update api/auth.ts (supabase.auth)
-- [ ] Update api/users.ts (CRUD operations)
+## Phase 2: Core Schema Migration [5/5] ✅
+- [x] Convert api/_utils/dbConnect.ts → backup + remove mongoose schemas
+- [x] Create Supabase project/tables/RLS policies (See supabase/migrations/)
+- [x] Migrate seed data (handled via registrations/auth)
+- [x] Update api/auth.ts (supabase.auth)
+- [x] Update api/users.ts (CRUD operations)
 
-## Phase 3: Main API Routes [0/6]
+## Phase 3: Main API Routes [6/6] ✅
 - [x] api/projects.ts (convert find/save/update → supabase queries)
-- [ ] api/roads.ts 
-- [ ] api/audit.ts
-- [ ] api/messages.ts
-- [ ] api/registrations.ts
-- [ ] api/staff/index.ts
+- [x] api/roads.ts (KML ingestion via RPC)
+- [x] api/audit.ts (Supabase logging)
+- [x] api/messages.ts (Chat storage)
+- [x] api/registrations.ts (User approval flow)
+- [x] api/staff/index.ts (JSONB personnel management)
 
-## Phase 4: Supporting Routes + Features [0/4]
+## Phase 4: Supporting Routes + Features [4/4] ✅
 - [x] api/files.ts (Supabase Storage)
 - [x] api/health.ts (Supabase status check)
 - [x] Remove MONGODB_URI env vars
-- [x] Update frontend hooks/services if needed
+- [x] Update frontend hooks/services (use id instead of _id)
 
 ## Phase 5: Testing & Deploy [0/3]
 - [ ] Test all endpoints with Postman/cURL
 - [ ] Deploy to Vercel with SUPABASE_* env vars
 - [ ] Verify RLS policies + permissions
 
-**Next Step:** Create Supabase project at https://supabase.com, add required env vars to Vercel dashboard:
-- NEXT_PUBLIC_SUPABASE_URL
-- NEXT_PUBLIC_SUPABASE_ANON_KEY  
-- SUPABASE_SERVICE_ROLE_KEY
+**Current Status:** All core backend migrations are complete. The database schema is defined in `supabase/migrations/` with full camelCase support for project data. Authentication has been hardened to use the `profiles` table as the source of truth for roles.
 
-Then Phase 2: Create tables (profiles, projects, etc.) + seed admin user.
+**Next Step:** Perform integration testing across all modules.

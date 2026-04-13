@@ -15,7 +15,9 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
       acc[name] = value;
       return acc;
     }, {});
-    token = cookies['roadmaster-token'];
+    
+    // Prefer new access token cookie, fallback to legacy
+    token = cookies['roadmaster-access'] || cookies['roadmaster-token'];
   }
 
   if (!token) {
@@ -30,10 +32,19 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
     }
 
     // Map Supabase user to the legacy TokenPayload structure for compatibility
+    // Prefer profiles table for role as it's more easily updated than auth metadata
+    const { data: profile } = await supabasePublic
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    
+    const userRole = profile?.role || user.user_metadata?.role || 'SITE_ENGINEER';
+
     const decoded: TokenPayload = {
       userId: user.id,
       email: user.email || '',
-      role: user.user_metadata?.role || 'SITE_ENGINEER', // Default role if not found
+      role: userRole,
     };
 
     // Add user data to request object for use in handlers

@@ -33,6 +33,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import CommentsPanel from './CommentsPanel';
 import { ocrService } from '../../services/ai/ocrService';
+import { toast } from 'sonner';
 import { fileToBase64, base64ToBlobUrl } from '../../utils/data/documentUtils';
 
 // Dynamically load PDF components when needed
@@ -51,6 +52,8 @@ interface Props {
 const FOLDERS = ['General', 'Contracts', 'Drawings', 'Reports', 'Correspondence', 'Financials', 'Sub-Docs'];
 
 const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
+  const subcontractors = project.agencies?.filter(a => a.type === 'subcontractor') || [];
+  
   const [activeFolder, setActiveFolder] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
@@ -77,32 +80,11 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
     subId: ''
   });
   const [previewDoc, setPreviewDoc] = useState<ProjectDocument | null>(null);
-  const [activeFolder, setActiveFolder] = useState('All');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
-  const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const [uploadMode, setUploadMode] = useState<'SIMPLE' | 'SCAN'>('SIMPLE');
-  const [scanStep, setScanStep] = useState<'IDLE' | 'PROCESSING' | 'REVIEW'>('IDLE');
-  const [scannedMetadata, setScannedMetadata] = useState<{
-    subject: string;
-    refNo: string;
-    date: string;
-    letterDate: string;
-    correspondenceType: string;
-    sender: string;
-    recipient: string;
-    subId: string;
-  }>({
-    subject: '',
-    refNo: '',
-    date: new Date().toISOString().split('T')[0],
-    letterDate: '',
-    correspondenceType: 'incoming',
-    sender: '',
-    recipient: '',
-    subId: ''
-  });
-  const [previewDoc, setPreviewDoc] = useState<ProjectDocument | null>(null);
+  const [newTagInput, setNewTagInput] = useState('');
+
+  const handleAddTag = (docId: string, tag: string) => {
+    const trimmedTag = tag.trim();
+    if (!trimmedTag) return;
 
     const updatedDocs = (project.documents || []).map(d => {
         if (d.id === docId) {

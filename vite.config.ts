@@ -25,8 +25,11 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: 'http://localhost:3000',
           changeOrigin: true,
-        },
-      },
+          secure: false,
+          rewrite: (path) => path.replace(/^\/api/, '/api')
+        }
+      }
+      // Proxy /api to Vercel dev (3000) for local development
     },
     plugins: [react()],
     define: {

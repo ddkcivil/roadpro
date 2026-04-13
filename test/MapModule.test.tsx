@@ -218,7 +218,7 @@ describe('KMLDataLayer', () => {
       render(
         <MapContainer center={[0, 0]} zoom={13}>
           <KMLDataLayer kml={mockKMLData('kml-1', 'TestPoint.kml', '...', '#0000ff')} />
-        </Mentor
+        </MapContainer>
       );
 
       await vi.advanceTimersByTimeAsync(1000);
