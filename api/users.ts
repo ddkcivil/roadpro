@@ -159,7 +159,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         if (password.length < 6) {
           return res.status(400).json({ error: 'Password must be at least 6 characters' });
         }
-        const { error: authUpdateError } = await supabaseAdmin.auth.admin.updateUser(id, {
+        const { error: authUpdateError } = await supabaseAdmin.auth.admin.updateUserById(id, {
           password: password,
         });
         if (authUpdateError) throw authUpdateError;

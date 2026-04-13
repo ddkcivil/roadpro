@@ -34,16 +34,12 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       .from('test_table')
       .select('*', { count: 'exact', head: true });
 
-    const results = {
-      profiles: userError ? `Error: ${userError.message}` : `Count: ${userCount}`,
-      insert: insertError ? `Error: ${insertError.message}` : `Success: ${insertResult?.[0]?.id}`,
-      testTable: testError ? `Error: ${testError.message}` : `Count: ${testTableCount}`
-    };
-
+    const msg = `Profiles:${userError?.message || userCount} | Insert:${insertError?.message || insertResult?.[0]?.id} | TestTable:${testError?.message || testTableCount}`;
     if (userError || insertError || testError) {
-      res.status(500).json(results);
+      res.status(500).send(msg);
       return;
     }
+
 
 
 
