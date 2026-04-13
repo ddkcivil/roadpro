@@ -41,18 +41,11 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
     };
 
     if (userError || insertError || testError) {
-      res.status(500).json({ 
-        status: 'partial_failure',
-        timestamp: new Date().toISOString(),
-        database: 'connected (Supabase)',
-        results,
-        envCheck: { 
-          hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL, 
-          hasSupabaseKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY 
-        }
-      });
+      res.status(500).json(results);
       return;
     }
+
+
 
 
     res.status(200).json({
