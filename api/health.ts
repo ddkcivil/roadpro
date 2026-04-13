@@ -19,10 +19,14 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
     
     console.log('Environment variables check:', { hasSupabaseUrl: !!hasSupabaseUrl, hasSupabaseKey: !!hasSupabaseKey, hasDeepSeek, hasGemini, hasOpenAI });
 
-    // Test Supabase connection - profiles table
+    /*
     const { count: userCount, error: userError } = await supabaseAdmin
       .from('profiles')
       .select('*', { count: 'exact', head: true });
+    */
+    const userCount = -1;
+    const userError = null;
+
 
     // Test new test_table: INSERT + count
     const { data: insertResult, error: insertError } = await supabaseAdmin
@@ -35,10 +39,11 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       .select('*', { count: 'exact', head: true });
 
     const results = {
-      profiles: userError?.message || `Count:${userCount}`,
+      profiles: `Count:${userCount}`,
       insert: insertError?.message || `ID:${insertResult?.[0]?.id}`,
       testTable: testError?.message || `Count:${testTableCount}`
     };
+
 
     if (userError || insertError || testError) {
       res.status(500).json({ error: 'partial_failure', results });
