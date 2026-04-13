@@ -34,18 +34,26 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       .from('test_table')
       .select('*', { count: 'exact', head: true });
 
+    const results = {
+      profiles: userError ? `Error: ${userError.message}` : `Count: ${userCount}`,
+      insert: insertError ? `Error: ${insertError.message}` : `Success: ${insertResult?.[0]?.id}`,
+      testTable: testError ? `Error: ${testError.message}` : `Count: ${testTableCount}`
+    };
+
     if (userError || insertError || testError) {
       res.status(500).json({ 
-        error: 'Supabase connection failed', 
-        details: {
-          users: userError?.message,
-          insert: insertError?.message,
-          testTable: testError?.message
-        },
-        envCheck: { hasSupabaseUrl, hasSupabaseKey }
+        status: 'partial_failure',
+        timestamp: new Date().toISOString(),
+        database: 'connected (Supabase)',
+        results,
+        envCheck: { 
+          hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL, 
+          hasSupabaseKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY 
+        }
       });
       return;
     }
+
 
     res.status(200).json({
       status: 'ok',
