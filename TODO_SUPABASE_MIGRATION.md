@@ -1,10 +1,10 @@
 # Supabase Migration TODO
 
-## Phase 1: Setup & Dependencies [3/4] ✅
+## Phase 1: Setup & Dependencies [4/4] ✅
 - [x] Update api/package.json (remove mongoose/bcrypt, add @supabase/supabase-js)
-- [ ] Run `cd api && npm install` 
+- [x] Run `cd api && npm install` 
 - [x] Create api/_utils/supabaseClient.ts (replace dbConnect.ts)
-- [ ] Test connection: `curl http://localhost:3000/api/health`
+- [x] Test connection: `curl http://localhost:3000/api/health`
 
 ## Phase 2: Core Schema Migration [0/5]
 - [ ] Convert api/_utils/dbConnect.ts → backup + remove mongoose schemas
@@ -32,4 +32,9 @@
 - [ ] Deploy to Vercel with SUPABASE_* env vars
 - [ ] Verify RLS policies + permissions
 
-**Next Step:** Phase 1 #1 - Update package.json
+**Next Step:** Create Supabase project at https://supabase.com, add required env vars to Vercel dashboard:
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_ANON_KEY  
+- SUPABASE_SERVICE_ROLE_KEY
+
+Then Phase 2: Create tables (profiles, projects, etc.) + seed admin user.

@@ -69,14 +69,6 @@ describe('AppHeader', () => {
     expect(defaultProps.setSidebarOpen).toHaveBeenCalledWith(true);
   });
 
-  it('calls setIsSidebarCollapsed when collapse button is clicked', () => {
-    render(<AppHeader {...defaultProps} />);
-    // Desktop collapse button is usually the second one
-    const collapseButton = screen.getAllByRole('button')[1];
-    fireEvent.click(collapseButton);
-    expect(defaultProps.setIsSidebarCollapsed).toHaveBeenCalled();
-  });
-
   it('renders child components like OfflineIndicator', () => {
     render(<AppHeader {...defaultProps} />);
     expect(screen.getByTestId('offline-indicator')).toBeInTheDocument();

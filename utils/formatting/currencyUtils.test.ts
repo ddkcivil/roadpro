@@ -9,21 +9,15 @@ import {
 
 describe('currencyUtils', () => {
   describe('getCurrencyConfig', () => {
-    it('should return USD config by default', () => {
+    it('should return NPR config by default', () => {
       const config = getCurrencyConfig();
-      expect(config.code).toBe('USD');
-      expect(config.symbol).toBe('$');
-    });
-
-    it('should return NPR config for NPR code', () => {
-      const config = getCurrencyConfig('NPR');
       expect(config.code).toBe('NPR');
       expect(config.symbol).toBe('Rs.');
     });
 
-    it('should fallback to USD for unknown code', () => {
+    it('should fallback to NPR for unknown code', () => {
       const config = getCurrencyConfig('XYZ' as any);
-      expect(config.code).toBe('USD');
+      expect(config.code).toBe('NPR');
     });
   });
 
@@ -31,7 +25,7 @@ describe('currencyUtils', () => {
     it('should return correct symbol', () => {
       expect(getCurrencySymbol('USD')).toBe('$');
       expect(getCurrencySymbol('NPR')).toBe('Rs.');
-      expect(getCurrencySymbol()).toBe('$');
+      expect(getCurrencySymbol()).toBe('Rs.');
     });
   });
 

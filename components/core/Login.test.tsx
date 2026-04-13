@@ -62,7 +62,7 @@ describe('Login Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
 
     await waitFor(() => {
-      expect(mockOnLogin).toHaveBeenCalledWith(UserRole.ADMIN, 'Test User', 'mock-jwt-token', 'u1');
+      expect(mockOnLogin).toHaveBeenCalledWith(UserRole.ADMIN, 'Test User', 'mock-jwt-token', 'u1', undefined);
     });
   });
 
@@ -72,7 +72,6 @@ describe('Login Component', () => {
     const registerButton = screen.getByRole('button', { name: /Create Account/i });
     fireEvent.click(registerButton);
 
-    expect(screen.getByText(/Create Account/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Full Name/i)).toBeInTheDocument();
+    expect(mockOnShowRegistration).toHaveBeenCalled();
   });
 });

@@ -7,8 +7,8 @@ This directory contains the Serverless Functions (Vercel) that power the RoadMas
 The API is built using Node.js and TypeScript, designed to run as serverless functions.
 
 - **Framework**: Express-style handlers for Vercel Node.js runtime.
-- **Database**: MongoDB (via Mongoose).
-- **Authentication**: JWT (JSON Web Tokens) with a refresh mechanism.
+- **Database**: Supabase (Postgres) with Row-Level Security (RLS).
+- **Authentication**: Supabase Auth (recommended) or JWTs managed via Supabase.
 - **Middleware**:
   - `withErrorHandler`: Unified error catching and formatting.
   - `withAuth`: JWT verification and user context injection.
@@ -40,9 +40,8 @@ The API is built using Node.js and TypeScript, designed to run as serverless fun
 
 ## Security Features
 
-- **RBAC**: Role-Based Access Control enforced at the API level.
-- **JWT**: Stateless authentication with short-lived tokens.
-- **Password Hashing**: Uses `bcrypt` for secure storage.
+- **RBAC**: Role-Based Access Control enforced via Supabase RLS and API checks.
+- **Authentication**: Prefer `Supabase Auth` for user management and session handling.
 - **Conflict Resolution**: `updatedAt` timestamps are used to detect stale updates.
 
 ## Local Development
@@ -51,4 +50,4 @@ To run the API locally with hot-reloading:
 ```bash
 vercel dev --listen 3000
 ```
-Ensure your `.env` file contains the `MONGODB_URI` and `JWT_SECRET`.
+Ensure your `.env` file contains the Supabase connection variables: `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_ANON_KEY`/`NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`.
