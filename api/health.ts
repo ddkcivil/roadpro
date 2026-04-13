@@ -34,11 +34,17 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       .from('test_table')
       .select('*', { count: 'exact', head: true });
 
-    const msg = `Profiles:${userError?.message || userCount} | Insert:${insertError?.message || insertResult?.[0]?.id} | TestTable:${testError?.message || testTableCount}`;
+    const results = {
+      profiles: userError?.message || `Count:${userCount}`,
+      insert: insertError?.message || `ID:${insertResult?.[0]?.id}`,
+      testTable: testError?.message || `Count:${testTableCount}`
+    };
+
     if (userError || insertError || testError) {
-      res.status(500).send(msg);
+      res.status(500).json({ error: 'partial_failure', results });
       return;
     }
+
 
 
 
