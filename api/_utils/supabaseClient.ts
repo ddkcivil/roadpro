@@ -1,25 +1,27 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing required Supabase env vars: SUPABASE_URL, SUPABASE_ANON_KEY');
+const isPlaceholder = (val: string | undefined) => !val || val.includes('your-project') || val.includes('your-anon');
+
+if (isPlaceholder(supabaseUrl) || isPlaceholder(supabaseAnonKey)) {
+  throw new Error('Missing or invalid Supabase environment variables. Please check your .env or Vercel dashboard for SUPABASE_URL and SUPABASE_ANON_KEY.');
 }
 
-if (!supabaseServiceKey) {
-  throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY for admin client');
+if (!supabaseUrl!.startsWith('http')) {
+  throw new Error(`Invalid SUPABASE_URL format: "${supabaseUrl}". It must be a valid HTTP/HTTPS URL.`);
 }
 
 export const supabasePublic = createClient(
-  supabaseUrl, 
-  supabaseAnonKey
+  supabaseUrl!, 
+  supabaseAnonKey!
 )
 
 export const supabaseAdmin = createClient(
-  supabaseUrl, 
-  supabaseServiceKey || supabaseAnonKey
+  supabaseUrl!, 
+  supabaseServiceKey || supabaseAnonKey!
 )
 
 
