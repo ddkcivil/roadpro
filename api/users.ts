@@ -18,7 +18,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
     const { error } = await supabaseAdmin
       .from('profiles')
-      .update({ last_seen: new Date().toISOString() })
+      .update({ lastSeen: new Date().toISOString() })
       .eq('id', userId);
 
     if (error) throw error; // Let withErrorHandler handle it
@@ -28,7 +28,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   // --- GET USERS ---
   if (req.method === 'GET') {
     try {
-      let query = supabasePublic.from('profiles').select('id, name, email, phone, role, avatar, last_seen');
+      let query = supabasePublic.from('profiles').select('id, name, email, phone, role, avatar, lastSeen');
 
       if (id) {
         // Fetch a specific user
@@ -95,7 +95,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         phone: phone,
         role: role || 'SITE_ENGINEER',
         avatar: avatar || generateAvatarUrl(name),
-        last_seen: new Date().toISOString(), // Initialize last_seen
+        lastSeen: new Date().toISOString(), // Initialize lastSeen
       });
 
       if (profileError) throw profileError;
@@ -108,7 +108,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         phone: phone,
         role: role || 'SITE_ENGINEER',
         avatar: avatar || generateAvatarUrl(name),
-        last_seen: new Date().toISOString(),
+        lastSeen: new Date().toISOString(),
       };
       return res.status(201).json(userData);
     } catch (error: any) {
@@ -179,7 +179,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       // Fetch updated user data to return
       const { data: updatedUser, error: fetchError } = await supabasePublic
         .from('profiles')
-        .select('id, name, email, phone, role, avatar, last_seen')
+        .select('id, name, email, phone, role, avatar, lastSeen')
         .eq('id', id)
         .single();
 

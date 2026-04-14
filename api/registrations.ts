@@ -11,7 +11,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       const { data, error } = await supabaseAdmin
         .from('registrations')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('createdAt', { ascending: false });
 
       if (error) throw error;
       return res.status(200).json(data);
@@ -45,7 +45,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           email_confirm: true,
           user_metadata: {
             name: pendingReg.name,
-            role: pendingReg.requested_role
+            role: pendingReg.requestedRole
           }
         });
 
@@ -64,7 +64,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
             name: pendingReg.name,
             email: pendingReg.email.toLowerCase(),
             phone: pendingReg.phone,
-            role: pendingReg.requested_role,
+            role: pendingReg.requestedRole,
             avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`
           });
 
@@ -75,7 +75,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
         return res.status(200).json({
           message: 'Registration approved successfully',
-          user: { id: authUser.user.id, name: pendingReg.name, email: pendingReg.email, role: pendingReg.requested_role }
+          user: { id: authUser.user.id, name: pendingReg.name, email: pendingReg.email, role: pendingReg.requestedRole }
         });
       } catch (error: any) {
         console.error('Error approving registration:', error);
@@ -111,8 +111,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           name,
           email: email.toLowerCase(),
           phone: phone || '',
-          password_hash: password, // Still storing for compatibility, but should be removed from DB
-          requested_role: requestedRole,
+          passwordHash: password, // Still storing for compatibility, but should be removed from DB
+          requestedRole: requestedRole,
           status: 'pending'
         })
         .select()

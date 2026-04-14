@@ -78,7 +78,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       } else if (req.method === 'PUT' && itemId) {
         const index = items.findIndex((item: any) => item.id === itemId);
         if (index !== -1) {
-          items[index] = { ...items[index], ...itemData, updatedAt: new Date().toISOString() };
+          items[index] = { ...items[index], ...itemData, "updatedAt": new Date().toISOString() };
         } else {
           return res.status(404).json({ error: 'Item not found' });
         }
@@ -90,10 +90,10 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .from('projects')
         .upsert({
           id: 'staff-management',
-          name: 'Staff Management System',
-          client: 'Internal',
+          "name": 'Staff Management System',
+          "client": 'Internal',
           personnel,
-          updatedAt: new Date().toISOString()
+          "updatedAt": new Date().toISOString()
         });
 
       if (updateError) throw updateError;
@@ -125,7 +125,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       const { error: updateError } = await supabaseAdmin
         .from('projects')
-        .update({ personnel, updatedAt: new Date().toISOString() })
+        .update({ personnel, "updatedAt": new Date().toISOString() })
         .eq('id', 'staff-management');
 
       if (updateError) throw updateError;

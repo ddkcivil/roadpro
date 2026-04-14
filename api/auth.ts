@@ -46,9 +46,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       try {
         const { error: updateError } = await supabasePublic
           .from('profiles')
-          .update({ last_seen: new Date().toISOString() })
-          .eq('id', data.user.id);
-        
+          .update({ lastSeen: new Date().toISOString() })
+          .eq('id', data.user.id);        
         if (updateError) {
           console.warn('[AUTH] Profiles update failed (likely RLS):', updateError.message);
         }

@@ -4,7 +4,9 @@ const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 console.log('DEBUG: SUPABASE_SERVICE_ROLE_KEY is present:', !!supabaseServiceKey);
-console.log('DEBUG: Key length:', supabaseServiceKey?.length);
+console.log('DEBUG: Key length:', supabaseServiceKey ? supabaseServiceKey.length : 0);
+console.log('DEBUG: SUPABASE_URL valid:', supabaseUrl ? supabaseUrl.startsWith('https://') : false);
+console.log('DEBUG: ANON_KEY length:', (supabaseAnonKey?.length || 0) > 0);
 
 const isPlaceholder = (val: string | undefined) => !val || val.includes('your-project') || val.includes('your-anon');
 

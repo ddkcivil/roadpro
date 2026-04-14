@@ -173,17 +173,17 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           .from('staffLocations') // Assuming a table named 'staffLocations'
           .upsert([ // Use upsert to either insert or update
             {
-              project_id: id as string,
-              user_id: userId,
+              projectId: id as string,
+              userId: userId,
               latitude: latitude,
               longitude: longitude,
               timestamp: timestamp,
               status: 'Active', // Assuming a status field
               // userName and role might be redundant if managed by user profiles, but can be stored for quick access
-              user_name: userName, 
-              user_role: userRoleForLoc
+              userName: userName, 
+              userRole: userRoleForLoc
             }
-          ], { onConflict: 'project_id, user_id' }); // Define unique constraint for upsert
+          ], { onConflict: 'projectId, userId' }); // Define unique constraint for upsert
 
         if (error) throw error;
 

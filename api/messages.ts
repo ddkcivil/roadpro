@@ -107,7 +107,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
             // Update message to read status for the current user
             const { error } = await supabaseAdmin
                 .from('messages')
-                .update({ read: true, read_at: new Date().toISOString() }) // Added read_at timestamp
+                .update({ read: true, readAt: new Date().toISOString() }) // Added readAt timestamp
                 .eq('id', messageId)
                 .eq('receiverId', currentUser.userId); // Ensure only the receiver can mark as read
             
