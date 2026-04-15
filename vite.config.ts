@@ -32,6 +32,7 @@ export default defineConfig(({ mode }) => {
       // Proxy /api to Vercel dev (3000) for local development
     },
     plugins: [react()],
+    assetsInclude: ['**/*.html'],
     define: {
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),

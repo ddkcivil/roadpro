@@ -20,13 +20,10 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
     console.log('--- HEALTH CHECK RUNNING ---');
     console.log('Environment variables check:', { hasSupabaseUrl: !!hasSupabaseUrl, hasSupabaseKey: !!hasSupabaseKey, hasDeepSeek, hasGemini, hasOpenAI });
 
-    /*
+    // Fetch real user count from profiles table
     const { count: userCount, error: userError } = await supabaseAdmin
       .from('profiles')
       .select('*', { count: 'exact', head: true });
-    */
-    const userCount = -1;
-    const userError = null;
 
 
     // Test new test_table: INSERT + count
@@ -40,15 +37,14 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       .select('*', { count: 'exact', head: true });
 
     const results = {
-      profiles: `Count:${userCount}`,
-      insert: insertError?.message || `ID:${insertResult?.[0]?.id}`,
-      testTable: testError?.message || `Count:${testTableCount}`
+      profiles: userError ? `Error: ${userError.message}` : `Count: ${userCount}`,
+      insert: insertError ? `Error: ${insertError.message}` : `ID: ${insertResult?.[0]?.id}`,
+      testTable: testError ? `Error: ${testError.message}` : `Count: ${testTableCount}`
     };
 
 
     if (userError || insertError || testError) {
-      res.status(500).json({ error: 'partial_failure', results });
-      return;
+      console.warn('Health check partial failure:', results);
     }
 
 

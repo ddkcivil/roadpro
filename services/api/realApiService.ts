@@ -59,7 +59,8 @@ class RealApiService {
   private async fetchWithRetry<T>(endpoint: string, options?: RequestInit, retries = 3): Promise<T> {
     try {
       // Guard: Don't perform recursive retries or automatic refreshes for auth endpoints
-      if (endpoint.includes('/auth/')) {
+      // We check for /auth at the start or with query params to catch both /auth/ and /auth?
+      if (endpoint === '/auth' || endpoint.startsWith('/auth?') || endpoint.startsWith('/auth/')) {
         const response = await fetch(`/api${endpoint}`, {
           ...options,
           headers: { 'Content-Type': 'application/json', ...options?.headers as any },

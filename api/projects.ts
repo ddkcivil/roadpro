@@ -42,7 +42,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .from('projects')
         .select('*')
         .range(skip, skip + limit - 1) // Supabase uses 0-based indexing for range
-        .order('createdAt', { ascending: false }); // Example: order by creation date, adjust as needed
+        .order('created_at', { ascending: false }); // Example: order by creation date, adjust as needed
 
       if (fetchError) throw fetchError;
       

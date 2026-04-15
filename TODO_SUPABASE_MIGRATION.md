@@ -27,10 +27,15 @@
 - [x] Remove MONGODB_URI env vars
 - [x] Update frontend hooks/services (use id instead of _id)
 
-## Phase 5: Testing & Deploy [0/3]
-- [ ] Test all endpoints with Postman/cURL
-- [ ] Deploy to Vercel with SUPABASE_* env vars
-- [ ] Verify RLS policies + permissions
+## Phase 5: Testing & Deploy [3/3] ✅
+- [x] Test all endpoints with Postman/cURL
+- [x] Deploy to Vercel with SUPABASE_* env vars  
+- [x] Verify RLS policies + permissions
+
+## Phase 6: Local Development Setup [2/2] ✅
+- [x] supabase/seed.sql → Sample data for local dev
+- [x] supabase/README.md → Document remote→local workflow
+- [x] Ready for `supabase db reset` testing
 
 **Current Status:** All core backend migrations are complete. The database schema is defined in `supabase/migrations/` with full camelCase support for project data. Authentication has been hardened to use the `profiles` table as the source of truth for roles.
 

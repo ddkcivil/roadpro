@@ -58,9 +58,42 @@ export const useAuth = () => {
     }
   });
 
-  // Debug effect to track authentication state changes
+  // Debug effect to track authentication state changes + fix inconsistent state on mount
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    // Fix 1: Validate auth state on mount (prevents hydration mismatch)
+    const validateAuthState = () => {
+      const authFlag = localStorage.getItem('roadmaster-authenticated') === 'true';
+      const encryptedToken = localStorage.getItem('roadmaster-token');
+      
+      if (authFlag && encryptedToken) {
+        try {
+          const decrypted = encryptionUtils.decrypt<string>(encryptedToken);
+          if (!decrypted || decrypted.length === 0) {
+            console.warn('Corrupted token detected. Clearing auth state.');
+            localStorage.removeItem('roadmaster-authenticated');
+            localStorage.removeItem('roadmaster-token');
+            setIsAuthenticated(false);
+            setToken('');
+            return;
+          }
+        } catch (e) {
+          console.warn('Token decryption failed. Clearing auth state.');
+          localStorage.removeItem('roadmaster-authenticated');
+          localStorage.removeItem('roadmaster-token');
+          setIsAuthenticated(false);
+          setToken('');
+          return;
+        }
+      } else if (authFlag && !encryptedToken) {
+        console.warn('Auth flag set but no token. Clearing auth state.');
+        localStorage.removeItem('roadmaster-authenticated');
+        setIsAuthenticated(false);
+      }
+    };
+
+    validateAuthState();
 
     const handleAuthFailure = () => {
       console.warn('Persistent auth failure detected via event. Logging out.');

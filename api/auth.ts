@@ -34,7 +34,26 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       if (error) {
         console.warn(`[AUTH] Login failed for ${email}:`, error.message);
-        return res.status(401).json({ error: 'Invalid credentials', details: error.message });
+        
+        // Extra check: Does the user even exist in the profiles table?
+        // This helps distinguish between "user doesn't exist" and "wrong password"
+        const { data: profileCheck } = await supabaseAdmin
+          .from('profiles')
+          .select('id')
+          .eq('email', email.trim().toLowerCase())
+          .single();
+        
+        const diagnosticHint = profileCheck 
+          ? "User found in profiles but password rejected by Supabase Auth." 
+          : "User not found in profiles table - migration may be missing or email is wrong.";
+        
+        console.info(`[AUTH] Diagnostic hint for ${email}: ${diagnosticHint}`);
+        
+        return res.status(401).json({ 
+          error: 'Invalid credentials', 
+          details: error.message,
+          hint: diagnosticHint
+        });
       }
 
 
