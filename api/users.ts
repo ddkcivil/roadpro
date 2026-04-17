@@ -18,7 +18,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
     const { error } = await supabaseAdmin
       .from('profiles')
-      .update({ lastSeen: new Date().toISOString() })
+      .update({ last_seen: new Date().toISOString() })
       .eq('id', userId);
 
     if (error) throw error; // Let withErrorHandler handle it
@@ -28,7 +28,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   // --- GET USERS ---
   if (req.method === 'GET') {
     try {
-      let query = supabasePublic.from('profiles').select('id, name, email, phone, role, avatar, lastSeen');
+      let query = supabasePublic.from('profiles').select('id, full_name, email, phone, role, avatar_url, last_seen');
 
       if (id) {
         // Fetch a specific user
@@ -90,12 +90,12 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       // Insert user details into profiles table
       const { error: profileError } = await supabasePublic.from('profiles').insert({
         id: newUser.user.id, // Supabase auth user ID
-        name: name,
+        full_name: name,
         email: email.toLowerCase(),
         phone: phone,
         role: role || 'SITE_ENGINEER',
-        avatar: avatar || generateAvatarUrl(name),
-        lastSeen: new Date().toISOString(), // Initialize lastSeen
+        avatar_url: avatar || generateAvatarUrl(name),
+        last_seen: new Date().toISOString(), // Initialize last_seen
       });
 
       if (profileError) throw profileError;
@@ -103,12 +103,12 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       // Return created user data (excluding password)
       const userData = {
         id: newUser.user.id,
-        name: name,
+        full_name: name,
         email: email.toLowerCase(),
         phone: phone,
         role: role || 'SITE_ENGINEER',
-        avatar: avatar || generateAvatarUrl(name),
-        lastSeen: new Date().toISOString(),
+        avatar_url: avatar || generateAvatarUrl(name),
+        last_seen: new Date().toISOString(),
       };
       return res.status(201).json(userData);
     } catch (error: any) {
@@ -166,11 +166,11 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       const { error: profileUpdateError } = await supabasePublic
         .from('profiles')
         .update({
-          name: name,
+          full_name: name,
           email: email.toLowerCase(),
           phone: phone,
           role: role,
-          avatar: avatar || generateAvatarUrl(name), // Ensure avatar is set, regenerate if not provided
+          avatar_url: avatar || generateAvatarUrl(name), // Ensure avatar is set, regenerate if not provided
         })
         .eq('id', id);
 
@@ -179,9 +179,10 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       // Fetch updated user data to return
       const { data: updatedUser, error: fetchError } = await supabasePublic
         .from('profiles')
-        .select('id, name, email, phone, role, avatar, lastSeen')
+        .select('id, full_name, email, phone, role, avatar_url, last_seen')
         .eq('id', id)
         .single();
+
 
       if (fetchError) throw fetchError;
       if (!updatedUser) return res.status(404).json({ error: 'User not found after update' });

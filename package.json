@@ -6,17 +6,18 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "scripts": {
-    "dev": "vite",
-    "dev:api": "vercel dev --listen 3000",
-    "build": "vite build",
-    "preview": "vite preview",
-    "test": "vitest",
-    "test:e2e": "playwright test",
-    "clean": "vite clean",
-    "build-prod": "npm run build && echo 'Build complete. Ready for deployment to dharmadkunwar.com.np'",
-    "seed:admin": "node seed-admin.cjs"
-  },
+    "scripts": {
+      "dev": "vite",
+      "dev:api": "vercel dev --listen 3000",
+      "dev:full": "vercel dev",
+      "build": "vite build",
+      "preview": "vite preview",
+      "test": "vitest",
+      "test:e2e": "playwright test",
+      "clean": "vite clean",
+      "build-prod": "npm run build && echo 'Build complete. Ready for deployment to dharmadkunwar.com.np'",
+      "seed:admin": "node seed-admin.cjs"
+    },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@radix-ui/react-accordion": "^1.2.12",
@@ -58,7 +59,6 @@
     "express": "^4.22.1",
     "framer-motion": "^12.34.3",
     "geojson": "^0.5.0",
-    "google-cli": "^0.1.1",
     "http-proxy-middleware": "^3.0.5",
     "idb-keyval": "^6.2.2",
     "jspdf": "^4.0.0",
@@ -95,7 +95,7 @@
     "@types/node": "^22.14.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vercel/node": "^5.7.5",
+    "@vercel/node": "^4.0.0",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.23",
     "fake-indexeddb": "^6.2.5",

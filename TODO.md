@@ -1,22 +1,13 @@
-# Task Progress: Fix Supabase Projects Query & Auth Issues ✅ COMPLETE
+# Vite HMR Asset Message Suppression
 
-## Changes Made
-- [x] **api/projects.ts**: Fixed `createdAt` → `created_at` (resolves 400 Bad Request)
-- [x] **hooks/useAuth.tsx**: Added `validateAuthState()` mount validation (prevents "Authenticated but no token" warnings)
-- [x] **TODO.md**: Progress tracking
+## [ ] 1. Update vite.config.ts
+- Add `logLevel: 'silent'` to server config
 
-## Verification
-- [x] Code changes applied & diffs clean
-- [x] Dev server running (`npm run dev` → http://localhost:3003)
-- [x] API needs separate server: `cd api && npm run dev`
-- [x] Test: Hard refresh browser + check console
+## [ ] 2. Test dev server
+- `npm run dev`
+- Verify no `export default "/assets/..."` messages
 
-## To Test Fully
-```
-1. cd api && npm run dev  # Start API server
-2. Visit http://localhost:3003 
-3. Hard refresh (Ctrl+Shift+R) → No more console errors!
-4. Test /api/projects endpoint
-```
+## [ ] 3. Verify production build
+- `npm run build`
 
-**Both original errors fixed! 🚀**
+## [ ] 4. Complete task

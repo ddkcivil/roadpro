@@ -1,8 +1,9 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabasePublic } from './supabaseClient.js';
+import { supabasePublic, ensureSupabaseConfigured } from './supabaseClient.js';
 import { TokenPayload } from './types.js';
 
 export const withAuth = (handler: Function, options: { ignoreExpiration?: boolean } = {}) => async (req: VercelRequest, res: VercelResponse) => {
+  ensureSupabaseConfigured();
   let token = null;
   const authHeader = req.headers.authorization;
   

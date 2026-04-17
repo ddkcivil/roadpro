@@ -19,11 +19,11 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- Sample Roads (simplified)
-INSERT INTO public.roads (id, project_id, name, length_km, surface_type, created_at)
-VALUES 
-  ('road-001', 'proj-001', 'N1 Section A', 25.5, 'asphalt', NOW()),
-  ('road-002', 'proj-002', 'Rural Link R123', 12.3, 'gravel', NOW())
-ON CONFLICT (id) DO NOTHING;
+-- INSERT INTO public.roads (id, project_id, name, length_km, surface_type, created_at)
+-- VALUES 
+--   ('road-001', 'proj-001', 'N1 Section A', 25.5, 'asphalt', NOW()),
+--   ('road-002', 'proj-002', 'Rural Link R123', 12.3, 'gravel', NOW())
+-- ON CONFLICT (id) DO NOTHING;
 
 -- Sample Road Types Reference
 INSERT INTO public.road_types (id, type_name, description, standard_width)
@@ -34,9 +34,9 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- Sample Messages
-INSERT INTO public.messages (id, project_id, sender_id, content, created_at, read_at)
-VALUES 
-  ('msg-001', 'proj-001', '00000000-0000-0000-0000-000000000000', 'Project kickoff meeting scheduled for tomorrow', NOW(), NOW())
-ON CONFLICT (id) DO NOTHING;
+-- INSERT INTO public.messages (id, project_id, sender_id, content, created_at, read_at)
+-- VALUES 
+--   ('msg-001', 'proj-001', '00000000-0000-0000-0000-000000000000', 'Project kickoff meeting scheduled for tomorrow', NOW(), NOW())
+-- ON CONFLICT (id) DO NOTHING;
 
 SELECT 'Seed data loaded successfully!' as status;

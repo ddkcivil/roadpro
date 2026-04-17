@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "ignoreDeprecations": "5.0",
+    "ignoreDeprecations": "next",
     "baseUrl": ".",
     "strict": true,
     "forceConsistentCasingInFileNames": true,

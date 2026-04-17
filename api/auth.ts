@@ -1,9 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { withErrorHandler } from './_utils/errorHandler.js';
-import { supabaseAdmin, supabasePublic } from './_utils/supabaseClient.js';
+import { supabaseAdmin, supabasePublic, ensureSupabaseConfigured } from './_utils/supabaseClient.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
+  ensureSupabaseConfigured();
   const { action } = req.query;
 
   if (action === 'login') {

@@ -11,7 +11,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       const { data, error } = await supabaseAdmin
         .from('registrations')
         .select('*')
-        .order('createdAt', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return res.status(200).json(data);
@@ -61,11 +61,11 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           .from('profiles')
           .insert({
             id: authUser.user.id,
-            name: pendingReg.name,
+            full_name: pendingReg.name,
             email: pendingReg.email.toLowerCase(),
             phone: pendingReg.phone,
             role: pendingReg.requestedRole,
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`
+            avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`
           });
 
         if (profileError) throw profileError;

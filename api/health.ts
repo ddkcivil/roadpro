@@ -1,24 +1,43 @@
 // api/health.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from './_utils/supabaseClient.js';
+import { supabaseAdmin, ensureSupabaseConfigured } from './_utils/supabaseClient.js';
 import { withErrorHandler } from './_utils/errorHandler.js';
 
 export default withErrorHandler(async function (req: VercelRequest, res: VercelResponse) {
+  ensureSupabaseConfigured();
   if (req.method !== 'GET') {
     res.status(405).json({ error: 'Method Not Allowed' });
     return;
   }
 
   try {
-    const envVars = Object.keys(process.env);
-    const hasSupabaseUrl = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const hasSupabaseKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const hasDeepSeek = envVars.includes('VITE_DEEPSEEK_API_KEY');
-    const hasGemini = envVars.includes('VITE_GEMINI_API_KEY');
-    const hasOpenAI = envVars.includes('VITE_OPENAI_API_KEY');
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    const isPlaceholder = (val: string | undefined) => !val || val.includes('your-project') || val.includes('your-anon');
+    
+    const hasSupabaseUrl = !!supabaseUrl && !isPlaceholder(supabaseUrl) && supabaseUrl.startsWith('https://');
+    const hasViteSupabaseUrl = !!process.env.VITE_SUPABASE_URL;
+    const hasSupabaseAnonKey = !!supabaseAnonKey && !isPlaceholder(supabaseAnonKey);
+    const hasViteSupabaseAnonKey = !!process.env.VITE_SUPABASE_ANON_KEY;
+    const hasSupabaseServiceKey = !!supabaseServiceKey;
+    const hasDeepSeek = !!process.env.VITE_DEEPSEEK_API_KEY;
+    const hasGemini = !!process.env.VITE_GEMINI_API_KEY;
+    const hasOpenAI = !!process.env.VITE_OPENAI_API_KEY;
+    
+    const supabaseReady = hasSupabaseUrl && hasSupabaseAnonKey && hasSupabaseServiceKey;
     
     console.log('--- HEALTH CHECK RUNNING ---');
-    console.log('Environment variables check:', { hasSupabaseUrl: !!hasSupabaseUrl, hasSupabaseKey: !!hasSupabaseKey, hasDeepSeek, hasGemini, hasOpenAI });
+    console.log('Supabase env check:', {
+      SUPABASE_URL: !!hasSupabaseUrl,
+      VITE_SUPABASE_URL: !!hasViteSupabaseUrl,
+      SUPABASE_ANON_KEY: !!hasSupabaseAnonKey,
+      VITE_SUPABASE_ANON_KEY: !!hasViteSupabaseAnonKey,
+      SUPABASE_SERVICE_ROLE_KEY: !!hasSupabaseServiceKey,
+      allSupabaseReady: supabaseReady
+    });
+    console.log('AI env check:', { hasDeepSeek, hasGemini, hasOpenAI });
 
     // Fetch real user count from profiles table
     const { count: userCount, error: userError } = await supabaseAdmin
@@ -61,11 +80,15 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       testInsertId: insertResult?.[0]?.id || null,
       nodeVersion: process.version,
       envCheck: { 
-          hasSupabaseUrl, 
-          hasSupabaseKey: !!hasSupabaseKey,
-          hasDeepSeek, 
-          hasGemini,
-          hasOpenAI
+        SUPABASE_URL: !!hasSupabaseUrl,
+        VITE_SUPABASE_URL: !!hasViteSupabaseUrl,
+        SUPABASE_ANON_KEY: !!hasSupabaseAnonKey,
+        VITE_SUPABASE_ANON_KEY: !!hasViteSupabaseAnonKey,
+        SUPABASE_SERVICE_ROLE_KEY: !!hasSupabaseServiceKey,
+        allSupabaseReady: supabaseReady,
+        hasDeepSeek, 
+        hasGemini,
+        hasOpenAI
       }
     });
 

@@ -16,7 +16,7 @@ export const useAppInitialization = (setLoadingStatus: (status: string) => void,
       }, 8000);
 
       try {
-        setLoadingStatus('Mounting Neural Grid (WASM)...');
+        setLoadingStatus('Initializing Local Storage...');
         await sqliteService.initialize();
         
         setLoadingStatus('Synchronizing Local Core...');

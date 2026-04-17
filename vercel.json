@@ -3,8 +3,7 @@
   "outputDirectory": "dist",
   "functions": {
     "api/**/*.ts": {
-      "maxDuration": 30,
-      "memory": 1024
+      "maxDuration": 30
     }
   },
   "headers": [
@@ -59,7 +58,7 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!api|assets/).*)",
+      "source": "/((?!api|assets|@vite|@id|@fs|.*\\..*).*)",
       "destination": "/index.html"
     },
     { "source": "/api/(.*)", "destination": "/api/$1" }
