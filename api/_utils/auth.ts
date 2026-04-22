@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabasePublic, ensureSupabaseConfigured } from './supabaseClient.js';
+import { supabasePublic, supabaseAdmin, ensureSupabaseConfigured } from './supabaseClient.js';
 import { TokenPayload } from './types.js';
 
 export const withAuth = (handler: Function, options: { ignoreExpiration?: boolean } = {}) => async (req: VercelRequest, res: VercelResponse) => {
@@ -17,28 +17,32 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
       return acc;
     }, {});
     
-    // Prefer new access token cookie, fallback to legacy
-    token = cookies['roadmaster-access'] || cookies['roadmaster-token'];
+    // Prefer new access token cookie
+    token = cookies['roadmaster-access'];
   }
 
   if (!token) {
     return res.status(401).json({ error: 'Unauthorized: No token provided' });
   }
 
+  console.log(`[Auth] Validating token of length ${token.length}`);
+
   try {
     const { data: { user }, error } = await supabasePublic.auth.getUser(token);
 
     if (error || !user) {
-      return res.status(401).json({ error: 'Unauthorized: Invalid token', details: error?.message });
+      console.error('[Auth] getUser failed for token:', token.substring(0, 10) + '...', error);
+      const errorMessage = error ? `Unauthorized: ${error.message}` : 'Unauthorized: Invalid token';
+      return res.status(401).json({ error: errorMessage, details: error?.message });
     }
 
     // Map Supabase user to the legacy TokenPayload structure for compatibility
-    // Prefer profiles table for role as it's more easily updated than auth metadata
-    const { data: profile } = await supabasePublic
+    // Use admin client to bypass potential RLS issues on profiles table during auth
+    const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('role')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
     
     const userRole = profile?.role || user.user_metadata?.role || 'SITE_ENGINEER';
 

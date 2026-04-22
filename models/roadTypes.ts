@@ -64,6 +64,7 @@ export interface RoadProject {
   alignments: Alignment[];
   structures: Structure[];
   synchronized: boolean;
+  contractNo?: string; // Added to resolve Supabase schema mismatch error
 }
 
 // Utils

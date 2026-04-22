@@ -82,11 +82,11 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       if (rpcError) throw rpcError;
 
-      // Update updatedAt timestamp
+      // Update updated_at timestamp
       const { data: updatedProject, error: updateError } = await supabaseAdmin
         .from('projects')
         .update({
-          updatedAt: new Date().toISOString()
+          updated_at: new Date().toISOString()
         })
         .eq('id', projectId)
         .select('id, roads')

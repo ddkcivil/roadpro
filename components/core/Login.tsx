@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { UserRole } from '../../types';
 import { PermissionsService } from '../../services/auth/permissionsService';
 import { validateEmail } from '../../utils/validation/validationUtils';
-import { AuthService } from '../../services/auth/authService';
 import { AuditService } from '../../services/analytics/auditService';
-import { apiService } from '../../services/api/apiService';
+import { supabase } from '../../lib/supabase';
 import { ArrowLeft, Mail, Lock, Fingerprint, Loader2 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
@@ -34,7 +33,7 @@ const Login: React.FC<Props> = ({ onLogin, onShowRegistration }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { isLocked, remainingTime, checkLimit } = useRateLimit({
-    limit: 5,
+    limit: 10, // Relaxed slightly for Supabase
     windowMs: 60000 // 1 minute
   });
 
@@ -78,45 +77,47 @@ const Login: React.FC<Props> = ({ onLogin, onShowRegistration }) => {
 
     setLoading(true);
     
-    if (AuthService.isAccountLocked(email)) {
-        const timeRemaining = AuthService.getTimeUntilUnlock(email);
-        const minutes = Math.ceil((timeRemaining || 0) / 60000);
-        setMessage({ type: 'destructive', text: `Account temporarily locked. Please try again in ${minutes} minute${minutes !== 1 ? 's' : ''}.` });
-        setLoading(false);
-        return;
-    }
-    
     try {
-        const authResult = await apiService.loginUser(email, password);
-        
-        if (authResult.success) {
-            const user = authResult.user;
-            const role = user?.role || UserRole.PROJECT_MANAGER;
-            const name = user?.name || "Project Manager";
-            const token = (authResult as any).token;
-            const userId = user?.id;
+        console.log(`[Login] Attempting direct Supabase auth for ${email}`);
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
+        });
+
+        if (error) {
+            console.error('[Login] Supabase error:', error.message);
+            setMessage({ type: 'destructive', text: error.message || 'Invalid email or password.' });
+            return;
+        }
+
+        if (data.user) {
+            // Get profile for role information
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', data.user.id)
+              .single();
+
+            const role = profile?.role as UserRole || data.user.user_metadata?.role || UserRole.PROJECT_MANAGER;
+            const name = profile?.full_name || data.user.user_metadata?.full_name || "User";
+            const token = data.session?.access_token;
+            const userId = data.user.id;
             
-            const userWithPermissions = PermissionsService.createUserWithPermissions({ 
-              id: userId || `user-${Date.now()}`, 
-              name, 
-              email, 
-              phone: user?.phone || '', 
-              role 
-            });
+            await AuditService.logLogin(userId, name);
             
-            await AuditService.logLogin(userWithPermissions.id, userWithPermissions.name);
-            onLogin(role, name, token, userId, user?.phone);
-        } else {
-            setMessage({ type: 'destructive', text: authResult.message || 'Invalid email or password.' });
+            // Notify parent, though useAuth onAuthStateChange will also pick this up
+            onLogin(role, name, token, userId, profile?.phone);
+            toast.success(`Welcome back, ${name}`);
         }
     } catch (error: any) {
-        setMessage({ type: 'destructive', text: error.message || 'An error occurred during authentication. Please try again.' });
+        console.error('[Login] Critical failure:', error);
+        setMessage({ type: 'destructive', text: error.message || 'An error occurred during authentication.' });
     } finally {
         setLoading(false);
     }
   };
 
-  const handleReset = (e: React.FormEvent) => {
+  const handleReset = async (e: React.FormEvent) => {
       e.preventDefault();
       
       if (!validateEmail(resetEmail)) {
@@ -125,11 +126,20 @@ const Login: React.FC<Props> = ({ onLogin, onShowRegistration }) => {
       }
       
       setLoading(true);
-      setTimeout(() => {
-          setLoading(false);
-          setMessage({ type: 'default', text: `Verification link dispatched to ${resetEmail}` });
-          setTimeout(() => setView('LOGIN'), 3000);
-      }, 1200);
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        
+        if (error) throw error;
+        
+        setMessage({ type: 'default', text: `Verification link dispatched to ${resetEmail}` });
+        setTimeout(() => setView('LOGIN'), 5000);
+      } catch (err: any) {
+        setMessage({ type: 'destructive', text: err.message || 'Failed to send reset email.' });
+      } finally {
+        setLoading(false);
+      }
   };
 
   return (
@@ -213,9 +223,10 @@ const Login: React.FC<Props> = ({ onLogin, onShowRegistration }) => {
                       size="sm"
                       className="text-[10px] h-8 font-bold border-indigo-100 text-indigo-600 hover:bg-indigo-50"
                       onClick={() => {
-                        setEmail('admin@roadmaster.os');
+                        setEmail('admin@myroad.app');
                         setPassword('admin123');
-                        toast.info("Admin credentials loaded. Click Continue.");
+                        setMessage({ type: 'default', text: 'Admin credentials loaded. Click Continue to sign in.' });
+                        toast.info("Admin credentials loaded.");
                       }}
                     >
                       Admin Demo

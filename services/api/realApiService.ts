@@ -1,7 +1,6 @@
 // services/api/realApiService.ts
 import { Project, User, Message, AppSettings, SyncOperation, StaffLocation } from '../../types';
 import { offlineStorage } from '../database/offlineStorage';
-import { encryptionUtils } from '../../utils/data/encryptionUtils';
 import { LocalStorageUtils } from '../../utils/data/localStorageUtils';
 import { SyncService } from './syncService';
 
@@ -21,7 +20,7 @@ const CACHE_CONFIG: Record<string, number> = {
  * - Automatic retry for 5xx errors
  * - Resource-specific memory caching for GET requests
  * - Offline-first fallback using IndexedDB
- * - JWT Token injection from localStorage (encrypted)
+ * - Supabase JWT Token injection from session
  * - Conflict resolution support via timestamps
  * - Background sync queue for offline mutations
  */
@@ -29,7 +28,6 @@ class RealApiService {
   private static instance: RealApiService;
   private cache: Map<string, { data: any, timestamp: number }> = new Map();
   private lastSyncTime: number = 0;
-  private isRefreshing: boolean = false;
 
   constructor() {
     // Private constructor for singleton
@@ -51,77 +49,42 @@ class RealApiService {
   }
 
   /**
-   * Internal fetch wrapper with retry logic and automatic token refresh
+   * Internal fetch wrapper with retry logic and automatic token refresh via Supabase
    * @param endpoint - API endpoint path
    * @param options - Request options
    * @param retries - Number of retry attempts for server errors
    */
   private async fetchWithRetry<T>(endpoint: string, options?: RequestInit, retries = 3): Promise<T> {
     try {
-      // Guard: Don't perform recursive retries or automatic refreshes for auth endpoints
-      // We check for /auth at the start or with query params to catch both /auth/ and /auth?
-      if (endpoint === '/auth' || endpoint.startsWith('/auth?') || endpoint.startsWith('/auth/')) {
-        const response = await fetch(`/api${endpoint}`, {
-          ...options,
-          headers: { 'Content-Type': 'application/json', ...options?.headers as any },
-          credentials: 'include',
-        });
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `Auth request failed with status ${response.status}`);
-        }
-        return response.json();
-      }
-
-      const encryptedToken = localStorage.getItem('roadmaster-token');
-      const token = encryptedToken ? encryptionUtils.decrypt<string>(encryptedToken) : null;
-      const csrfToken = localStorage.getItem('roadmaster-csrf-token');
+      // Dynamic import to avoid circular dependencies or early init issues
+      const { supabase } = await import('../../lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         ...options?.headers as Record<string, string>,
       };
 
-      if (token) {
+      // Add Authorization for all API endpoints if token is available, unless it's a known public endpoint
+      if (token && !endpoint.startsWith('/health')) { // Assuming /health is public and doesn't need auth
         headers['Authorization'] = `Bearer ${token}`;
+        console.log(`[API] Sending token of length ${token.length} for ${endpoint}`);
+      } else if (token) {
+        console.log(`[API] Skipping token for public endpoint: ${endpoint}`); // If token exists but endpoint is public
       }
-
-      if (csrfToken && options?.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method)) {
-        headers['X-CSRF-Token'] = csrfToken;
-      }
-
       const response = await fetch(`/api${endpoint}`, {
         ...options,
         headers,
         credentials: (options as any)?.credentials ?? 'include',
       });
 
-      if (response.status === 401 && !this.isRefreshing) {
-        // Token expired, try to refresh
-        this.isRefreshing = true;
-        try {
-          const refreshResult = await this.refreshToken();
-          if (refreshResult.success) {
-            this.isRefreshing = false;
-            // Retry the original request with the new token
-            return this.fetchWithRetry(endpoint, options, retries);
-          } else {
-            this.handleAuthFailure();
-          }
-        } catch (refreshError) {
-          console.error('Failed to refresh token automatically');
-          this.handleAuthFailure();
-        } finally {
-          this.isRefreshing = false;
-        }
+      if (response.status === 401) {
+        // If we get 401, the Supabase session might be genuinely invalid
+        window.dispatchEvent(new CustomEvent('roadmaster-auth-failure'));
       }
 
       if (!response.ok) {
-        // Handle persistent 401s
-        if (response.status === 401) {
-          this.handleAuthFailure();
-        }
-
         // Only retry on 5xx errors
         if (retries > 0 && response.status >= 500) {
           await new Promise(resolve => setTimeout(resolve, 1000));
@@ -129,6 +92,7 @@ class RealApiService {
         }
         
         const errorData = await response.json().catch(() => ({}));
+        console.error(`[API Error] ${endpoint}:`, errorData);
         const error: any = new Error(errorData.error || `API request failed with status ${response.status}`);
         error.response = { data: errorData };
         error.status = response.status;
@@ -146,18 +110,6 @@ class RealApiService {
       }
       throw error;
     }
-  }
-
-  /**
-   * Helper to handle persistent authentication failures
-   */
-  private handleAuthFailure(): void {
-    // Clear local auth state to stop the 401 loop
-    localStorage.removeItem('roadmaster-authenticated');
-    localStorage.removeItem('roadmaster-token');
-    
-    // Dispatch a custom event that useAuth can listen to
-    window.dispatchEvent(new CustomEvent('roadmaster-auth-failure'));
   }
 
   /**
@@ -207,27 +159,23 @@ class RealApiService {
       }
 
       return data;
-    } catch (error: any) { // Added type annotation for 'error'
+    } catch (error: any) {
       // 5. Try Offline Storage Fallback
       if (options?.method === 'GET') {
         const offlineEntry = await offlineStorage.getItem<{data: T, timestamp: number}>(cacheKey);
         if (offlineEntry !== undefined) {
           console.log(`[API] Serving offline data for: ${endpoint}`);
-          // Optionally, could indicate to the UI that offline data is being used
-          // e.g., by dispatching an event or returning a specific flag
           return (offlineEntry as any).data || offlineEntry;
         }
       }
       
-      // Enhance error message for network issues or when offline fallback fails
-      if (!navigator.onLine || error.message.includes('Failed to fetch')) { // Check if it's likely a network issue
+      if (!navigator.onLine || error.message.includes('Failed to fetch')) {
           const networkError = new Error('Network error: Could not reach the server. Please check your connection.');
           networkError.name = 'NetworkRequestError';
-          networkError.stack = error.stack; // Preserve original stack if useful
+          networkError.stack = error.stack;
           throw networkError;
       }
 
-      // Re-throw original error if it's not a network issue or if offline fallback failed
       throw error; 
     }
   }
@@ -294,23 +242,14 @@ class RealApiService {
     return sanitized;
   }
 
-  /**
-   * Fetches projects from the database with pagination
-   */
   async getProjects(page = 1, limit = 50): Promise<{ data: Project[], pagination: any }> {
     return this.fetchApi<{ data: Project[], pagination: any }>(`/projects?page=${page}&limit=${limit}`, { method: 'GET' }, true);
   }
 
-  /**
-   * Fetches a single project by ID
-   */
   async getProject(id: string): Promise<Project> {
     return this.fetchApi<Project>(`/projects?id=${id}`, { method: 'GET' }, true);
   }
 
-  /**
-   * Creates a new project
-   */
   async createProject(projectData: Partial<Project>): Promise<Project> {
     return this.fetchApi<Project>('/projects', {
       method: 'POST',
@@ -318,10 +257,6 @@ class RealApiService {
     });
   }
 
-  /**
-   * Updates an existing project (binary file data is stripped before sending
-   * to avoid 413 Content Too Large — file data lives in client storage only)
-   */
   async updateProject(id: string, projectData: Partial<Project>): Promise<Project> {
     return this.fetchApi<Project>(`/projects?id=${id}`, {
       method: 'PUT',
@@ -329,9 +264,6 @@ class RealApiService {
     });
   }
 
-  /**
-   * Updates specific fields of an existing project (granular update)
-   */
   async patchProject(id: string, patchData: Partial<Project>): Promise<Project> {
     return this.fetchApi<Project>(`/projects?id=${id}`, {
       method: 'PATCH',
@@ -339,15 +271,9 @@ class RealApiService {
     });
   }
 
-  /**
-   * Deletes a project
-   */
   async deleteProject(id: string): Promise<void> {
-    // 1. Fetch project to get file IDs for cleanup
     try {
       const project = await this.getProject(id);
-      
-      // 2. Cleanup files in background (don't block project deletion)
       const fileIds: string[] = [];
       if (project.documents) {
         project.documents.forEach((doc: any) => {
@@ -359,8 +285,6 @@ class RealApiService {
           if (photo.fileId) fileIds.push(photo.fileId);
         });
       }
-
-      // Cleanup files
       for (const fileId of fileIds) {
         this.deleteFile(fileId).catch(err => console.error(`Failed to cleanup file ${fileId}:`, err));
       }
@@ -373,85 +297,30 @@ class RealApiService {
     });
   }
 
-  /**
-   * Updates current user's location in a project
-   */
   async updateStaffLocation(projectId: string, latitude: number, longitude: number): Promise<{ success: boolean, location: StaffLocation }> {
     return this.fetchWithRetry<{ success: boolean, location: StaffLocation }>(`/projects?id=${projectId}&action=update-location`, {
       method: 'PATCH',
       body: JSON.stringify({ latitude, longitude }),
-    }, 0); // Don't retry location updates
+    }, 0); 
   }
 
   // --- User Management ---
 
-  /**
-   * Fetches all users (Admin only)
-   */
   async getUsers(): Promise<User[]> {
     return this.fetchApi<User[]>('/users', { method: 'GET' }, true);
   }
 
-  /**
-   * Authenticates a user and returns a JWT token
-   */
-  async loginUser(email: string, password: string): Promise<{ success: boolean; user?: User; message?: string; csrfToken?: string }> {
-    const result = await this.fetchApi<{ success: boolean; user?: User; message?: string; csrfToken?: string }>('/auth?action=login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (result.success && result.csrfToken) {
-      localStorage.setItem('roadmaster-csrf-token', result.csrfToken);
-    }
-
-    return result;
+  async heartbeat(): Promise<void> {
+    if (!navigator.onLine) return;
+    return this.fetchApi<void>('/users?action=heartbeat', { method: 'POST' });
   }
 
-  /**
-   * Refreshes the current JWT token
-   */
-  async refreshToken(): Promise<{ success: boolean; token?: string }> {
-    try {
-      const result = await this.fetchApi<{ success: boolean; token?: string }>('/auth?action=refresh', {
-        method: 'POST',
-      });
-
-      if (result.success && result.token) {
-        const encryptedToken = encryptionUtils.encrypt(result.token);
-        try {
-          localStorage.setItem('roadmaster-token', encryptedToken);
-        } catch (storageError) {
-          if (storageError instanceof DOMException && (storageError.name === 'QuotaExceededError' || storageError.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
-            console.error('Storage full during token refresh. Cleaning up...');
-            LocalStorageUtils.emergencyCleanup();
-            try {
-              localStorage.setItem('roadmaster-token', encryptedToken);
-            } catch (retryError) {
-              console.error('Critical: Storage still full after cleanup');
-            }
-          }
-        }
-      }
-
-      return result;
-    } catch (error) {
-      console.error('Manual token refresh failed');
-      return { success: false };
-    }
-  }
   // --- Registration Management ---
 
-  /**
-   * Fetches pending registrations
-   */
   async getPendingRegistrations(): Promise<any[]> {
     return this.fetchApi<any[]>('/registrations', { method: 'GET' }, true);
   }
 
-  /**
-   * Submits a new user registration request
-   */
   async submitRegistration(data: any): Promise<any> {
     return this.fetchApi<any>('/registrations', {
       method: 'POST',
@@ -459,27 +328,18 @@ class RealApiService {
     });
   }
 
-  /**
-   * Approves a pending registration
-   */
   async approveRegistration(id: string): Promise<User> {
     return this.fetchApi<User>(`/registrations?id=${id}&action=approve`, {
       method: 'POST',
     });
   }
 
-  /**
-   * Rejects a pending registration
-   */
   async rejectRegistration(id: string): Promise<void> {
     return this.fetchApi<void>(`/registrations?id=${id}&action=reject`, {
       method: 'POST',
     });
   }
 
-  /**
-   * Creates a new user directly
-   */
   async createUser(userData: Partial<User>): Promise<User> {
     return this.fetchApi<User>('/users', {
       method: 'POST',
@@ -487,9 +347,6 @@ class RealApiService {
     });
   }
 
-  /**
-   * Updates an existing user
-   */
   async updateUser(id: string, userData: Partial<User>): Promise<User> {
     return this.fetchApi<User>(`/users?id=${id}`, {
       method: 'PUT',
@@ -497,9 +354,6 @@ class RealApiService {
     });
   }
 
-  /**
-   * Deletes a user
-   */
   async deleteUser(id: string): Promise<void> {
     return this.fetchApi<void>(`/users?id=${id}`, {
       method: 'DELETE',
@@ -508,16 +362,10 @@ class RealApiService {
 
   // --- Staff Management ---
 
-  /**
-   * Fetches all items for a staff category
-   */
   async getStaffData(category: string): Promise<any[]> {
     return this.fetchApi<any[]>(`/staff?category=${category}`, { method: 'GET' }, true);
   }
 
-  /**
-   * Saves staff item (create or update)
-   */
   async saveStaffData(category: string, data: any): Promise<any> {
     const isUpdate = data.id && !data.id.startsWith('temp-');
     return this.fetchApi<any>(`/staff?category=${category}${isUpdate ? `&id=${data.id}` : ''}`, {
@@ -526,48 +374,18 @@ class RealApiService {
     });
   }
 
-  /**
-   * Deletes a staff item
-   */
   async deleteStaffData(category: string, id: string): Promise<void> {
     return this.fetchApi<void>(`/staff?category=${category}&id=${id}`, {
       method: 'DELETE',
     });
   }
 
-  /**
-   * Fetches all leave requests (legacy support)
-   */
-  async getLeaveRequests(): Promise<any[]> {
-    return this.getStaffData('leave-requests');
-  }
-
-  /**
-   * Creates a new leave request (legacy support)
-   */
-  async createLeaveRequest(leaveData: any): Promise<any> {
-    return this.saveStaffData('leave-requests', leaveData);
-  }
-
-  /**
-   * Updates an existing leave request (legacy support)
-   */
-  async updateLeaveRequest(id: string, leaveData: any): Promise<any> {
-    return this.saveStaffData('leave-requests', { ...leaveData, id });
-  }
-
-  /**
-   * Health check for the API
-   */
   async healthCheck(): Promise<{ status: string; message: string }> {
     return this.fetchApi<{ status: string; message: string }>('/health');
   }
 
   // --- Audit Logging ---
 
-  /**
-   * Fetches audit logs from the backend (Admin only)
-   */
   async getAuditLogs(filters?: { userId?: string, action?: string, entityType?: string, limit?: number, offset?: number }): Promise<{ logs: any[], total: number }> {
     const query = new URLSearchParams();
     if (filters?.userId) query.append('userId', filters.userId);
@@ -579,9 +397,6 @@ class RealApiService {
     return this.fetchApi<{ logs: any[], total: number }>(`/audit?${query.toString()}`, { method: 'GET' });
   }
 
-  /**
-   * Submits an audit log to the backend
-   */
   async submitAuditLog(log: any): Promise<any> {
     return this.fetchApi<any>('/audit', {
       method: 'POST',
@@ -591,9 +406,6 @@ class RealApiService {
 
   // --- Message Management ---
 
-  /**
-   * Fetches messages for a project
-   */
   async getMessages(projectId: string, receiverId?: string, after?: string): Promise<Message[]> {
     const query = new URLSearchParams({ projectId });
     if (receiverId) query.append('receiverId', receiverId);
@@ -602,9 +414,6 @@ class RealApiService {
     return this.fetchApi<Message[]>(`/messages?${query.toString()}`, { method: 'GET' }, true);
   }
 
-  /**
-   * Sends a new message
-   */
   async sendMessage(messageData: { 
     content: string, 
     receiverId: string, 
@@ -616,38 +425,21 @@ class RealApiService {
     return this.fetchWithRetry<Message>('/messages', {
       method: 'POST',
       body: JSON.stringify(messageData),
-    }, 0); // No retries for messages to avoid duplicates, or handled by caller
+    }, 0); 
   }
 
-  /**
-   * Updates a message's status (read or delivered)
-   */
   async updateMessageStatus(messageId: string, status: 'read' | 'delivered'): Promise<void> {
     return this.fetchWithRetry<void>(`/messages?messageId=${messageId}&action=${status}`, {
       method: 'PUT',
     }, 1);
   }
 
-  /**
-   * Marks a message as read (legacy)
-   */
   async markMessageAsRead(messageId: string): Promise<void> {
     return this.updateMessageStatus(messageId, 'read');
   }
 
-  /**
-   * Heartbeat to update lastSeen status
-   */
-  async heartbeat(): Promise<void> {
-    if (!navigator.onLine) return;
-    return this.fetchApi<void>('/users?action=heartbeat', { method: 'POST' });
-  }
-
   // --- File Management ---
 
-  /**
-   * Uploads a file to the dedicated binary store
-   */
   async uploadFile(fileData: { 
     name: string; 
     contentType: string; 
@@ -666,27 +458,18 @@ class RealApiService {
     });
   }
 
-  /**
-   * Deletes a file from the binary store
-   */
   async deleteFile(fileId: string): Promise<void> {
     return this.fetchApi<void>(`/files?id=${fileId}`, {
       method: 'DELETE',
     });
   }
 
-  /**
-   * Generates the API URL for a file ID
-   */
   getFileUrl(fileId: string): string {
     return `/api/files?id=${fileId}`;
   }
 
   // --- Road Management ---
 
-  /**
-   * Ingests a KML file into structured road data
-   */
   async ingestRoadKml(projectId: string, roadName: string, kmlContent: string): Promise<{ success: boolean, road: any }> {
     return this.fetchApi<{ success: boolean, road: any }>(`/roads?action=ingest&projectId=${projectId}`, {
       method: 'POST',

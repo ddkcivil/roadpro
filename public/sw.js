@@ -1,4 +1,4 @@
-const CACHE_NAME = 'roadmaster-v10';
+const CACHE_NAME = 'roadmaster-v11';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -56,9 +56,16 @@ async function fetchAndCache(request, cacheName) {
 // Fetch Event - Strategy implementation
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  if (request.method !== 'GET') return;
-
   const url = new URL(request.url);
+  
+  // Bypass service worker for Vite HMR requests
+  if (url.pathname.includes('@vite') || 
+      url.pathname.includes('__vite_ping') || 
+      url.protocol === 'ws:') {
+    return;
+  }
+  
+  if (request.method !== 'GET') return;
 
   // Strategy for Navigation (HTML): Network First, then fallback to Cache
   if (request.mode === 'navigate' || (request.headers.get('accept') || '').includes('text/html')) {
@@ -74,8 +81,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Strategy for API calls: Network First, then fallback to Cache
-  if (url.pathname.startsWith('/api/') || url.hostname.includes('api.open-meteo.com')) {
+  // Strategy for API calls: Network ONLY (no cache for dynamic data/auth)
+  if (url.pathname.startsWith('/api/')) {
+    // We don't call respondWith for API calls to let them bypass SW entirely
+    // Or we can respondWith a direct fetch without caching
+    return; 
+  }
+
+  // Strategy for Open Meteo (Weather): Network First, then fallback to Cache
+  if (url.hostname.includes('api.open-meteo.com')) {
     event.respondWith(
       (async () => {
         try {
@@ -83,12 +97,7 @@ self.addEventListener('fetch', (event) => {
         } catch (error) {
           const cached = await caches.match(request);
           if (cached) return cached;
-          
-          // Return a synthetic error response for API calls if offline and not cached
-          return new Response(JSON.stringify({ error: 'Offline', details: 'Network request failed' }), {
-            status: 503,
-            headers: { 'Content-Type': 'application/json' }
-          });
+          return new Response(JSON.stringify({ error: 'Offline' }), { status: 503 });
         }
       })()
     );

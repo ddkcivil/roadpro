@@ -1,5 +1,6 @@
 
-import 'dotenv/config';
+import { config } from 'dotenv';
+config({ override: true });
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;

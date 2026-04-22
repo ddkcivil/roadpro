@@ -8,10 +8,10 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "NodeNext",
-    "outDir": "./dist",
+    "outDir": ".",
     "rootDir": "./",
     "allowJs": true,
-    "noEmit": true
+    "noEmit": false
   },
   "include": ["./**/*.ts"],
   "exclude": ["node_modules"]

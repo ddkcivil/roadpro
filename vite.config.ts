@@ -9,19 +9,17 @@ export default defineConfig(({ mode }) => {
     server: {
       host: 'localhost',
       logLevel: 'silent',
-      port: Number(process.env.PORT) || 3003,
+      port: 3000,
+      strictPort: true,
       proxy: {
         '/api': {
-          target: 'http://localhost:3000',
+          target: 'http://localhost:3001',
           changeOrigin: true,
           secure: false,
         },
       },
-      strictPort: false,
       hmr: process.env.VERCEL ? false : {
-        overlay: true,
-        protocol: 'ws',
-        host: 'localhost',
+        overlay: true
       },
       watch: {
         usePolling: true,
@@ -40,8 +38,6 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, '.'),
         '~': path.resolve(__dirname, '.'),
-        'react': path.resolve(__dirname, './node_modules/react'),
-        'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
         'pdfjs-dist/build/pdf.worker.min.mjs': 'pdfjs-worker/pdf.worker.min.mjs',
       }
     },

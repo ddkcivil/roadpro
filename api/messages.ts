@@ -2,124 +2,117 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { supabaseAdmin } from './_utils/supabaseClient.js';
 import { withErrorHandler } from './_utils/errorHandler.js';
 import { withAuth } from './_utils/auth.js';
-import { v4 as uuidv4 } from 'uuid';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
-  // Assuming 'messages' table in Supabase with columns like:
-  // id (UUID, primary key, auto-generated)
-  // project_id (TEXT)
-  // sender_id (TEXT)
-  // receiver_id (TEXT)
-  // content (TEXT)
-  // timestamp (TIMESTAMPTZ)
-  // read (BOOLEAN)
-  // attachment_url (TEXT)
-  // attachment_name (TEXT)
-  // attachment_type (TEXT)
+  const { projectId, receiverId, after } = req.query;
+  const currentUser = (req as any).user;
 
-  return withAuth(async (req: any, res: VercelResponse) => {
-    const { projectId, receiverId, after } = req.query;
-    const currentUser = req.user;
-
-    if (req.method === 'GET') {
-      if (!projectId || typeof projectId !== 'string') {
-        return res.status(400).json({ error: 'projectId is required' });
-      }
-
-      let queryBuilder = supabaseAdmin.from('messages').select('*');
-
-      // Apply project filter
-      queryBuilder = queryBuilder.eq('projectId', projectId);
-
-      // Apply receiver filter (general or private chat)
-      if (receiverId) {
-        if (receiverId === 'general') {
-          queryBuilder = queryBuilder.eq('receiverId', 'general');
-        } else {
-          // Private chat: messages where sender and receiver match currentUser and receiverId in any order
-          queryBuilder = queryBuilder.or(`and("senderId".eq.${currentUser.userId},"receiverId".eq.${receiverId}),and("senderId".eq.${receiverId},"receiverId".eq.${currentUser.userId})`);
-        }
-      } else {
-        // All messages for the project that the user is involved in (sender or receiver or general)
-        queryBuilder = queryBuilder.or(`"receiverId".eq.general,"senderId".eq.${currentUser.userId},"receiverId".eq.${currentUser.userId}`);
-      }
-
-      // Apply timestamp filter for 'after'
-      if (after && typeof after === 'string') {
-        queryBuilder = queryBuilder.gt('timestamp', after);
-      }
-
-      // Apply sorting and pagination
-      const limitNum = parseInt(req.query.limit as string) || 100;
-      const offsetNum = parseInt(req.query.offset as string) || 0;
-      queryBuilder = queryBuilder.order('timestamp', { ascending: true }) // Fetching older messages first for chat history
-                                .limit(limitNum)
-                                .range(offsetNum, offsetNum + limitNum - 1);
-
-      const { data: messages, error } = await queryBuilder;
-      if (error) throw error;
-
-      return res.status(200).json(messages || []);
+  if (req.method === 'GET') {
+    if (!projectId || typeof projectId !== 'string') {
+      return res.status(400).json({ error: 'projectId is required' });
     }
 
-    if (req.method === 'POST') {
-      console.log('Received message POST request:', { ...req.body, attachmentUrl: req.body.attachmentUrl ? '(truncated)' : undefined });
-      const { content, receiverId, projectId, attachmentUrl, attachmentName, attachmentType } = req.body;
+    let queryBuilder = supabaseAdmin.from('messages').select('*');
 
-      if ((!content || content.trim() === '') && !attachmentUrl) {
-        return res.status(400).json({ error: 'Message content or attachment is required' });
+    // Apply project filter
+    queryBuilder = queryBuilder.eq('project_id', projectId);
+
+    // Apply receiver filter (general or private chat)
+    if (receiverId) {
+      if (receiverId === 'general') {
+        queryBuilder = queryBuilder.eq('receiver_id', 'general');
+      } else {
+        // Private chat: messages between currentUser and receiverId
+        queryBuilder = queryBuilder.or(
+          `and(sender_id.eq.${currentUser.userId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${currentUser.userId})`
+        );
       }
+    } else {
+      // All relevant messages for the project
+      queryBuilder = queryBuilder.or(
+        `receiver_id.eq.general,sender_id.eq.${currentUser.userId},receiver_id.eq.${currentUser.userId}`
+      );
+    }
 
-      if (!receiverId || !projectId) {
-        return res.status(400).json({ error: 'receiverId and projectId are required' });
-      }
+    // Apply timestamp filter for 'after'
+    if (after && typeof after === 'string') {
+      queryBuilder = queryBuilder.gt('timestamp', after);
+    }
 
+    // Apply sorting and pagination
+    const limitNum = parseInt(req.query.limit as string) || 100;
+    const offsetNum = parseInt(req.query.offset as string) || 0;
+    
+    // Use range for pagination, it includes limit implicitly
+    queryBuilder = queryBuilder
+      .order('timestamp', { ascending: true })
+      .range(offsetNum, offsetNum + limitNum - 1);
+
+    try {
+      const { data, error } = await queryBuilder;
+      if (error) throw error;
+      return res.status(200).json(data || []);
+    } catch (queryError: any) {
+      console.error('Messages query failed:', queryError);
+      return res.status(500).json({ error: 'Failed to fetch messages', details: queryError.message });
+    }
+  }
+
+  if (req.method === 'POST') {
+    const { content, receiverId: bodyReceiverId, projectId: bodyProjectId, attachmentUrl, attachmentName, attachmentType } = req.body;
+
+    if ((!content || content.trim() === '') && !attachmentUrl) {
+      return res.status(400).json({ error: 'Message content or attachment is required' });
+    }
+
+    if (!bodyReceiverId || !bodyProjectId) {
+      return res.status(400).json({ error: 'receiverId and projectId are required' });
+    }
+
+    try {
+      const { data: newMessage, error } = await supabaseAdmin
+        .from('messages')
+        .insert([{
+          sender_id: currentUser.userId,
+          receiver_id: bodyReceiverId,
+          content: content || '',
+          project_id: bodyProjectId,
+          timestamp: new Date().toISOString(),
+          read: false,
+          attachment_url: attachmentUrl || null,
+          attachment_name: attachmentName || null,
+          attachment_type: attachmentType || null,
+        }])
+        .select('*')
+        .single();
+
+      if (error) throw error;
+      return res.status(201).json(newMessage);
+    } catch (error: any) {
+      console.error('Error creating message:', error);
+      return res.status(500).json({ error: 'Failed to create message', details: error.message });
+    }
+  }
+
+  if (req.method === 'PUT') {
+    const { messageId, action } = req.query;
+    if (action === 'read' && messageId && typeof messageId === 'string') {
       try {
-        const { data: newMessage, error } = await supabaseAdmin
+        const { error } = await supabaseAdmin
           .from('messages')
-          .insert([{
-            senderId: currentUser.userId,
-            receiverId,
-            content: content || '',
-            projectId,
-            timestamp: new Date().toISOString(),
-            read: false,
-            attachmentUrl,
-            attachmentName,
-            attachmentType
-          }])
-          .select('*') // Return the inserted row
-          .single(); // Expect a single row
+          .update({ read: true, read_at: new Date().toISOString() })
+          .eq('id', messageId)
+          .eq('receiver_id', currentUser.userId);
 
         if (error) throw error;
-
-        console.log('Message created successfully:', newMessage.id);
-        return res.status(201).json(newMessage);
+        return res.status(200).json({ success: true });
       } catch (error: any) {
-        console.error('Error creating message:', error);
-        return res.status(500).json({ error: 'Failed to create message', details: error.message });
+        return res.status(500).json({ error: 'Failed to mark message as read', details: error.message });
       }
     }
+  }
 
-    if (req.method === 'PUT') {
-        const { messageId, action } = req.query;
-        if (action === 'read' && messageId && typeof messageId === 'string') {
-            // Update message to read status for the current user
-            const { error } = await supabaseAdmin
-                .from('messages')
-                .update({ read: true, readAt: new Date().toISOString() }) // Added readAt timestamp
-                .eq('id', messageId)
-                .eq('receiverId', currentUser.userId); // Ensure only the receiver can mark as read
-            
-            if (error) throw error;
-            
-            return res.status(200).json({ success: true });
-        }
-        // Handle other PUT actions if necessary
-    }
-
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  })(req, res);
+  return res.status(405).json({ error: 'Method Not Allowed' });
 };
 
-export default withErrorHandler(handler);
+export default withErrorHandler(withAuth(handler));

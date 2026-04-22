@@ -203,8 +203,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
       try {
         // --- Supabase Integration ---
         const { error } = await supabase
-          .from('staffLocations') // Assuming a table named 'staffLocations'
-
+          .from('staff_locations') // Updated to use snake_case table name
           .upsert([ // Use upsert to either insert or update
             {
               project_id: projectId,
@@ -238,7 +237,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
         .from('projects')
 
         .select('*') // Select all columns, adjust as needed
-        .order('created_at', { ascending: false }); // Example: order by creation date
+        .order('created_at', { ascending: false }); // Order by creation date
 
       if (error) throw error;
 
@@ -289,6 +288,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
       ...project,
       id: targetProjectId || `proj-${Date.now()}`, // Use Date.now() as a fallback ID generator, or consider uuidv4
       updatedAt: new Date().toISOString(),
+      contractNo: undefined, // Added to resolve Supabase schema mismatch error; needs proper handling if it's a required field.
     } as Project;
 
     if (!completeProjectData.name || !completeProjectData.client) {

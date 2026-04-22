@@ -42,11 +42,29 @@ export const sqliteService = {
       
       if (key === 'roadmaster-settings') {
         const updatedSettings = { ...arr, ...record };
-        localStorage.setItem(key, JSON.stringify(updatedSettings));
+        try {
+          localStorage.setItem(key, JSON.stringify(updatedSettings));
+        } catch (e: any) {
+          if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+            const { LocalStorageUtils } = await import('../../utils/data/localStorageUtils');
+            LocalStorageUtils.emergencyCleanup();
+            // Try one more time after cleanup
+            localStorage.setItem(key, JSON.stringify(updatedSettings));
+          } else throw e;
+        }
         console.debug('[sqliteService] Updated settings in localStorage fallback.');
       } else {
         arr.push(record);
-        localStorage.setItem(key, JSON.stringify(arr));
+        try {
+          localStorage.setItem(key, JSON.stringify(arr));
+        } catch (e: any) {
+          if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+             const { LocalStorageUtils } = await import('../../utils/data/localStorageUtils');
+             LocalStorageUtils.emergencyCleanup();
+             // Just store the last record if still failing, to avoid infinite loop or data loss
+             localStorage.setItem(key, JSON.stringify([record]));
+          } else throw e;
+        }
       }
     } catch (err) {
       console.error('[sqliteService] insert shim error:', err);

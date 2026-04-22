@@ -14,8 +14,8 @@ ON CONFLICT (id) DO NOTHING;
 -- Sample Projects
 INSERT INTO public.projects (id, name, description, owner_id, created_at)
 VALUES 
-  ('proj-001', 'Highway N1 Rehabilitation', '50km asphalt resurfacing project', '00000000-0000-0000-0000-000000000000', NOW()),
-  ('proj-002', 'Rural Road Network', 'Gravel road construction phase 2', '11111111-1111-1111-1111-111111111111', NOW())
+  ('00000000-0000-0000-0000-000000000001', 'Highway N1 Rehabilitation', '50km asphalt resurfacing project', '00000000-0000-0000-0000-000000000000', NOW()),
+  ('00000000-0000-0000-0000-000000000002', 'Rural Road Network', 'Gravel road construction phase 2', '11111111-1111-1111-1111-111111111111', NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- Sample Roads (simplified)

@@ -37,7 +37,6 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       
       if (countError) throw countError;
 
-      // Fetch projects with pagination
       const { data: projects, error: fetchError } = await supabaseAdmin
         .from('projects')
         .select('*')
@@ -84,8 +83,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .from('projects')
         .insert({
           ...projectData,
-          id: projectId, // Supabase might auto-generate ID if 'id' is serial, but explicit is safer if 'id' is text
-          updatedAt: new Date().toISOString()
+          id: projectId, 
+          updated_at: new Date().toISOString()
         })
         .select('*') // Return the inserted row
         .single(); // Expect a single row
@@ -120,7 +119,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .from('projects')
         .update({
           ...projectData,
-          updatedAt: new Date().toISOString() // Ensure updatedAt is updated
+          updated_at: new Date().toISOString() // Ensure updated_at is updated
         })
         .eq('id', id as string)
         .select('*') // Return the updated row
@@ -168,22 +167,22 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       try {
         const timestamp = new Date().toISOString();
 
-        // Upsert location data into the staffLocations table
+        // Upsert location data into the staff_locations table
         const { error } = await supabaseAdmin
-          .from('staffLocations') // Assuming a table named 'staffLocations'
+          .from('staff_locations') 
           .upsert([ // Use upsert to either insert or update
             {
-              projectId: id as string,
-              userId: userId,
+              project_id: id as string,
+              user_id: userId,
               latitude: latitude,
               longitude: longitude,
               timestamp: timestamp,
               status: 'Active', // Assuming a status field
               // userName and role might be redundant if managed by user profiles, but can be stored for quick access
-              userName: userName, 
-              userRole: userRoleForLoc
+              user_name: userName, 
+              user_role: userRoleForLoc
             }
-          ], { onConflict: 'projectId, userId' }); // Define unique constraint for upsert
+          ], { onConflict: 'project_id, user_id' }); // Define unique constraint for upsert
 
         if (error) throw error;
 
@@ -214,15 +213,15 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       delete patchData.id;
       delete patchData._id;
       delete patchData.__v;
-      delete patchData.createdAt;
-      delete patchData.updatedAt; // Let Supabase handle updatedAt if it has a trigger, or set it here
+      delete patchData.created_at;
+      delete patchData.updated_at; // Let Supabase handle updated_at if it has a trigger, or set it here
 
       // Supabase update operation for general project fields
       const { data: updatedProject, error } = await supabaseAdmin
         .from('projects')
         .update({
           ...patchData,
-          updatedAt: new Date().toISOString() // Explicitly set updatedAt
+          updated_at: new Date().toISOString() // Explicitly set updated_at
         })
         .eq('id', id as string)
         .select('*')

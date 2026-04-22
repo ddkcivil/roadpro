@@ -266,16 +266,11 @@ export const LocalStorageUtils = {
       const data = localStorage.getItem(key);
       if (data) {
         try {
-          // Backup to offline storage if possible
           const parsed = JSON.parse(data);
           offlineStorage.setItem(key, parsed);
           
-          // Clear or heavily truncate in localStorage
-          if (key === LOCAL_STORAGE_KEYS.PROJECTS) {
-            // Keep only the most recent project shell if possible, or clear
-            if (Array.isArray(parsed)) {
-              localStorage.setItem(key, JSON.stringify(parsed.slice(-1)));
-            }
+          if (key === LOCAL_STORAGE_KEYS.PROJECTS && Array.isArray(parsed)) {
+            localStorage.setItem(key, JSON.stringify(parsed.slice(-1)));
           } else {
             localStorage.removeItem(key);
           }
@@ -285,16 +280,18 @@ export const LocalStorageUtils = {
       }
     });
 
-    // 2. Clear anything else that doesn't start with 'roadmaster-auth' or 'roadmaster-token'
+    // 2. Clear anything else that is not essential
+    // We keep basic app settings but clear others
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && !key.includes('authenticated') && !key.includes('token') && !key.includes('user-role') && !key.includes('user-name') && !key.includes('user-id')) {
+      if (key && key !== LOCAL_STORAGE_KEYS.SETTINGS && !key.startsWith('sb-')) { 
+        // We preserve Supabase keys (sb-*)
         localStorage.removeItem(key);
-        i--; // Adjust index after removal
+        i--;
       }
     }
     
-    console.log('Emergency cleanup completed. LocalStorage size:', this.getStorageUsage().used, 'bytes');
+    console.log('Emergency cleanup completed.');
   },
 
   // Get total localStorage usage

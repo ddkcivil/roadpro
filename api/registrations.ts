@@ -62,10 +62,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           .insert({
             id: authUser.user.id,
             full_name: pendingReg.name,
-            email: pendingReg.email.toLowerCase(),
-            phone: pendingReg.phone,
             role: pendingReg.requestedRole,
-            avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`
+            avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`,
+            status: 'active'
           });
 
         if (profileError) throw profileError;

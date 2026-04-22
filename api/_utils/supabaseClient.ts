@@ -1,3 +1,12 @@
+import { config } from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Load from api/.env and root .env with override
+config({ path: path.join(__dirname, '..', '.env'), override: true });
+config({ path: path.join(__dirname, '..', '..', '.env'), override: true });
+
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -22,27 +31,27 @@ export const supabasePublic = createClient(
 )
 
 export const supabaseAdmin = createClient(
-  finalUrl, 
+  finalUrl,
   supabaseServiceKey || finalAnonKey
 )
 
-/**
- * Ensures Supabase is properly configured before proceeding with a request.
- * Throws an error that will be caught by withErrorHandler.
- */
 export function ensureSupabaseConfigured() {
-  if (isPlaceholder(supabaseUrl) || isPlaceholder(supabaseAnonKey)) {
+  const currentUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const currentAnon = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (isPlaceholder(currentUrl) || isPlaceholder(currentAnon)) {
     const missing = [];
-    if (isPlaceholder(supabaseUrl)) missing.push('SUPABASE_URL');
-    if (isPlaceholder(supabaseAnonKey)) missing.push('SUPABASE_ANON_KEY');
-    
+    if (isPlaceholder(currentUrl)) missing.push('SUPABASE_URL');
+    if (isPlaceholder(currentAnon)) missing.push('SUPABASE_ANON_KEY');
+
     console.error(`[CONFIG] Missing or placeholder Supabase variables: ${missing.join(', ')}`);
-    throw new Error(`CRITICAL: Supabase environment variables (${missing.join(', ')}) are missing or using placeholder values. Please check your .env file or Vercel dashboard.`);
+    console.error('[CONFIG] process.env keys:', Object.keys(process.env).filter(k => k.includes('SUPABASE')));
+    throw new Error(`CRITICAL: Supabase environment variables (${missing.join(', ')}) are missing or using placeholder values.`);
   }
-  
-  if (!supabaseUrl!.startsWith('http')) {
-    console.error(`[CONFIG] Invalid SUPABASE_URL format: "${supabaseUrl}"`);
-    throw new Error(`CRITICAL: Invalid SUPABASE_URL format: "${supabaseUrl}". It must be a valid HTTP/HTTPS URL.`);
+
+  if (!currentUrl!.startsWith('http')) {
+    console.error(`[CONFIG] Invalid SUPABASE_URL format: "${currentUrl}"`);
+    throw new Error(`CRITICAL: Invalid SUPABASE_URL format: "${currentUrl}". It must be a valid HTTP/HTTPS URL.`);
   }
 }
 
@@ -53,3 +62,4 @@ export async function setupDocumentTables() {
   // Create tables example - run manually or via migration
   console.log('Supabase tables setup - run via dashboard/SQL')
 }
+

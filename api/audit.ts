@@ -43,28 +43,31 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Invalid log data' });
       }
 
-      const { data: newLog, error } = await supabaseAdmin
-        .from('audit_logs')
-        .insert({
-          user_id: logData.userId,
-          user_name: logData.userName,
-          action: logData.action,
-          entity_type: logData.entityType,
-          entity_id: logData.entityId,
-          entity_name: logData.entityName,
-          severity: logData.severity || 'INFO',
-          metadata: logData.metadata || {},
-          timestamp: logData.timestamp || new Date().toISOString()
-        })
-        .select()
-        .single();
+      // Fire-and-forget audit logging - don't fail the request if DB issues
+      (async () => {
+        try {
+          await supabaseAdmin
+            .from('audit_logs')
+            .insert({
+              user_id: logData.userId,
+              user_name: logData.userName,
+              action: logData.action,
+              entity_type: logData.entityType,
+              entity_id: logData.entityId,
+              entity_name: logData.entityName,
+              severity: logData.severity || 'INFO',
+              metadata: logData.metadata || {},
+              timestamp: logData.timestamp || new Date().toISOString()
+            });
+        } catch (dbError: any) {
+          console.error('Audit log DB failed (continuing):', dbError);
+        }
+      })();
 
-      if (error) throw error;
-
-      return res.status(201).json(newLog);
+      return res.status(200).json({ success: true });
     } catch (error: any) {
-      console.error('Failed to save audit log:', error);
-      throw error;
+      console.error('Failed to process audit log:', error);
+      return res.status(500).json({ error: 'Audit processing failed' });
     }
   }
 

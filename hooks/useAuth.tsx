@@ -1,241 +1,142 @@
-'use client';
-
 /**
  * Authentication Hook
- * Handles user login, logout, and persistent session management.
+ * Handles user login, logout, and persistent session management using Supabase.
  */
 import { useState, useEffect, useMemo, startTransition } from 'react';
 import { UserRole, User, UserWithPermissions } from '../types';
 import { PermissionsService } from '../services/auth/permissionsService';
 import { AuditService } from '../services/analytics/auditService';
-import { encryptionUtils } from '../utils/data/encryptionUtils';
-import { LocalStorageUtils } from '../utils/data/localStorageUtils';
+import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 
 export const useAuth = () => {
-  const [userRole, setUserRole] = useState<UserRole>(() => {
-    const role = typeof localStorage !== 'undefined' ? localStorage.getItem('roadmaster-user-role') : null;
-    return (role as UserRole) || UserRole.SITE_ENGINEER;
-  });
-  
-  const [userName, setUserName] = useState(() => {
-    return typeof localStorage !== 'undefined' ? (localStorage.getItem('roadmaster-user-name') || '') : '';
-  });
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<UserRole>(UserRole.SITE_ENGINEER);
+  const [userName, setUserName] = useState('');
+  const [userPhone, setUserPhone] = useState('');
+  const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const [userPhone, setUserPhone] = useState(() => {
-    return typeof localStorage !== 'undefined' ? (localStorage.getItem('roadmaster-user-phone') || '') : '';
-  });
-  
-  const [currentUserId, setCurrentUserId] = useState<string>(() => {
-    return typeof localStorage !== 'undefined' ? (localStorage.getItem('roadmaster-current-user-id') || '') : '';
-  });
-
-  const [token, setToken] = useState<string>(() => {
-    if (typeof localStorage === 'undefined') return '';
-    const encryptedToken = localStorage.getItem('roadmaster-token');
-    if (!encryptedToken) return '';
+  // Sync profile data from Supabase 'profiles' table
+  const fetchProfile = async (userId: string) => {
     try {
-      const decrypted = encryptionUtils.decrypt<string>(encryptedToken);
-      return typeof decrypted === 'string' ? decrypted : '';
-    } catch (e) {
-      console.error('Initial token decryption failed:', e);
-      return '';
-    }
-  });
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
 
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    if (typeof localStorage === 'undefined') return false;
-    const auth = localStorage.getItem('roadmaster-authenticated') === 'true';
-    const encryptedToken = localStorage.getItem('roadmaster-token');
-    
-    if (!auth || !encryptedToken) return false;
-    
-    try {
-      const decrypted = encryptionUtils.decrypt<string>(encryptedToken);
-      return typeof decrypted === 'string' && decrypted.length > 0;
-    } catch (e) {
-      return false;
+      if (error) {
+        console.warn('[Auth] Could not fetch profile:', error.message);
+        return null;
+      }
+      return profile;
+    } catch (err) {
+      console.error('[Auth] Profile fetch error:', err);
+      return null;
     }
-  });
+  };
 
-  // Debug effect to track authentication state changes + fix inconsistent state on mount
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    // Fix 1: Validate auth state on mount (prevents hydration mismatch)
-    const validateAuthState = () => {
-      const authFlag = localStorage.getItem('roadmaster-authenticated') === 'true';
-      const encryptedToken = localStorage.getItem('roadmaster-token');
-      
-      if (authFlag && encryptedToken) {
-        try {
-          const decrypted = encryptionUtils.decrypt<string>(encryptedToken);
-          if (!decrypted || decrypted.length === 0) {
-            console.warn('Corrupted token detected. Clearing auth state.');
-            localStorage.removeItem('roadmaster-authenticated');
-            localStorage.removeItem('roadmaster-token');
-            setIsAuthenticated(false);
-            setToken('');
-            return;
-          }
-        } catch (e) {
-          console.warn('Token decryption failed. Clearing auth state.');
-          localStorage.removeItem('roadmaster-authenticated');
-          localStorage.removeItem('roadmaster-token');
-          setIsAuthenticated(false);
-          setToken('');
-          return;
-        }
-      } else if (authFlag && !encryptedToken) {
-        console.warn('Auth flag set but no token. Clearing auth state.');
-        localStorage.removeItem('roadmaster-authenticated');
-        setIsAuthenticated(false);
+    // 1. Get initial session
+    supabase.auth.getSession().then(({ data: { session } }: { data: { session: import('@supabase/supabase-js').Session | null } }) => {
+      setSession(session);
+      if (session) {
+        updateAuthState(session);
+      } else {
+        setLoading(false);
       }
-    };
+    });
 
-    validateAuthState();
-
-    const handleAuthFailure = () => {
-      console.warn('Persistent auth failure detected via event. Logging out.');
-      setIsAuthenticated(false);
-    };
-
-    window.addEventListener('roadmaster-auth-failure', handleAuthFailure);
-
-    // Only trigger inconsistent state logout if we are actually supposed to be authenticated
-    if (isAuthenticated && localStorage.getItem('roadmaster-authenticated') === 'true' && !token) {
-      const encryptedToken = localStorage.getItem('roadmaster-token');
-      if (encryptedToken) {
-        // Try one last time to decrypt before giving up
-        try {
-          const decrypted = encryptionUtils.decrypt<string>(encryptedToken);
-          if (decrypted) {
-            setToken(decrypted);
-            return;
-          }
-        } catch (e) {}
+    // 2. Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: string, session: import('@supabase/supabase-js').Session | null) => {
+      console.log(`[Auth] Event: ${_event}`);
+      setSession(session);
+      if (session) {
+        await updateAuthState(session);
+      } else {
+        clearAuthState();
       }
-      
-      console.warn('Inconsistent auth state detected: Authenticated but no token. Resetting.');
-      logout();
-    }
+    });
 
     return () => {
-      window.removeEventListener('roadmaster-auth-failure', handleAuthFailure);
+      subscription.unsubscribe();
     };
-  }, [isAuthenticated, token]);
+  }, []);
+
+  const updateAuthState = async (session: any) => {
+    const user = session.user;
+    setIsAuthenticated(true);
+    setCurrentUserId(user.id);
+    
+    // Attempt to get more info from profile table
+    const profile = await fetchProfile(user.id);
+    
+    startTransition(() => {
+      if (profile) {
+        setUserRole(profile.role as UserRole || UserRole.SITE_ENGINEER);
+        setUserName(profile.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User');
+        setUserPhone(user.user_metadata?.phone || '');
+      } else {
+        // Fallback to metadata
+        setUserRole(user.user_metadata?.role as UserRole || UserRole.SITE_ENGINEER);
+        setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'User');
+        setUserPhone(user.user_metadata?.phone || '');
+      }
+      setLoading(false);
+    });
+  };
+
+  const clearAuthState = () => {
+    startTransition(() => {
+      setIsAuthenticated(false);
+      setUserRole(UserRole.SITE_ENGINEER);
+      setUserName('');
+      setCurrentUserId('');
+      setUserPhone('');
+      setLoading(false);
+    });
+  };
 
   const currentUser = useMemo(() => {
-    // Get users from LocalStorageUtils
-    const users = LocalStorageUtils.getUsers();
-    
-    // Find user by ID or use a default user
-    let user = users.find((u: User) => u.id === currentUserId);
-    if (!user && users.length > 0) {
-      user = users[0]; // Use first user as fallback
-    }
-    
-    // If no user found, create a default user
-    if (!user) {
-      user = {
-        id: currentUserId || 'admin-001',
-        name: userName || 'User',
-        email: 'user@roadmaster.os',
-        phone: userPhone || '9779800000000',
-        role: userRole || UserRole.SITE_ENGINEER,
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(userName || 'User')}&background=random`
-      };
-    }
+    const user: User = {
+      id: currentUserId || 'guest',
+      name: userName || 'Guest',
+      email: session?.user?.email || '',
+      phone: userPhone || '',
+      role: userRole,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(userName || 'User')}&background=random`
+    };
     
     return PermissionsService.createUserWithPermissions(user);
-  }, [currentUserId, userName, userPhone, userRole]);
+  }, [currentUserId, userName, userPhone, userRole, session]);
 
-  const login = (role: UserRole, name: string, userToken?: string, userId?: string, phone?: string) => {
+  const login = async (role: UserRole, name: string, _token?: string, userId?: string, phone?: string) => {
+    // Legacy support for manual login updates if needed, 
+    // but primarily session is managed by onAuthStateChange
     startTransition(() => {
       setUserRole(role);
       setUserName(name);
+      if (userId) setCurrentUserId(userId);
       if (phone) setUserPhone(phone);
-      
-      try {
-        if (typeof localStorage !== 'undefined') {
-          // Save authentication state to localStorage
-          localStorage.setItem('roadmaster-authenticated', 'true');
-          localStorage.setItem('roadmaster-user-role', role);
-          localStorage.setItem('roadmaster-user-name', name);
-          if (phone) localStorage.setItem('roadmaster-user-phone', phone);
-          
-          if (userToken) {
-            setToken(userToken);
-            const encryptedToken = encryptionUtils.encrypt(userToken);
-            localStorage.setItem('roadmaster-token', encryptedToken);
-          }
-
-          if (userId) {
-            setCurrentUserId(userId);
-            localStorage.setItem('roadmaster-current-user-id', userId);
-          }
-        }
-
-        setIsAuthenticated(true);
-      } catch (error) {
-        if (error instanceof DOMException && (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
-          console.error('LocalStorage quota exceeded during login. Performing emergency cleanup...');
-          LocalStorageUtils.emergencyCleanup();
-          
-          // Try again after cleanup
-          try {
-            if (typeof localStorage !== 'undefined') {
-              localStorage.setItem('roadmaster-authenticated', 'true');
-              localStorage.setItem('roadmaster-user-role', role);
-              if (userToken) {
-                const encryptedToken = encryptionUtils.encrypt(userToken);
-                localStorage.setItem('roadmaster-token', encryptedToken);
-              }
-            }
-            setIsAuthenticated(true);
-          } catch (retryError) {
-            console.error('Failed to save auth state even after cleanup', retryError);
-            toast.error("Storage is full. Please clear your browser cache.");
-          }
-        }
-      }
+      setIsAuthenticated(true);
     });
   };
 
   const logout = async (selectedProjectId?: string | any, projectName?: string) => {
-    // Check if called as an event handler
     const actualProjectId = typeof selectedProjectId === 'string' ? selectedProjectId : undefined;
     const actualProjectName = typeof selectedProjectId === 'string' ? projectName : undefined;
 
     try {
       await AuditService.logLogout(currentUserId || 'unknown', userName || 'unknown', actualProjectId, actualProjectName);
+      await supabase.auth.signOut();
     } catch (e) {
-      console.error('Failed to log logout:', e);
+      console.error('Logout failed:', e);
     }
-
-    setIsAuthenticated(false);
-    setUserRole(UserRole.SITE_ENGINEER);
-    setUserName('');
-    setCurrentUserId('');
-    setToken('');
     
-    if (typeof localStorage !== 'undefined') {
-      const keysToRemove = [
-        'roadmaster-authenticated',
-        'roadmaster-user-role',
-        'roadmaster-user-name',
-        'roadmaster-user-phone',
-        'roadmaster-current-user-id',
-        'roadmaster-token',
-        'roadmaster-csrf-token'
-      ];
-      
-      keysToRemove.forEach(key => {
-        try {
-          localStorage.removeItem(key);
-        } catch (e) {}
-      });
-    }
+    clearAuthState();
+    toast.success("Logged out successfully");
   };
 
   return {
@@ -244,6 +145,8 @@ export const useAuth = () => {
     userName,
     currentUserId,
     currentUser,
+    loading,
+    session,
     login,
     logout
   };

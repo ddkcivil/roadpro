@@ -28,7 +28,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   // --- GET USERS ---
   if (req.method === 'GET') {
     try {
-      let query = supabasePublic.from('profiles').select('id, full_name, email, phone, role, avatar_url, last_seen');
+      let query = supabasePublic.from('profiles').select('id, full_name, avatar_url, role, last_seen');
 
       if (id) {
         // Fetch a specific user
@@ -61,51 +61,40 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Name, email, and password are required' });
       }
 
-      // Check if email already exists in profiles table
-      const { data: existingUser, error: checkError } = await supabasePublic
-        .from('profiles')
-        .select('id')
-        .eq('email', email.toLowerCase())
-        .single();
-
-      if (checkError && checkError.message !== 'No single row found') throw checkError; // Rethrow other errors
-      if (existingUser) {
-        return res.status(409).json({ error: 'User with this email already exists.' });
-      }
+      // Check if user already exists in Auth
+      // (Profiles doesn't have email anymore, so we check metadata or just try to create)
 
       // Create user in Supabase Auth
       const { data: newUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: email.toLowerCase(),
         password: password,
         user_metadata: {
-          name: name,
+          full_name: name,
           phone: phone,
           role: role || 'SITE_ENGINEER',
-          avatar: avatar || generateAvatarUrl(name),
+          avatar_url: avatar || generateAvatarUrl(name),
         },
+        email_confirm: true
       });
 
       if (authError) throw authError;
 
       // Insert user details into profiles table
       const { error: profileError } = await supabasePublic.from('profiles').insert({
-        id: newUser.user.id, // Supabase auth user ID
+        id: newUser.user.id,
         full_name: name,
-        email: email.toLowerCase(),
-        phone: phone,
         role: role || 'SITE_ENGINEER',
         avatar_url: avatar || generateAvatarUrl(name),
-        last_seen: new Date().toISOString(), // Initialize last_seen
+        last_seen: new Date().toISOString(),
       });
 
       if (profileError) throw profileError;
 
-      // Return created user data (excluding password)
+      // Return created user data
       const userData = {
         id: newUser.user.id,
         full_name: name,
         email: email.toLowerCase(),
-        phone: phone,
         role: role || 'SITE_ENGINEER',
         avatar_url: avatar || generateAvatarUrl(name),
         last_seen: new Date().toISOString(),
@@ -123,39 +112,15 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'User ID is required for update' });
     }
 
-    // Authorize: User can update their own profile, or admin can update any profile.
     if (userRole !== 'Admin' && userRole !== 'ADMIN' && userId !== id) {
-      return res.status(403).json({ error: 'Forbidden: You can only update your own profile or as an admin.' });
+      return res.status(403).json({ error: 'Forbidden' });
     }
 
     try {
-      const { name, email, phone, role, avatar, password } = req.body;
-
-      // Validate required fields if they are present in the body
-      if (!name || !email || !role) {
-        return res.status(400).json({ error: 'Name, email, and role are required fields for update' });
-      }
-
-      // Check if email already exists for another user
-      if (email) {
-        const { data: existingUser, error: checkError } = await supabasePublic
-          .from('profiles')
-          .select('id')
-          .eq('email', email.toLowerCase())
-          .neq('id', id) // Ensure it's not the current user's email
-          .single();
-
-        if (checkError && checkError.message !== 'No single row found') throw checkError;
-        if (existingUser) {
-          return res.status(409).json({ error: 'A user with this email already exists.' });
-        }
-      }
+      const { name, role, avatar, password } = req.body;
 
       // Update Supabase Auth user if password is changed
       if (password) {
-        if (password.length < 6) {
-          return res.status(400).json({ error: 'Password must be at least 6 characters' });
-        }
         const { error: authUpdateError } = await supabaseAdmin.auth.admin.updateUserById(id, {
           password: password,
         });
@@ -167,26 +132,20 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .from('profiles')
         .update({
           full_name: name,
-          email: email.toLowerCase(),
-          phone: phone,
           role: role,
-          avatar_url: avatar || generateAvatarUrl(name), // Ensure avatar is set, regenerate if not provided
+          avatar_url: avatar,
         })
         .eq('id', id);
 
       if (profileUpdateError) throw profileUpdateError;
 
-      // Fetch updated user data to return
       const { data: updatedUser, error: fetchError } = await supabasePublic
         .from('profiles')
-        .select('id, full_name, email, phone, role, avatar_url, last_seen')
+        .select('id, full_name, role, avatar_url, last_seen')
         .eq('id', id)
         .single();
 
-
       if (fetchError) throw fetchError;
-      if (!updatedUser) return res.status(404).json({ error: 'User not found after update' });
-
       return res.status(200).json(updatedUser);
 
     } catch (error: any) {
