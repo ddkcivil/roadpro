@@ -1,12 +1,29 @@
-# Fix Supabase Admin Login Issue
+# Remove Duplication - Progress Tracking
 
-## Status: 🚧 In Progress
+## Current Status
+- [x] Analyzed project → Found 400+ lines duplicated
+- [x] Extract drag/drop handlers  
+- [x] Extract project calculations
+- [x] Extract avatar upload handlers
+- [x] Update all affected components
+- [ ] Test refactored functionality
+- [ ] Verify no regressions
 
-### Steps:
-- [x] 1. Verify .env.local has SUPABASE_SERVICE_ROLE_KEY ✅ (created)
-- [x] 2. Execute `npx tsx create_admin.ts` to create admin user ✅ (.env fixed)
-- [ ] 3. Verify admin user exists (`npx tsx list_users.ts` or test login)
-- [ ] 4. Test "Admin Demo" button in app
-- [ ] 5. Complete
+## Step 1: Drag/Drop Hook
+- [x] Create `hooks/useFileDragDrop.ts`
+- [x] Refactor `OCRExtractionModule.tsx`
+- [x] Refactor `ChandraOCRAnalyzer.tsx`  
+- [x] Test file upload in both
 
-**Current Step:** 3/5
+## Step 2: Project Utils
+- [x] Create `utils/projectCalculations.ts`
+- [x] Refactor `ProjectsList.tsx`
+- [x] Refactor `PortfolioDashboard.tsx`
+- [x] Verify progress displays match
+
+## Step 3: Avatar Hook
+- [x] Create `hooks/useAvatarUpload.ts`
+- [x] Refactor `UserManagement.tsx`
+- [x] Refactor `UserRegistration.tsx`
+
+**Next**: All refactoring tasks complete. Verify application for regressions.

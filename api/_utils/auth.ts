@@ -11,9 +11,10 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
     token = authHeader.split(' ')[1];
   } else if (req.headers.cookie) {
     // Basic cookie parsing
-    const cookies = req.headers.cookie.split(';').reduce((acc: any, cookie) => {
+    const cookies = (req.headers.cookie || '').split(';').reduce((acc: any, cookie) => {
+      if (!cookie) return acc;
       const [name, value] = cookie.trim().split('=');
-      acc[name] = value;
+      if (name) acc[name] = value;
       return acc;
     }, {});
     

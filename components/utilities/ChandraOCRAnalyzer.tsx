@@ -15,6 +15,7 @@ import {
   Search,
   Zap
 } from 'lucide-react';
+import { useFileDragDrop } from '../../hooks/useFileDragDrop';
 import { ocrService } from '../../services/ai/ocrService';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
 import { getCurrencyOptions } from '../../utils/formatting/currencyUtils';
@@ -67,7 +68,6 @@ const ChandraOCRAnalyzer: React.FC = () => {
   const [documentType, setDocumentType] = useState<string>('');
   const [extractionMode, setExtractionMode] = useState<'full' | 'boq' | 'finance'>('full');
   const [activeTab, setActiveTab] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Clean up the preview URL when component unmounts or when a new file is uploaded
   useEffect(() => {
@@ -78,10 +78,7 @@ const ChandraOCRAnalyzer: React.FC = () => {
     };
   }, [previewUrl]);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  const handleFileSelect = async (file: File) => {
     // Validate file type
     if (!file.type.startsWith('image/') && !['application/pdf'].includes(file.type)) {
       setError('Please upload an image or PDF file');
@@ -92,6 +89,9 @@ const ChandraOCRAnalyzer: React.FC = () => {
     setDocumentType(file.type);
     
     // Create preview URL for the uploaded file
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setPreviewUrl(URL.createObjectURL(file));
     
     setFileName(file.name);
@@ -127,89 +127,50 @@ const ChandraOCRAnalyzer: React.FC = () => {
     }
   };
 
-  const generateAnalysisReport = (result: DocumentExtractionResult): OCRAnalysisReport => {
-    // Calculate summary metrics
-    const totalWords = result.rawText.split(/\s+/).length;
-    const confidence = result.confidence;
-    
-    // Extract insights
-    const keyEntities = [
-      ...(result.structuredData.contractors || []),
-      ...(result.structuredData.codes || []),
-      ...(result.structuredData.invoices || [])
-    ].slice(0, 5);
-    
-    // Financial summary
-    const amounts = result.structuredData.amounts || [];
-    const totalAmount = amounts.reduce((sum: number, amount: number) => sum + amount, 0);
-    const averageAmount = amounts.length > 0 ? totalAmount / amounts.length : 0;
-    
-    // Timeline analysis
-    const dates = result.structuredData.dates || [];
-    let earliestDate = '';
-    let latestDate = '';
-    if (dates.length > 0) {
-      dates.sort();
-      earliestDate = dates[0];
-      latestDate = dates[dates.length - 1];
-    }
-    
-    // Quality metrics (simulated for demo)
-    const qualityMetrics = {
-      textClarity: Math.min(100, Math.floor(result.confidence * 0.9)),
-      completeness: Math.min(100, Math.floor(result.confidence * 0.85)),
-      accuracy: result.confidence
-    };
+  const {
+    fileInputRef,
+    handleDragOver,
+    handleDrop,
+    triggerFileInput,
+    handleFileChange
+  } = useFileDragDrop({
+    onFileSelect: handleFileSelect,
+    accept: 'image/*,.pdf'
+  });
 
+  const generateAnalysisReport = (result: DocumentExtractionResult): OCRAnalysisReport => {
+    // Generate a structured report from the raw extraction results
     return {
       summary: {
-        totalWords,
-        confidence,
-        documentType,
+        totalWords: result.rawText.split(/\s+/).length,
+        confidence: result.confidence,
+        documentType: documentType || 'Unknown',
         extractionDate: new Date().toISOString()
       },
       insights: {
-        keyEntities,
+        keyEntities: result.structuredData?.entities || [],
         financialSummary: {
-          totalAmount,
-          averageAmount,
-          currencyTypes: getCurrencyOptions().map(opt => opt.value) // Dynamic currency options
+          totalAmount: result.structuredData?.amounts?.reduce((acc: number, cur: number) => acc + cur, 0) || 0,
+          averageAmount: result.structuredData?.amounts?.length ? 
+            (result.structuredData.amounts.reduce((acc: number, cur: number) => acc + cur, 0) / result.structuredData.amounts.length) : 0,
+          currencyTypes: Array.from(new Set(result.structuredData?.currencies || []) as any) as string[]
         },
         timeline: {
-          earliestDate,
-          latestDate
+          earliestDate: result.structuredData?.dates?.sort()[0] || '',
+          latestDate: result.structuredData?.dates?.sort().reverse()[0] || ''
         },
         relationships: {
-          contractors: result.structuredData.contractors || [],
-          projects: result.structuredData.codes || [],
-          invoices: result.structuredData.invoices || []
+          contractors: result.structuredData?.contractors || [],
+          projects: result.structuredData?.projects || [],
+          invoices: result.structuredData?.invoices || []
         }
       },
-      qualityMetrics
+      qualityMetrics: {
+        textClarity: result.confidence * 100,
+        completeness: Object.keys(result.structuredData || {}).length > 0 ? 85 : 40,
+        accuracy: result.confidence * 100
+      }
     };
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (file && fileInputRef.current) {
-      // Create a new FileList with the dropped file
-      const dataTransfer = new DataTransfer();
-      dataTransfer.items.add(file);
-      fileInputRef.current.files = dataTransfer.files;
-      
-      // Create and dispatch a change event
-      const event = new Event('change', { bubbles: true });
-      fileInputRef.current.dispatchEvent(event);
-    }
-  };
-
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
   };
 
   return (
@@ -267,7 +228,7 @@ const ChandraOCRAnalyzer: React.FC = () => {
             type="file"
             id="ocr-file-upload-input"
             ref={fileInputRef}
-            onChange={handleFileUpload}
+            onChange={handleFileChange}
             accept="image/*,.pdf"
             className="hidden"
           />

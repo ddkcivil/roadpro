@@ -50,7 +50,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
   // --- CREATE USER ---
   if (req.method === 'POST') {
-    if (userRole !== 'Admin' && userRole !== 'ADMIN') {
+    if (userRole?.toUpperCase() !== 'ADMIN') {
       return res.status(403).json({ error: 'Only admins can create users' });
     }
 
@@ -112,7 +112,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'User ID is required for update' });
     }
 
-    if (userRole !== 'Admin' && userRole !== 'ADMIN' && userId !== id) {
+    if (userRole?.toUpperCase() !== 'ADMIN' && userId !== id) {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
@@ -161,7 +161,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     }
 
     // Authorize: Only admins can delete users.
-    if (userRole !== 'Admin' && userRole !== 'ADMIN') {
+    if (userRole?.toUpperCase() !== 'ADMIN') {
       return res.status(403).json({ error: 'Forbidden: Only admins can delete users.' });
     }
 

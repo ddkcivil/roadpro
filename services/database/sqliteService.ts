@@ -38,31 +38,47 @@ export const sqliteService = {
       if (!key) return;
       
       const raw = localStorage.getItem(key) || (key === 'roadmaster-settings' ? '{}' : '[]');
-      const arr = JSON.parse(raw);
+      let data = JSON.parse(raw);
       
       if (key === 'roadmaster-settings') {
-        const updatedSettings = { ...arr, ...record };
+        const updatedSettings = { ...data, ...record };
         try {
           localStorage.setItem(key, JSON.stringify(updatedSettings));
+          console.debug(`[sqliteService] Settings updated. Size: ${(JSON.stringify(updatedSettings).length / 1024).toFixed(1)}KB`);
         } catch (e: any) {
           if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+            console.warn('[sqliteService] Settings quota exceeded, pruning...');
             const { LocalStorageUtils } = await import('../../utils/data/localStorageUtils');
             LocalStorageUtils.emergencyCleanup();
-            // Try one more time after cleanup
-            localStorage.setItem(key, JSON.stringify(updatedSettings));
+            // Retry with minimal settings
+            const minimalSettings = { last_cleanup: Date.now().toString() };
+            localStorage.setItem(key, JSON.stringify(minimalSettings));
           } else throw e;
         }
-        console.debug('[sqliteService] Updated settings in localStorage fallback.');
-      } else {
-        arr.push(record);
+        return;
+      } 
+
+      // Array tables: users, projects, messages
+      if (Array.isArray(data)) {
+        data.push(record);
+        // PRUNING: Keep only last 100 items to prevent unbounded growth
+        if (data.length > 100) {
+          data = data.slice(-100);
+          console.debug(`[sqliteService] Pruned ${key} to 100 items (was ${data.length + (data.length - 100)})`);
+        }
+        
         try {
-          localStorage.setItem(key, JSON.stringify(arr));
+          localStorage.setItem(key, JSON.stringify(data));
+          console.debug(`[sqliteService] ${key} inserted. Count: ${data.length}, Size: ${(JSON.stringify(data).length / 1024).toFixed(1)}KB`);
         } catch (e: any) {
           if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-             const { LocalStorageUtils } = await import('../../utils/data/localStorageUtils');
-             LocalStorageUtils.emergencyCleanup();
-             // Just store the last record if still failing, to avoid infinite loop or data loss
-             localStorage.setItem(key, JSON.stringify([record]));
+            console.warn(`[sqliteService] ${key} quota exceeded, aggressive prune...`);
+            const { LocalStorageUtils } = await import('../../utils/data/localStorageUtils');
+            LocalStorageUtils.emergencyCleanup();
+            // Keep only newest 50 items
+            const pruned = data.slice(-50);
+            localStorage.setItem(key, JSON.stringify(pruned));
+            console.debug(`[sqliteService] Emergency prune ${key} to ${pruned.length} items`);
           } else throw e;
         }
       }

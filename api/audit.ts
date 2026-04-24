@@ -6,7 +6,7 @@ import { withAuth } from './_utils/auth.js';
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') {
     const userRole = (req as any).user?.role;
-    if (userRole !== 'Admin' && userRole !== 'ADMIN') {
+    if (userRole?.toUpperCase() !== 'ADMIN') {
       return res.status(403).json({ error: 'Access denied. Admins only.' });
     }
 

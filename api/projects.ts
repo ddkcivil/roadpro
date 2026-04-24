@@ -62,7 +62,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   
   if (req.method === 'POST') {
     const userRole = (req as any).user?.role;
-    if (userRole !== 'Admin' && userRole !== 'ADMIN' && userRole !== 'Project Manager') {
+    const r = userRole?.toUpperCase();
+    const isProjectAuth = r === 'ADMIN' || r === 'PROJECT MANAGER' || r === 'MANAGER' || r === 'PROJECT_MANAGER';
+    if (!isProjectAuth) {
       return res.status(403).json({ error: 'Only admins or project managers can create projects' });
     }
 
@@ -99,7 +101,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   } 
   if (req.method === 'PUT') {
     const userRole = (req as any).user?.role;
-    if (userRole !== 'Admin' && userRole !== 'ADMIN' && userRole !== 'Project Manager') {
+    const r = userRole?.toUpperCase();
+    const isProjectAuth = r === 'ADMIN' || r === 'PROJECT MANAGER' || r === 'MANAGER' || r === 'PROJECT_MANAGER';
+    if (!isProjectAuth) {
       return res.status(403).json({ error: 'Only admins or project managers can update projects' });
     }
 
@@ -142,7 +146,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       const userRole = (req as any).user?.role;
       // Assuming a staffLocations table exists and manages user locations per project
       // Role check might need adjustment based on Supabase auth setup
-      if (userRole !== 'Admin' && userRole !== 'ADMIN' && userRole !== 'Project Manager' && userRole !== 'Staff') { // Added 'Staff' role for location updates
+      const r = userRole?.toUpperCase();
+      const isAuthorized = r === 'ADMIN' || r === 'PROJECT MANAGER' || r === 'MANAGER' || r === 'PROJECT_MANAGER' || r === 'STAFF';
+      if (!isAuthorized) {
         return res.status(403).json({ error: 'Only authorized personnel can update locations' });
       }
 
@@ -198,7 +204,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
     // Default PATCH for granular field updates on 'projects' table
     const userRole = (req as any).user?.role;
-    if (userRole !== 'Admin' && userRole !== 'ADMIN' && userRole !== 'Project Manager') {
+    const r = userRole?.toUpperCase();
+    const isProjectAuth = r === 'ADMIN' || r === 'PROJECT MANAGER' || r === 'MANAGER' || r === 'PROJECT_MANAGER';
+    if (!isProjectAuth) {
       return res.status(403).json({ error: 'Only admins or project managers can update projects' });
     }
 
@@ -239,7 +247,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   
   if (req.method === 'DELETE') {
     const userRole = (req as any).user?.role;
-    if (userRole !== 'Admin' && userRole !== 'ADMIN') {
+    if (userRole?.toUpperCase() !== 'ADMIN') {
       return res.status(403).json({ error: 'Only admins can delete projects' });
     }
 

@@ -19,11 +19,34 @@ export const useAppInitialization = (setLoadingStatus: (status: string) => void,
         setLoadingStatus('Initializing Local Storage...');
         await sqliteService.initialize();
         
-        setLoadingStatus('Synchronizing Local Core...');
-        await DataSyncService.syncAllToSQLite();
+        setLoadingStatus('Checking Storage Quota...');
+        // Check if we have storage quota available
+        try {
+          const quotaKey = 'roadmaster-quota-test';
+          localStorage.setItem(quotaKey, new Array(1024 * 10).join('0')); // 10KB test
+          localStorage.removeItem(quotaKey);
+        } catch (quotaErr) {
+          console.warn('[AppInit] Storage quota exceeded, skipping heavy sync');
+          setLoadingStatus('Storage Optimized - Skipping Heavy Sync');
+        }
         
         setLoadingStatus('Ready for Operation');
         setSystemReady(true);
+        
+        // Background sync - non-blocking
+        setTimeout(async () => {
+          console.log('[AppInit] Starting background data sync...');
+          try {
+            await DataSyncService.syncAllToSQLite();
+            console.log('[AppInit] Background sync completed successfully');
+          } catch (syncErr: any) {
+            if (syncErr.name === 'QuotaExceededError' || syncErr.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+              console.warn('[AppInit] Background sync skipped due to quota - using existing data');
+            } else {
+              console.error('[AppInit] Background sync failed:', syncErr);
+            }
+          }
+        }, 100);
       } catch (err) {
         console.error('Failed to initialize SQLite service:', err);
         setLoadingStatus('Initialization Error - Falling back to Legacy Storage');

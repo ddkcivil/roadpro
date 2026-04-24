@@ -15,22 +15,22 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     let queryBuilder = supabaseAdmin.from('messages').select('*');
 
     // Apply project filter
-    queryBuilder = queryBuilder.eq('project_id', projectId);
+    queryBuilder = queryBuilder.eq('projectId', projectId);
 
     // Apply receiver filter (general or private chat)
     if (receiverId) {
       if (receiverId === 'general') {
-        queryBuilder = queryBuilder.eq('receiver_id', 'general');
+        queryBuilder = queryBuilder.eq('receiverId', 'general');
       } else {
         // Private chat: messages between currentUser and receiverId
         queryBuilder = queryBuilder.or(
-          `and(sender_id.eq.${currentUser.userId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${currentUser.userId})`
+          `and(senderId.eq.${currentUser.userId},receiverId.eq.${receiverId}),and(senderId.eq.${receiverId},receiverId.eq.${currentUser.userId})`
         );
       }
     } else {
       // All relevant messages for the project
       queryBuilder = queryBuilder.or(
-        `receiver_id.eq.general,sender_id.eq.${currentUser.userId},receiver_id.eq.${currentUser.userId}`
+        `receiverId.eq.general,senderId.eq.${currentUser.userId},receiverId.eq.${currentUser.userId}`
       );
     }
 
@@ -73,15 +73,15 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       const { data: newMessage, error } = await supabaseAdmin
         .from('messages')
         .insert([{
-          sender_id: currentUser.userId,
-          receiver_id: bodyReceiverId,
+          senderId: currentUser.userId,
+          receiverId: bodyReceiverId,
           content: content || '',
-          project_id: bodyProjectId,
+          projectId: bodyProjectId,
           timestamp: new Date().toISOString(),
           read: false,
-          attachment_url: attachmentUrl || null,
-          attachment_name: attachmentName || null,
-          attachment_type: attachmentType || null,
+          attachmentUrl: attachmentUrl || null,
+          attachmentName: attachmentName || null,
+          attachmentType: attachmentType || null,
         }])
         .select('*')
         .single();
@@ -100,9 +100,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       try {
         const { error } = await supabaseAdmin
           .from('messages')
-          .update({ read: true, read_at: new Date().toISOString() })
+          .update({ read: true, readAt: new Date().toISOString() })
           .eq('id', messageId)
-          .eq('receiver_id', currentUser.userId);
+          .eq('receiverId', currentUser.userId);
 
         if (error) throw error;
         return res.status(200).json({ success: true });

@@ -9,8 +9,8 @@ if (useMock) {
   console.warn('[Supabase] Using Mock Service!');
   supabaseClient = createMockSupabaseClient();
 } else {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  const supabaseUrl = import.meta.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseAnonKey = import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
   console.log('[Supabase] Env Check:', { 
     urlLength: supabaseUrl?.length, 
@@ -21,7 +21,7 @@ if (useMock) {
   const isPlaceholder = (val: string | undefined) => !val || val.includes('your-project') || val.includes('your-anon');
 
   if (isPlaceholder(supabaseUrl) || isPlaceholder(supabaseAnonKey)) {
-    console.error('CRITICAL: Supabase environment variables are missing.');
+    console.error('CRITICAL: Supabase environment variables are missing or using placeholder values.');
     // We create a dummy client to avoid crashing on import, but auth will fail
     supabaseClient = {
       auth: { 

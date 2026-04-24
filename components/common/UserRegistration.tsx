@@ -20,6 +20,8 @@ interface UserRegistrationProps {
   onBackToLogin?: () => void;
 }
 
+import { useAvatarUpload } from '~/hooks/useAvatarUpload';
+
 const UserRegistration: React.FC<UserRegistrationProps> = ({ onBackToLogin }) => {
   const [registrationForm, setRegistrationForm] = useState({ 
     name: '', 
@@ -29,8 +31,14 @@ const UserRegistration: React.FC<UserRegistrationProps> = ({ onBackToLogin }) =>
     password: '',
     confirmPassword: ''
   });
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const { 
+    avatarFile, 
+    previewUrl, 
+    handleFileChange, 
+    clearAvatar, 
+    reset: resetAvatar 
+  } = useAvatarUpload();
+  
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -69,26 +77,10 @@ const UserRegistration: React.FC<UserRegistrationProps> = ({ onBackToLogin }) =>
         name: '', email: '', role: UserRole.SITE_ENGINEER, 
         phone: '', password: '', confirmPassword: '' 
       });
-      setAvatarFile(null);
-      setPreviewUrl(null);
+      resetAvatar();
     } catch (error: any) {
       setErrors({ email: error.message || 'Registration failed' });
     }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => { setPreviewUrl(reader.result as string); };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const clearAvatar = () => {
-    setAvatarFile(null);
-    setPreviewUrl(null);
   };
 
   if (registrationSuccess) {
@@ -197,8 +189,7 @@ const UserRegistration: React.FC<UserRegistrationProps> = ({ onBackToLogin }) =>
                   name: '', email: '', role: UserRole.SITE_ENGINEER, 
                   phone: '', password: '', confirmPassword: '' 
                 });
-                setAvatarFile(null);
-                setPreviewUrl(null);
+                resetAvatar();
               }} className="flex-1"
             >
               Clear

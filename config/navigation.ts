@@ -42,6 +42,10 @@ export interface NavGroup {
 }
 
 export const getNavigationGroups = (currentUser: User | UserWithPermissions): NavGroup[] => {
+  const userRole = (currentUser.role || '').toLowerCase();
+  const isAdmin = userRole === 'admin';
+  const isManager = userRole === 'manager' || userRole === 'project manager' || userRole === 'project_manager';
+  
   const overviewItems: NavItem[] = [
     { id: 'dashboard', label: 'Command Center', icon: LayoutDashboard }, 
     { id: 'map', label: 'GIS Alignment', icon: MapIcon },
@@ -50,32 +54,32 @@ export const getNavigationGroups = (currentUser: User | UserWithPermissions): Na
     { id: 'documents', label: 'Document Hub', icon: FolderOpen }
   ];
   
-  const userRole = currentUser.role;
-  if (userRole === UserRole.ADMIN || userRole === UserRole.PROJECT_MANAGER) {
+  const adminItems: NavItem[] = [];
+  if (isAdmin || isManager) {
     const permissions = (currentUser as UserWithPermissions).permissions || [];
     if (permissions.includes(Permission.USER_READ)) {
-      overviewItems.push({ id: 'user-management', label: 'User Management', icon: UserCheck });
-      overviewItems.push({ id: 'user-activity', label: 'User Activity', icon: ClipboardList });
+      adminItems.push({ id: 'user-management', label: 'User Management', icon: UserCheck });
+      adminItems.push({ id: 'user-activity', label: 'User Activity', icon: ClipboardList });
     }
-    overviewItems.push({ id: 'user-registration', label: 'Create Account', icon: Shield });
-    overviewItems.push({ id: 'staff-management', label: 'Staff Management', icon: Users });
+    adminItems.push({ id: 'user-registration', label: 'Create Account', icon: Shield });
+    adminItems.push({ id: 'staff-management', label: 'Staff Management', icon: Users });
   }
 
-  return [
-    { title: 'Overview', items: overviewItems },
-    { title: 'Commercial', items: [
+  const groups: NavGroup[] = [
+    { title: 'Project Overview', items: overviewItems },
+    { title: 'Commercial & Finance', items: [
         { id: 'boq', label: 'BOQ Ledger', icon: FileText },
         { id: 'billing', label: 'Billing & Invoicing', icon: CreditCard },
         { id: 'variations', label: 'Amendments', icon: FileDiff },
         { id: 'financials', label: 'Financials & Commercial', icon: DollarSign },
         { id: 'ocr-extraction', label: 'Chandra OCR', icon: Eye }
     ]},
-    { title: 'Partners', items: [
+    { title: 'Resource Management', items: [
         { id: 'agencies', label: 'Vendors & Agencies', icon: Briefcase },
         { id: 'subcontractors', label: 'Subcontractors', icon: Briefcase },
         { id: 'subcontractor-billing', label: 'Subcontractor Billing', icon: CreditCard }
     ]},
-    { title: 'Execution', items: [
+    { title: 'Field Operations', items: [
         { id: 'schedule', label: 'CPM Schedule', icon: CalendarClock }, 
         { id: 'construction', label: 'Structural', icon: Hammer }, 
         { id: 'linear-works', label: 'Chainage Progress', icon: Navigation }, 
@@ -85,7 +89,7 @@ export const getNavigationGroups = (currentUser: User | UserWithPermissions): Na
         { id: 'reports-analytics', label: 'Reports & Analytics', icon: BarChart3 },
         { id: 'mpr-report', label: 'Monthly Reports', icon: FileText }
     ]},
-    { title: 'Ops & Quality', items: [
+    { title: 'Quality & Engineering', items: [
         { id: 'rfis', label: 'Inspections', icon: ClipboardCheck },
         { id: 'materials-hub', label: 'Materials & Resources', icon: Package },
         { id: 'assets', label: 'Assets & Equipment', icon: PackageSearch },
@@ -97,4 +101,10 @@ export const getNavigationGroups = (currentUser: User | UserWithPermissions): Na
         { id: 'data-analysis', label: 'Data Analysis', icon: BarChart3 }
     ]}
   ];
+
+  if (adminItems.length > 0) {
+    groups.push({ title: 'Administration', items: adminItems });
+  }
+
+  return groups;
 };

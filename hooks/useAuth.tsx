@@ -74,13 +74,26 @@ export const useAuth = () => {
     const profile = await fetchProfile(user.id);
     
     startTransition(() => {
+      const normalizeRole = (role: string | undefined): UserRole => {
+        if (!role) return UserRole.SITE_ENGINEER;
+        const r = role.toLowerCase();
+        if (r === 'admin') return UserRole.ADMIN;
+        if (r === 'manager' || r === 'project manager' || r === 'project_manager') return UserRole.PROJECT_MANAGER;
+        if (r === 'engineer' || r === 'site engineer' || r === 'site_engineer') return UserRole.SITE_ENGINEER;
+        if (r === 'technician' || r === 'lab technician' || r === 'lab_technician') return UserRole.LAB_TECHNICIAN;
+        if (r === 'hse' || r === 'hse officer' || r === 'hse_officer') return UserRole.HSE_OFFICER;
+        if (r === 'subcontractor') return UserRole.SUBCONTRACTOR;
+        if (r === 'supervisor') return UserRole.SUPERVISOR;
+        return role as UserRole;
+      };
+
       if (profile) {
-        setUserRole(profile.role as UserRole || UserRole.SITE_ENGINEER);
+        setUserRole(normalizeRole(profile.role));
         setUserName(profile.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User');
         setUserPhone(user.user_metadata?.phone || '');
       } else {
         // Fallback to metadata
-        setUserRole(user.user_metadata?.role as UserRole || UserRole.SITE_ENGINEER);
+        setUserRole(normalizeRole(user.user_metadata?.role));
         setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'User');
         setUserPhone(user.user_metadata?.phone || '');
       }

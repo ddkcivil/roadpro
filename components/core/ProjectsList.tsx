@@ -19,6 +19,14 @@ import { SearchInput } from '~/components/ui/search-input';
 import { HasPermission } from '~/components/common/HasPermission';
 import { CardGrid } from '~/components/ui/card-grid';
 
+import { 
+  calculateProgress, 
+  calculateTimeProgress, 
+  calculateDuration, 
+  getProjectStatusType,
+  ProjectStatusLabel
+} from '../../utils/projectCalculations';
+
 interface Props {
   projects: Project[];
   onSelectProject: (projectId: string) => void;
@@ -36,44 +44,19 @@ const ProjectsList: React.FC<Props> = ({ projects, onSelectProject, onDeleteProj
   const handleOpenEdit = (project: Project) => { onOpenModal(project); };
   const handleDeleteProject = (id: string) => { onDeleteProject(id); };
 
-  const calculateProgress = (boq?: BOQItem[]) => {
-    if (!boq || boq.length === 0) return 0;
-    const total = boq.reduce((acc, item) => acc + (item.quantity * item.rate), 0);
-    const earned = boq.reduce((acc, item) => acc + (item.completedQuantity * item.rate), 0);
-    return total > 0 ? Math.round((earned / total) * 100) : 0;
-  };
-
-  const calculateTimeProgress = (start: string, end: string) => {
-    if (!start || !end) return 0;
-    const startDate = new Date(start).getTime();
-    const endDate = new Date(end).getTime();
-    const today = new Date().getTime();
-    
-    if (today <= startDate) return 0;
-    if (today >= endDate) return 100;
-    
-    const total = endDate - startDate;
-    const elapsed = today - startDate;
-    return total > 0 ? Math.round((elapsed / total) * 100) : 0;
-  };
-
-  const calculateDuration = (start: string, end: string) => {
-    if (!start || !end) return "N/A";
-    const s = new Date(start);
-    const e = new Date(end);
-    const diffTime = Math.abs(e.getTime() - s.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays > 365) return `${(diffDays / 365).toFixed(1)} Yrs`;
-    if (diffDays > 30) return `${Math.round(diffDays / 30)} Mos`;
-    return `${diffDays} Days`;
-  };
-
   const getProjectStatus = (start: string, end: string) => {
-    const timeProgress = calculateTimeProgress(start, end);
-    if (timeProgress === 0) return { label: 'Planned', color: 'text-amber-600', dot: 'bg-amber-500', icon: <Clock className="h-3 w-3" /> };
-    if (timeProgress === 100) return { label: 'Completed', color: 'text-blue-600', dot: 'bg-blue-500', icon: <CheckCircle className="h-3 w-3" /> };
-    return { label: 'Active', color: 'text-emerald-600', dot: 'bg-emerald-500', icon: <Activity className="h-3 w-3" /> };
+    const statusType = getProjectStatusType(start, end);
+    
+    switch (statusType) {
+      case ProjectStatusLabel.UPCOMING:
+        return { label: 'Planned', color: 'text-amber-600', dot: 'bg-amber-500', icon: <Clock className="h-3 w-3" /> };
+      case ProjectStatusLabel.COMPLETED:
+        return { label: 'Completed', color: 'text-blue-600', dot: 'bg-blue-500', icon: <CheckCircle className="h-3 w-3" /> };
+      case ProjectStatusLabel.DRAFT:
+        return { label: 'Draft', color: 'text-slate-600', dot: 'bg-slate-500', icon: <Clock className="h-3 w-3" /> };
+      default:
+        return { label: 'Active', color: 'text-emerald-600', dot: 'bg-emerald-500', icon: <Activity className="h-3 w-3" /> };
+    }
   };
 
   const filteredGridProjects = useMemo(() => {

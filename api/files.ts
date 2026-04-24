@@ -191,7 +191,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   if (req.method === 'DELETE') {
     const userRole = (req as any).user?.role;
     // Assuming 'Admin' or 'Project Manager' roles are managed via withAuth and available in req.user
-    if (userRole !== 'Admin' && userRole !== 'ADMIN' && userRole !== 'Project Manager') {
+    const r = userRole?.toUpperCase();
+    const isAuthorized = r === 'ADMIN' || r === 'PROJECT MANAGER' || r === 'MANAGER' || r === 'PROJECT_MANAGER';
+    if (!isAuthorized) {
       return res.status(403).json({ error: 'Only admins or project managers can delete files' });
     }
 

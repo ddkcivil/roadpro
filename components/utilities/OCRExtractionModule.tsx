@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useFileDragDrop } from '../../hooks/useFileDragDrop';
 import { cn } from "../../lib/utils";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -25,7 +26,6 @@ const OCRExtractionModule: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [documentType, setDocumentType] = useState<string>('');
   const [extractionMode, setExtractionMode] = useState<'full' | 'boq' | 'finance'>('full');
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Clean up the preview URL when component unmounts or when a new file is uploaded
   useEffect(() => {
@@ -36,10 +36,7 @@ const OCRExtractionModule: React.FC = () => {
     };
   }, [previewUrl]);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  const handleFileSelect = async (file: File) => {
     // Validate file type
     if (!file.type.startsWith('image/') && !['application/pdf'].includes(file.type)) {
       setError('Please upload an image or PDF file');
@@ -50,6 +47,9 @@ const OCRExtractionModule: React.FC = () => {
     setDocumentType(file.type);
     
     // Create preview URL for the uploaded file
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setPreviewUrl(URL.createObjectURL(file));
     
     setFileName(file.name);
@@ -79,28 +79,16 @@ const OCRExtractionModule: React.FC = () => {
     }
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (file && fileInputRef.current) {
-      // Create a new FileList with the dropped file
-      const dataTransfer = new DataTransfer();
-      dataTransfer.items.add(file);
-      fileInputRef.current.files = dataTransfer.files;
-      
-      // Create and dispatch a change event
-      const event = new Event('change', { bubbles: true });
-      fileInputRef.current.dispatchEvent(event);
-    }
-  };
-
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
-  };
+  const {
+    fileInputRef,
+    handleDragOver,
+    handleDrop,
+    triggerFileInput,
+    handleFileChange
+  } = useFileDragDrop({
+    onFileSelect: handleFileSelect,
+    accept: 'image/*,.pdf'
+  });
 
   return (
     <div className="space-y-6">
@@ -119,7 +107,7 @@ const OCRExtractionModule: React.FC = () => {
           <input
             type="file"
             ref={fileInputRef}
-            onChange={handleFileUpload}
+            onChange={handleFileChange}
             accept="image/*,.pdf"
             className="hidden"
             aria-label="Upload document"

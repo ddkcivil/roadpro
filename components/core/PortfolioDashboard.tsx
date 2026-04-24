@@ -28,6 +28,13 @@ import { cn } from '~/lib/utils';
 // The original logic has been temporarily removed to facilitate the UI migration.
 // It will be re-implemented in subsequent steps.
 
+import { 
+  calculateProgress, 
+  calculateTimeProgress, 
+  getProjectStatusType,
+  ProjectStatusLabel
+} from '../../utils/projectCalculations';
+
 interface Props {
   projects: Project[];
   userRole: UserRole;
@@ -42,32 +49,10 @@ const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onS
 
   // Calculate portfolio metrics
   const totalProjects = projects.length;
-  const activeProjects = projects.filter(p => {
-    const now = new Date();
-    const startDate = new Date(p.startDate);
-    const endDate = new Date(p.endDate);
-    now.setHours(0,0,0,0);
-    startDate.setHours(0,0,0,0);
-    endDate.setHours(0,0,0,0);
-    return startDate <= now && endDate >= now;
-  }).length;
+  const activeProjects = projects.filter(p => getProjectStatusType(p.startDate, p.endDate) === ProjectStatusLabel.ACTIVE).length;
+  const upcomingProjects = projects.filter(p => getProjectStatusType(p.startDate, p.endDate) === ProjectStatusLabel.UPCOMING).length;
+  const completedProjects = projects.filter(p => getProjectStatusType(p.startDate, p.endDate) === ProjectStatusLabel.COMPLETED).length;
   
-  const upcomingProjects = projects.filter(p => {
-    const now = new Date();
-    const startDate = new Date(p.startDate);
-    now.setHours(0,0,0,0);
-    startDate.setHours(0,0,0,0);
-    return startDate > now;
-  }).length;
-  
-  const completedProjects = projects.filter(p => {
-    const now = new Date();
-    const endDate = new Date(p.endDate);
-    now.setHours(0,0,0,0);
-    endDate.setHours(0,0,0,0);
-    return endDate < now;
-  }).length;
-
   // Calculate portfolio value
   const totalPortfolioValue = projects.reduce((sum, project) => {
     const projectValue = project.agencies?.reduce((agencySum, agency) => 
@@ -92,65 +77,39 @@ const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onS
     onSelectProject(id);
   };
 
-  // Calculate progress functions (from ProjectsList)
-  const calculateProgress = (boq?: any[]) => {
-    const boqArray = boq || [];
-    const totalValue = boqArray.reduce((sum, item) => sum + (item?.quantity || 0) * (item?.rate || 0), 0);
-    if (totalValue === 0) return 0;
-    const completedValue = boqArray.reduce((sum, item) => sum + (item?.completedQuantity || 0) * (item?.rate || 0), 0);
-    return Math.round((completedValue / totalValue) * 100);
-  };
-
-  const calculateTimeProgress = (start: string, end: string) => {
-    if (!start || !end) return 0;
-    const s = new Date(start).getTime();
-    const e = new Date(end).getTime();
-    const now = new Date().getTime();
-    if (now < s) return 0;
-    if (now > e) return 100;
-    return Math.round(((now - s) / (e - s)) * 100);
-  };
-
   const getProjectStatus = (start: string, end: string) => {
-    const now = new Date();
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+    const statusType = getProjectStatusType(start, end);
     
-    now.setHours(0,0,0,0);
-    startDate.setHours(0,0,0,0);
-    endDate.setHours(0,0,0,0);
-
-    if (!start) return { 
-      label: 'Draft', 
-      color: 'bg-muted text-muted-foreground border-slate-200', 
-      dot: 'bg-slate-400',
-      icon: <FileText size={12} className="mr-1" />
-    };
-    
-    if (end && endDate < now) {
-      return { 
-        label: 'Completed', 
-        color: 'bg-blue-50 text-blue-700 border-blue-200', 
-        dot: 'bg-blue-500',
-        icon: <Activity size={12} className="mr-1" />
-      };
+    switch (statusType) {
+      case ProjectStatusLabel.UPCOMING:
+        return { 
+          label: 'Upcoming', 
+          color: 'bg-amber-50 text-amber-700 border-amber-200', 
+          dot: 'bg-amber-400',
+          icon: <Clock size={12} className="mr-1" />
+        };
+      case ProjectStatusLabel.COMPLETED:
+        return { 
+          label: 'Completed', 
+          color: 'bg-blue-50 text-blue-700 border-blue-200', 
+          dot: 'bg-blue-500',
+          icon: <Activity size={12} className="mr-1" />
+        };
+      case ProjectStatusLabel.DRAFT:
+        return { 
+          label: 'Draft', 
+          color: 'bg-muted text-muted-foreground border-slate-200', 
+          dot: 'bg-slate-400',
+          icon: <FileText size={12} className="mr-1" />
+        };
+      default:
+        return { 
+          label: 'Active', 
+          color: 'bg-emerald-50 text-emerald-700 border-emerald-200', 
+          dot: 'bg-emerald-500',
+          icon: <Activity size={12} className="mr-1" />
+        };
     }
-    
-    if (startDate > now) {
-      return { 
-        label: 'Upcoming', 
-        color: 'bg-amber-50 text-amber-700 border-amber-200', 
-        dot: 'bg-amber-400',
-        icon: <Clock size={12} className="mr-1" />
-      };
-    }
-    
-    return { 
-      label: 'Active', 
-      color: 'bg-emerald-50 text-emerald-700 border-emerald-200', 
-      dot: 'bg-emerald-500',
-      icon: <Activity size={12} className="mr-1" />
-    };
   };
 
   // Calculate average progress across all projects

@@ -123,7 +123,7 @@ async function registerStaffRoutes() {
 }
 
 registerRoutes().then(() => registerStaffRoutes()).then(() => {
-  const PORT = process.env.API_PORT || 3002;
+  const PORT = process.env.API_PORT || 3001;
   app.listen(PORT, () => {
     console.log(`\n🚀 API dev server running at http://localhost:${PORT}/api\n`);
   });

@@ -21,6 +21,8 @@ import { Badge } from '~/components/ui/badge';
 import { compressImage } from '../../utils/data/imageUtils';
 import { UserPlus, Mail, Shield, X, Edit3, Trash2, Upload } from 'lucide-react';
 
+import { useAvatarUpload } from '~/hooks/useAvatarUpload';
+
 const UserManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
@@ -34,8 +36,15 @@ const UserManagement: React.FC = () => {
     role: UserRole.SITE_ENGINEER as UserRole,
     phone: ''
   });
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const { 
+    avatarFile, 
+    previewUrl, 
+    setPreviewUrl, 
+    handleFileChange, 
+    clearAvatar, 
+    reset: resetAvatar 
+  } = useAvatarUpload();
 
   useEffect(() => {
     const loadData = async () => {
@@ -77,8 +86,7 @@ const UserManagement: React.FC = () => {
       setUsers(prev => [...prev, user]);
       setIsModalOpen(false);
       setNewUser({ name: '', email: '', role: UserRole.SITE_ENGINEER, phone: '' });
-      setAvatarFile(null);
-      setPreviewUrl(null);
+      resetAvatar();
     } catch (error: any) {
       alert(error.message || 'Failed to create user');
     }
@@ -114,8 +122,7 @@ const UserManagement: React.FC = () => {
       setUsers(updatedUsers);
       setIsEditModalOpen(false);
       setEditingUser(null);
-      setAvatarFile(null);
-      setPreviewUrl(null);
+      resetAvatar();
     } catch (error: any) {
       alert(error.message || 'Failed to update user');
     }
@@ -136,33 +143,8 @@ const UserManagement: React.FC = () => {
   const openEditModal = (user: User) => {
     setEditingUser(user);
     setIsEditModalOpen(true);
-    setPreviewUrl(null);
-    setAvatarFile(null);
-  };
-
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = reader.result as string;
-        try {
-          // Compress image to save space in localStorage/MongoDB
-          const compressed = await compressImage(base64, 200, 200, 0.6);
-          setPreviewUrl(compressed);
-        } catch (err) {
-          console.error("Compression failed, using original", err);
-          setPreviewUrl(base64);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const clearAvatar = () => {
-    setAvatarFile(null);
-    setPreviewUrl(null);
+    resetAvatar();
+    if (user.avatar) setPreviewUrl(user.avatar);
   };
 
   const approveUser = async (pendingUser: any) => {
