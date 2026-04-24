@@ -29,7 +29,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   // --- GET USERS ---
   if (req.method === 'GET') {
     try {
-      let query = supabasePublic.from('profiles').select('id, full_name, avatar_url, role, last_seen');
+      let query = supabaseAdmin.from('profiles').select('id, full_name, avatar_url, role, last_seen');
 
       if (id) {
         // Fetch a specific user
