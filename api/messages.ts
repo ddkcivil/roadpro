@@ -17,41 +17,46 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     // Apply project filter
     queryBuilder = queryBuilder.eq('project_id', projectId);
 
-    // Apply receiver filter (general or private chat)
-    if (receiverId) {
-      if (receiverId === 'general') {
-        queryBuilder = queryBuilder.eq('receiver_id', 'general');
-      } else {
-        // Private chat: messages between currentUser and receiverId
-        queryBuilder = queryBuilder.or(
-          `and(sender_id.eq.${currentUser.userId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${currentUser.userId})`
-        );
-      }
-    } else {
-      // All relevant messages for the project
-      queryBuilder = queryBuilder.or(
-        `receiver_id.eq.general,sender_id.eq.${currentUser.userId},receiver_id.eq.${currentUser.userId}`
-      );
-    }
-
     // Apply timestamp filter for 'after'
     if (after && typeof after === 'string') {
       queryBuilder = queryBuilder.gt('timestamp', after);
     }
 
-    // Apply sorting and pagination
-    const limitNum = parseInt(req.query.limit as string) || 100;
-    const offsetNum = parseInt(req.query.offset as string) || 0;
-    
-    // Use range for pagination, it includes limit implicitly
-    queryBuilder = queryBuilder
-      .order('timestamp', { ascending: true })
-      .range(offsetNum, offsetNum + limitNum - 1);
+    // Apply sorting
+    queryBuilder = queryBuilder.order('timestamp', { ascending: true });
 
     try {
       const { data, error } = await queryBuilder;
       if (error) throw error;
-      return res.status(200).json(data || []);
+      
+      let filteredData = data || [];
+      
+      // In-memory filtering to avoid PostgREST UUID casting issues on TEXT columns
+      if (receiverId) {
+        if (receiverId === 'general') {
+          filteredData = filteredData.filter(msg => msg.receiver_id === 'general');
+        } else {
+          // Private chat: messages between currentUser and receiverId
+          filteredData = filteredData.filter(msg => 
+            (msg.sender_id === currentUser.userId && msg.receiver_id === receiverId) ||
+            (msg.sender_id === receiverId && msg.receiver_id === currentUser.userId)
+          );
+        }
+      } else {
+        // All relevant messages for the project (general + user's private messages)
+        filteredData = filteredData.filter(msg => 
+          msg.receiver_id === 'general' || 
+          msg.sender_id === currentUser.userId || 
+          msg.receiver_id === currentUser.userId
+        );
+      }
+      
+      // Apply pagination manually
+      const limitNum = parseInt(req.query.limit as string) || 100;
+      const offsetNum = parseInt(req.query.offset as string) || 0;
+      filteredData = filteredData.slice(offsetNum, offsetNum + limitNum);
+      
+      return res.status(200).json(filteredData);
     } catch (queryError: any) {
       console.error('Messages query failed:', queryError);
       return res.status(500).json({ error: 'Failed to fetch messages', details: queryError.message });
