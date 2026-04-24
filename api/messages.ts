@@ -28,34 +28,34 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     try {
       const { data, error } = await queryBuilder;
       if (error) throw error;
-      
+
       let filteredData = data || [];
-      
+
       // In-memory filtering to avoid PostgREST UUID casting issues on TEXT columns
       if (receiverId) {
         if (receiverId === 'general') {
           filteredData = filteredData.filter(msg => msg.receiver_id === 'general');
         } else {
           // Private chat: messages between currentUser and receiverId
-          filteredData = filteredData.filter(msg => 
+          filteredData = filteredData.filter(msg =>
             (msg.sender_id === currentUser.userId && msg.receiver_id === receiverId) ||
             (msg.sender_id === receiverId && msg.receiver_id === currentUser.userId)
           );
         }
       } else {
         // All relevant messages for the project (general + user's private messages)
-        filteredData = filteredData.filter(msg => 
-          msg.receiver_id === 'general' || 
-          msg.sender_id === currentUser.userId || 
+        filteredData = filteredData.filter(msg =>
+          msg.receiver_id === 'general' ||
+          msg.sender_id === currentUser.userId ||
           msg.receiver_id === currentUser.userId
         );
       }
-      
+
       // Apply pagination manually
       const limitNum = parseInt(req.query.limit as string) || 100;
       const offsetNum = parseInt(req.query.offset as string) || 0;
       filteredData = filteredData.slice(offsetNum, offsetNum + limitNum);
-      
+
       return res.status(200).json(filteredData);
     } catch (queryError: any) {
       console.error('Messages query failed:', queryError);
