@@ -4,6 +4,7 @@ import { withErrorHandler } from './_utils/errorHandler.js';
 import { withAuth } from './_utils/auth.js';
 import { parseKML } from './_utils/kmlParser.js';
 import { v4 as uuidv4 } from 'uuid';
+import { mapProjectToDb } from './_utils/mappers.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { action, projectId } = req.query;
@@ -85,9 +86,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       // Update updated_at timestamp
       const { data: updatedProject, error: updateError } = await supabaseAdmin
         .from('projects')
-        .update({
-          updated_at: new Date().toISOString()
-        })
+        .update(mapProjectToDb({
+          updatedAt: new Date().toISOString()
+        }))
         .eq('id', projectId)
         .select('id, roads')
         .single();

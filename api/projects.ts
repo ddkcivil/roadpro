@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { supabaseAdmin } from './_utils/supabaseClient.js';
 import { withErrorHandler } from './_utils/errorHandler.js';
 import { withAuth } from './_utils/auth.js';
+import { mapProjectFromDb, mapProjectToDb } from './_utils/mappers.js';
 // Removed CSRFProtection as it might not be needed with Supabase auth, or needs re-evaluation.
 // Removed connectToDatabase as we use supabaseAdmin directly.
 
@@ -22,7 +23,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
         if (error) throw error;
         if (!project) return res.status(404).json({ error: 'Project not found' });
-        return res.status(200).json(project);
+        return res.status(200).json(mapProjectFromDb(project));
       }
 
       // Fetch paginated list of projects
@@ -46,7 +47,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       if (fetchError) throw fetchError;
       
       return res.status(200).json({
-        data: projects || [],
+        data: (projects || []).map(mapProjectFromDb),
         pagination: {
           total: total || 0,
           page,
@@ -83,17 +84,17 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       const { data: newProject, error } = await supabaseAdmin
         .from('projects')
-        .insert({
+        .insert(mapProjectToDb({
           ...projectData,
           id: projectId, 
-          updated_at: new Date().toISOString()
-        })
+          updatedAt: new Date().toISOString()
+        }))
         .select('*') // Return the inserted row
         .single(); // Expect a single row
 
       if (error) throw error;
 
-      return res.status(201).json(newProject);
+      return res.status(201).json(mapProjectFromDb(newProject));
     } catch (error: any) {
       console.error('Failed to create project:', error);
       return res.status(500).json({ error: 'Failed to create project', details: error.message });
@@ -121,10 +122,10 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       // Supabase update operation
       const { data: updatedProject, error } = await supabaseAdmin
         .from('projects')
-        .update({
+        .update(mapProjectToDb({
           ...projectData,
-          updated_at: new Date().toISOString() // Ensure updated_at is updated
-        })
+          updatedAt: new Date().toISOString() // Ensure updated_at is updated
+        }))
         .eq('id', id as string)
         .select('*') // Return the updated row
         .single(); // Expect a single row
@@ -132,7 +133,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       if (error) throw error;
       if (!updatedProject) return res.status(404).json({ error: 'Project not found' });
 
-      return res.status(200).json(updatedProject);
+      return res.status(200).json(mapProjectFromDb(updatedProject));
     } catch (error: any) {
       console.error('Failed to update project:', error);
       return res.status(500).json({ error: 'Failed to update project', details: error.message });
@@ -227,10 +228,10 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       // Supabase update operation for general project fields
       const { data: updatedProject, error } = await supabaseAdmin
         .from('projects')
-        .update({
+        .update(mapProjectToDb({
           ...patchData,
-          updated_at: new Date().toISOString() // Explicitly set updated_at
-        })
+          updatedAt: new Date().toISOString() // Explicitly set updated_at
+        }))
         .eq('id', id as string)
         .select('*')
         .single();
@@ -238,7 +239,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       if (error) throw error;
       if (!updatedProject) return res.status(404).json({ error: 'Project not found' });
       
-      return res.status(200).json(updatedProject);
+      return res.status(200).json(mapProjectFromDb(updatedProject));
     } catch (error: any) {
       console.error('Failed to patch project:', error);
       return res.status(500).json({ error: 'Failed to patch project', details: error.message });

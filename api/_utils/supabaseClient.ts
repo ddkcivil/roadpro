@@ -3,9 +3,15 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Load from api/.env and root .env with override
-config({ path: path.join(__dirname, '..', '.env'), override: true });
-config({ path: path.join(__dirname, '..', '..', '.env'), override: true });
+// Load environment variables from various possible locations
+const rootDir = path.join(__dirname, '..', '..');
+[
+  '.env.production',
+  '.env.local',
+  '.env'
+].forEach(file => {
+  config({ path: path.join(rootDir, file), override: true });
+});
 
 import { createClient } from '@supabase/supabase-js'
 

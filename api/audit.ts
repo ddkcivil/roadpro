@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { supabaseAdmin } from './_utils/supabaseClient.js';
 import { withErrorHandler } from './_utils/errorHandler.js';
 import { withAuth } from './_utils/auth.js';
+import { mapAuditLogFromDb, mapAuditLogToDb } from './_utils/mappers.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') {
@@ -27,8 +28,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .range(offsetNum, offsetNum + limitNum - 1);
       
       if (error) throw error;
-
-      return res.status(200).json({ logs: data || [], total: total || 0 });
+      
+      const mappedLogs = (data || []).map(mapAuditLogFromDb);
+      return res.status(200).json({ logs: mappedLogs, total: total || 0 });
     } catch (error: any) {
       console.error('Failed to fetch audit logs:', error);
       throw error;
@@ -48,17 +50,17 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         try {
           await supabaseAdmin
             .from('audit_logs')
-            .insert({
-              user_id: logData.userId,
-              user_name: logData.userName,
+            .insert(mapAuditLogToDb({
+              userId: logData.userId,
+              userName: logData.userName,
               action: logData.action,
-              entity_type: logData.entityType,
-              entity_id: logData.entityId,
-              entity_name: logData.entityName,
+              entityType: logData.entityType,
+              entityId: logData.entityId,
+              entityName: logData.entityName,
               severity: logData.severity || 'INFO',
               metadata: logData.metadata || {},
               timestamp: logData.timestamp || new Date().toISOString()
-            });
+            }));
         } catch (dbError: any) {
           console.error('Audit log DB failed (continuing):', dbError);
         }

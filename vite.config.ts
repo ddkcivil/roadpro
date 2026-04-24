@@ -27,6 +27,7 @@ export default defineConfig(({ mode }) => {
       },
       cors: true
     },
+    envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
     plugins: [react()],
     define: {
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
@@ -50,10 +51,24 @@ export default defineConfig(({ mode }) => {
           'react-pdf'
         ]
       },
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              'vendor-react': ['react', 'react-dom'],
+              'vendor-charts': ['recharts'],
+              'vendor-pdf': ['jspdf', 'html2canvas'],
+              'vendor-ui': ['lucide-react', 'framer-motion', '@tanstack/react-table'],
+              'vendor-supabase': ['@supabase/supabase-js'],
+            },
+          },
+        },
+        chunkSizeWarningLimit: 1000,
+      },
       css: {
         modules: {
           localsConvention: 'camelCase',
         }
       },
-      };
-      });
+    };
+});

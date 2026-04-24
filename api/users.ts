@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { supabasePublic, supabaseAdmin } from './_utils/supabaseClient.js';
 import { withErrorHandler } from './_utils/errorHandler.js';
 import { withAuth } from './_utils/auth.js';
+import { mapUserFromDb, mapUserToDb } from './_utils/mappers.js';
 
 // Helper to generate avatar URL, similar to the original
 function generateAvatarUrl(name: string): string {
@@ -35,12 +36,12 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         const { data, error } = await query.eq('id', id).single();
         if (error) throw error;
         if (!data) return res.status(404).json({ error: 'User not found' });
-        return res.status(200).json(data);
+        return res.status(200).json(mapUserFromDb(data));
       } else {
         // Fetch all users for chat/messaging feature
         const { data, error } = await query;
         if (error) throw error;
-        return res.status(200).json(data);
+        return res.status(200).json((data || []).map(mapUserFromDb));
       }
     } catch (error: any) {
       console.error('Failed to fetch users:', error);
@@ -146,7 +147,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .single();
 
       if (fetchError) throw fetchError;
-      return res.status(200).json(updatedUser);
+      return res.status(200).json(mapUserFromDb(updatedUser));
 
     } catch (error: any) {
       console.error('Failed to update user:', error);

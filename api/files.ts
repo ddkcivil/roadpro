@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { supabaseAdmin } from './_utils/supabaseClient.js';
 import { withErrorHandler } from './_utils/errorHandler.js';
 import { withAuth } from './_utils/auth.js';
+import { mapProjectDocumentToDb, mapDocumentVersionFromDb } from './_utils/mappers.js';
 import { v4 as uuidv4 } from 'uuid'; // For generating IDs
 import { Buffer } from 'buffer'; // For Buffer operations
 
@@ -33,8 +34,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       // Assuming blob_url stores the path to the file in Supabase Storage
       // e.g., 'files/projectId/filename.ext' or 'files/filename.ext'
-      const latestVersion = docVersions[0];
-      const filePath = latestVersion.blob_url; // This should be the path like 'files/some_id/filename.ext'
+      const latestVersion = mapDocumentVersionFromDb(docVersions[0]);
+      const filePath = latestVersion.filePath; // correctly mapped from blob_url
 
       if (!filePath) {
         return res.status(404).json({ error: 'File path not found in metadata' });
@@ -117,34 +118,29 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         // Create new document entry in Supabase DB
         const { error: insertDocError } = await supabaseAdmin
           .from('project_documents')
-          .insert({
+          .insert(mapProjectDocumentToDb({
             id: finalDocId,
-            project_id: projectId || null,
+            projectId: projectId || null,
             name,
             folder: folder || null,
             tags: tags || [],
             subject: subject || null,
-            ref_no: refNo || null,
-            size: buffer.length,
+            refNo: refNo || null,
+            size: buffer.length.toString(),
             type: contentType,
             status: 'Active',
-            metadata: JSON.stringify(metadata || {}),
-            // Add a column in your Supabase 'project_documents' table to store the storage path or URL
-            // Example: storage_path: storagePath, public_url: publicUrl
-          });
+            metadata: JSON.stringify(metadata || {})
+          }));
         if (insertDocError) throw insertDocError;
       } else {
         // Update existing document entry
         const { error: updateDocError } = await supabaseAdmin
           .from('project_documents')
-          .update({
-            size: buffer.length,
+          .update(mapProjectDocumentToDb({
+            size: buffer.length.toString(),
             type: contentType,
-            updated_at: new Date().toISOString(), // Use ISO string for timestamp
-            // Optionally update storage path or URL if they change or to ensure consistency
-            // storage_path: storagePath,
-            // public_url: publicUrl
-          })
+            updatedAt: new Date().toISOString()
+          }))
           .eq('id', finalDocId);
         if (updateDocError) throw updateDocError;
       }

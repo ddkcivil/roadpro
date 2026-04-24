@@ -517,8 +517,11 @@ export interface ProjectDocument {
   versions: DocumentVersion[];
   createdBy: string;
   lastModified: string;
+  createdAt?: string;
+  updatedAt?: string;
   status: 'Active' | 'Archived' | 'Draft' | 'Review' | 'Unavailable';
   comments?: Comment[];
+  metadata?: any;
 }
 
 export interface DailyWorkItem {
@@ -1021,6 +1024,7 @@ export interface Project {
   spreadsheetId?: string;
   settings?: AppSettings;
   updatedAt?: string; // ISO timestamp for conflict resolution
+  createdAt?: string;
   resources?: ResourceMatrix[];
   resourceAllocations?: ResourceAllocation[];
   milestones?: Milestone[];
