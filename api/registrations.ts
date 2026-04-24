@@ -11,7 +11,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       const { data, error } = await supabaseAdmin
         .from('registrations')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('createdat', { ascending: false, nullsFirst: false });
 
       if (error) throw error;
       return res.status(200).json(data);
@@ -45,7 +45,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           email_confirm: true,
           user_metadata: {
             name: pendingReg.name,
-            role: pendingReg.requested_role
+            role: pendingReg.requested_role || pendingReg.requestedRole
           }
         });
 
@@ -74,7 +74,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
         return res.status(200).json({
           message: 'Registration approved successfully',
-          user: { id: authUser.user.id, name: pendingReg.name, email: pendingReg.email, role: pendingReg.requested_role }
+          user: { id: authUser.user.id, name: pendingReg.name, email: pendingReg.email, role: pendingReg.requested_role || pendingReg.requestedRole }
         });
       } catch (error: any) {
         console.error('Error approving registration:', error);
