@@ -6,8 +6,8 @@ async function testApiCall() {
   // 1. Login to get token
   console.log('Logging in...');
   const { data: authData, error: authError } = await supabasePublic.auth.signInWithPassword({
-    email: 'test@roadproj.com',
-    password: 'Roadproj123!'
+    email: 'admin@myroad.app',
+    password: 'admin123'
   });
 
   if (authError || !authData.session) {
@@ -27,7 +27,7 @@ async function testApiCall() {
     const { data, error } = await supabasePublic
       .from('messages')
       .select('*')
-      .eq('projectId', 'general'); // Adjust if needed
+      .eq('project_id', 'general'); // Adjust if needed
     
     if (error) {
       console.error('Fetch messages error:', error.message);

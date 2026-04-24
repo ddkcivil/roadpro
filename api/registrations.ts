@@ -45,7 +45,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           email_confirm: true,
           user_metadata: {
             name: pendingReg.name,
-            role: pendingReg.requestedRole
+            role: pendingReg.requested_role
           }
         });
 
@@ -62,7 +62,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           .insert({
             id: authUser.user.id,
             full_name: pendingReg.name,
-            role: pendingReg.requestedRole,
+            role: pendingReg.requested_role,
             avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`,
             status: 'active'
           });
@@ -74,7 +74,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
         return res.status(200).json({
           message: 'Registration approved successfully',
-          user: { id: authUser.user.id, name: pendingReg.name, email: pendingReg.email, role: pendingReg.requestedRole }
+          user: { id: authUser.user.id, name: pendingReg.name, email: pendingReg.email, role: pendingReg.requested_role }
         });
       } catch (error: any) {
         console.error('Error approving registration:', error);
@@ -110,8 +110,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           name,
           email: email.toLowerCase(),
           phone: phone || '',
-          passwordHash: password, // Still storing for compatibility, but should be removed from DB
-          requestedRole: requestedRole,
+          password_hash: password, // Still storing for compatibility, but should be removed from DB
+          requested_role: requestedRole,
           status: 'pending'
         })
         .select()

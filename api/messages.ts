@@ -15,22 +15,22 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     let queryBuilder = supabaseAdmin.from('messages').select('*');
 
     // Apply project filter
-    queryBuilder = queryBuilder.eq('projectId', projectId);
+    queryBuilder = queryBuilder.eq('project_id', projectId);
 
     // Apply receiver filter (general or private chat)
     if (receiverId) {
       if (receiverId === 'general') {
-        queryBuilder = queryBuilder.eq('receiverId', 'general');
+        queryBuilder = queryBuilder.eq('receiver_id', 'general');
       } else {
         // Private chat: messages between currentUser and receiverId
         queryBuilder = queryBuilder.or(
-          `and(senderId.eq.${currentUser.userId},receiverId.eq.${receiverId}),and(senderId.eq.${receiverId},receiverId.eq.${currentUser.userId})`
+          `and(sender_id.eq.${currentUser.userId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${currentUser.userId})`
         );
       }
     } else {
       // All relevant messages for the project
       queryBuilder = queryBuilder.or(
-        `receiverId.eq.general,senderId.eq.${currentUser.userId},receiverId.eq.${currentUser.userId}`
+        `receiver_id.eq.general,sender_id.eq.${currentUser.userId},receiver_id.eq.${currentUser.userId}`
       );
     }
 
@@ -73,10 +73,10 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       const { data: newMessage, error } = await supabaseAdmin
         .from('messages')
         .insert([{
-          senderId: currentUser.userId,
-          receiverId: bodyReceiverId,
+          sender_id: currentUser.userId,
+          receiver_id: bodyReceiverId,
           content: content || '',
-          projectId: bodyProjectId,
+          project_id: bodyProjectId,
           timestamp: new Date().toISOString(),
           read: false,
           attachmentUrl: attachmentUrl || null,
@@ -100,9 +100,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       try {
         const { error } = await supabaseAdmin
           .from('messages')
-          .update({ read: true, readAt: new Date().toISOString() })
+          .update({ read: true, read_at: new Date().toISOString() })
           .eq('id', messageId)
-          .eq('receiverId', currentUser.userId);
+          .eq('receiver_id', currentUser.userId);
 
         if (error) throw error;
         return res.status(200).json({ success: true });
