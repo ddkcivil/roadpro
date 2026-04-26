@@ -78,7 +78,12 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         email_confirm: true
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        if (authError.status === 400 || authError.status === 422 || authError.code === 'email_exists' || authError.message.includes('already been registered')) {
+          return res.status(409).json({ error: 'User already exists', details: authError.message });
+        }
+        throw authError;
+      }
 
       // Insert user details into profiles table
       const { error: profileError } = await supabasePublic.from('profiles').insert({
