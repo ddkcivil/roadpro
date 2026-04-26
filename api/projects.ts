@@ -103,9 +103,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   if (req.method === 'PUT') {
     const userRole = (req as any).user?.role;
     const r = userRole?.toUpperCase();
-    const isProjectAuth = r === 'ADMIN' || r === 'PROJECT MANAGER' || r === 'MANAGER' || r === 'PROJECT_MANAGER';
+    const isProjectAuth = r === 'ADMIN' || r === 'PROJECT MANAGER' || r === 'MANAGER' || r === 'PROJECT_MANAGER' || r === 'SITE_ENGINEER';
     if (!isProjectAuth) {
-      return res.status(403).json({ error: 'Only admins or project managers can update projects' });
+      return res.status(403).json({ error: 'Only authorized personnel can update projects' });
     }
 
     if (!id || typeof id !== 'string') {
@@ -206,9 +206,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     // Default PATCH for granular field updates on 'projects' table
     const userRole = (req as any).user?.role;
     const r = userRole?.toUpperCase();
-    const isProjectAuth = r === 'ADMIN' || r === 'PROJECT MANAGER' || r === 'MANAGER' || r === 'PROJECT_MANAGER';
+    const isProjectAuth = r === 'ADMIN' || r === 'PROJECT MANAGER' || r === 'MANAGER' || r === 'PROJECT_MANAGER' || r === 'SITE_ENGINEER';
     if (!isProjectAuth) {
-      return res.status(403).json({ error: 'Only admins or project managers can update projects' });
+      return res.status(403).json({ error: 'Only authorized personnel can update projects' });
     }
 
     if (!id || typeof id !== 'string') {
