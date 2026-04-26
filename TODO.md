@@ -1,29 +1,13 @@
-# Remove Duplication - Progress Tracking
+# Git Push & Vercel Deploy TODO
 
 ## Current Status
-- [x] Analyzed project → Found 400+ lines duplicated
-- [x] Extract drag/drop handlers  
-- [x] Extract project calculations
-- [x] Extract avatar upload handlers
-- [x] Update all affected components
-- [ ] Test refactored functionality
-- [ ] Verify no regressions
+- On main, up-to-date with origin/main
+- Pending: Stage changes (JS→TS migration), commit, push, deploy
 
-## Step 1: Drag/Drop Hook
-- [x] Create `hooks/useFileDragDrop.ts`
-- [x] Refactor `OCRExtractionModule.tsx`
-- [x] Refactor `ChandraOCRAnalyzer.tsx`  
-- [x] Test file upload in both
+## Steps
+- [ ] 1. git add . (stage all)
+- [ ] 2. git commit -m "Complete API JS to TS migration, package updates, config changes"
+- [ ] 3. git push origin main
+- [ ] 4. vercel --prod (deploy to production)
 
-## Step 2: Project Utils
-- [x] Create `utils/projectCalculations.ts`
-- [x] Refactor `ProjectsList.tsx`
-- [x] Refactor `PortfolioDashboard.tsx`
-- [x] Verify progress displays match
-
-## Step 3: Avatar Hook
-- [x] Create `hooks/useAvatarUpload.ts`
-- [x] Refactor `UserManagement.tsx`
-- [x] Refactor `UserRegistration.tsx`
-
-**Next**: All refactoring tasks complete. Verify application for regressions.
+**Next:** Execute step 1.

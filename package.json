@@ -8,9 +8,9 @@
   },
   "scripts": {
     "dev": "vite --host",
-    "dev:api": "vercel dev --listen 3001",
+    "dev:api": "npx tsx api/server.mjs",
     "dev:all": "concurrently -k -n VITE,API -c cyan,yellow \"npm run dev\" \"npm run dev:api\"",
-    "dev:full": "vercel dev",
+    "dev:full": "npm run dev:all",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",

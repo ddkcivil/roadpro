@@ -6,7 +6,7 @@ test.describe('Smoke Tests', () => {
     
     // Check for "Sign In" text or other login page indicators
     await expect(page.getByText(/Sign In/i)).toBeVisible();
-    await expect(page.getByText(/RoadMaster/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /RoadMaster Pro/i })).toBeVisible();
   });
 
   test('should have correct metadata', async ({ page }) => {

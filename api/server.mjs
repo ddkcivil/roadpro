@@ -1,12 +1,11 @@
 /**
  * Local dev server for API functions (port 3001).
  * Wraps Vercel serverless handlers as Express routes.
- * Run with: node api/server.mjs
+ * Run with: npx tsx api/server.mjs
  */
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { createRequire } from 'module';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
 import fs from 'fs';
@@ -70,34 +69,36 @@ function vercelToExpress(handlerModule) {
   };
 }
 
-// Dynamically import and register all API route files
+// Dynamically import and register all API route files (using .ts directly)
 const apiFiles = [
-  { path: './messages.js', route: '/api/messages' },
-  { path: './users.js', route: '/api/users' },
-  { path: './audit.js', route: '/api/audit' },
-  { path: './projects.js', route: '/api/projects' },
-  { path: './registrations.js', route: '/api/registrations' },
-  { path: './roads.js', route: '/api/roads' },
-  { path: './health.js', route: '/api/health' },
-  { path: './files.js', route: '/api/files' },
-  { path: './ai.js', route: '/api/ai' },
+  { path: './messages.ts', route: '/api/messages' },
+  { path: './users.ts', route: '/api/users' },
+  { path: './audit.ts', route: '/api/audit' },
+  { path: './projects.ts', route: '/api/projects' },
+  { path: './registrations.ts', route: '/api/registrations' },
+  { path: './roads.ts', route: '/api/roads' },
+  { path: './health.ts', route: '/api/health' },
+  { path: './files.ts', route: '/api/files' },
+  { path: './ai.ts', route: '/api/ai' },
 ];
 
 async function registerRoutes() {
+  console.log('Registering routes...');
   for (const { path: filePath, route } of apiFiles) {
     const absPath = path.join(__dirname, filePath);
-    // Try .js first (compiled), fallback to .ts via tsx
+    
     if (fs.existsSync(absPath)) {
       try {
+        // When running via npx tsx, import() handles .ts files correctly with file:// URLs
         const mod = await import(pathToFileURL(absPath).href);
         const handler = mod.default || mod;
         app.all(route, vercelToExpress({ default: handler }));
-        console.log(`  ✓ Registered ${route}`);
+        console.log(`  ✓ Registered ${route} from ${filePath}`);
       } catch (e) {
-        console.warn(`  ✗ Failed to load ${route}: ${e.message}`);
+        console.error(`  ✗ Failed to load ${route} (${filePath}):`, e);
       }
     } else {
-      console.warn(`  ⚠ Skipped ${route} (${absPath} not found)`);
+      console.warn(`  ⚠ Skipped ${route} (File not found: ${filePath})`);
     }
   }
 }
@@ -106,18 +107,18 @@ async function registerRoutes() {
 async function registerStaffRoutes() {
   const staffDir = path.join(__dirname, 'staff');
   if (!fs.existsSync(staffDir)) return;
-  const files = fs.readdirSync(staffDir).filter(f => f.endsWith('.js'));
+  const files = fs.readdirSync(staffDir).filter(f => f.endsWith('.ts'));
   for (const file of files) {
-    const name = file.replace('.js', '');
+    const name = file.replace('.ts', '');
     const route = `/api/staff/${name}`;
     const absPath = path.join(staffDir, file);
     try {
       const mod = await import(pathToFileURL(absPath).href);
       const handler = mod.default || mod;
       app.all(route, vercelToExpress({ default: handler }));
-      console.log(`  ✓ Registered ${route}`);
+      console.log(`  ✓ Registered ${route} from staff/${file}`);
     } catch (e) {
-      console.warn(`  ✗ Failed to load ${route}: ${e.message}`);
+      console.error(`  ✗ Failed to load ${route} (staff/${file}):`, e);
     }
   }
 }
@@ -125,6 +126,8 @@ async function registerStaffRoutes() {
 registerRoutes().then(() => registerStaffRoutes()).then(() => {
   const PORT = process.env.API_PORT || 3001;
   app.listen(PORT, () => {
-    console.log(`\n🚀 API dev server running at http://localhost:${PORT}/api\n`);
+    console.log(`\n🚀 API dev server (TS) running at http://localhost:${PORT}/api\n`);
   });
+}).catch(err => {
+  console.error('Failed to start API server:', err);
 });

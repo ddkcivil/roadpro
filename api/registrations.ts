@@ -1,9 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabasePublic, supabaseAdmin } from './_utils/supabaseClient.js';
+import { supabasePublic, supabaseAdmin, ensureSupabaseConfigured } from './_utils/supabaseClient.js';
 import { withErrorHandler } from './_utils/errorHandler.js';
 import { v4 as uuidv4 } from 'uuid';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
+  ensureSupabaseConfigured();
   const { id, action } = req.query;
 
   if (req.method === 'GET') {
@@ -11,7 +12,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       const { data, error } = await supabaseAdmin
         .from('registrations')
         .select('*')
-        .order('createdat', { ascending: false, nullsFirst: false });
+        .order('created_at', { ascending: false, nullsFirst: false });
 
       if (error) throw error;
       return res.status(200).json(data);
@@ -45,7 +46,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           email_confirm: true,
           user_metadata: {
             name: pendingReg.name,
-            role: pendingReg.requested_role || pendingReg.requestedRole
+            role: pendingReg.requestedrole || pendingReg.requested_role || pendingReg.requestedRole
           }
         });
 
@@ -62,7 +63,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           .insert({
             id: authUser.user.id,
             full_name: pendingReg.name,
-            role: pendingReg.requested_role,
+            role: pendingReg.requestedrole || pendingReg.requested_role || pendingReg.requestedRole,
             avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`,
             status: 'active'
           });
@@ -74,7 +75,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
         return res.status(200).json({
           message: 'Registration approved successfully',
-          user: { id: authUser.user.id, name: pendingReg.name, email: pendingReg.email, role: pendingReg.requested_role || pendingReg.requestedRole }
+          user: { id: authUser.user.id, name: pendingReg.name, email: pendingReg.email, role: pendingReg.requestedrole || pendingReg.requested_role || pendingReg.requestedRole }
         });
       } catch (error: any) {
         console.error('Error approving registration:', error);
@@ -110,8 +111,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           name,
           email: email.toLowerCase(),
           phone: phone || '',
-          password_hash: password, // Still storing for compatibility, but should be removed from DB
-          requested_role: requestedRole,
+          passwordhash: password, // Match Postgres lowercase
+          requestedrole: requestedRole, // Match Postgres lowercase
           status: 'pending'
         })
         .select()

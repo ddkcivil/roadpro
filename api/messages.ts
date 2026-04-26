@@ -51,7 +51,6 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         );
       }
 
-      // Apply pagination manually
       const limitNum = parseInt(req.query.limit as string) || 100;
       const offsetNum = parseInt(req.query.offset as string) || 0;
       filteredData = filteredData.slice(offsetNum, offsetNum + limitNum);
@@ -84,9 +83,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           project_id: bodyProjectId,
           timestamp: new Date().toISOString(),
           read: false,
-          attachmentUrl: attachmentUrl || null,
-          attachmentName: attachmentName || null,
-          attachmentType: attachmentType || null,
+          attachment_url: attachmentUrl || null,
+          attachment_name: attachmentName || null,
+          attachment_type: attachmentType || null,
         }])
         .select('*')
         .single();
