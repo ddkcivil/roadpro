@@ -6,8 +6,6 @@ import { DEFAULT_APP_SETTINGS } from '../config/defaults';
 
 export const useSettings = () => {
   console.log('[useSettings] Hook initialized.');
-  export const useSettings = () => {
-    console.log('[useSettings] Hook initialized.');
     const [appSettings, setAppSettings] = useState<AppSettings>(() => {
       const savedSettings = localStorage.getItem('roadmaster-settings');
       if (savedSettings) {
