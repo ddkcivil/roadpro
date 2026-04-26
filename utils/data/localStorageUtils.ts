@@ -6,6 +6,7 @@ const LOCAL_STORAGE_KEYS = {
   USERS: 'roadmaster-users',
   MESSAGES: 'roadmaster-messages',
   SETTINGS: 'roadmaster-settings',
+  ACTIVE_TAB: 'roadmaster-active-tab',
   // Staff Management keys
   STAFF_EMPLOYEES: 'staff-employees',
   STAFF_LEAVE_REQUESTS: 'staff-leave-requests',
@@ -327,11 +328,11 @@ export const LocalStorageUtils = {
 
   // Active Tab
   getActiveTab(): string {
-    return safeGet(ACTIVE_TAB, 'dashboard'); // Default to dashboard if not set
+    return safeGet(LOCAL_STORAGE_KEYS.ACTIVE_TAB, 'dashboard'); // Default to dashboard if not set
   },
 
   setActiveTab(tab: string): boolean {
-    return safeSet(ACTIVE_TAB, tab);
+    return safeSet(LOCAL_STORAGE_KEYS.ACTIVE_TAB, tab);
   }
   };
 
