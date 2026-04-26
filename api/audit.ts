@@ -37,7 +37,11 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     }
   } 
   
+  // 📊 POST /api/audit - PUBLIC ENDPOINT (no auth required)
+  // Uses supabaseAdmin service role key for fire-and-forget audit logging
+  // Called during logout when no user session exists
   if (req.method === 'POST') {
+    console.log('📊 AUDIT POST - PUBLIC ENDPOINT, no auth required');
     try {
       const logData = req.body;
 
@@ -66,7 +70,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         }
       })();
 
-      return res.status(200).json({ success: true });
+      return res.status(200).json({ success: true, message: 'Audit log queued' });
     } catch (error: any) {
       console.error('Failed to process audit log:', error);
       return res.status(500).json({ error: 'Audit processing failed' });
@@ -77,9 +81,13 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 };
 
 export default withErrorHandler(async (req: VercelRequest, res: VercelResponse) => {
+  // POST /api/audit is PUBLIC - skips withAuth (fire-and-forget audit logging)
+  // GET requires admin auth  
   if (req.method === 'POST') {
+    console.log('🎯 AUDIT ROUTE: POST path taken (PUBLIC)');
     return handler(req, res);
   }
+  console.log('🎯 AUDIT ROUTE: GET path taken (withAuth ADMIN only)');
   return withAuth(handler)(req, res);
 });
 

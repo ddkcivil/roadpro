@@ -10,6 +10,7 @@ import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 
 export const useAuth = () => {
+  console.log('[useAuth] Hook initialized.');
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole>(UserRole.SITE_ENGINEER);
@@ -20,6 +21,7 @@ export const useAuth = () => {
 
   // Sync profile data from Supabase 'profiles' table
   const fetchProfile = async (userId: string) => {
+    console.log(`[useAuth] Fetching profile for user ID: ${userId}`);
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -51,7 +53,7 @@ export const useAuth = () => {
 
     // 2. Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: string, session: import('@supabase/supabase-js').Session | null) => {
-      console.log(`[Auth] Event: ${_event}`);
+      console.log(`[useAuth] onAuthStateChange triggered. Event: ${_event}, Session exists: ${!!session}`);
       setSession(session);
       if (session) {
         await updateAuthState(session);
@@ -159,6 +161,12 @@ export const useAuth = () => {
     currentUserId,
     currentUser,
     loading,
+    session,
+    login,
+    logout
+  };
+};
+ading,
     session,
     login,
     logout

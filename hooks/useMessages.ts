@@ -3,18 +3,20 @@ import { Message, UserWithPermissions } from '../types';
 import { realApiService } from '../services/api/realApiService';
 
 export const useMessages = (currentUser: UserWithPermissions | null, projectId: string, isAuthenticated: boolean) => {
+  console.log('[useMessages] Hook initialized.');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const lastFetchedRef = useRef<string | null>(null);
 
   const fetchMessages = useCallback(async (isInitial = false) => {
+    console.log('[useMessages] fetchMessages called. Initial:', isInitial);
     if (!projectId || !currentUser || !isAuthenticated) return;
-    
+
     try {
       if (isInitial) setIsLoading(true);
-      
+
       const newMessages = await realApiService.getMessages(projectId);
-      
+
       setMessages(prev => {
           // Merge logic to avoid duplicates and handle real-time updates
           const messageMap = new Map();
@@ -23,6 +25,7 @@ export const useMessages = (currentUser: UserWithPermissions | null, projectId: 
           return Array.from(messageMap.values()).sort((a, b) => 
             new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
           );
+      });
       });
     } catch (error) {
       console.error('Failed to fetch messages:', error);
@@ -76,5 +79,12 @@ export const useMessages = (currentUser: UserWithPermissions | null, projectId: 
     sendMessage,
     markAsRead,
     refresh: fetchMessages
+  };
+};
+markAsRead,
+    refresh: fetchMessages
+  };
+};
+  refresh: fetchMessages
   };
 };

@@ -325,10 +325,13 @@ export const LocalStorageUtils = {
     }
   },
 
-  // Clear all data
-  clearAllData(): void {
-    Object.values(LOCAL_STORAGE_KEYS).forEach(key => {
-      localStorage.removeItem(key);
-    });
+  // Active Tab
+  getActiveTab(): string {
+    return safeGet(ACTIVE_TAB, 'dashboard'); // Default to dashboard if not set
+  },
+
+  setActiveTab(tab: string): boolean {
+    return safeSet(ACTIVE_TAB, tab);
   }
-};
+  };
+

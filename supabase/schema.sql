@@ -49,11 +49,66 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   avatar_url text,
   role text DEFAULT 'SITE_ENGINEER',
   last_seen timestamptz DEFAULT now(),
-  created_at timestamptz DEFAULT now()
+  created_at timestamptz DEFAULT now(),
+  phone text -- Added phone column
+);`,
+
+  `-- BOQ Items table
+CREATE TABLE IF NOT EXISTS public.boq_items (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  projectId text NOT NULL,
+  item_name text NOT NULL,
+  description text,
+  quantity numeric,
+  unit_price numeric,
+  total_price numeric,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);`,
+
+  `-- RFIs table
+CREATE TABLE IF NOT EXISTS public.rfis (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  projectId text NOT NULL,
+  title text NOT NULL,
+  description text,
+  question text NOT NULL,
+  answer text,
+  status text DEFAULT 'open' CHECK (status IN ('open', 'closed', 'pending')),
+  createdBy uuid REFERENCES public.profiles(id),
+  createdAt timestamptz DEFAULT now(),
+  answeredAt timestamptz,
+  answeredBy uuid REFERENCES public.profiles(id)
+);`,
+
+  `-- Daily Reports table
+CREATE TABLE IF NOT EXISTS public.daily_reports (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  projectId text NOT NULL,
+  report_date date NOT NULL,
+  weather text,
+  progress_summary text,
+  issues text,
+  createdBy uuid REFERENCES public.profiles(id),
+  createdAt timestamptz DEFAULT now()
+);`,
+
+  `-- Vehicles table
+CREATE TABLE IF NOT EXISTS public.vehicles (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  projectId text NOT NULL,
+  make text,
+  model text,
+  year integer,
+  license_plate text UNIQUE,
+  vin text UNIQUE,
+  driverId uuid REFERENCES public.profiles(id),
+  status text DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'maintenance')),
+  createdAt timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
 );`,
 
   `ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;`,
-  
   `CREATE POLICY IF NOT EXISTS "Users can view own profile" ON public.profiles 
    FOR SELECT USING (auth.uid() = id);`,
    
@@ -62,21 +117,6 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   
   `CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);`,
   `CREATE INDEX IF NOT EXISTS idx_profiles_last_seen ON public.profiles(last_seen);`,
-
-  `-- Messages table
-CREATE TABLE IF NOT EXISTS public.messages (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  projectId text NOT NULL,
-  senderId uuid NOT NULL REFERENCES public.profiles(id),
-  receiverId text NOT NULL,
-  content text,
-  timestamp timestamptz DEFAULT now(),
-  read boolean DEFAULT false,
-  readAt timestamptz,
-  attachmentUrl text,
-  attachmentName text,
-  attachmentType text
-);`,
 
   `ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;`,
   `CREATE POLICY IF NOT EXISTS "Users can view project messages" ON public.messages FOR SELECT 
@@ -93,7 +133,7 @@ CREATE TABLE IF NOT EXISTS public.messages (
   `CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON public.messages(timestamp);`,
   `CREATE INDEX IF NOT EXISTS idx_messages_sender_receiver ON public.messages(senderId, receiverId);`,
 
-  `-- Seed data
+  `-- Seed data for existing tables
 INSERT INTO public.profiles (id, full_name, avatar_url, role, last_seen)
 VALUES 
   ('00000000-0000-0000-0000-000000000000', 'Admin User', 'https://ui-avatars.com/api/?name=Admin', 'Admin', now()),
@@ -108,6 +148,32 @@ ON CONFLICT (id) DO NOTHING;`,
 VALUES 
   ('general', '00000000-0000-0000-0000-000000000000', 'general', 'Welcome to the general chat! 👋', true),
   ('general', '11111111-1111-1111-1111-111111111111', 'general', 'Hello team!', false)
+ON CONFLICT DO NOTHING;`,
+
+  `-- Seed data for new tables
+-- Assuming default project ID 'general' and admin/engineer profiles for FKs
+INSERT INTO public.boq_items (projectId, item_name, description, quantity, unit_price, total_price)
+VALUES 
+  ('general', 'Item A', 'First item for BOQ', 10, 50.00, 500.00),
+  ('general', 'Item B', 'Second item for BOQ', 5, 120.00, 600.00)
+ON CONFLICT DO NOTHING;`,
+
+`INSERT INTO public.rfis (projectId, title, description, question, status, createdBy)
+VALUES 
+  ('general', 'Clarification on Spec A', 'Need more details on specification A', 'What are the exact dimensions for component X?', 'open', '11111111-1111-1111-1111-111111111111'),
+  ('general', 'Material question', 'Regarding material for structure Y', 'Is concrete grade C30 suitable?', 'open', '11111111-1111-1111-1111-111111111111')
+ON CONFLICT DO NOTHING;`,
+
+`INSERT INTO public.daily_reports (projectId, report_date, weather, progress_summary, issues, createdBy)
+VALUES 
+  ('general', NOW()::date - INTERVAL '1 day', 'Sunny', 'Completed foundation work.', 'Minor delay in concrete delivery.', '11111111-1111-1111-1111-111111111111'),
+  ('general', NOW()::date, 'Partly Cloudy', 'Pouring concrete for the main structure.', 'None', '11111111-1111-1111-1111-111111111111')
+ON CONFLICT DO NOTHING;`,
+
+`INSERT INTO public.vehicles (projectId, make, model, year, license_plate, vin, driverId, status)
+VALUES 
+  ('general', 'Toyota', 'Hilux', 2022, 'XYZ-123', 'VIN1234567890ABCDEF', '11111111-1111-1111-1111-111111111111', 'active'),
+  ('general', 'Ford', 'Transit', 2021, 'ABC-789', 'VINFEDCBA0987654321', '11111111-1111-1111-1111-111111111111', 'active')
 ON CONFLICT DO NOTHING;`
 ];
 
@@ -119,7 +185,7 @@ async function runSchemaUpdates() {
     console.log('2. Copy-paste each SQL block from SQL_STATEMENTS above');
     console.log('3. Or use: supabase db push (if using Supabase CLI)');
     console.log('
-📋 Tables created: profiles, messages, projects');
+📋 Tables created: profiles, messages, projects, boq_items, rfis, daily_reports, vehicles');
     console.log('✅ RLS policies & indexes included.');
 }
 

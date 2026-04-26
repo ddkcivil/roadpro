@@ -78,6 +78,7 @@ import { AnimatePresence } from 'framer-motion';
 import { ProtectedTab } from './components/common/ProtectedTab';
 
 const App: React.FC = () => {
+  console.log('App.tsx: App component function started.');
   const auth = useAuth();
   const {
     isAuthenticated,
@@ -127,22 +128,18 @@ const App: React.FC = () => {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [activeTab, setActiveTab] = useState<string>(() => LocalStorageUtils.getActiveTab());
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [showRegistration, setShowRegistration] = useState(false);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editProject, setEditProject] = useState<Partial<Project> | null>(null);
 
-  // Periodic refresh of current project data (every 15 seconds)
   useEffect(() => {
-    if (isAuthenticated && selectedProjectId) {
-      const projectRefreshInterval = setInterval(() => {
-        refreshCurrentProject().catch(err => console.warn('Project refresh failed', err));
-      }, 15000);
-
-      return () => clearInterval(projectRefreshInterval);
+    console.log('App.tsx: useEffect for fetchProjects triggered. Auth:', isAuthenticated, 'Hydrated:', isHydrated);
+    if (isAuthenticated && isHydrated) {
+      fetchProjects();
     }
-  }, [isAuthenticated, selectedProjectId, refreshCurrentProject]);
+  }, [isAuthenticated, isHydrated, fetchProjects]);
 
   useKeyboardShortcuts({
     onToggleSidebar: () => startTransition(() => setIsSidebarCollapsed(prev => !prev)),
@@ -170,6 +167,7 @@ const App: React.FC = () => {
   const handleTabChange = useCallback((tab: string) => {
     startTransition(() => {
       setActiveTab(tab);
+      LocalStorageUtils.setActiveTab(tab); // Save the active tab to localStorage
     });
   }, []);
 

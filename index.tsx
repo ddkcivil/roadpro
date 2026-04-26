@@ -18,3 +18,6 @@ root.render(
     </ErrorBoundary>
   </React.StrictMode>
 );
+
+console.log('App entry point: React root rendered.');
+

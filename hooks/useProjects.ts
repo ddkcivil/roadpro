@@ -280,6 +280,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
   }, []);
 
   const saveProject = useCallback(async (project: Partial<Project>) => {
+    console.log('saveProject called. Project ID:', project.id, 'Update mode:', isUpdate);
     const targetProjectId = project.id || state.selectedProjectId;
     const isUpdate = !!targetProjectId;
     
@@ -290,7 +291,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
       ...project,
       id: targetProjectId || `proj-${Date.now()}`, // Use Date.now() as a fallback ID generator, or consider uuidv4
       updatedAt: new Date().toISOString(),
-      contractNo: undefined, // Added to resolve Supabase schema mismatch error; needs proper handling if it's a required field.
+      contractNo: null, // Changed from undefined to null to correctly handle nullable fields
     } as Project;
 
     if (!completeProjectData.name || !completeProjectData.client) {
@@ -442,5 +443,8 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
     refreshCurrentProject,
     updateLocation,
     deleteProject
+  };
+};
+leteProject
   };
 };

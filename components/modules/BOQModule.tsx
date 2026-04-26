@@ -1,746 +1,1643 @@
-import React, { useState, useMemo, startTransition } from 'react';
-import { 
-    Plus, TrendingUp, Receipt, FileDiff, X, BarChart4, FileSpreadsheet, Upload,
-    Maximize2, Minimize2, AlertTriangle, CheckCircle2, Trash2, Pencil
+import React, { useState, useEffect, useMemo, useCallback, startTransition } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap, LayerGroup, CircleMarker, LayersControl, Tooltip as MapTooltip } from 'react-leaflet';
+
+const { BaseLayer } = LayersControl;
+import { parseKML, ParsedKML, getKMLBounds } from '~/utils/kmlParser';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { Project, StructureAsset, Vehicle, StaffLocation, LandParcel, MapOverlay, SitePhoto, LinearWorkLog, KMLData, AppSettings, User } from '../../types';
+import { Button } from '~/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Badge } from '~/components/ui/badge';
+import { Switch } from '~/components/ui/switch';
+import { Label } from '~/components/ui/label';
+import { ScrollArea } from '~/components/ui/scroll-area';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "~/components/ui/accordion";
+import {
+  MapPin,
+  Truck,
+  Users,
+  Building,
+  Camera,
+  Route,
+  Layers,
+  Search,
+  Ruler,
+  Download,
+  Upload,
+  Settings,
+  Loader2,
+  Maximize,
+  Minimize,
+  ChevronLeft,
+  ChevronRight,
+  BarChart3,
+  Trash2,
+  AlertOctagon,
+  FileQuestion,
+  Beaker,
+  TreePine,
+  Info
 } from 'lucide-react';
-import { Project, UserRole, AppSettings, BOQItem, VariationOrder, MeasurementSheet, MeasurementSheetEntry } from '../../types';
-import * as XLSX from 'xlsx';
-import StatCard from '../core/StatCard';
-import BOQRegistry from './BOQRegistry';
-import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
+import { cn } from '~/lib/utils';
 import { toast } from 'sonner';
 
-import { Button } from '~/components/ui/button';
-import { Card, CardContent } from '~/components/ui/card';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
-import { Input } from '~/components/ui/input';
-import { Label } from '~/components/ui/label';
-import { Checkbox } from '~/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
-import { Separator } from '~/components/ui/separator';
-import { Badge } from '~/components/ui/badge';
-import { cn } from '~/lib/utils';
-import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
-import { Textarea } from '~/components/ui/textarea';
+import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
+import 'leaflet-geosearch/dist/geosearch.css';
 
-interface Props {
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
+
+// Fix for default markers in react-leaflet
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: '/leaflet/marker-icon-2x.png',
+  iconUrl: '/leaflet/marker-icon.png',
+  shadowUrl: '/leaflet/marker-shadow.png',
+});
+
+interface MapModuleProps {
   project: Project;
-  userRole: UserRole;
-  settings: AppSettings;
-  onProjectUpdate: (project: Project) => void;
+  onProjectUpdate: (project: Partial<Project>) => void;
+  settings?: AppSettings;
+  users?: User[];
 }
 
-const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpdate }) => {
-    const [activeTab, setActiveTab] = useState("registry");
-    const [isVOModalOpen, setIsVOModalOpen] = useState(false);
-    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-    const [importFile, setImportFile] = useState<File | null>(null);
+console.log('MapModule component initialized.'); // Added log statement
+const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, settings, users = [] }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isRulerActive, setIsRulerActive] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  
+  const [targetBounds, setTargetBounds] = useState<L.LatLngBounds | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  
+  // States for non-blocking delete confirmation
+  const [isDeletingKML, setIsDeletingKML] = useState(false);
+  const [kmlToDelete, setKmlToDelete] = useState<string | null>(null);
+  const [isPendingDelete, startDeleteTransition] = React.useTransition();
 
-    const canEdit = [UserRole.ADMIN, UserRole.PROJECT_MANAGER, UserRole.SITE_ENGINEER].includes(userRole);
-    const canDelete = [UserRole.ADMIN, UserRole.PROJECT_MANAGER].includes(userRole);
+  const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({
+    structures: true,
+    vehicles: true,
+    staff: true,
+    landParcels: true,
+    overlays: true,
+    sitePhotos: true,
+    linearWorks: true,
+    kml: true,
+    roadAlignments: true,
+    roadStructures: true,
+    rfis: true,
+    ncrs: true,
+    labTests: true,
+    environmental: true,
+  });
+
+  const confirmDeleteKML = useCallback(() => {
+    if (!kmlToDelete) return;
     
-    // State for compact/full view toggle
-    const [compactView, setCompactView] = useState(false);
-    
-    // Auto-MB State
-    const [isAutoMBOpen, setIsAutoMBOpen] = useState(false);
-    const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
-    
-    // MB State
-    const [isMBModalOpen, setIsMBModalOpen] = useState(false);
-    
-    // Auto-MB Logic
-    const uncertifiedLogs = useMemo(() => {
-        const logs: any[] = [];
-        (project.structures || []).forEach(structure => {
-            structure.components.forEach(comp => {
-                if (comp.boqItemId) {
-                    (comp.workLogs || []).forEach(log => {
-                        // Check if this log is already in an approved/certified MB
-                        const alreadyMBed = (project.measurementSheets || []).some(sheet => 
-                            sheet.entries.some(entry => (entry as any).workLogId === log.id)
-                        );
-                        
-                        if (!alreadyMBed) {
-                            logs.push({
-                                ...log,
-                                structureName: structure.name,
-                                componentName: comp.name,
-                                boqItemId: comp.boqItemId
-                            });
-                        }
-                    });
-                }
-            });
-        });
-        return logs;
-    }, [project.structures, project.measurementSheets]);
-
-    const handleCreateAutoMB = () => {
-        if (selectedLogs.length === 0) return;
-
-        const logsToProcess = uncertifiedLogs.filter(l => selectedLogs.includes(l.id));
-        
-        // Group logs by BOQ Item ID to create combined entries
-        const groupedEntries: Record<string, number> = {};
-        logsToProcess.forEach(log => {
-            groupedEntries[log.boqItemId] = (groupedEntries[log.boqItemId] || 0) + log.quantity;
-        });
-
-        const newEntries: MeasurementSheetEntry[] = Object.entries(groupedEntries).map(([boqId, qty]) => {
-            const boqItem = project.boq.find(b => b.id === boqId);
-            return {
-                id: `mbe-${Date.now()}-${boqId}`,
-                boqItemId: boqId,
-                quantity: qty,
-                rate: boqItem?.rate || 0,
-                amount: qty * (boqItem?.rate || 0),
-                workLogId: logsToProcess.find(l => l.boqItemId === boqId)?.id // Keep track for uncertified check
-            } as any;
-        });
-
-        const autoSheet: MeasurementSheet = {
-            id: `mb-${Date.now()}`,
-            sheetNumber: `MB-AUTO-${(project.measurementSheets?.length || 0) + 1}`,
-            title: `Auto-Generated from Site Logs (${new Date().toLocaleDateString()})`,
-            date: new Date().toISOString().split('T')[0],
-            entries: newEntries,
-            totalAmount: newEntries.reduce((acc, e) => acc + e.amount, 0),
-            status: 'Draft'
-        } as any;
-
-        onProjectUpdate({
-            ...project,
-            measurementSheets: [...(project.measurementSheets || []), autoSheet]
-        });
-
-        setIsAutoMBOpen(false);
-        setSelectedLogs([]);
-        setActiveTab("mb");
-        toast.success("Auto-MB Created", { description: "Review and certify the draft in the MB Registry." });
-    };
-
-    const [newMB, setNewMB] = useState<Partial<MeasurementSheet>>({
-        sheetNumber: `MB-${((project?.measurementSheets || [])?.length || 0) + 1}`,
-        title: '',
-        date: new Date().toISOString().split('T')[0],
-        entries: [],
-        status: 'Draft'
+    startDeleteTransition(() => {
+      const updatedKMLs = (project.kmlData || []).filter(item => item.id !== kmlToDelete);
+      onProjectUpdate({ kmlData: updatedKMLs });
+      setIsDeletingKML(false);
+      setKmlToDelete(null);
     });
+  }, [project.kmlData, onProjectUpdate, kmlToDelete]);
 
-    const [tempMBEntry, setTempMBEntry] = useState<Partial<MeasurementSheetEntry>>({
-        boqItemId: '',
-        quantity: 0,
-        rate: 0
-    });
-    
-    const [newVO, setNewVO] = useState<Partial<VariationOrder>>({
-        voNumber: `VO-${((project?.variationOrders || [])?.length || 0) + 1}`,
-        title: '',
-        date: new Date().toISOString().split('T')[0],
-        items: [],
-        reason: ''
-    });
+  const handleDeleteKML = useCallback((id: string) => {
+    setKmlToDelete(id);
+    setIsDeletingKML(true);
+  }, []);
 
-    if (!project) {
-        return (
-            <div className="p-8 text-center">
-                <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>Project data not available. Please select a project first.</AlertDescription>
-                </Alert>
-            </div>
-        );
+  // Default center (Butwal, Nepal) - will be overridden by settings or project location
+  const defaultCenter: [number, number] = [27.7006, 83.4484];
+  const defaultZoom = 13;
+
+  // Function to zoom to specific KML alignment (pure parser)
+  const zoomToKML = useCallback((kmlContent: string) => {
+    try {
+      const points = getKMLBounds(kmlContent);
+      if (points && points.length > 0) {
+        const bounds = L.latLngBounds(points);
+        startTransition(() => {
+          setTargetBounds(bounds);
+        });
+        // Clear target bounds after a short delay so it can be re-triggered
+        setTimeout(() => {
+          startTransition(() => {
+            setTargetBounds(null);
+          });
+        }, 1000);
+      }
+    } catch (error) {
+      console.error("Failed to calculate KML bounds:", error);
+    }
+  }, []);
+
+  // Map Component to handle programmatic zooming
+  const MapController: React.FC<{ bounds: L.LatLngBounds | null }> = ({ bounds }) => {
+    const map = useMap();
+    useEffect(() => {
+      if (bounds) {
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+      }
+    }, [bounds, map]);
+    return null;
+  };
+
+  // Handle KML File Upload
+  const handleKMLUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.kml')) {
+      toast.error("Invalid File", { description: "Please upload a .kml file." });
+      return;
     }
 
-    const currencySymbol = getCurrencySymbol(settings.currency);
+    const uploadToast = toast.loading(`Uploading ${file.name}...`);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setImportFile(file);
-        }
-    };
-    
-    const handleImportSubmit = () => {
-        if (!importFile) return;
-
-        if (!canEdit) {
-            toast.error("Unauthorized", { description: "You don't have permission to import BOQ data." });
-            return;
-        }
-    
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const data = new Uint8Array(e.target?.result as ArrayBuffer);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const worksheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[worksheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet);
-                
-            const importedBoqItems: BOQItem[] = jsonData.map((row: any, index) => {
-                const itemNo = row['Item No'] || row['ItemNo'] || row['item_no'] || row['itemNo'] || `ITEM-${index + 1}`;
-                const description = row['Description'] || row['description'] || row['Work Description'] || `Item ${index + 1}`;
-                const unit = row['Unit'] || row['unit'] || row['Units'] || 'unit';
-                const quantity = parseFloat(row['Contract Qty'] || row['Quantity'] || row['quantity'] || row['Qty'] || 0);
-                const rate = parseFloat(row['Rate'] || row['rate'] || row['Unit Rate'] || 0);
-                const amount = quantity * rate;
-                const location = row['Location'] || row['location'] || 'N/A';
-                const category = row['Category'] || row['category'] || row['Work Category'] || 'General';
-                    
-                return {
-                    id: `boq-${Date.now()}-${index}`,
-                    itemNo: String(itemNo),
-                    description: String(description),
-                    unit: String(unit),
-                    quantity: isNaN(quantity) ? 0 : quantity,
-                    rate: isNaN(rate) ? 0 : rate,
-                    amount: isNaN(amount) ? 0 : amount,
-                    location: String(location),
-                    category: String(category),
-                    completedQuantity: 0,
-                    variationQuantity: 0
-                };
-            });
-    
-            onProjectUpdate({ ...project, boq: importedBoqItems });
-                
-            setImportFile(null);
-            setIsImportModalOpen(false);
-            toast.success("Import Successful", { description: `Imported ${importedBoqItems.length} items.` });
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      if (content) {
+        const newKML: KMLData = {
+          id: `kml-${Date.now()}`,
+          name: file.name,
+          kmlContent: content,
+          timestamp: Date.now(),
+          visible: true
         };
-        reader.readAsArrayBuffer(importFile);
-    };
 
-    const handleSaveVO = () => {
-        if (!newVO.title || !newVO.items?.length) return;
-        const totalImpact = newVO.items.reduce((acc, i) => acc + (i.quantityDelta * i.rate), 0);
-        const finalVO: VariationOrder = {
-            ...newVO,
-            id: `vo-${Date.now()}`,
-            status: 'Draft',
-            totalImpact
-        } as VariationOrder;
-
-        onProjectUpdate({ ...project, variationOrders: [...(project.variationOrders || []), finalVO] });
-        setIsVOModalOpen(false);
-        setNewVO({
-            voNumber: `VO-${(project.variationOrders?.length || 0) + 2}`,
-            title: '',
-            date: new Date().toISOString().split('T')[0],
-            items: [],
-            reason: ''
+        onProjectUpdate({
+          kmlData: [...(project.kmlData || []), newKML]
         });
-        toast.success("Variation Initialized");
-    };
-
-    const handleAddMBEntry = () => {
-        if (!tempMBEntry.boqItemId || !tempMBEntry.quantity) return;
-        const boqItem = project.boq.find(b => b.id === tempMBEntry.boqItemId);
-        if (!boqItem) return;
-
-        const entry: MeasurementSheetEntry = {
-            id: `mbe-${Date.now()}`,
-            boqItemId: tempMBEntry.boqItemId,
-            quantity: Number(tempMBEntry.quantity),
-            rate: boqItem.rate,
-            amount: Number(tempMBEntry.quantity) * boqItem.rate
-        };
-
-        setNewMB(prev => ({ ...prev, entries: [...(prev.entries || []), entry] }));
-        setTempMBEntry({ boqItemId: '', quantity: 0, rate: 0 });
-    };
-
-    const handleSaveMB = () => {
-        if (!newMB.title || !newMB.entries?.length) return;
-        const totalAmount = newMB.entries.reduce((acc, e) => acc + e.amount, 0);
         
-        const finalMB: MeasurementSheet = {
-            ...newMB,
-            id: newMB.id || `mb-${Date.now()}`,
-            totalAmount,
-            status: newMB.status === 'Draft' ? 'Draft' : 'Approved'
-        } as MeasurementSheet;
-
-        let updatedSheets;
-        if (newMB.id) {
-            updatedSheets = (project.measurementSheets || []).map(s => s.id === newMB.id ? finalMB : s);
-        } else {
-            updatedSheets = [...(project.measurementSheets || []), finalMB];
-        }
-
-        onProjectUpdate({ ...project, measurementSheets: updatedSheets });
-        setIsMBModalOpen(false);
-        setNewMB({
-            sheetNumber: `MB-${(project.measurementSheets?.length || 0) + 1}`,
-            title: '',
-            date: new Date().toISOString().split('T')[0],
-            entries: [],
-            status: 'Draft'
-        });
-        toast.success(newMB.id ? "MB Record Updated" : "MB Entry Saved & Approved");
-    };
-
-    const handleEditMB = (sheet: MeasurementSheet) => {
-        setNewMB(sheet);
-        setIsMBModalOpen(true);
-    };
-
-    const handleCertifyMB = (sheet: MeasurementSheet) => {
-        if (!canEdit) {
-            toast.error("Unauthorized", { description: "You don't have permission to certify MB records." });
-            return;
-        }
-
-        if ((sheet.status as string) === 'Certified') {
-            toast.info("This MB record is already certified.");
-            return;
-        }
-
-        if (window.confirm(`Are you sure you want to certify MB record ${sheet.sheetNumber}? This will update BOQ completed quantities.`)) {
-            // 1. Update the MB sheet status
-            const updatedSheets = project.measurementSheets.map(s => 
-                s.id === sheet.id ? { ...s, status: 'Approved' as any } : s // Changed logic here to fix type error vs status
-            );
-
-            // 2. Update BOQ items based on entries in this sheet
-            const updatedBoq = [...project.boq];
-            sheet.entries.forEach(entry => {
-                const boqIdx = updatedBoq.findIndex(b => b.id === entry.boqItemId);
-                if (boqIdx !== -1) {
-                    updatedBoq[boqIdx] = {
-                        ...updatedBoq[boqIdx],
-                        completedQuantity: (updatedBoq[boqIdx].completedQuantity || 0) + entry.quantity,
-                        status: 'Executing'
-                    };
-                }
-            });
-
-            startTransition(() => {
-                onProjectUpdate({ 
-                    ...project, 
-                    measurementSheets: updatedSheets,
-                    boq: updatedBoq
-                });
-            });
-            
-            toast.success(`MB Record ${sheet.sheetNumber} certified and BOQ updated.`);
-        }
-    };
-
-    const financialSummary = useMemo(() => {
-        const boqItems = project.boq || [];
-        const vatRate = settings?.vatRate || 13;
+        // Auto-zoom to the newly uploaded KML
+        setTimeout(() => zoomToKML(content), 500);
         
-        // --- Original Contract Calculation (a + b + c) ---
-        const originalPS = boqItems
-            .filter(item => item.unit?.toUpperCase() === 'PS')
-            .reduce((acc, item) => acc + (item.quantity * item.rate), 0);
-            
-        const originalNonPS = boqItems
-            .filter(item => item.unit?.toUpperCase() !== 'PS')
-            .reduce((acc, item) => acc + (item.quantity * item.rate), 0);
-            
-        const originalVAT = originalNonPS * (vatRate / 100);
-        const originalTotal = originalPS + originalNonPS + originalVAT;
+        toast.dismiss(uploadToast);
+        toast.success("KML Uploaded", { description: `${file.name} is now available on the map.` });
+      }
+    };
+    reader.onerror = () => {
+      toast.dismiss(uploadToast);
+      toast.error("Upload Failed", { description: "Could not read the KML file." });
+    };
+    reader.readAsText(file);
+    
+    // Reset input
+    if (event.target) {
+      event.target.value = '';
+    }
+  }, [project.kmlData, onProjectUpdate, zoomToKML]);
 
-        // --- Revised Contract Calculation (a_rev + b_rev + c_rev) ---
-        const revisedPS = boqItems
-            .filter(item => item.unit?.toUpperCase() === 'PS')
-            .reduce((acc, item) => acc + ((item.quantity + (item.variationQuantity || 0)) * item.rate), 0);
-            
-        const revisedNonPS = boqItems
-            .filter(item => item.unit?.toUpperCase() !== 'PS')
-            .reduce((acc, item) => acc + ((item.quantity + (item.variationQuantity || 0)) * item.rate), 0);
-            
-        const revisedVAT = revisedNonPS * (vatRate / 100);
-        const revisedTotal = revisedPS + revisedNonPS + revisedVAT;
+  // Save new drawing to overlays
+  const handleSaveDrawing = useCallback((coords: { lat: number, lng: number }[]) => {
+    const newOverlay: MapOverlay = {
+      id: `hindrance-${Date.now()}`,
+      name: `Hindrance ${new Date().toLocaleDateString()}`,
+      type: 'Hindrance',
+      coordinates: coords,
+      color: '#ef4444',
+      visible: true
+    };
+    
+    startTransition(() => {
+      onProjectUpdate({
+        mapOverlays: [...(project.mapOverlays || []), newOverlay]
+      });
+    });
+    setIsDrawing(false);
+  }, [project.mapOverlays, onProjectUpdate]);
 
-        const currentCompletedValue = boqItems.reduce((acc, item) => acc + (item.completedQuantity * item.rate), 0);
+  // Parse location string to [lat, lng]
+  const parseLocation = (locStr?: string): [number, number] | null => {
+    if (!locStr) return null;
+    const coords = locStr.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
+    if (coords) {
+      const lat = parseFloat(coords[1]);
+      const lng = parseFloat(coords[2]);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        return [lat, lng];
+      }
+    }
+    return null;
+  };
+
+  // Parse project location or default from settings
+  const mapCenter = useMemo((): [number, number] => {
+    // 1. Try project location
+    const projectLoc = parseLocation(project.location);
+    if (projectLoc) return projectLoc;
+
+    // 2. Try default location from settings
+    const settingsLoc = parseLocation(settings?.defaultLocation);
+    if (settingsLoc) return settingsLoc;
+
+    // 3. Fallback to Butwal
+    return defaultCenter;
+  }, [project.location, settings?.defaultLocation]);
+
+  // Simulate loading
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Toggle layer visibility
+  const toggleLayer = useCallback((layer: keyof LayerVisibility) => {
+    startTransition(() => {
+      setLayerVisibility(prev => ({ ...prev, [layer]: !prev[layer] }));
+    });
+  }, []);
+
+  // Categorize all users by status
+  const allUsersStatus = useMemo(() => {
+    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    const online: User[] = [];
+    const offline: User[] = [];
+
+    users.forEach((user: User) => {
+      const isOnline = user.lastSeen && new Date(user.lastSeen).getTime() > fiveMinutesAgo;
+      if (isOnline) online.push(user);
+      else offline.push(user);
+    });
+
+    return { online, offline };
+  }, [users]);
+
+  // Find the alignment overlay to use as a reference for chainage mapping
+  const alignmentOverlay = useMemo(() => {
+    if (!project.mapOverlays) return null;
+    return project.mapOverlays.find(o => o.type === 'Alignment' && o.visible) || 
+           project.mapOverlays.find(o => o.type === 'Alignment');
+  }, [project.mapOverlays]);
+
+  
+
+  /**
+   * Helper to map a chainage range (start and end km) to geographic coordinates
+   * by interpolating points along the reference road alignment.
+   * 
+   * @param startCh The start chainage in kilometers
+   * @param endCh The end chainage in kilometers
+   * @returns Array of [lat, lng] coordinates representing the segment
+   */
+  const getCoordinatesForChainage = useCallback((startCh: number, endCh: number) => {
+    if (!alignmentOverlay || alignmentOverlay.coordinates.length < 2) return [];
+
+    const coords = alignmentOverlay.coordinates;
+    const points: [number, number][] = [];
+    let currentChainage = 0; // Cumulative distance in meters along the alignment
+
+    for (let i = 0; i < coords.length - 1; i++) {
+      const p1 = L.latLng(coords[i].lat, coords[i].lng);
+      const p2 = L.latLng(coords[i+1].lat, coords[i+1].lng);
+      const segmentLen = p1.distanceTo(p2); // Physical distance in meters between these two vertices
+      const nextChainage = currentChainage + segmentLen;
+
+      // Map module uses km for chainage (e.g. 12.400 is 12km 400m)
+      const segStartCh = currentChainage / 1000;
+      const segEndCh = nextChainage / 1000;
+
+      // Check if the requested range overlaps with this specific segment of the alignment
+      if (segEndCh >= startCh && segStartCh <= endCh) {
+        // Calculate the overlap bounds within this segment
+        const segmentStart = Math.max(segStartCh, startCh);
+        const segmentEnd = Math.min(segEndCh, endCh);
+
+        // Calculate fractions for linear interpolation
+        const startFraction = (segmentStart - segStartCh) / (segEndCh - segStartCh);
+        const endFraction = (segmentEnd - segStartCh) / (segEndCh - segStartCh);
+
+        // Interpolate the start and end points of the requested range within this segment
+        const startLat = coords[i].lat + (coords[i+1].lat - coords[i].lat) * startFraction;
+        const startLng = coords[i].lng + (coords[i+1].lng - coords[i].lng) * startFraction;
+        const endLat = coords[i].lat + (coords[i+1].lat - coords[i].lat) * endFraction;
+        const endLng = coords[i].lng + (coords[i+1].lng - coords[i].lng) * endFraction;
+
+        if (points.length === 0) {
+          points.push([startLat, startLng]);
+        }
         
-        return { 
-            original: originalTotal, 
-            revised: revisedTotal,
-            variation: revisedTotal - originalTotal,
-            completed: currentCompletedValue, 
-            percent: revisedTotal > 0 ? (currentCompletedValue / revisedTotal) * 100 : 0,
-            amountWithPS: revisedTotal,
-            amountWithoutPS: revisedNonPS,
-            provisionalSum: revisedPS,
-            vatAmount: revisedVAT,
-            totalContractValue: revisedTotal
-        };
-    }, [project.boq, settings]);
+        // Add all intermediate vertices if the range spans multiple vertices
+        // In this simplified version, we just add the end of each segment interpolation
+        points.push([endLat, endLng]);
+      }
 
-    return (
-        <div className="animate-in fade-in duration-500 p-4">
-            <div className="flex justify-between mb-4 items-center">
-                <div>
-                    <h1 className="text-2xl font-bold text-foreground">BOQ & Measurements</h1>
-                    <p className="text-sm text-muted-foreground">Contractual rates and actual work progress</p>
-                </div>
-                <div className="flex gap-2 items-center">
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button variant="outline" size="icon" onClick={() => setIsImportModalOpen(true)}>
-                                    <Upload className="h-4 w-4" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Import Excel</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button variant="outline" size="icon" onClick={() => setCompactView(!compactView)}>
-                                    {compactView ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Toggle View</TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+      currentChainage = nextChainage;
+    }
 
-                    <Tabs value={activeTab} onValueChange={setActiveTab}>
-                        <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="registry"><Receipt className="mr-2 h-4 w-4" /> Registry</TabsTrigger>
-                            <TabsTrigger value="mb"><FileSpreadsheet className="mr-2 h-4 w-4" /> MB Registry</TabsTrigger>
-                            <TabsTrigger value="variations"><FileDiff className="mr-2 h-4 w-4" /> Variations</TabsTrigger>
-                        </TabsList>
-                    </Tabs>
-                </div>
+    return points;
+  }, [alignmentOverlay]);
+
+  // Extract active KML lines for linear referencing monitoring (pure parser)
+  const activeKMLLines = useMemo(() => {
+    if (!layerVisibility.kml || !project.kmlData) return [];
+    
+    const lines: { name: string, coords: L.LatLng[] }[] = [];
+    
+    project.kmlData.forEach(kml => {
+      if (!kml.visible || !kml.kmlContent || typeof kml.kmlContent !== 'string' || kml.kmlContent === '[object Object]') return;
+      
+      const parsed: ParsedKML = parseKML(kml.kmlContent);
+      parsed.placemarks.forEach(placemark => {
+        const points: L.LatLng[] = placemark.points;
+        if (points && points.length >= 2) {
+          lines.push({ name: kml.name.split('.')[0], coords: points });
+        }
+      });
+    });
+    
+    return lines;
+  }, [project.kmlData, layerVisibility.kml]);
+
+  // Helper to find nearest chainage on any active KML line
+  const getNearestChainage = useCallback((point: L.LatLng) => {
+    let nearestInfo = null;
+    let minDistance = Infinity;
+
+    activeKMLLines.forEach(line => {
+      let cumulativeDist = 0;
+      for (let i = 0; i < line.coords.length - 1; i++) {
+        const p1 = line.coords[i];
+        const p2 = line.coords[i+1];
+        
+        // Find nearest point on this segment
+        // Simple approximation: check distance to p1
+        const d = point.distanceTo(p1);
+        if (d < minDistance && d < 100) { // Only if within 100m
+          minDistance = d;
+          const chainageKm = Math.floor(cumulativeDist / 1000);
+          const chainageM = Math.round(cumulativeDist % 1000);
+          nearestInfo = {
+            lineName: line.name,
+            chainage: `${chainageKm}+${chainageM.toString().padStart(3, '0')}`,
+            offset: Math.round(d)
+          };
+        }
+        cumulativeDist += p1.distanceTo(p2);
+      }
+    });
+
+    return nearestInfo;
+  }, [activeKMLLines]);
+
+  // Structure markers
+  const structureMarkers = useMemo(() => {
+    if (!project.structures || !layerVisibility.structures) return [];
+    return project.structures.map((structure: StructureAsset) => {
+      if (!structure.coordinates) return null;
+      const [lat, lng] = structure.coordinates.split(',').map(Number);
+      if (isNaN(lat) || isNaN(lng)) return null;
+      
+      const nearestKML = getNearestChainage(L.latLng(lat, lng));
+      
+      return (
+        <Marker
+          key={`structure-${structure.id}`}
+          position={[lat, lng]}
+          icon={createCustomIcon('#3b82f6', '🏗️')}
+        >
+          <Popup>
+            <div className="p-2 min-w-[200px]">
+              <h3 className="font-bold text-lg border-b pb-1 mb-2">{structure.name}</h3>
+              <div className="space-y-1">
+                <p className="text-sm flex justify-between">
+                  <span className="text-gray-500">Type:</span>
+                  <span className="font-medium">{structure.type}</span>
+                </p>
+                <p className="text-sm flex justify-between">
+                  <span className="text-gray-500">Chainage:</span>
+                  <span className="font-medium">{structure.chainage}</span>
+                </p>
+                <p className="text-sm flex justify-between">
+                  <span className="text-gray-500">Status:</span>
+                  <Badge variant={structure.status === 'Completed' ? 'default' : 'outline'}>
+                    {structure.status}
+                  </Badge>
+                </p>
+              </div>
+              <LinearReferenceView info={nearestKML} />
             </div>
+          </Popup>
+        </Marker>
+      );
+    }).filter(Boolean);
+  }, [project.structures, layerVisibility.structures]);
 
-            <div className={cn("grid gap-4 mb-4", compactView ? "grid-cols-2" : "grid-cols-1 md:grid-cols-3")}>
-                <StatCard title="Contract Value" value={`${currencySymbol}${(financialSummary.original || 0).toLocaleString()}`} icon={Receipt} color="#4f46e5" />
-                <StatCard title="Work Done" value={`${currencySymbol}${(financialSummary.completed || 0).toLocaleString()}`} icon={FileSpreadsheet} color="#10b981" />
-                {!compactView && (
-                    <StatCard title="Overall Progress" value={`${(financialSummary.percent || 0).toFixed(2)}%`} icon={BarChart4} color="#8b5cf6" />
+  // Vehicle markers
+  const vehicleMarkers = useMemo(() => {
+    if (!project.vehicles || !layerVisibility.vehicles) return [];
+    return project.vehicles.map((vehicle: Vehicle) => {
+      const location = vehicle.gpsLocation || vehicle.lastKnownLocation;
+      if (!location) return null;
+      
+      const nearestKML = getNearestChainage(L.latLng(location.latitude, location.longitude));
+
+      return (
+        <Marker
+          key={`vehicle-${vehicle.id}`}
+          position={[location.latitude, location.longitude]}
+          icon={createCustomIcon('#10b981', '🚛')}
+        >
+          <Popup>
+            <div className="p-2 min-w-[200px]">
+              <h3 className="font-bold text-lg border-b pb-1 mb-2">{vehicle.name || vehicle.plateNumber}</h3>
+              <div className="space-y-1">
+                <p className="text-sm flex justify-between">
+                  <span className="text-gray-500">Asset Type:</span>
+                  <span className="font-medium">{vehicle.type}</span>
+                </p>
+                <p className="text-sm flex justify-between">
+                  <span className="text-gray-500">Operator/Driver:</span>
+                  <span className="font-medium">{vehicle.driver}</span>
+                </p>
+                <p className="text-sm flex justify-between">
+                  <span className="text-gray-500">Status:</span>
+                  <Badge className={cn(
+                    vehicle.status === 'Active' ? 'bg-green-500' : 
+                    vehicle.status === 'Maintenance' ? 'bg-orange-500' : 'bg-gray-500'
+                  )}>
+                    {vehicle.status}
+                  </Badge>
+                </p>
+                {vehicle.gpsLocation?.speed !== undefined && (
+                  <p className="text-sm flex justify-between">
+                    <span className="text-gray-500">Speed:</span>
+                    <span className="font-medium">{vehicle.gpsLocation.speed} km/h</span>
+                  </p>
                 )}
+              </div>
+              <LinearReferenceView info={nearestKML} />
+            </div>
+          </Popup>
+        </Marker>
+      );
+    }).filter(Boolean);
+  }, [project.vehicles, layerVisibility.vehicles]);
+
+  // Staff markers
+  const staffMarkers = useMemo(() => {
+    if (!project.staffLocations || !layerVisibility.staff) return [];
+    return project.staffLocations.map((staff: StaffLocation) => {
+      const nearestKML = getNearestChainage(L.latLng(staff.latitude, staff.longitude));
+      const userDetails = users.find(u => u.id === staff.userId);
+      
+      return (
+        <Marker
+          key={`staff-${staff.id}`}
+          position={[staff.latitude, staff.longitude]}
+          icon={createCustomIcon('#f59e0b', '👷')}
+        >
+          <MapTooltip permanent direction="top" offset={[0, -32]} className="bg-white border-2 border-amber-500 rounded px-2 py-0.5 text-[10px] font-black uppercase text-amber-600 shadow-xl">
+            {staff.userName}
+          </MapTooltip>
+          <Popup>
+            <div className="p-3 min-w-[220px]">
+              <div className="flex items-center gap-3 mb-3 pb-2 border-b">
+                <div className="h-10 w-10 rounded-xl overflow-hidden border-2 border-amber-100 shadow-sm bg-slate-100 shrink-0">
+                  {userDetails?.avatar ? (
+                    <img src={userDetails.avatar} alt={staff.userName} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center font-black text-amber-500 bg-amber-50">
+                      {staff.userName.split(' ').map(n => n[0]).join('')}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-black text-sm tracking-tight text-slate-900 truncate">{staff.userName}</h3>
+                  <Badge variant="outline" className="text-[9px] h-4 py-0 font-black uppercase tracking-widest bg-amber-50 text-amber-600 border-amber-200">
+                    {staff.role}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {userDetails?.email && (
+                  <div className="flex items-center gap-2 text-[11px]">
+                    <span className="text-slate-400 font-bold uppercase w-12">Mail:</span>
+                    <span className="font-bold text-slate-700 truncate">{userDetails.email}</span>
+                  </div>
+                )}
+                {userDetails?.phone && (
+                  <div className="flex items-center gap-2 text-[11px]">
+                    <span className="text-slate-400 font-bold uppercase w-12">Phone:</span>
+                    <span className="font-bold text-slate-700">{userDetails.phone}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-[11px]">
+                  <span className="text-slate-400 font-bold uppercase w-12">Status:</span>
+                  <div className="flex items-center gap-1.5 font-black text-green-600 uppercase tracking-tighter">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                    {staff.status}
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-4">
+                Last Telemetry: {new Date(staff.timestamp).toLocaleTimeString()}
+              </p>
+              
+              <LinearReferenceView info={nearestKML} />
+            </div>
+          </Popup>
+        </Marker>
+      );
+    });
+  }, [project.staffLocations, layerVisibility.staff, users, getNearestChainage]);
+
+  // Land Parcel polygons
+  const landParcelPolygons = useMemo(() => {
+    if (!project.landParcels || !layerVisibility.landParcels) return [];
+    return project.landParcels.map((parcel: LandParcel) => {
+      if (!parcel.coordinates || parcel.coordinates.length < 3) return null;
+      
+      return (
+        <Polygon
+          key={`parcel-${parcel.id}`}
+          positions={parcel.coordinates.map(c => [c.lat, c.lng])}
+          pathOptions={{
+            color: '#8b5cf6',
+            fillColor: '#8b5cf6',
+            fillOpacity: 0.2,
+            weight: 2
+          }}
+        >
+          <Popup>
+            <div className="p-2 min-w-[180px]">
+              <h3 className="font-bold text-lg border-b pb-1 mb-2">Parcel {parcel.parcelNumber}</h3>
+              <p className="text-sm"><span className="text-gray-500">Owner:</span> {parcel.ownerName}</p>
+              <p className="text-sm"><span className="text-gray-500">Area:</span> {parcel.area} {parcel.unit}</p>
+              <Badge className="mt-2">{parcel.acquisitionStatus}</Badge>
+            </div>
+          </Popup>
+        </Polygon>
+      );
+    }).filter(Boolean);
+  }, [project.landParcels, layerVisibility.landParcels]);
+
+  // Map Overlays (Alignment, Boundaries, etc.)
+  const mapOverlayLayers = useMemo(() => {
+    if (!project.mapOverlays || !layerVisibility.overlays) return [];
+    return project.mapOverlays.map((overlay: MapOverlay) => {
+      if (!overlay.visible) return null;
+      
+      return (
+        <Polyline
+          key={`overlay-${overlay.id}`}
+          positions={overlay.coordinates.map(c => [c.lat, c.lng])}
+          pathOptions={{
+            color: overlay.color,
+            weight: 4,
+            opacity: 0.8
+          }}
+        >
+          <Popup>
+            <div className="p-1">
+              <h3 className="font-bold text-lg border-b pb-1 mb-2">{overlay.name}</h3>
+              <p className="text-sm"><span className="text-gray-500">Type:</span> {overlay.type}</p>
+              
+              {/*
+                --- Status Display Placeholder ---
+                The MapOverlay type does not currently have a 'status' field.
+                To display status, the MapOverlay interface and its data source
+                would need to be updated to include a 'status' property.
+                This section assumes 'overlay.status' exists and displays it.
+                Example statuses and colors are provided.
+              */}
+              {overlay.status && (
+                <p className="text-sm flex items-center gap-2 mt-2">
+                  <span className="text-gray-500 font-medium">Status:</span>
+                  <Badge variant="outline" className={cn(
+                    overlay.status === 'Active' ? 'bg-green-500' :
+                    overlay.status === 'Under Construction' ? 'bg-orange-500' :
+                    overlay.status === 'Completed' ? 'bg-green-600' :
+                    overlay.status === 'Planned' ? 'bg-blue-500' :
+                    'bg-gray-500'
+                  )}>
+                    {overlay.status}
+                  </Badge>
+                </p>
+              )}
+              {/* End Status Display Placeholder */}
+
+            </div>
+          </Popup>
+        </Polyline>
+      );
+    }).filter(Boolean);
+  }, [project.mapOverlays, layerVisibility.overlays]);
+
+  // Site Photo markers
+  const sitePhotoMarkers = useMemo(() => {
+    if (!project.sitePhotos || !layerVisibility.sitePhotos) return [];
+    return project.sitePhotos.map((photo: SitePhoto) => {
+      const pos = parseLocation(photo.location);
+      if (!pos) return null;
+      
+      const nearestKML = getNearestChainage(L.latLng(pos[0], pos[1]));
+
+      return (
+        <Marker
+          key={`photo-${photo.id}`}
+          position={pos}
+          icon={createCustomIcon('#ec4899', '📸')}
+        >
+          <Popup maxWidth={300}>
+            <div className="p-1">
+              <img 
+                src={photo.url} 
+                alt={photo.caption} 
+                className="w-full h-32 object-cover rounded-md mb-2 shadow-sm" 
+              />
+              <h3 className="font-bold text-sm leading-tight mb-1">{photo.caption}</h3>
+              <div className="flex justify-between items-center text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                <span>{photo.category}</span>
+                <span>{new Date(photo.date).toLocaleDateString()}</span>
+              </div>
+              <LinearReferenceView info={nearestKML} />
+            </div>
+          </Popup>
+        </Marker>
+      );
+    }).filter(Boolean);
+  }, [project.sitePhotos, layerVisibility.sitePhotos, getNearestChainage]);
+
+  // RFI markers
+  const rfiMarkers = useMemo(() => {
+    if (!project.rfis || !layerVisibility.rfis) return [];
+    return project.rfis.map(rfi => {
+      const pos = parseLocation(rfi.location);
+      if (!pos) return null;
+      
+      const color = rfi.status === 'Open' ? '#f59e0b' : rfi.status === 'Approved' ? '#10b981' : '#64748b';
+      
+      return (
+        <Marker
+          key={`rfi-${rfi.id}`}
+          position={pos}
+          icon={createCustomIcon(color, '❓')}
+        >
+          <Popup>
+            <div className="p-2 min-w-[200px]">
+              <div className="flex items-center gap-2 mb-2 border-b pb-1">
+                <FileQuestion className="text-amber-500 w-4 h-4" />
+                <h3 className="font-bold text-sm">RFI: {rfi.rfiNumber}</h3>
+              </div>
+              <p className="text-xs mb-2 font-medium text-slate-600">{rfi.description}</p>
+              <div className="space-y-1">
+                <p className="text-[10px] flex justify-between"><span className="text-gray-400 font-bold">DATE:</span> <span>{new Date(rfi.date).toLocaleDateString()}</span></p>
+                <p className="text-[10px] flex justify-between"><span className="text-gray-400 font-bold">STATUS:</span> <Badge variant="outline" className="h-4 text-[8px] font-black">{rfi.status}</Badge></p>
+              </div>
+            </div>
+          </Popup>
+        </Marker>
+      );
+    }).filter(Boolean);
+  }, [project.rfis, layerVisibility.rfis]);
+
+  // NCR markers
+  const ncrMarkers = useMemo(() => {
+    if (!project.ncrs || !layerVisibility.ncrs) return [];
+    return project.ncrs.map(ncr => {
+      const pos = parseLocation(ncr.location);
+      if (!pos) return null;
+      
+      const color = ncr.severity === 'Critical' || ncr.severity === 'High' ? '#ef4444' : '#f97316';
+      
+      return (
+        <Marker
+          key={`ncr-${ncr.id}`}
+          position={pos}
+          icon={createCustomIcon(color, '⚠️')}
+        >
+          <Popup>
+            <div className="p-2 min-w-[200px]">
+              <div className="flex items-center gap-2 mb-2 border-b pb-1">
+                <AlertOctagon className="text-red-500 w-4 h-4" />
+                <h3 className="font-bold text-sm">NCR: {ncr.ncrNumber}</h3>
+              </div>
+              <p className="text-xs mb-2 font-medium text-slate-600">{ncr.description}</p>
+              <div className="space-y-1">
+                <p className="text-[10px] flex justify-between"><span className="text-gray-400 font-bold">SEVERITY:</span> <span className="text-red-600 font-black uppercase">{ncr.severity}</span></p>
+                <p className="text-[10px] flex justify-between"><span className="text-gray-400 font-bold">STATUS:</span> <Badge className="h-4 text-[8px] font-black">{ncr.status}</Badge></p>
+              </div>
+            </div>
+          </Popup>
+        </Marker>
+      );
+    }).filter(Boolean);
+  }, [project.ncrs, layerVisibility.ncrs]);
+
+  // Lab Test markers
+  const labTestMarkers = useMemo(() => {
+    if (!project.labTests || !layerVisibility.labTests) return [];
+    return project.labTests.map(test => {
+      const pos = parseLocation(test.location);
+      if (!pos) return null;
+      
+      const color = test.result === 'Pass' ? '#10b981' : test.result === 'Fail' ? '#ef4444' : '#f59e0b';
+      
+      return (
+        <Marker
+          key={`lab-${test.id}`}
+          position={pos}
+          icon={createCustomIcon(color, '🧪')}
+        >
+          <Popup>
+            <div className="p-2 min-w-[200px]">
+              <div className="flex items-center gap-2 mb-2 border-b pb-1">
+                <Beaker className="text-indigo-500 w-4 h-4" />
+                <h3 className="font-bold text-sm">{test.testName}</h3>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] flex justify-between"><span className="text-gray-400 font-bold">SAMPLE ID:</span> <span className="font-bold">{test.sampleId}</span></p>
+                <p className="text-[10px] flex justify-between"><span className="text-gray-400 font-bold">RESULT:</span> 
+                  <span className={cn(
+                    "font-black uppercase",
+                    test.result === 'Pass' ? "text-green-600" : test.result === 'Fail' ? "text-red-600" : "text-amber-600"
+                  )}>{test.result}</span>
+                </p>
+                <p className="text-[10px] flex justify-between"><span className="text-gray-400 font-bold">DATE:</span> <span>{new Date(test.date).toLocaleDateString()}</span></p>
+              </div>
+            </div>
+          </Popup>
+        </Marker>
+      );
+    }).filter(Boolean);
+  }, [project.labTests, layerVisibility.labTests]);
+
+  // Environmental markers
+  const environmentalMarkers = useMemo(() => {
+    if (!project.environmentRegistry || !layerVisibility.environmental) return [];
+    const treeLogs = project.environmentRegistry.treeLogs || [];
+    const sprinkleLogs = project.environmentRegistry.sprinklingLogs || [];
+
+    const treeMarkers = treeLogs.map(log => {
+      const pos = parseLocation(log.location);
+      if (!pos) return null;
+      const color = log.action === 'Removed' ? '#64748b' : '#10b981';
+      return (
+        <Marker key={`tree-${log.id}`} position={pos} icon={createCustomIcon(color, '🌳')}>
+          <Popup>
+            <div className="p-2 min-w-[150px]">
+              <div className="flex items-center gap-2 mb-2 border-b pb-1">
+                <TreePine className="text-green-600 w-4 h-4" />
+                <h3 className="font-bold text-sm">Environmental: {log.action}</h3>
+              </div>
+              <p className="text-xs"><span className="text-gray-400 font-bold">SPECIES:</span> {log.species}</p>
+              <p className="text-xs"><span className="text-gray-400 font-bold">COUNT:</span> {log.count}</p>
+              <p className="text-[10px] text-gray-400 mt-2 italic">{new Date(log.date).toLocaleDateString()}</p>
+            </div>
+          </Popup>
+        </Marker>
+      );
+    });
+
+    const sprinkleMarkers = sprinkleLogs.map(log => {
+      const pos = parseLocation(log.location || log.area);
+      if (!pos) return null;
+      return (
+        <Marker key={`sprinkle-${log.id}`} position={pos} icon={createCustomIcon('#3b82f6', '💦')}>
+          <Popup>
+            <div className="p-2 min-w-[150px]">
+              <div className="flex items-center gap-2 mb-2 border-b pb-1">
+                <Info className="text-blue-500 w-4 h-4" />
+                <h3 className="font-bold text-sm">Dust Control</h3>
+              </div>
+              <p className="text-xs"><span className="text-gray-400 font-bold">VOLUME:</span> {log.volume} {log.unit}</p>
+              <p className="text-xs"><span className="text-gray-400 font-bold">OPERATOR:</span> {log.operator}</p>
+              <p className="text-[10px] text-gray-400 mt-2 italic">{new Date(log.date).toLocaleDateString()}</p>
+            </div>
+          </Popup>
+        </Marker>
+      );
+    });
+
+    return [...treeMarkers, ...sprinkleMarkers].filter(Boolean);
+  }, [project.environmentRegistry, layerVisibility.environmental]);
+
+  // Linear Works Layer
+  const linearWorksLayers = useMemo(() => {
+    if (!project.linearWorks || !layerVisibility.linearWorks || !alignmentOverlay) return [];
+    
+    return project.linearWorks.map((work: LinearWorkLog) => {
+      const positions = getCoordinatesForChainage(work.startChainage, work.endChainage);
+      if (positions.length < 2) return null;
+
+      const color = work.status === 'Completed' ? '#10b981' : '#f59e0b';
+      
+      return (
+        <Polyline
+          key={`linear-${work.id}`}
+          positions={positions}
+          pathOptions={{
+            color: color,
+            weight: 8,
+            opacity: 0.6,
+            dashArray: work.side === 'Both' ? undefined : '10, 15'
+          }}
+        >
+          <Popup>
+            <div className="p-2 min-w-[150px]">
+              <h3 className="font-bold text-lg border-b pb-1 mb-2">{work.layer}</h3>
+              <p className="text-sm"><span className="text-gray-500 font-medium">Category:</span> {work.category}</p>
+              <p className="text-sm"><span className="text-gray-500 font-medium">Chainage:</span> {work.startChainage.toFixed(3)} - {work.endChainage.toFixed(3)}</p>
+              <p className="text-sm"><span className="text-gray-500 font-medium">Side:</span> {work.side}</p>
+              <Badge className="mt-2" variant={work.status === 'Completed' ? 'default' : 'outline'}>
+                {work.status}
+              </Badge>
+            </div>
+          </Popup>
+        </Polyline>
+      );
+    }).filter(Boolean);
+  }, [project.linearWorks, layerVisibility.linearWorks, alignmentOverlay, getCoordinatesForChainage]);
+
+  // Export to GeoJSON
+  const exportGeoJSON = useCallback(() => {
+    const featureCollection = {
+      type: 'FeatureCollection',
+      features: [
+        ...(project.structures || []).map(s => {
+          if (!s.coordinates) return null;
+          const [lat, lng] = s.coordinates.split(',').map(Number);
+          return {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [lng, lat] },
+            properties: { name: s.name, type: s.type, chainage: s.chainage, status: s.status }
+          };
+        }),
+        ...(project.mapOverlays || []).map(o => ({
+          type: 'Feature',
+          geometry: { 
+            type: 'LineString', 
+            coordinates: o.coordinates.map(c => [c.lng, c.lat]) 
+          },
+          properties: { name: o.name, type: o.type, color: o.color }
+        }))
+      ].filter(Boolean)
+    };
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(featureCollection));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", `${project.name.replace(/\s+/g, '_')}_gis_data.json`);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  }, [project]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-slate-50/50 rounded-xl border-2 border-dashed border-slate-200">
+        <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+        <p className="text-slate-500 font-medium">Initializing GIS Alignment Module...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn(
+      "flex flex-col h-full bg-background transition-all duration-300",
+      isFullscreen && "fixed inset-0 z-50 p-4"
+    )}>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeletingKML} onOpenChange={setIsDeletingKML}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove KML Alignment?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete the alignment data for this project and free up local storage space. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeletingKML(false)} disabled={isPendingDelete}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDeleteKML} disabled={isPendingDelete}>
+              {isPendingDelete ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              Confirm Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <div className="flex items-center justify-between mb-4 shrink-0">
+        <div>
+          <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
+            <MapPin className="text-primary" /> GIS ALIGNMENT CENTER
+          </h2>
+          <p className="text-muted-foreground text-sm font-medium uppercase tracking-wider">
+            Spatial Intelligence & Progress Monitoring
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="file"
+            accept=".kml"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleKMLUpload}
+            aria-label="Upload KML file"
+          />
+          <Button variant="outline" size="sm" className="font-bold border-2" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="mr-2 h-4 w-4" /> Upload KML
+          </Button>
+          <Button variant="outline" size="sm" className="font-bold border-2" onClick={exportGeoJSON}>
+            <Download className="mr-2 h-4 w-4" /> Export GeoJSON
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="font-bold border-2"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+          >
+            {isFullscreen ? <Minimize className="mr-2 h-4 w-4" /> : <Maximize className="mr-2 h-4 w-4" />}
+            {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-1 gap-4 overflow-hidden relative">
+        {/* Map Container */}
+        <div className="flex-1 relative rounded-2xl overflow-hidden border-2 border-slate-200 shadow-inner bg-slate-100">
+          <MapContainer
+            center={mapCenter}
+            zoom={defaultZoom}
+            style={{ height: '100%', width: '100%' }}
+            zoomControl={false}
+            preferCanvas={true}
+          >
+            <LayersControl position="topright">
+              <BaseLayer checked name="OpenStreetMap">
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+              </BaseLayer>
+              <BaseLayer name="Satellite View">
+                <TileLayer
+                  attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
+                  url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                />
+              </BaseLayer>
+              <BaseLayer name="Terrain/Topo">
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+                />
+              </BaseLayer>
+            </LayersControl>
+
+            <MapCenterUpdater center={mapCenter} zoom={defaultZoom} />
+            <MapController bounds={targetBounds} />
+            <SearchField />
+            
+            {layerVisibility.structures && structureMarkers}
+            {layerVisibility.vehicles && vehicleMarkers}
+            {layerVisibility.staff && staffMarkers}
+            {layerVisibility.landParcels && landParcelPolygons}
+            {layerVisibility.overlays && mapOverlayLayers}
+            {layerVisibility.sitePhotos && sitePhotoMarkers}
+            {layerVisibility.linearWorks && linearWorksLayers}
+            {layerVisibility.rfis && rfiMarkers}
+            {layerVisibility.ncrs && ncrMarkers}
+            {layerVisibility.labTests && labTestMarkers}
+            {layerVisibility.environmental && environmentalMarkers}
+            
+            {layerVisibility.kml && project.kmlData && project.kmlData.map(kml => (
+              <KMLDataLayer key={kml.id} kml={kml} />
+            ))}
+
+            <MapRuler active={isRulerActive} />
+            <MapDrawingTool 
+              active={isDrawing} 
+              onComplete={handleSaveDrawing} 
+              onCancel={() => setIsDrawing(false)} 
+            />
+
+            {/* Map Legend Overlay */}
+            <div className="absolute bottom-6 left-6 z-[1000] pointer-events-none">
+              <Card className="bg-white/80 backdrop-blur-md border-2 border-slate-200/50 shadow-2xl p-3 w-48 rounded-2xl pointer-events-auto">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+                  <Info size={12} className="text-primary" /> Map Legend
+                </p>
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded-full bg-amber-500 border-2 border-white shadow-sm flex items-center justify-center text-[10px]">❓</div>
+                    <span className="text-[10px] font-bold text-slate-600">Open RFIs</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded-full bg-red-500 border-2 border-white shadow-sm flex items-center justify-center text-[10px]">⚠️</div>
+                    <span className="text-[10px] font-bold text-slate-600">Critical NCRs</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded-full bg-green-500 border-2 border-white shadow-sm flex items-center justify-center text-[10px]">🧪</div>
+                    <span className="text-[10px] font-bold text-slate-600">Passed Tests</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded-full bg-indigo-500 border-2 border-white shadow-sm flex items-center justify-center text-[10px]">🏗️</div>
+                    <span className="text-[10px] font-bold text-slate-600">Structures</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded-full bg-pink-500 border-2 border-white shadow-sm flex items-center justify-center text-[10px]">📸</div>
+                    <span className="text-[10px] font-bold text-slate-600">Site Photos</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded-full bg-blue-500 border-2 border-white shadow-sm flex items-center justify-center text-[10px]">🌳</div>
+                    <span className="text-[10px] font-bold text-slate-600">Environment</span>
+                  </div>
+                </div>
+              </Card>
             </div>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsContent value="registry">
-                    <BOQRegistry project={project} settings={settings} userRole={userRole} onProjectUpdate={onProjectUpdate} compactView={compactView} />
-                </TabsContent>
-                
-                <TabsContent value="mb">
-                    <div className="flex justify-between mb-4 items-center">
-                        <h2 className="text-xl font-bold">Measurement Book</h2>
-                        <div className="flex gap-2">
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button 
-                                            variant="secondary" 
-                                            onClick={() => setIsAutoMBOpen(true)}
-                                            disabled={uncertifiedLogs.length === 0}
-                                            className="bg-primary/10 text-primary hover:bg-primary/20 border-primary/20"
-                                        >
-                                            <TrendingUp className="mr-2 h-4 w-4" /> 
-                                            Smart Auto-MB 
-                                            <Badge className="ml-2 h-5 min-w-5 bg-primary text-white p-0 flex items-center justify-center rounded-full">
-                                                {uncertifiedLogs.length}
-                                            </Badge>
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Generate MB from Structural logs</TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                            <Button onClick={() => {
-                                setNewMB({
-                                    sheetNumber: `MB-${((project?.measurementSheets || [])?.length || 0) + 1}`,
-                                    title: '',
-                                    date: new Date().toISOString().split('T')[0],
-                                    entries: [],
-                                    status: 'Draft'
-                                });
-                                setIsMBModalOpen(true);
-                            }}><Plus className="mr-2 h-4 w-4" /> New Entry</Button>
-                        </div>
-                    </div>
-                    <Card>
-                        <CardContent className="p-0">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="bg-muted">
-                                        <TableHead>Sheet #</TableHead>
-                                        <TableHead>Title</TableHead>
-                                        <TableHead>Date</TableHead>
-                                        <TableHead className="text-right">Value</TableHead>
-                                        <TableHead className="text-center">Status</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {(project.measurementSheets || []).length > 0 ? project.measurementSheets.map(sheet => (
-                                        <TableRow key={sheet.id}>
-                                            <TableCell className="font-bold">{sheet.sheetNumber}</TableCell>
-                                            <TableCell>{sheet.title}</TableCell>
-                                            <TableCell>{sheet.date}</TableCell>
-                                            <TableCell className="text-right font-bold">{sheet.totalAmount.toLocaleString()}</TableCell>
-                                            <TableCell className="text-center"><Badge variant={(sheet.status as string) === 'Certified' ? 'success' : 'default' as any}>{sheet.status}</Badge></TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-1">
-                                                    {(sheet.status as string) !== 'Certified' && canEdit && (
-                                                        <>
-                                                            <TooltipProvider>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button variant="ghost" size="icon" onClick={() => handleEditMB(sheet)}>
-                                                                            <Pencil className="h-4 w-4 text-primary" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>Edit MB Record</TooltipContent>
-                                                                </Tooltip>
-                                                            </TooltipProvider>
-                                                            <TooltipProvider>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <Button variant="ghost" size="icon" onClick={() => handleCertifyMB(sheet)}>
-                                                                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>Certify & Update BOQ</TooltipContent>
-                                                                </Tooltip>
-                                                            </TooltipProvider>
-                                                        </>
-                                                    )}
-                                                    {canDelete && (
-                                                        <Button variant="ghost" size="icon" onClick={() => {
-                                                            const updated = (project.measurementSheets || []).filter(s => s.id !== sheet.id);
-                                                            onProjectUpdate({ ...project, measurementSheets: updated });
-                                                        }}>
-                                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    )) : (
-                                        <TableRow><TableCell colSpan={6} className="text-center py-10">No records found.</TableCell></TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                <TabsContent value="variations">
-                    <div className="flex justify-between mb-4 items-center">
-                        <h2 className="text-xl font-bold">Variations</h2>
-                        <Button onClick={() => setIsVOModalOpen(true)}><Plus className="mr-2 h-4 w-4" /> New VO</Button>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {(project.variationOrders || []).map(vo => (
-                            <Card key={vo.id}>
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between mb-2">
-                                        <p className="font-bold">{vo.title}</p>
-                                        <Badge>{vo.status}</Badge>
-                                    </div>
-                                    <p className="text-lg font-black text-primary">{currencySymbol}{vo.totalImpact.toLocaleString()}</p>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </TabsContent>
-            </Tabs>
-
-            {/* Modals */}
-            <Dialog open={isMBModalOpen} onOpenChange={setIsMBModalOpen}>
-                <DialogContent className="sm:max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2"><FileSpreadsheet className="text-primary" /> {newMB.id ? 'Edit Measurement Record' : 'New Measurement Record'}</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Title</Label>
-                                <Input value={newMB.title || ''} onChange={e => setNewMB({...newMB, title: e.target.value})} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Date</Label>
-                                <Input type="date" value={newMB.date} onChange={e => setNewMB({...newMB, date: e.target.value})} />
-                            </div>
-                        </div>
-                        <Separator />
-                        <div className="grid grid-cols-12 gap-2 items-end">
-                            <div className="col-span-7 space-y-2">
-                                <Label>BOQ Item</Label>
-                                <Select value={tempMBEntry.boqItemId} onValueChange={v => setTempMBEntry({...tempMBEntry, boqItemId: v})}>
-                                    <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-                                    <SelectContent>
-                                        {project.boq.map(item => <SelectItem key={item.id} value={item.id}>{item.itemNo}: {item.description.substring(0, 40)}...</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="col-span-3 space-y-2">
-                                <Label>Qty</Label>
-                                <Input type="number" value={tempMBEntry.quantity || ''} onChange={e => setTempMBEntry({...tempMBEntry, quantity: Number(e.target.value)})} />
-                            </div>
-                            <Button className="col-span-2" variant="secondary" onClick={handleAddMBEntry}>Add</Button>
-                        </div>
-                        <div className="border rounded-md max-h-[200px] overflow-auto">
-                            <Table>
-                                <TableBody>
-                                    {newMB.entries?.map((e, i) => (
-                                        <TableRow key={e.id}>
-                                            <TableCell className="text-xs">{project.boq.find(b => b.id === e.boqItemId)?.itemNo}</TableCell>
-                                            <TableCell className="text-right font-bold">{e.quantity}</TableCell>
-                                            <TableCell className="text-right"><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setNewMB({...newMB, entries: newMB.entries?.filter((_, idx) => idx !== i)})}><X size={12} /></Button></TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button onClick={handleSaveMB} disabled={!newMB.entries?.length}>Save & Approve</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={isVOModalOpen} onOpenChange={setIsVOModalOpen}>
-                <DialogContent className="sm:max-w-xl">
-                    <DialogHeader><DialogTitle>Initialize Variation</DialogTitle></DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="vo-title">VO Title</Label>
-                            <Input id="vo-title" placeholder="VO Title" value={newVO.title || ''} onChange={e => setNewVO({...newVO, title: e.target.value})} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="vo-reason">Reason</Label>
-                            <Textarea id="vo-reason" placeholder="Reason" value={newVO.reason || ''} onChange={e => setNewVO({...newVO, reason: e.target.value})} />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button onClick={handleSaveVO}>Save Variation</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
-                <DialogContent>
-                    <DialogHeader><DialogTitle>Import BOQ</DialogTitle></DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="import-boq-file">Select Excel/CSV File</Label>
-                            <Input id="import-boq-file" type="file" accept=".xlsx,.xls,.csv" onChange={handleFileChange} />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button onClick={handleImportSubmit} disabled={!importFile}>Import</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            {/* Auto-MB Generator Dialog */}
-            <Dialog open={isAutoMBOpen} onOpenChange={setIsAutoMBOpen}>
-                <DialogContent className="sm:max-w-3xl max-h-[80vh] flex flex-col p-0">
-                    <DialogHeader className="p-6 border-b">
-                        <DialogTitle className="flex items-center gap-2">
-                            <TrendingUp className="text-primary" /> 
-                            Smart Auto-MB Generator
-                        </DialogTitle>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            The following work logs have been recorded in structural assets but haven't been added to a Measurement Sheet yet.
-                        </p>
-                    </DialogHeader>
-                    
-                    <div className="flex-1 overflow-auto p-6">
-                        {uncertifiedLogs.length === 0 ? (
-                            <div className="text-center py-12 opacity-50">
-                                <CheckCircle2 className="h-12 w-12 mx-auto mb-4 text-emerald-500" />
-                                <p className="font-bold">All structural work logs are already accounted for.</p>
-                            </div>
-                        ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="bg-muted/50">
-                                        <TableHead className="w-[50px]">
-                                            <div className="flex items-center">
-                                                <Checkbox 
-                                                    id="select-all-logs"
-                                                    checked={selectedLogs.length === uncertifiedLogs.length}
-                                                    onCheckedChange={(checked) => setSelectedLogs(checked ? uncertifiedLogs.map(l => l.id) : [])}
-                                                    aria-label="Select all logs"
-                                                    title="Select all logs"
-                                                />
-                                                <Label htmlFor="select-all-logs" className="sr-only">Select all logs</Label>
-                                            </div>
-                                        </TableHead>
-                                        <TableHead>Asset / Component</TableHead>
-                                        <TableHead>Date</TableHead>
-                                        <TableHead>BOQ Item</TableHead>
-                                        <TableHead className="text-right">Qty</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {uncertifiedLogs.map((log) => {
-                                        const boqItem = project.boq.find(b => b.id === log.boqItemId);
-                                        return (
-                                            <TableRow key={log.id} className="group">
-                                                <TableCell>
-                                                    <div className="flex items-center">
-                                                        <Checkbox 
-                                                            id={`select-log-${log.id}`}
-                                                            checked={selectedLogs.includes(log.id)}
-                                                            onCheckedChange={(checked) => setSelectedLogs(prev => 
-                                                                checked ? [...prev, log.id] : prev.filter(id => id !== log.id)
-                                                            )}
-                                                            aria-label={`Select log for ${log.structureName} ${log.componentName}`}
-                                                            title={`Select log for ${log.structureName} ${log.componentName}`}
-                                                        />
-                                                        <Label htmlFor={`select-log-${log.id}`} className="sr-only">
-                                                            Select log for {log.structureName} {log.componentName}
-                                                        </Label>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="text-xs font-bold">{log.structureName}</div>
-                                                    <div className="text-[10px] text-muted-foreground">{log.componentName}</div>
-                                                </TableCell>
-                                                <TableCell className="text-xs">{log.date}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant="outline" className="text-[9px] font-mono">
-                                                        {boqItem?.itemNo}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-right font-black text-xs">
-                                                    {log.quantity}
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        )}
-                    </div>
-
-                    <DialogFooter className="p-6 border-t bg-muted/10">
-                        <Button variant="ghost" onClick={() => setIsAutoMBOpen(false)}>Cancel</Button>
-                        <Button 
-                            onClick={handleCreateAutoMB} 
-                            disabled={selectedLogs.length === 0}
-                            className="bg-primary text-white font-black"
-                        >
-                            Generate Measurement Sheet ({selectedLogs.length} Logs)
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            {/* Scale control and other leaflet defaults can be added here */}
+          </MapContainer>
+          
+          {(isRulerActive || isDrawing) && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-white border-2 border-slate-200 rounded-xl px-4 py-2 shadow-xl animate-bounce">
+              <p className="text-xs font-black uppercase text-slate-800 flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                {isRulerActive ? 'Ruler Mode Active - Click Map to Measure' : 'Drawing Mode Active - Click to Draw Hindrance'}
+              </p>
+            </div>
+          )}
+          
+          {/* Custom Map Controls */}
+          <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
+            <Button 
+              variant="secondary" 
+              size="icon" 
+              className="shadow-lg rounded-xl"
+              onClick={() => startTransition(() => setSidebarOpen(!sidebarOpen))}
+              title={sidebarOpen ? "Hide Controls" : "Show Controls"}
+            >
+              {sidebarOpen ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+            </Button>
+            <Button variant="secondary" size="icon" className="shadow-lg rounded-xl">
+              <Search size={20} />
+            </Button>
+            <Button 
+              variant={isRulerActive ? "default" : "secondary"} 
+              size="icon" 
+              className={cn("shadow-lg rounded-xl transition-all", isRulerActive && "bg-red-500 hover:bg-red-600")}
+              onClick={() => { setIsRulerActive(!isRulerActive); setIsDrawing(false); }}
+            >
+              <Ruler size={20} />
+            </Button>
+            <Button 
+              variant={isDrawing ? "default" : "secondary"} 
+              size="icon" 
+              className={cn("shadow-lg rounded-xl transition-all", isDrawing && "bg-orange-500 hover:bg-orange-600")}
+              onClick={() => { setIsDrawing(!isDrawing); setIsRulerActive(false); }}
+            >
+              <Layers size={20} />
+            </Button>
+          </div>
         </div>
-    );
-};
 
-export default BOQModule;
+        {/* Sidebar Controls */}
+        <Card className={cn(
+          "w-80 shrink-0 border-2 shadow-sm flex flex-col transition-all duration-300 transform",
+          !sidebarOpen && "w-0 opacity-0 -mr-4 pointer-events-none translate-x-full"
+        )}>
+          <CardHeader className="p-4 border-b">
+            <CardTitle className="text-sm font-black flex items-center gap-2">
+              <Layers size={16} /> LAYER CONTROLS
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 flex-1 overflow-hidden">
+            <ScrollArea className="h-full">
+              <div className="p-4">
+                <Accordion type="multiple" defaultValue={["layers", "kml"]} className="w-full">
+                  <AccordionItem value="layers" className="border-none">
+                    <AccordionTrigger className="hover:no-underline py-2">
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        <Layers size={14} /> GIS Monitoring Layers
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-2 pb-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                            <Route size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Road Alignments</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Inventory Monitoring</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.roadAlignments} 
+                          onCheckedChange={() => toggleLayer('roadAlignments')} 
+                        />
+                      </div>
+
+                      {/* Road Alignments Listing */}
+                      {layerVisibility.roadAlignments && project.roads && project.roads.length > 0 && (
+                        <div className="pl-4 space-y-3 mt-2 border-l-2 border-indigo-100">
+                          {project.roads.flatMap(road => road.alignments || []).map((alignment) => (
+                            <div key={alignment.id} className="flex items-center justify-between group">
+                              <div className="flex flex-col min-w-0 pr-4">
+                                <span className="text-[11px] font-bold truncate leading-tight text-slate-600" title={alignment.name}>
+                                  {alignment.name}
+                                </span>
+                                <span className="text-[9px] text-muted-foreground uppercase tracking-tighter font-medium">
+                                  {alignment.type} | {alignment.totalLength.toFixed(0)}m
+                                </span>
+                              </div>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                                onClick={() => {
+                                  // Find alignment coords and zoom
+                                  if (alignment.coordinates && alignment.coordinates.length > 0) {
+                                    const bounds = L.latLngBounds(alignment.coordinates as L.LatLngExpression[]);
+                                    startTransition(() => {
+                                      setTargetBounds(bounds);
+                                    });
+                                    setTimeout(() => { // Clear bounds after a short delay
+                                      startTransition(() => {
+                                        setTargetBounds(null);
+                                      });
+                                    }, 1000);
+                                  }
+                                }}
+                                title="Zoom to alignment"
+                              >
+                                <Maximize size={12} />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {layerVisibility.roadAlignments && (!project.roads || project.roads.length === 0) && (
+                        <div className="text-center p-4 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">No Road Alignments Added</p>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                            <Building size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Road Structures</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Inventory Monitoring</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.roadStructures} 
+                          onCheckedChange={() => toggleLayer('roadStructures')} 
+                        />
+                      </div>
+
+                      {/* Road Structures Listing */}
+                      {layerVisibility.roadStructures && project.structures && project.structures.length > 0 && (
+                        <div className="pl-4 space-y-3 mt-2 border-l-2 border-blue-100">
+                          {project.structures.map((structure: StructureAsset) => (
+                            <div key={structure.id} className="flex flex-col min-w-0 pr-4">
+                              <span className="text-[11px] font-bold truncate leading-tight text-slate-600" title={structure.name}>
+                                {structure.name}
+                              </span>
+                              <span className="text-[9px] text-muted-foreground uppercase tracking-tighter font-medium">
+                                Type: {structure.type} | Chainage: {structure.chainage} | Status: {structure.status}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {layerVisibility.roadStructures && (!project.structures || project.structures.length === 0) && (
+                        <div className="text-center p-4 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">No Road Structures Added</p>
+                        </div>
+                      )}
+                      {/* End Road Structures Listing */}
+
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                            <Building size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Structures</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Culverts & Walls</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.structures} 
+                          onCheckedChange={() => toggleLayer('structures')} 
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-green-100 text-green-600 rounded-lg">
+                            <Truck size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Assets & Equipment</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Machinery & Vehicles</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.vehicles} 
+                          onCheckedChange={() => toggleLayer('vehicles')} 
+                        />
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="p-2 bg-amber-100 text-amber-600 rounded-lg">
+                              <Users size={16} />
+                            </div>
+                            <div>
+                              <Label className="font-bold text-sm text-slate-700">Site Personnel</Label>
+                              <p className="text-[10px] text-muted-foreground uppercase">GIS Monitoring Layer</p>
+                            </div>
+                          </div>
+                          <Switch 
+                            checked={layerVisibility.staff} 
+                            onCheckedChange={() => toggleLayer('staff')} 
+                          />
+                        </div>
+                        
+                        {layerVisibility.staff && (
+                          <div className="pl-4 space-y-4 mt-2 border-l-2 border-amber-100">
+                            {/* Online Section */}
+                            <div className="space-y-2">
+                              <p className="text-[9px] font-black text-green-600 uppercase tracking-widest flex items-center gap-1.5">
+                                <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                                Online ({allUsersStatus.online.length})
+                              </p>
+                              {allUsersStatus.online.length > 0 ? (
+                                allUsersStatus.online.map(user => (
+                                  <div key={user.id} className="flex items-center gap-2 group">
+                                    <div className="h-6 w-6 rounded-lg overflow-hidden border border-green-200 bg-slate-100 shrink-0 shadow-sm">
+                                      {user.avatar ? (
+                                        <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                                      ) : (
+                                        <div className="h-full w-full flex items-center justify-center text-[8px] font-black text-green-500">
+                                          {user.name.split(' ').map(n => n[0]).join('')}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-[10px] font-bold text-slate-700 truncate leading-tight">{user.name}</p>
+                                      <p className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter truncate">{user.role}</p>
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-[8px] text-slate-400 italic">No users online</p>
+                              )}
+                            </div>
+
+                            {/* Offline Section */}
+                            <div className="space-y-2">
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+                                Offline ({allUsersStatus.offline.length})
+                              </p>
+                              {allUsersStatus.offline.length > 0 && allUsersStatus.offline.map(user => (
+                                <div key={user.id} className="flex items-center gap-2 group opacity-60 grayscale-[0.5]">
+                                  <div className="h-6 w-6 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 shrink-0">
+                                    {user.avatar ? (
+                                      <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                                    ) : (
+                                      <div className="h-full w-full flex items-center justify-center text-[8px] font-black text-slate-400">
+                                        {user.name.split(' ').map(n => n[0]).join('')}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-[10px] font-bold text-slate-500 truncate leading-tight">{user.name}</p>
+                                    <p className="text-[8px] text-slate-400 font-bold uppercase tracking-tighter truncate">{user.role}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-amber-100 text-amber-600 rounded-lg">
+                            <FileQuestion size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">RFIs</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Information Requests</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.rfis} 
+                          onCheckedChange={() => toggleLayer('rfis')} 
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-red-100 text-red-600 rounded-lg">
+                            <AlertOctagon size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">NCRs</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Non-Conformity Records</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.ncrs} 
+                          onCheckedChange={() => toggleLayer('ncrs')} 
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                            <Beaker size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Quality Tests</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Lab Sample Results</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.labTests} 
+                          onCheckedChange={() => toggleLayer('labTests')} 
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-green-100 text-green-600 rounded-lg">
+                            <TreePine size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Environmental</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Tree & Dust Logs</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.environmental} 
+                          onCheckedChange={() => toggleLayer('environmental')} 
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
+                            <MapPin size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Land Parcels</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Property Boundaries</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.landParcels} 
+                          onCheckedChange={() => toggleLayer('landParcels')} 
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-pink-100 text-pink-600 rounded-lg">
+                            <Camera size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Site Photos</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Geotagged Media</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.sitePhotos} 
+                          onCheckedChange={() => toggleLayer('sitePhotos')} 
+                        />
+                      </div>
+
+                      {/* Site Photos Listing */}
+                      {layerVisibility.sitePhotos && project.sitePhotos && project.sitePhotos.length > 0 && (
+                        <div className="pl-4 space-y-3 mt-2 border-l-2 border-pink-100">
+                          {project.sitePhotos.map((photo) => (
+                            <div key={photo.id} className="flex items-center justify-between group">
+                              <div className="flex flex-col min-w-0 pr-4">
+                                <span className="text-[11px] font-bold truncate leading-tight text-slate-600" title={photo.caption}>
+                                  {photo.caption}
+                                </span>
+                                <span className="text-[9px] text-muted-foreground uppercase tracking-tighter font-medium">
+                                  {photo.category}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-6 w-6 p-0 text-pink-600 hover:text-pink-700 hover:bg-pink-50"
+                                  onClick={() => {
+                                    // Logic to zoom to photo location
+                                    if (photo.location) {
+                                      const coords = photo.location.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
+                                      if (coords) {
+                                        const lat = parseFloat(coords[1]);
+                                        const lng = parseFloat(coords[2]);
+                                        if (!isNaN(lat) && !isNaN(lng)) {
+                                          // Use L.latLngBounds for a single point
+                                          const photoBounds = L.latLngBounds([[lat, lng], [lat, lng]]); 
+                                          startTransition(() => {
+                                            setTargetBounds(photoBounds);
+                                          });
+                                          setTimeout(() => { // Clear bounds after a short delay
+                                            startTransition(() => {
+                                              setTargetBounds(null);
+                                            });
+                                          }, 1000);
+                                        }
+                                      }
+                                    }
+                                  }}
+                                  title="Zoom to photo"
+                                >
+                                  <Maximize size={12} />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {layerVisibility.sitePhotos && project.sitePhotos && project.sitePhotos.length === 0 && (
+                        <div className="text-center p-4 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">No Site Photos Uploaded</p>
+                        </div>
+                      )}
+                      {/* End Site Photos Listing */}
+
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-slate-100 text-slate-600 rounded-lg">
+                            <Route size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Alignments</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Road Design Layers</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.overlays} 
+                          onCheckedChange={() => toggleLayer('overlays')} 
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-cyan-100 text-cyan-600 rounded-lg">
+                            <Route size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Linear Works</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Progress by Chainage</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.linearWorks} 
+                          onCheckedChange={() => toggleLayer('linearWorks')} 
+                        />
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="kml" className="border-none mt-2">
+                    <AccordionTrigger className="hover:no-underline py-2">
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        <Route size={14} /> KML Alignment Management
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-2 pb-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                            <Layers size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">KML Master</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Global KML Toggle</p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={layerVisibility.kml} 
+                          onCheckedChange={() => toggleLayer('kml')} 
+                        />
+                      </div>
+
+                      {/* Individual KML Files */}
+                      {layerVisibility.kml && project.kmlData && project.kmlData.length > 0 && (
+                        <div className="pl-4 space-y-3 mt-2 border-l-2 border-indigo-100">
+                          {project.kmlData.map((kml) => (
+                            <div key={kml.id} className="flex items-center justify-between group">
+                              <div className="flex flex-col min-w-0 pr-4">
+                                <span className="text-[11px] font-bold truncate leading-tight text-slate-600" title={kml.name}>
+                                  {kml.name}
+                                </span>
+                                <span className="text-[9px] text-muted-foreground uppercase tracking-tighter font-medium">
+                                  {new Date(kml.timestamp).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                                  onClick={() => {
+                                    zoomToKML(kml.kmlContent);
+                                    if (!kml.visible) {
+                                      const updatedKMLs = project.kmlData?.map(item => 
+                                        item.id === kml.id ? { ...item, visible: true } : item
+                                      );
+                                      startTransition(() => {
+                                        onProjectUpdate({ kmlData: updatedKMLs });
+                                      });
+                                    }
+                                  }}
+                                  title="Zoom to alignment"
+                                >
+                                  <Maximize size={12} />
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-6 w-6 p-0 text-destructive hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => handleDeleteKML(kml.id)}
+                                  title="Delete alignment"
+                                >
+                                  <Trash2 size={12} />
+                                </Button>
+                                <input 
+                                  type="color" 
+                                  className="w-5 h-5 rounded cursor-pointer border-none bg-transparent"
+                                  value={kml.color || '#4f46e5'}
+                                  title="Change layer color"
+                                  onChange={(e) => {
+                                    const updatedKMLs = project.kmlData?.map(item => 
+                                      item.id === kml.id ? { ...item, color: e.target.value } : item
+                                    );
+                                    startTransition(() => {
+                                      onProjectUpdate({ kmlData: updatedKMLs });
+                                    });
+                                  }}
+                                />
+                                <Switch 
+                                  className="scale-75 origin-right"
+                                  checked={kml.visible} 
+                                  onCheckedChange={(checked) => {
+                                    const updatedKMLs = project.kmlData?.map(item => 
+                                      item.id === kml.id ? { ...item, visible: checked } : item
+                                    );
+                                    startTransition(() => {
+                                      onProjectUpdate({ kmlData: updatedKMLs });
+                                    });
+                                  }} 
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {!project.kmlData?.length && (
+                        <div className="text-center p-4 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">No KML Files Uploaded</p>
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="stats" className="border-none mt-2">
+                    <AccordionTrigger className="hover:no-underline py-2">
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        <BarChart3 size={14} /> Map Statistics

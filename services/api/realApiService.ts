@@ -67,11 +67,12 @@ class RealApiService {
       };
 
       // Add Authorization for all API endpoints if token is available, unless it's a known public endpoint
-      if (token && !endpoint.startsWith('/health')) { // Assuming /health is public and doesn't need auth
+      const publicEndpoints = ['/health', '/audit'];
+      if (token && !publicEndpoints.some(p => endpoint.startsWith(p))) {
         headers['Authorization'] = `Bearer ${token}`;
         console.log(`[API] Sending token of length ${token.length} for ${endpoint}`);
       } else if (token) {
-        console.log(`[API] Skipping token for public endpoint: ${endpoint}`); // If token exists but endpoint is public
+        console.log(`[API] Skipping token for public endpoint: ${endpoint}`); 
       }
       const response = await fetch(`/api${endpoint}`, {
         ...options,
