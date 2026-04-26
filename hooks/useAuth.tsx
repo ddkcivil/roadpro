@@ -89,16 +89,25 @@ export const useAuth = () => {
         return role as UserRole;
       };
 
+      let fetchedUserName = 'User';
+      let fetchedUserPhone = '';
+      let fetchedUserRole = UserRole.SITE_ENGINEER;
+
+      // Prioritize profile data if available, otherwise fall back to user metadata
       if (profile) {
-        setUserRole(normalizeRole(profile.role));
-        setUserName(profile.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User');
-        setUserPhone(user.user_metadata?.phone || '');
-      } else {
-        // Fallback to metadata
-        setUserRole(normalizeRole(user.user_metadata?.role));
-        setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'User');
-        setUserPhone(user.user_metadata?.phone || '');
+        fetchedUserRole = normalizeRole(profile.role);
+        fetchedUserName = profile.full_name || fetchedUserName;
+        fetchedUserPhone = profile.phone || fetchedUserPhone;
+      } else if (user) { // Fallback to user metadata if profile is not available
+        fetchedUserRole = normalizeRole(user.user_metadata?.role);
+        fetchedUserName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
+        fetchedUserPhone = user.user_metadata?.phone || '';
       }
+      
+      setUserRole(fetchedUserRole);
+      setUserName(fetchedUserName);
+      setUserPhone(fetchedUserPhone);
+
       setLoading(false);
     });
   };

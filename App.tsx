@@ -116,7 +116,8 @@ const App: React.FC = () => {
     saveProject,
     refreshCurrentProject,
     updateLocation,
-    deleteProject
+    deleteProject,
+    isHydrated // Added isHydrated
   } = useProjects(isAuthenticated && (systemReady || !isInitialLoading), currentUser);
 
   const {
@@ -416,9 +417,6 @@ const App: React.FC = () => {
 
         {/* Floating Info Buttons */}
         <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
-          <TooltipProvider>
-            {/* Reduced to minimum for debugging white screen */}
-          </TooltipProvider>
         </div>
       </div>
       <Toaster 

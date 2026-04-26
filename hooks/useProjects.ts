@@ -12,6 +12,21 @@ import { useAsyncPersistedReducer } from './usePersistence';
 import { supabase } from '../lib/supabase';
 import { mapProjectFromDb, mapProjectToDb } from '../api/_utils/mappers';
 
+interface ProjectsReturn {
+  projects: Project[];
+  selectedProjectId: string | null;
+  setSelectedProjectId: (id: string | null) => void;
+  currentProject: Project | undefined;
+  isLoadingProjects: boolean;
+  apiError: string | null;
+  fetchProjects: (page?: number) => Promise<void>;
+  saveProject: (project: Partial<Project>) => Promise<void>;
+  refreshCurrentProject: () => Promise<void>;
+  updateLocation: (projectId: string, latitude: number, longitude: number) => Promise<void>;
+  deleteProject: (projectId: string) => Promise<void>;
+  isHydrated?: boolean;
+}
+
 
 interface ProjectsState {
   projects: Project[];
@@ -62,7 +77,7 @@ const INITIAL_STATE: ProjectsState = {
   error: null,
 };
 
-export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
+export const useProjects = (isAuthenticated: boolean, currentUser?: any): ProjectsReturn => {
   const [state, dispatch, isHydrated] = useAsyncPersistedReducer(
     projectsReducer, 
     INITIAL_STATE, 
@@ -209,13 +224,13 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
     const previousProjects = [...projectsRef.current];
     const baseProject = projectsRef.current.find(p => p.id === targetProjectId);
 
-    const completeProjectData: Project = {
+    const completeProjectData = {
       ...baseProject,
       ...project,
       id: targetProjectId || `proj-${Date.now()}`,
       updatedAt: new Date().toISOString(),
       contractNo: null,
-    } as Project;
+    } as unknown as Project;
 
     if (!completeProjectData.name || !completeProjectData.client) {
       toast.error("Save Blocked", { description: "Project name and employer/client are required." });
@@ -374,6 +389,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
     saveProject,
     refreshCurrentProject,
     updateLocation,
-    deleteProject
+    deleteProject,
+    isHydrated: isHydrated, // Added to expose isHydrated
   };
-};
+  };
