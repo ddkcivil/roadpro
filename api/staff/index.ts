@@ -4,6 +4,8 @@ import { withErrorHandler } from '../_utils/errorHandler.js';
 import { withAuth } from '../_utils/auth.js';
 import { mapProjectToDb } from '../_utils/mappers.js';
 
+const STAFF_PROJECT_ID = 'ce0387a7-f9d6-48e2-aacb-1347d3394f75';
+
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { category, id: itemId } = req.query; // e.g., 'employees', 'leave-requests', 'attendance'
 
@@ -13,7 +15,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       const { data: staffProject, error } = await supabaseAdmin
         .from('projects')
         .select('personnel')
-        .eq('id', 'staff-management')
+        .eq('id', STAFF_PROJECT_ID)
         .single();
 
       if (error && error.code !== 'PGRST116') throw error; // PGRST116 is 'no rows found'
@@ -57,7 +59,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       const { data: staffProject, error: fetchError } = await supabaseAdmin
         .from('projects')
         .select('personnel')
-        .eq('id', 'staff-management')
+        .eq('id', STAFF_PROJECT_ID)
         .single();
 
       if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
@@ -90,7 +92,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       const { error: updateError } = await supabaseAdmin
         .from('projects')
         .upsert(mapProjectToDb({
-          id: 'staff-management',
+          id: STAFF_PROJECT_ID,
           name: 'Staff Management System',
           client: 'Internal',
           personnel,
@@ -115,7 +117,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       const { data: staffProject, error: fetchError } = await supabaseAdmin
         .from('projects')
         .select('personnel')
-        .eq('id', 'staff-management')
+        .eq('id', STAFF_PROJECT_ID)
         .single();
 
       if (fetchError) throw fetchError;
@@ -130,7 +132,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           personnel, 
           updatedAt: new Date().toISOString() 
         }))
-        .eq('id', 'staff-management');
+        .eq('id', STAFF_PROJECT_ID);
 
       if (updateError) throw updateError;
 
