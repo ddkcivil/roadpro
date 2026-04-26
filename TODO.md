@@ -1,13 +1,9 @@
-# Git Push & Vercel Deploy TODO
+# PDF.js CSP Worker Fix Progress
 
-## Current Status
-- On main, up-to-date with origin/main
-- Pending: Stage changes (JS→TS migration), commit, push, deploy
+## Plan Status
+- [x] 1. Update vite.config.ts - Remove 'pdfjs-dist' from optimizeDeps.exclude ✅
+- [x] 2. Update vercel.json - Add https://unpkg.com to script-src CSP ✅
+- [ ] 3. Verify npm run build succeeds
+- [ ] 4. Deploy to Vercel & test PDF functionality
+- [ ] 5. Complete
 
-## Steps
-- [ ] 1. git add . (stage all)
-- [ ] 2. git commit -m "Complete API JS to TS migration, package updates, config changes"
-- [ ] 3. git push origin main
-- [ ] 4. vercel --prod (deploy to production)
-
-**Next:** Execute step 1.

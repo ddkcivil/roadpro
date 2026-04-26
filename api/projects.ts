@@ -64,7 +64,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   if (req.method === 'POST') {
     const userRole = (req as any).user?.role;
     const r = userRole?.toUpperCase();
-    const isProjectAuth = r === 'ADMIN' || r === 'PROJECT MANAGER' || r === 'MANAGER' || r === 'PROJECT_MANAGER';
+    const isProjectAuth = r === 'ADMIN' || r === 'PROJECT MANAGER' || r === 'MANAGER' || r === 'PROJECT_MANAGER' || r === 'ADMIN' || r === 'MANAGER';
     if (!isProjectAuth) {
       return res.status(403).json({ error: 'Only admins or project managers can create projects' });
     }

@@ -1,5 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
+import { mapProjectToDb } from '../api/_utils/mappers.js';
 
 // Load from local environment variables or hardcode for test script
 const supabaseUrl = 'http://127.0.0.1:54321';
@@ -16,12 +17,12 @@ async function seedData() {
   const { data: project, error: projectError } = await supabase
     .from('projects')
     .insert([
-      {
+      mapProjectToDb({
         id: '123e4567-e89b-12d3-a456-426614174000', 
         name: 'Mock Highway Project',
         client: 'Department of Roads',
-        updatedat: new Date().toISOString()
-      }
+        updatedAt: new Date().toISOString()
+      })
     ])
     .select()
     .single();

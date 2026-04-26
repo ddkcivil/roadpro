@@ -45,7 +45,7 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
       .eq('id', user.id)
       .maybeSingle();
     
-    const userRole = profile?.role || user.user_metadata?.role || 'SITE_ENGINEER';
+    const userRole = (profile?.role || user.user_metadata?.role || 'SITE_ENGINEER').toUpperCase();
 
     const decoded: TokenPayload = {
       userId: user.id,

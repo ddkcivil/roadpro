@@ -47,7 +47,6 @@ export default defineConfig(({ mode }) => {
       optimizeDeps: {
         exclude: [
           'sql.js',
-          'pdfjs-dist',
           'react-pdf'
         ]
       },

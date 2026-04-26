@@ -384,7 +384,11 @@ const App: React.FC = () => {
                         {activeTab === 'settings' && userRole === UserRole.ADMIN && (
                           <SettingsModule settings={appSettings} onUpdate={updateSettings} />
                         )}
-                        {activeTab === 'staff-management' && <StaffManagementModule />}
+                        {activeTab === 'staff-management' && (
+                          <ProtectedTab permission={Permission.USER_READ}>
+                            <StaffManagementModule />
+                          </ProtectedTab>
+                        )}
                       </div>
                     </div>
                   </Suspense>

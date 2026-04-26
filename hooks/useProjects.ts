@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, startTransition, useCallback, useRef } from 'react';
 import { Project } from '../types';
 import { apiService } from '../services/api/apiService';
@@ -10,6 +11,7 @@ import { sanitizationUtils } from '../utils/validation/sanitizationUtils';
 import { useAsyncPersistedReducer } from './usePersistence';
 import { useRateLimit } from './useRateLimit';
 import { supabase } from '../lib/supabase';
+import { mapProjectToDb } from '../api/_utils/mappers';
 
 
 interface ProjectsState {
@@ -317,14 +319,14 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any) => {
       if (isUpdate) {
         backendProjectResult = await supabase
           .from('projects')
-          .update(sanitizedProjectData)
+          .update(mapProjectToDb(sanitizedProjectData))
           .eq('id', sanitizedProjectData.id)
           .select('*')
           .single();
       } else {
         backendProjectResult = await supabase
           .from('projects')
-          .insert({ ...sanitizedProjectData, id: sanitizedProjectData.id }) // Ensure ID is included if generated locally
+          .insert(mapProjectToDb({ ...sanitizedProjectData, id: sanitizedProjectData.id })) // Ensure ID is included if generated locally
           .select('*')
           .single();
       }
