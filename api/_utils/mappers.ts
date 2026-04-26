@@ -24,6 +24,9 @@ export function mapProjectFromDb(dbProject: any): Project {
     client: dbProject.client,
     engineer: dbProject.engineer,
     
+    ownerId: dbProject.owner_id || dbProject.ownerId,
+    description: dbProject.description,
+    
     // Plurals (JSONB in DB usually keeps its internal casing, but columns are lowercase)
     variationOrders: dbProject.variationorders || dbProject.variationOrders || [],
     labTests: dbProject.labtests || dbProject.labTests || [],
@@ -74,6 +77,8 @@ export function mapProjectToDb(project: Partial<Project>): any {
   if (project.consultantName) { dbData.consultantname = project.consultantName; delete dbData.consultantName; }
   if (project.clientName) { dbData.clientname = project.clientName; delete dbData.clientName; }
   if (project.contractNo) { dbData.contractno = project.contractNo; delete dbData.contractNo; }
+  if (project.ownerId) { dbData.owner_id = project.ownerId; delete dbData.ownerId; }
+  if (project.description) { dbData.description = project.description; delete dbData.description; }
   
   // Plurals
   if (project.variationOrders) { dbData.variationorders = project.variationOrders; delete dbData.variationOrders; }

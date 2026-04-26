@@ -26,13 +26,12 @@ export const useMessages = (currentUser: UserWithPermissions | null, projectId: 
             new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
           );
       });
-      });
     } catch (error) {
       console.error('Failed to fetch messages:', error);
     } finally {
       if (isInitial) setIsLoading(false);
     }
-  }, [projectId, currentUser]);
+  }, [projectId, currentUser, isAuthenticated]);
 
   // Initial fetch and polling
   useEffect(() => {
@@ -79,12 +78,5 @@ export const useMessages = (currentUser: UserWithPermissions | null, projectId: 
     sendMessage,
     markAsRead,
     refresh: fetchMessages
-  };
-};
-markAsRead,
-    refresh: fetchMessages
-  };
-};
-  refresh: fetchMessages
   };
 };

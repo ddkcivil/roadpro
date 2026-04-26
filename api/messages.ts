@@ -3,6 +3,24 @@ import { supabaseAdmin } from './_utils/supabaseClient.js';
 import { withErrorHandler } from './_utils/errorHandler.js';
 import { withAuth } from './_utils/auth.js';
 
+function mapMessageFromDb(dbMsg: any): any {
+  if (!dbMsg) return dbMsg;
+  return {
+    id: dbMsg.id,
+    senderId: dbMsg.sender_id,
+    receiverId: dbMsg.receiver_id,
+    content: dbMsg.content,
+    timestamp: dbMsg.timestamp,
+    read: dbMsg.read,
+    projectId: dbMsg.project_id,
+    attachmentUrl: dbMsg.attachment_url,
+    attachmentName: dbMsg.attachment_name,
+    attachmentType: dbMsg.attachment_type,
+    createdAt: dbMsg.created_at,
+    readAt: dbMsg.read_at
+  };
+}
+
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { projectId, receiverId, after } = req.query;
   const currentUser = (req as any).user;
@@ -55,7 +73,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       const offsetNum = parseInt(req.query.offset as string) || 0;
       filteredData = filteredData.slice(offsetNum, offsetNum + limitNum);
 
-      return res.status(200).json(filteredData);
+      return res.status(200).json(filteredData.map(mapMessageFromDb));
     } catch (queryError: any) {
       console.error('Messages query failed:', queryError);
       return res.status(500).json({ error: 'Failed to fetch messages', details: queryError.message });
@@ -91,7 +109,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .single();
 
       if (error) throw error;
-      return res.status(201).json(newMessage);
+      return res.status(201).json(mapMessageFromDb(newMessage));
     } catch (error: any) {
       console.error('Error creating message:', error);
       return res.status(500).json({ error: 'Failed to create message', details: error.message });

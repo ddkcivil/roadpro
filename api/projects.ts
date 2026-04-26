@@ -82,11 +82,13 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       const projectId = projectData.id || `proj-${Date.now()}`; // Fallback ID generator, consider uuidv4 if needed
 
+      const userId = (req as any).user?.userId;
       const { data: newProject, error } = await supabaseAdmin
         .from('projects')
         .insert(mapProjectToDb({
           ...projectData,
-          id: projectId, 
+          id: projectId,
+          ownerId: userId,
           updatedAt: new Date().toISOString()
         }))
         .select('*') // Return the inserted row

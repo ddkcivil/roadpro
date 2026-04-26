@@ -166,9 +166,3 @@ export const useAuth = () => {
     logout
   };
 };
-ading,
-    session,
-    login,
-    logout
-  };
-};
