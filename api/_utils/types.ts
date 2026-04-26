@@ -980,6 +980,8 @@ export interface Project {
   client: string;
   engineer?: string;
   contractNo?: string;
+  ownerId?: string;
+  description?: string;
   lat?: number;
   lng?: number;
   boq: BOQItem[];
