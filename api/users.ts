@@ -86,7 +86,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       }
 
       // Insert user details into profiles table
-      const { error: profileError } = await supabasePublic.from('profiles').insert({
+      const { error: profileError } = await supabaseAdmin.from('profiles').insert({
         id: newUser.user.id,
         full_name: name,
         role: role || 'SITE_ENGINEER',
@@ -134,7 +134,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       }
 
       // Update user details in profiles table
-      const { error: profileUpdateError } = await supabasePublic
+      const { error: profileUpdateError } = await supabaseAdmin
         .from('profiles')
         .update({
           full_name: name,
@@ -145,7 +145,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       if (profileUpdateError) throw profileUpdateError;
 
-      const { data: updatedUser, error: fetchError } = await supabasePublic
+      const { data: updatedUser, error: fetchError } = await supabaseAdmin
         .from('profiles')
         .select('id, full_name, role, avatar_url, last_seen')
         .eq('id', id)
