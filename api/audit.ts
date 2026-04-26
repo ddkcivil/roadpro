@@ -76,5 +76,10 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   return res.status(405).json({ error: 'Method Not Allowed' });
 };
 
-export default withErrorHandler(withAuth(handler));
+export default withErrorHandler(async (req: VercelRequest, res: VercelResponse) => {
+  if (req.method === 'POST') {
+    return handler(req, res);
+  }
+  return withAuth(handler)(req, res);
+});
 
