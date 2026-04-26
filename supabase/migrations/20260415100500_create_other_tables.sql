@@ -33,6 +33,13 @@ CREATE TABLE IF NOT EXISTS public.messages (
 );
 
 -- Add indexes for common foreign key lookups
-CREATE INDEX IF NOT EXISTS idx_projects_owner_id ON public.projects(owner_id);
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'projects' AND column_name = 'owner_id') THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'projects' AND indexname = 'idx_projects_owner_id') THEN
+      CREATE INDEX idx_projects_owner_id ON public.projects(owner_id);
+    END IF;
+  END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS idx_messages_project_id ON public.messages(project_id);
 CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON public.messages(sender_id);

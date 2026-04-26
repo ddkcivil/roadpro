@@ -14,7 +14,7 @@ ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS attachment_type VARCHAR(50)
 
 -- Table for tracking staff locations
 CREATE TABLE IF NOT EXISTS public.staff_locations (
-    project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE,
+    project_id TEXT REFERENCES public.projects(id) ON DELETE CASCADE,
     user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
     latitude NUMERIC NOT NULL,
     longitude NUMERIC NOT NULL,
