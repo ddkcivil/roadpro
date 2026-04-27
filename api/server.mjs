@@ -10,6 +10,11 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
 import fs from 'fs';
 
+const app = express();
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
 // Load env from api/.env first, then api/.env.local
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -23,8 +28,7 @@ function loadDotEnv(filePath) {
   }
   console.log(`[API Server] Loading .env file from: ${filePath}`); // Add logging
   const content = fs.readFileSync(filePath, 'utf8');
-  content.split('
-').forEach(line => {
+  content.split('\n').forEach(line => {
     line = line.trim();
     if (!line || line.startsWith('#')) return;
     const eqIdx = line.indexOf('=');
@@ -46,8 +50,6 @@ loadDotEnv(path.join(__dirname, '..', '.env'));
 // Then load API-Bspecific ones, potentially overwriting root ones if needed
 loadDotEnv(path.join(__dirname, '.env'));
 loadDotEnv(path.join(__dirname, '.env.local'));
-
-
 
 // Helper: convert a Vercel handler to Express middleware
 function vercelToExpress(handlerModule) {
