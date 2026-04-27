@@ -79,7 +79,7 @@ interface MapModuleProps {
  * Component to render and sync KML data from XML content.
  * Now using robust utility parser and memoization to prevent re-render loops.
  */
-const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
+export const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
   const map = useMap();
 
   // Memoize parsed KML to avoid redundant parsing
@@ -434,7 +434,7 @@ const LinearReferenceView: React.FC<{ info: { lineName: string, chainage: string
   );
 };
 
-const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, settings, users = [] }) => {
+export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, settings, users = [] }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isRulerActive, setIsRulerActive] = useState(false);

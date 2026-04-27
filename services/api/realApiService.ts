@@ -56,10 +56,7 @@ class RealApiService {
    */
   private async fetchWithRetry<T>(endpoint: string, options?: RequestInit, retries = 3): Promise<T> {
     try {
-      // Dynamic import to avoid circular dependencies or early init issues
-      const { supabase } = await import('../../lib/supabase');
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const token = localStorage.getItem('roadmaster-token');
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -81,7 +78,7 @@ class RealApiService {
       });
 
       if (response.status === 401) {
-        // If we get 401, the Supabase session might be genuinely invalid
+        // If we get 401, the session might be genuinely invalid
         window.dispatchEvent(new CustomEvent('roadmaster-auth-failure'));
       }
 

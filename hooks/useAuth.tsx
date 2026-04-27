@@ -1,151 +1,64 @@
 /**
  * Authentication Hook
- * Handles user login, logout, and persistent session management using Supabase.
+ * Handles user login, logout, and persistent session management using custom MongoDB Auth.
  */
 import { useState, useEffect, useMemo, startTransition } from 'react';
 import { UserRole, User, UserWithPermissions } from '../types';
 import { PermissionsService } from '../services/auth/permissionsService';
 import { AuditService } from '../services/analytics/auditService';
-import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
+
+const AUTH_TOKEN_KEY = 'roadmaster-token';
+const AUTH_USER_KEY = 'roadmaster-user';
 
 export const useAuth = () => {
   console.log('[useAuth] Hook initialized.');
-  const [session, setSession] = useState<any>(null);
+  const [token, setToken] = useState<string | null>(localStorage.getItem(AUTH_TOKEN_KEY));
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState<UserRole>(UserRole.SITE_ENGINEER);
-  const [userName, setUserName] = useState('');
-  const [userPhone, setUserPhone] = useState('');
-  const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [user, setUser] = useState<any>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Sync profile data from Supabase 'profiles' table
-  const fetchProfile = async (userId: string) => {
-    console.log(`[useAuth] Fetching profile for user ID: ${userId}`);
-    try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (error) {
-        console.warn('[Auth] Could not fetch profile:', error.message);
-        return null;
-      }
-      return profile;
-    } catch (err) {
-      console.error('[Auth] Profile fetch error:', err);
-      return null;
-    }
-  };
-
   useEffect(() => {
-    // 1. Get initial session
-    supabase.auth.getSession().then(({ data: { session } }: { data: { session: import('@supabase/supabase-js').Session | null } }) => {
-      setSession(session);
-      if (session) {
-        updateAuthState(session);
-      } else {
-        setLoading(false);
-      }
-    });
+    const initializeAuth = async () => {
+      const storedToken = localStorage.getItem(AUTH_TOKEN_KEY);
+      const storedUser = localStorage.getItem(AUTH_USER_KEY);
 
-    // 2. Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: string, session: import('@supabase/supabase-js').Session | null) => {
-      console.log(`[useAuth] onAuthStateChange triggered. Event: ${_event}, Session exists: ${!!session}`);
-      setSession(session);
-      if (session) {
-        await updateAuthState(session);
-      } else {
-        clearAuthState();
+      if (storedToken && storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setToken(storedToken);
+          setUser(parsedUser);
+          setIsAuthenticated(true);
+        } catch (e) {
+          console.error('Failed to parse stored user', e);
+          clearAuthState();
+        }
       }
-    });
-
-    return () => {
-      subscription.unsubscribe();
+      setLoading(false);
     };
+
+    initializeAuth();
   }, []);
 
-  const updateAuthState = async (session: any) => {
-    const user = session.user;
-    setIsAuthenticated(true);
-    setCurrentUserId(user.id);
-    
-    // Attempt to get more info from profile table
-    const profile = await fetchProfile(user.id);
-    
-    startTransition(() => {
-      const normalizeRole = (role: string | undefined): UserRole => {
-        if (!role) return UserRole.SITE_ENGINEER;
-        const r = role.toLowerCase();
-        if (r === 'admin') return UserRole.ADMIN;
-        if (r === 'manager' || r === 'project manager' || r === 'project_manager') return UserRole.PROJECT_MANAGER;
-        if (r === 'engineer' || r === 'site engineer' || r === 'site_engineer') return UserRole.SITE_ENGINEER;
-        if (r === 'technician' || r === 'lab technician' || r === 'lab_technician') return UserRole.LAB_TECHNICIAN;
-        if (r === 'hse' || r === 'hse officer' || r === 'hse_officer') return UserRole.HSE_OFFICER;
-        if (r === 'subcontractor') return UserRole.SUBCONTRACTOR;
-        if (r === 'supervisor') return UserRole.SUPERVISOR;
-        return role as UserRole;
-      };
+  const login = async (role: UserRole, name: string, token?: string, userId?: string, phone?: string) => {
+    // This is now called after a successful /api/auth?action=login call
+    // Removed startTransition to potentially resolve hook-related crashes during login
+    if (token) {
+      localStorage.setItem(AUTH_TOKEN_KEY, token);
+      setToken(token);
+    }
 
-      let fetchedUserName = 'User';
-      let fetchedUserPhone = '';
-      let fetchedUserRole = UserRole.SITE_ENGINEER;
-
-      // Prioritize profile data if available, otherwise fall back to user metadata
-      if (profile) {
-        fetchedUserRole = normalizeRole(profile.role);
-        fetchedUserName = profile.full_name || fetchedUserName;
-        fetchedUserPhone = profile.phone || fetchedUserPhone;
-      } else if (user) { // Fallback to user metadata if profile is not available
-        fetchedUserRole = normalizeRole(user.user_metadata?.role);
-        fetchedUserName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
-        fetchedUserPhone = user.user_metadata?.phone || '';
-      }
-      
-      setUserRole(fetchedUserRole);
-      setUserName(fetchedUserName);
-      setUserPhone(fetchedUserPhone);
-
-      setLoading(false);
-    });
-  };
-
-  const clearAuthState = () => {
-    startTransition(() => {
-      setIsAuthenticated(false);
-      setUserRole(UserRole.SITE_ENGINEER);
-      setUserName('');
-      setCurrentUserId('');
-      setUserPhone('');
-      setLoading(false);
-    });
-  };
-
-  const currentUser = useMemo(() => {
-    const user: User = {
-      id: currentUserId || 'guest',
-      name: userName || 'Guest',
-      email: session?.user?.email || '',
-      phone: userPhone || '',
-      role: userRole,
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(userName || 'User')}&background=random`
+    const userData = {
+      id: userId,
+      full_name: name,
+      role: role,
+      phone: phone,
     };
-    
-    return PermissionsService.createUserWithPermissions(user);
-  }, [currentUserId, userName, userPhone, userRole, session]);
 
-  const login = async (role: UserRole, name: string, _token?: string, userId?: string, phone?: string) => {
-    // Legacy support for manual login updates if needed, 
-    // but primarily session is managed by onAuthStateChange
-    startTransition(() => {
-      setUserRole(role);
-      setUserName(name);
-      if (userId) setCurrentUserId(userId);
-      if (phone) setUserPhone(phone);
-      setIsAuthenticated(true);
-    });
+    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userData));
+    setUser(userData);
+    setIsAuthenticated(true);
+    setLoading(false);
   };
 
   const logout = async (selectedProjectId?: string | any, projectName?: string) => {
@@ -153,25 +66,52 @@ export const useAuth = () => {
     const actualProjectName = typeof selectedProjectId === 'string' ? projectName : undefined;
 
     try {
-      await AuditService.logLogout(currentUserId || 'unknown', userName || 'unknown', actualProjectId, actualProjectName);
-      await supabase.auth.signOut();
+      await AuditService.logLogout(user?.id || 'unknown', user?.full_name || 'unknown', actualProjectId, actualProjectName);
+      
+      // Call logout API to clear cookies if any
+      await fetch('/api/auth?action=logout', { method: 'POST' });
     } catch (e) {
-      console.error('Logout failed:', e);
+      console.error('Logout API failed:', e);
     }
     
     clearAuthState();
     toast.success("Logged out successfully");
   };
 
+  const clearAuthState = () => {
+    startTransition(() => {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(AUTH_USER_KEY);
+      setToken(null);
+      setUser(null);
+      setIsAuthenticated(false);
+      setLoading(false);
+    });
+  };
+
+  const currentUser = useMemo(() => {
+    const u: User = {
+      id: user?.id || 'guest',
+      name: user?.full_name || 'Guest',
+      email: user?.email || '',
+      phone: user?.phone || '',
+      role: (user?.role || UserRole.SITE_ENGINEER) as UserRole,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'User')}&background=random`
+    };
+    
+    return PermissionsService.createUserWithPermissions(u);
+  }, [user]);
+
   return {
     isAuthenticated,
-    userRole,
-    userName,
-    currentUserId,
+    userRole: (user?.role || UserRole.SITE_ENGINEER) as UserRole,
+    userName: user?.full_name || '',
+    currentUserId: user?.id || '',
     currentUser,
     loading,
-    session,
+    token,
     login,
     logout
   };
 };
+

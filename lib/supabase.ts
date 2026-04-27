@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
-import { createMockSupabaseClient } from './supabaseMock';
+import { createMockSupabaseClient } from './supabaseMock.js';
 
-const useMock = import.meta.env.VITE_USE_MOCK_SUPABASE === 'true';
+const useMock = (import.meta as any).env?.VITE_USE_MOCK_SUPABASE === 'true';
 
 let supabaseClient: any;
 
@@ -9,8 +9,8 @@ if (useMock) {
   console.warn('[Supabase] Using Mock Service!');
   supabaseClient = createMockSupabaseClient();
 } else {
-  const supabaseUrl = import.meta.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseAnonKey = import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  const supabaseUrl = (import.meta as any).env?.NEXT_PUBLIC_SUPABASE_URL || (import.meta as any).env?.VITE_SUPABASE_URL || '';
+  const supabaseAnonKey = (import.meta as any).env?.NEXT_PUBLIC_SUPABASE_ANON_KEY || (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || '';
 
   console.log('[Supabase] Env Check:', { 
     urlLength: supabaseUrl?.length, 

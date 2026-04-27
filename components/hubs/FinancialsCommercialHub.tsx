@@ -4,7 +4,7 @@ import {
     Plus, Edit, Trash2, Filter, Search, X, Save, 
     Users, CreditCard, FileSpreadsheet, PieChart
 } from 'lucide-react';
-import { Project, UserRole, ContractBill, SubcontractorBill, AgencyPayment, BillStatus } from '../types';
+import { Project, UserRole, ContractBill, SubcontractorBill, AgencyPayment, BillStatus } from '~/types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
 import { cn } from '~/lib/utils';
 

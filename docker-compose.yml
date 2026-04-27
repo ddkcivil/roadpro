@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/myroad_vite
+      - JWT_SECRET=dev-secret-change-me-in-prod
+      - VITE_USE_MOCK_MONGO=false
+    depends_on:
+      - mongodb
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+volumes:
+  mongodb_data:

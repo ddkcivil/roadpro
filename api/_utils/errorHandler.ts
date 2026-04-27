@@ -1,25 +1,21 @@
-// api/_utils/errorHandler.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-type ApiHandler = (req: VercelRequest, res: VercelResponse) => Promise<any> | any;
-
-export function withErrorHandler(handler: ApiHandler) {
+export const withErrorHandler = (handler: (req: VercelRequest, res: VercelResponse) => any | Promise<any>) => {
   return async (req: VercelRequest, res: VercelResponse) => {
     try {
-      await handler(req, res);
+      return await handler(req, res);
     } catch (error: any) {
-      console.error('Unhandled API error:', error);
-
-      // Attempt to send a JSON error response if one hasn't been sent already
-      if (!res.headersSent) {
-        res.status(500).json({
-          error: 'Internal Server Error',
-          details: error.message || 'An unexpected error occurred.',
-          type: error.name,
-          code: error.code,
-          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined, 
-        });
+      console.error(`[API Error] ${req.method} ${req.url}:`, error);
+      
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
+      
+      // Default error response
+      return res.status(500).json({ 
+        error: 'Internal Server Error',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+      });
     }
   };
-}
+};

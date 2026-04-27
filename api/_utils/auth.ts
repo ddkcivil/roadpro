@@ -1,9 +1,8 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabasePublic, supabaseAdmin, ensureSupabaseConfigured } from './supabaseClient.js';
+import { verifyToken, getUserById } from './mongoAuth.js';
 import { TokenPayload } from './types.js';
 
 export const withAuth = (handler: Function, options: { ignoreExpiration?: boolean } = {}) => async (req: VercelRequest, res: VercelResponse) => {
-  ensureSupabaseConfigured();
   let token = null;
   const authHeader = req.headers.authorization;
   
@@ -26,30 +25,27 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
     return res.status(401).json({ error: 'Unauthorized: No token provided' });
   }
 
-  console.log(`[Auth] Validating token of length ${token.length}`);
+  console.log(`[MongoAuth] Validating token of length ${token.length}`);
 
   try {
-    const { data: { user }, error } = await supabasePublic.auth.getUser(token);
-
-    if (error || !user) {
-      console.error('[Auth] getUser failed for token:', token.substring(0, 10) + '...', error);
-      const errorMessage = error ? `Unauthorized: ${error.message}` : 'Unauthorized: Invalid token';
-      return res.status(401).json({ error: errorMessage, details: error?.message });
+    const payload = await verifyToken(token);
+    if (!payload) {
+      console.error('[MongoAuth] Invalid token:', token.substring(0, 10) + '...');
+      return res.status(401).json({ error: 'Unauthorized: Invalid token' });
     }
 
-    // Map Supabase user to the legacy TokenPayload structure for compatibility
-    // Use admin client to bypass potential RLS issues on profiles table during auth
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle();
-    
-    const userRole = (profile?.role || user.user_metadata?.role || 'SITE_ENGINEER').toUpperCase();
+    // Fetch user role from MongoDB
+    const userDoc = await getUserById(payload.userId);
+    if (!userDoc) {
+      console.error('[MongoAuth] User not found:', payload.userId);
+      return res.status(401).json({ error: 'Unauthorized: User not found' });
+    }
 
-    const decoded: TokenPayload = {
-      userId: user.id,
-      email: user.email || '',
+    const userRole = (userDoc.role || 'SITE_ENGINEER').toUpperCase();
+
+    const decoded = {
+      userId: payload.userId,
+      email: payload.email,
       role: userRole,
     };
 
@@ -58,7 +54,7 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
 
     return handler(req, res);
   } catch (err: any) {
-    console.error('Auth middleware error:', err);
+    console.error('MongoAuth middleware error:', err);
     return res.status(500).json({ error: 'Authentication failed', details: err.message });
   }
 };

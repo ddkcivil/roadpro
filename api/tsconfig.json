@@ -2,17 +2,21 @@
   "compilerOptions": {
     "target": "es2021",
     "module": "NodeNext",
-    "lib": ["es2021"],
+    "lib": ["es2021", "DOM"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "NodeNext",
-    "outDir": ".",
-    "rootDir": "./",
+    "outDir": "dist/api",
+    "rootDir": "../",
     "allowJs": true,
-    "noEmit": false
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["../../*"]
+    }
   },
-  "include": ["./**/*.ts"],
+  "include": ["./**/*.ts", "../lib/**/*.ts"],
   "exclude": ["node_modules"]
 }

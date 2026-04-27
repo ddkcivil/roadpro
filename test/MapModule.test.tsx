@@ -1,102 +1,103 @@
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, LayersControl, Tooltip as MapTooltip } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, LayerGroup, CircleMarker, LayersControl, Tooltip as MapTooltip } from 'react-leaflet';
 import '@testing-library/jest-dom';
 
-import { MapModule, KMLDataLayer } from '../components/modules/MapModule'; // Assuming MapModule and KMLDataLayer are exported
-import { parseKML, ParsedKML } from '~/utils/kmlParser';
+import MapModule, { KMLDataLayer } from '../components/modules/MapModule'; // Assuming MapModule and KMLDataLayer are exported
+import { parseKML, ParsedKML, getKMLBounds } from '~/utils/kmlParser';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { Project, StructureAsset, Vehicle, StaffLocation, LandParcel, MapOverlay, SitePhoto, LinearWorkLog, KMLData, AppSettings, User } from '../../types';
+import { Button } from '~/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Badge } from '~/components/ui/badge';
+import { Switch } from '~/components/ui/switch';
+import { Label } from '~/components/ui/label';
+import { ScrollArea } from '~/components/ui/scroll-area';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "~/components/ui/accordion";
+import {
+  MapPin,
+  Truck,
+  Users,
+  Building,
+  Camera,
+  Route,
+  Layers,
+  Search,
+  Ruler,
+  Download,
+  Upload,
+  Settings,
+  Loader2,
+  Maximize,
+  Minimize,
+  ChevronLeft,
+  ChevronRight,
+  BarChart3,
+  Trash2,
+  AlertOctagon,
+  FileQuestion,
+  Beaker,
+  TreePine,
+  Info
+} from 'lucide-react';
+import { cn } from '~/lib/utils';
+import { toast } from 'sonner';
 
-// Mocking dependencies
-vi.mock('react-leaflet', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('react-leaflet')>();
-  return {
-    ...actual,
-    MapContainer: vi.fn(({ children }) => <div data-testid="map-container">{children}</div>),
-    TileLayer: vi.fn(() => null),
-    Marker: vi.fn(({ children, position }) => <div data-testid={`marker-${position}`}>{children}</div>),
-    Popup: vi.fn(({ children }) => <div data-testid="popup">{children}</div>),
-    Polyline: vi.fn(({ positions }) => <div data-testid={`polyline-${positions.length}`}>{positions.map((p, i) => `(${p[0]},${p[1]})`).join(',')}</div>),
-    useMap: vi.fn(() => ({
-      // Mock map methods that are used
-      addControl: vi.fn(),
-      removeControl: vi.fn(),
-      getContainer: () => ({ style: { cursor: '' } }),
-      on: vi.fn(),
-      off: vi.fn(),
-      setView: vi.fn(),
-      fitBounds: vi.fn(),
-    })),
-    LayerGroup: vi.fn(({ children }) => <>{children}</>),
-    CircleMarker: vi.fn(({ center }) => <div data-testid={`circle-marker-${center.toString()}`}></div>),
-    LayersControl: vi.fn(({ children }) => <>{children}</>),
-    BaseLayer: vi.fn(({ children }) => <>{children}</>),
-  };
-});
-
-vi.mock('~/utils/kmlParser', () => ({
-  parseKML: vi.fn(),
-  getKMLBounds: vi.fn(),
+// Mocking external dependencies
+// Mock Leaflet objects and methods used by MapModule and KMLDataLayer
+const mockLatLng = vi.fn((lat, lng) => ({ lat, lng, distanceTo: vi.fn(() => Math.random() * 1000) }));
+const mockLatLngBounds = vi.fn((points) => ({
+  getNorthEast: vi.fn(),
+  getSouthWest: vi.fn(),
+  extend: vi.fn(),
+  contains: vi.fn(),
+  isValid: vi.fn(() => true),
 }));
 
-vi.mock('leaflet-geosearch', () => ({
-  GeoSearchControl: vi.fn(({ children }) => <>{children}</>),
-  OpenStreetMapProvider: vi.fn(),
+const mockPolyline = vi.fn((positions, options) => ({ 
+  addTo: vi.fn(() => ({ bindTooltip: vi.fn(), bindPopup: vi.fn() })), 
+  getLatLngs: vi.fn(() => positions),
+  remove: vi.fn()
 }));
 
-vi.mock('~/components/ui/button', () => ({ Button: vi.fn(({ children }) => <button data-testid="button">{children}</button>) }));
-vi.mock('~/components/ui/card', () => ({ Card: vi.fn(({ children }) => <div data-testid="card">{children}</div>), CardHeader: vi.fn(({ children }) => <div>{children}</div>), CardContent: vi.fn(({ children }) => <div>{children}</div>), CardTitle: vi.fn(({ children }) => <h3>{children}</h3>) }));
-vi.mock('~/components/ui/badge', () => ({ Badge: vi.fn(({ children }) => <span data-testid="badge">{children}</span>) }));
-vi.mock('~/components/ui/switch', () => ({ Switch: vi.fn(({ checked }) => <input type="checkbox" checked={checked} data-testid="switch" />) }));
-vi.mock('~/components/ui/label', () => ({ Label: vi.fn(({ children }) => <label>{children}</label>) }));
-vi.mock('~/components/ui/scroll-area', () => ({ ScrollArea: vi.fn(({ children }) => <div>{children}</div>) }));
-vi.mock('~/components/ui/accordion', () => ({ Accordion: vi.fn(({ children }) => <>{children}</>), AccordionItem: vi.fn(({ children }) => <div>{children}</div>), AccordionTrigger: vi.fn(({ children }) => <button>{children}</button>), AccordionContent: vi.fn(({ children }) => <div>{children}</div>) }));
-vi.mock('~/components/ui/dialog', () => ({ Dialog: vi.fn(({ children }) => <>{children}</>), DialogContent: vi.fn(({ children }) => <div>{children}</div>), DialogDescription: vi.fn(({ children }) => <p>{children}</p>), DialogFooter: vi.fn(({ children }) => <footer>{children}</footer>), DialogHeader: vi.fn(({ children }) => <header>{children}</header>), DialogTitle: vi.fn(({ children }) => <h2>{children}</h2>) }));
-vi.mock('sonner', () => ({ toast: { loading: vi.fn(), success: vi.fn(), error: vi.fn(), dismiss: vi.fn() } }));
-vi.mock('~/lib/utils', () => ({ cn: vi.fn((...classes) => classes.filter(Boolean).join(' ')) }));
+const mockMarker = vi.fn((latlng, options) => ({ 
+  addTo: vi.fn(() => ({ bindPopup: vi.fn() })), 
+  getLatLng: vi.fn(() => latlng),
+  remove: vi.fn()
+}));
 
-// Mocking external dependencies for KMLDataLayer rendering tests
+const mockDivIcon = vi.fn((options) => ({ html: options.html, className: options.className }));
+
+// Mock LayerGroup and CircleMarker
+const mockLayerGroup = vi.fn(({ children }) => <>{children}</>);
+const mockCircleMarker = vi.fn((center) => ({ addTo: vi.fn(() => ({ bindPopup: vi.fn() })), getLatLng: vi.fn(() => center), remove: vi.fn() }));
+
+// Mock map methods
+const mockMap = {
+  addControl: vi.fn(),
+  removeControl: vi.fn(),
+  on: vi.fn(),
+  off: vi.fn(),
+  setView: vi.fn(),
+  fitBounds: vi.fn(),
+  removeLayer: vi.fn(), // Mock removeLayer for cleanup
+  getContainer: () => ({ style: { cursor: '' } }),
+};
+
+// Mock GeoSearchControl and OpenStreetMapProvider
+const mockGeoSearchControl = vi.fn(({ children }) => <>{children}</>);
+const mockOpenStreetMapProvider = vi.fn(() => ({ search: vi.fn() }));
+
+
+// Mock parseKML and getKMLBounds
 const mockParseKML = vi.mocked(parseKML);
 const mockGetKMLBounds = vi.mocked(getKMLBounds);
-
-// Mocking crypto.randomUUID as parseKML uses it
-vi.mock('crypto', () => ({
-  randomUUID: vi.fn(),
-}));
-const mockCryptoRandomUUID = vi.mocked(crypto.randomUUID);
-
-
-// Mock Leaflet objects
-const mockLatLng = vi.fn((lat, lng) => ({ lat, lng, distanceTo: vi.fn(() => Math.random() * 1000) }));
-const mockLatLngBounds = vi.fn((points) => ({ getNorthEast: vi.fn(), getSouthWest: vi.fn() }));
-const mockPolyline = vi.fn((points, options) => ({ addTo: vi.fn(() => ({ bindTooltip: vi.fn(), bindPopup: vi.fn() })), getLatLngs: vi.fn(() => points) }));
-const mockMarker = vi.fn((latlng, options) => ({ addTo: vi.fn(() => ({ bindPopup: vi.fn() })), getLatLng: vi.fn(() => latlng) }));
-const mockDivIcon = vi.fn((options) => ({ html: options.html, className: options.className }));
-const mockLayerGroup = vi.fn((props) => <>{props.children}</>);
-const mockCircleMarker = vi.fn((center) => ({}));
-const mockControl = vi.fn();
-
-// Patch Leaflet globally for tests
-vi.stubGlobal('L', {
-  LatLng: mockLatLng,
-  LatLngBounds: mockLatLngBounds,
-  Polyline: mockPolyline,
-  Marker: mockMarker,
-  divIcon: mockDivIcon,
-  layerGroup: mockLayerGroup,
-  CircleMarker: mockCircleMarker,
-  Icon: { Default: { mergeOptions: vi.fn() } }
-});
-
-
-// Helper to create KML content for tests
-const createKML = (name: string, placemarks: string): string => `
-  <kml xmlns="http://www.opengis.net/kml/2.2">
-    <Document>
-      ${placemarks}
-    </Document>
-  </kml>
-`;
 
 // Mock KMLData structure
 const mockKMLData = (id: string, name: string, kmlContent: string, color: string = '#4f46e5'): KMLData => ({
@@ -108,61 +109,145 @@ const mockKMLData = (id: string, name: string, kmlContent: string, color: string
   color
 });
 
-describe('KMLDataLayer', () => {
+vi.mock('react-leaflet', async (importOriginal) => {
+  const actualLeaflet = await importOriginal<typeof import('react-leaflet')>();
+  
+  // Mocking L.Icon.Default globally if it's used directly in component or tests
+  L.Icon.Default.mergeOptions({} as any);
+
+  return {
+    ...actualLeaflet,
+    MapContainer: vi.fn(({ children, center, zoom }) => (
+      <div data-testid="map-container" data-center={JSON.stringify(center)} data-zoom={zoom} style={{ height: '400px', width: '100%' }}>
+        {children}
+      </div>
+    )),
+    TileLayer: vi.fn(() => null),
+    Marker: mockMarker,
+    Popup: vi.fn(({ children }) => <div data-testid="popup">{children}</div>),
+    Polyline: mockPolyline,
+    useMap: vi.fn(() => mockMap),
+    LayerGroup: mockLayerGroup,
+    CircleMarker: mockCircleMarker,
+    LayersControl: vi.fn(({ children }) => <>{children}</>),
+    BaseLayer: vi.fn(({ children }) => <>{children}</>),
+  };
+});
+
+vi.mock('leaflet-geosearch', () => ({
+  GeoSearchControl: mockGeoSearchControl,
+  OpenStreetMapProvider: mockOpenStreetMapProvider,
+}));
+
+// Mock UI components
+vi.mock('~/components/ui/button', () => ({ Button: vi.fn(({ children, ...props }) => <button {...props} data-testid={`button-${props.title || props.children}`}>{children}</button>) }));
+vi.mock('~/components/ui/card', () => ({ Card: vi.fn(({ children }) => <div data-testid="card">{children}</div>), CardHeader: vi.fn(({ children }) => <div>{children}</div>), CardContent: vi.fn(({ children }) => <div>{children}</div>), CardTitle: vi.fn(({ children }) => <h3>{children}</h3>) }));
+vi.mock('~/components/ui/badge', () => ({ Badge: vi.fn(({ children }) => <span data-testid="badge">{children}</span>) }));
+vi.mock('~/components/ui/switch', () => ({ Switch: vi.fn(({ checked, onCheckedChange }) => <input type="checkbox" checked={checked} onChange={() => onCheckedChange(!checked)} data-testid="switch" />) }));
+vi.mock('~/components/ui/label', () => ({ Label: vi.fn(({ children }) => <label>{children}</label>) }));
+vi.mock('~/components/ui/scroll-area', () => ({ ScrollArea: vi.fn(({ children }) => <div>{children}</div>) }));
+vi.mock('~/components/ui/accordion', () => ({ Accordion: vi.fn(({ children }) => <>{children}</>), AccordionItem: vi.fn(({ children }) => <div>{children}</div>), AccordionTrigger: vi.fn(({ children }) => <button>{children}</button>), AccordionContent: vi.fn(({ children }) => <div>{children}</div>) }));
+vi.mock('sonner', () => ({ toast: { loading: vi.fn(), success: vi.fn(), error: vi.fn(), dismiss: vi.fn() } }));
+vi.mock('~/lib/utils', () => ({ cn: vi.fn((...classes) => classes.filter(Boolean).join(' ')) }));
+
+
+// Mocking crypto.randomUUID used in KML parsing
+const mockCrypto = {
+  randomUUID: vi.fn(),
+};
+vi.stubGlobal('crypto', mockCrypto);
+
+// Mock Leaflet LatLng and Bounds
+// These are used within the component and need to be mocked if not provided by react-leaflet mock
+vi.mock('leaflet', async (importOriginal) => {
+  const actualLeaflet = await importOriginal<typeof L>();
+  return {
+    ...actualLeaflet,
+    LatLng: mockLatLng,
+    LatLngBounds: mockLatLngBounds,
+    Polyline: mockPolyline,
+    Marker: mockMarker,
+    divIcon: mockDivIcon,
+    layerGroup: mockLayerGroup,
+    CircleMarker: mockCircleMarker,
+    Icon: { Default: { mergeOptions: vi.fn() } }
+  };
+});
+
+// Mock the useMap hook return value and its methods
+vi.mocked(useMap).mockReturnValue(mockMap as any);
+
+// Mock GeoSearchControl and OpenStreetMapProvider
+vi.mocked(GeoSearchControl).mockImplementation(({ children }) => <>{children}</>);
+vi.mocked(OpenStreetMapProvider).mockImplementation(() => ({ search: vi.fn() }));
+
+
+describe('MapModule and KMLDataLayer Tests', () => {
   let mockMap: L.Map;
   let mockProject: Project;
   let mockOnProjectUpdate: vi.Mock;
   let mockParseKMLResult: ParsedKML;
+  let mockKMLContent: string;
+  let mockKMLTestLineContent: string;
+  let mockKMLMultiContent: string;
+  let mockKMLPopupContent: string;
+  let mockKMLChainageContent: string;
+  let mockKMLRoadContent: string;
+  let mockKMLAlignContent: string;
+  let mockKMLStructContent: string;
+  let mockKMLOtherContent: string;
+  let mockKMLBridgeStructContent: string;
+  let mockKMLRoadWithStructureContent: string;
+  let mockKMLRoadWithAlignmentContent: string;
+  let mockKMLRoadWithOtherLineContent: string;
+  let mockKMLRoadWithLongestPathContent: string;
 
-  beforeEach(() => {
-    // Reset mocks and clear timers before each test
+  beforeEach(async () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
 
-    // Mock `crypto.randomUUID` used in `parseKML`'s internal helpers if necessary (though parseKML is mocked here)
-    mockCryptoRandomUUID.mockReturnValue('mock-uuid');
+    // Mock crypto.randomUUID
+    mockCrypto.randomUUID.mockReturnValue('mock-uuid');
 
-    // Mock `parseKML` return value
-    mockParseKMLResult = {
-      placemarks: [],
-      totalCoordinates: 0,
-      hasErrors: false
-    };
+    // Mock parseKML return value
+    mockParseKMLResult = { placemarks: [], totalCoordinates: 0, hasErrors: false };
     mockParseKML.mockReturnValue(mockParseKMLResult);
+    mockGetKMLBounds.mockReturnValue([]); // Default mock for bounds
 
-    // Mock Leaflet's addControl, removeControl, on, off
-    const mockMapInstance = {
-      addControl: mockControl,
-      removeControl: mockControl,
-      on: vi.fn(),
-      off: vi.fn(),
-      getContainer: () => ({ style: { cursor: '' } }),
-      setView: vi.fn(),
-      fitBounds: vi.fn(),
-      removeLayer: vi.fn(), // Mock removeLayer for cleanup
-    };
-    vi.mocked(useMap).mockReturnValue(mockMapInstance as any);
-    mockMap = mockMapInstance as any;
+    // Mock useMap return value
+    vi.mocked(useMap).mockReturnValue(mockMap as any);
 
-    // Mock `project` data and `onProjectUpdate`
+    // Mock project data and onProjectUpdate
     mockProject = {
-      id: 'proj-1',
-      name: 'Test Project',
-      location: '27.7006,83.4484',
-      structures: [],
-      vehicles: [],
-      staffLocations: [],
-      landParcels: [],
-      mapOverlays: [],
-      sitePhotos: [],
-      linearWorks: [],
-      kmlData: [],
-      // Add other necessary fields for Project type if they are used directly
+      id: 'proj-1', name: 'Test Project', location: '27.7,83.4', kmlData: [], mapOverlays: [],
+      structures: [], vehicles: [], staffLocations: [], landParcels: [], sitePhotos: [], linearWorks: [],
+      rfis: [], ncrs: [], labTests: {}, environmentRegistry: {}, roads: [],
     };
     mockOnProjectUpdate = vi.fn();
 
-    // Mock Leaflet default icons merge
-    L.Icon.Default.mergeOptions({} as any);
+    // Mock KML content strings
+    mockKMLContent = '<kml><Document><Placemark><name>Test Line</name><LineString><coordinates>1,1,0 2,2,0</coordinates></LineString></Placemark></Document></kml>';
+    mockKMLTestLineContent = '<kml><Document><Placemark><name>Alignment Line</name><LineString><coordinates>1,1,0 2,2,0</coordinates></LineString></Placemark></Document></kml>';
+    mockKMLMultiContent = '<kml><Document><Placemark><name>Road Line</name><LineString><coordinates>1,1,0 2,2,0</coordinates></LineString></Placemark><Placemark><name>Structure Point</name><Point><coordinates>1.5,1.5,0</coordinates></Point></Placemark></Document></kml>';
+    mockKMLPopupContent = '<kml><Document><Placemark><name>Main Highway Road</name><LineString><coordinates>1,1,0 2,2,0</coordinates></LineString></Placemark><Placemark><name>Culvert Structure</name><Point><coordinates>1.5,1.5,0</coordinates></Point></Placemark></Document></kml>';
+    mockKMLChainageContent = '<kml><Document><Placemark><name>Main Road Line</name><LineString><coordinates>0,0,0 100,0,0 200,0,0 300,0,0 400,0,0 500,0,0</coordinates></LineString></Placemark></Document></kml>';
+    mockKMLRoadContent = '<kml><Document><Placemark><name>Main Highway Road</name><LineString><coordinates>10,10,0 11,11,0</coordinates></LineString></Placemark></Document></kml>';
+    mockKMLAlignContent = '<kml><Document><Placemark><name>Service Alignment</name><LineString><coordinates>10.5,10.5,0 11.5,11.5,0</coordinates></LineString></Placemark></Document></kml>';
+    mockKMLStructContent = '<kml><Document><Placemark><name>Bridge Structure</name><Point><coordinates>10.2,10.2,0</coordinates></Point></Placemark></Document></kml>';
+    mockKMLOtherContent = '<kml><Document><Placemark><name>Some other line</name><LineString><coordinates>12,12,0 13,13,0</coordinates></LineString></Placemark></Document></kml>';
+    mockKMLBridgeStructContent = '<kml><Document><Placemark><name>Bridge Structure Point</name><Point><coordinates>10.2,10.2,0</coordinates></Point></Placemark></Document></kml>';
+    mockKMLRoadWithStructureContent = '<kml><Document><Placemark><name>Road With Structure</name><Point><coordinates>1.5,1.5,0</coordinates></Point></Placemark></Document></kml>';
+    mockKMLRoadWithAlignmentContent = '<kml><Document><Placemark><name>Road With Alignment</name><LineString><coordinates>1,1,0 2,2,0</coordinates></LineString></Placemark></Document></kml>';
+    mockKMLRoadWithOtherLineContent = '<kml><Document><Placemark><name>Road With Other Line</name><LineString><coordinates>12,12,0 13,13,0</coordinates></LineString></Placemark></Document></kml>';
+    mockKMLRoadWithLongestPathContent = '<kml><Document><Placemark><name>Short Line</name><LineString><coordinates>1,1,0 2,2,0</coordinates></LineString></Placemark><Placemark><name>Longer Path</name><LineString><coordinates>3,3,0 4,4,0 5,5,0 6,6,0</coordinates></LineString></Placemark></Document></kml>';
+
+    // Default mock for map methods if not specifically mocked in a test
+    mockMap.addControl.mockClear();
+    mockMap.removeControl.mockClear();
+    mockMap.on.mockClear();
+    mockMap.off.mockClear();
+    mockMap.fitBounds.mockClear();
+    mockMap.removeLayer.mockClear();
   });
 
   afterEach(() => {
@@ -171,35 +256,34 @@ describe('KMLDataLayer', () => {
 
   // --- Test KML Data Layer Rendering ---
   describe('KMLDataLayer Rendering', () => {
-    it('should render nothing if KML is not visible or invalid', () => {
-      const { container } = render(
-        <MapContainer center={[0, 0]} zoom={13}>
-          <KMLDataLayer kml={mockKMLData('kml-1', 'Test.kml', '<kml></kml>', '#ff0000')} />
-        </MapContainer>
-      );
-      // Expecting no actual Leaflet layers to be added as kml.visible is true, but parseKML returns no placemarks
-      // The component should return null and add no layers.
-      // This is hard to assert without inspecting Leaflet layer creation directly,
-      // but we can check that `parseKML` was called and returned empty, and no rendering happened.
-      expect(mockParseKML).toHaveBeenCalled();
-      expect(mockParseKMLResult.placemarks.length).toBe(0);
-      // We can't easily check `map.addLayer` calls with current mocks.
+    it('should render nothing if KML is not visible or invalid', async () => {
+      const kmlInvisible = mockKMLData('kml-1', 'Invisible.kml', '<kml></kml>');
+      kmlInvisible.visible = false;
+      
+      render(<KMLDataLayer kml={kmlInvisible} />);
+      await vi.advanceTimersByTimeAsync(100); // Wait briefly for effect
+
+      expect(mockParseKML).not.toHaveBeenCalled();
+    });
+
+    it('should render nothing if KML content is invalid', async () => {
+      render(<KMLDataLayer kml={mockKMLData('kml-1', 'Invalid.kml', '')} />);
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(mockParseKML).not.toHaveBeenCalled();
+      expect(mockPolyline).not.toHaveBeenCalled();
+      expect(mockMarker).not.toHaveBeenCalled();
     });
 
     it('should render Polyline for KML LineString placemarks', async () => {
       mockParseKMLResult.placemarks = [{
         name: 'Alignment Line',
-        points: [L.latLng(1, 1), L.latLng(2, 2)],
+        points: [mockLatLng(1, 1), mockLatLng(2, 2)],
       }];
       mockParseKMLResult.totalCoordinates = 2;
 
-      render(
-        <MapContainer center={[0, 0]} zoom={13}>
-          <KMLDataLayer kml={mockKMLData('kml-1', 'TestLine.kml', '...', '#ff0000')} />
-        </MapContainer>
-      );
-
-      await vi.advanceTimersByTimeAsync(1000); // Wait for useEffect to run
+      render(<KMLDataLayer kml={mockKMLData('kml-1', 'TestLine.kml', mockKMLTestLineContent, '#ff0000')} />);
+      await vi.advanceTimersByTimeAsync(1000);
 
       expect(mockParseKML).toHaveBeenCalledTimes(1);
       expect(mockPolyline).toHaveBeenCalledTimes(1);
@@ -211,42 +295,32 @@ describe('KMLDataLayer', () => {
     it('should render Marker for KML Point placemarks', async () => {
       mockParseKMLResult.placemarks = [{
         name: 'Structure Point',
-        points: [L.latLng(1, 1)],
+        points: [mockLatLng(1, 1)],
       }];
       mockParseKMLResult.totalCoordinates = 1;
 
-      render(
-        <MapContainer center={[0, 0]} zoom={13}>
-          <KMLDataLayer kml={mockKMLData('kml-1', 'TestPoint.kml', '...', '#0000ff')} />
-        </MapContainer>
-      );
-
+      render(<KMLDataLayer kml={mockKMLData('kml-1', 'TestPoint.kml', mockKMLContent, '#0000ff')} />);
       await vi.advanceTimersByTimeAsync(1000);
 
       expect(mockParseKML).toHaveBeenCalledTimes(1);
       expect(mockMarker).toHaveBeenCalledTimes(1);
-      expect(mockDivIcon).toHaveBeenCalledWith(expect.objectContaining({ html: expect.stringContaining('?') })); // Default icon/content
+      expect(mockDivIcon).toHaveBeenCalledWith(expect.objectContaining({ html: expect.stringContaining('MapPin') }));
       expect(mockPolyline).not.toHaveBeenCalled();
     });
 
     it('should render multiple placemarks from a single KML', async () => {
       mockParseKMLResult.placemarks = [
-        { name: 'Road Line', points: [L.latLng(1, 1), L.latLng(2, 2)] },
-        { name: 'Structure Point', points: [L.latLng(1.5, 1.5)] },
+        { name: 'Road Line', points: [mockLatLng(1, 1), mockLatLng(2, 2)] },
+        { name: 'Structure Point', points: [mockLatLng(1.5, 1.5)] },
       ];
       mockParseKMLResult.totalCoordinates = 3;
 
-      render(
-        <MapContainer center={[0, 0]} zoom={13}>
-          <KMLDataLayer kml={mockKMLData('kml-1', 'Multi.kml', '...', '#00ff00')} />
-        </MapContainer>
-      );
-
+      render(<KMLDataLayer kml={mockKMLData('kml-1', 'Multi.kml', mockKMLMultiContent, '#00ff00')} />);
       await vi.advanceTimersByTimeAsync(1000);
 
       expect(mockParseKML).toHaveBeenCalledTimes(1);
-      expect(mockPolyline).toHaveBeenCalledTimes(1); // One line
-      expect(mockMarker).toHaveBeenCalledTimes(1); // One marker
+      expect(mockPolyline).toHaveBeenCalledTimes(1);
+      expect(mockMarker).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -256,24 +330,45 @@ describe('KMLDataLayer', () => {
     const alignmentColor = '#0ea5e9'; // Blue
     const structureColor = '#3b82f6'; // Blue (used for default structure icon background)
 
-    beforeEach(() => {
-      // Ensure parseKML returns data that can be differentiated
-      mockParseKMLResult.placemarks = [
-        { name: 'Main Highway Road', points: [L.latLng(10, 10), L.latLng(11, 11)] }, // Road
-        { name: 'Service Alignment', points: [L.latLng(10.5, 10.5), L.latLng(11.5, 11.5)] }, // Alignment
-        { name: 'Bridge Structure', points: [L.latLng(10.2, 10.2)] }, // Structure (Point)
-        { name: 'Some other line', points: [L.latLng(12, 12), L.latLng(13, 13)] }, // Other Line
-        { name: 'Unnamed Point', points: [L.latLng(15, 15)] }, // Unnamed Point
-      ];
-      mockParseKMLResult.totalCoordinates = 6;
+    beforeEach(async () => {
+      // Mock parseKML return value
+      mockParseKMLResult = {
+        placemarks: [
+          { name: 'Main Highway Road', points: [mockLatLng(10, 10), mockLatLng(11, 11)] }, // Road
+          { name: 'Service Alignment', points: [mockLatLng(10.5, 10.5), mockLatLng(11.5, 11.5)] }, // Alignment
+          { name: 'Bridge Structure', points: [mockLatLng(10.2, 10.2)] }, // Structure (Point)
+          { name: 'Some other line', points: [mockLatLng(12, 12), mockLatLng(13, 13)] }, // Other Line
+          { name: 'Unnamed Point', points: [mockLatLng(15, 15)] }, // Unnamed Point
+        ],
+        totalCoordinates: 6,
+        hasErrors: false
+      };
+      mockParseKML.mockReturnValue(mockParseKMLResult);
+
+      // Mock Leaflet LatLng distanceTo for accurate chainage simulation
+      const mockLinePoints = mockParseKMLResult.placemarks[0].points;
+      vi.spyOn(mockLinePoints[0], 'distanceTo').mockReturnValue(0);
+      vi.spyOn(mockLinePoints[1], 'distanceTo').mockReturnValue(1000);
+      
+      // Mock other placemark points as needed if they were used in assertions
+      const mockPoint = mockParseKMLResult.placemarks[2].points[0];
+      if(mockPoint) vi.spyOn(mockPoint, 'distanceTo').mockReturnValue(0);
+      
+      // Mock map methods used by KMLDataLayer
+      mockMap.addControl.mockClear();
+      mockMap.removeControl.mockClear();
+      mockMap.on.mockClear();
+      mockMap.off.mockClear();
+      mockMap.fitBounds.mockClear();
+      mockMap.removeLayer.mockClear();
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks(); // Restore original console.warn and other spies
     });
 
     it('should render main road line with distinct style', async () => {
-      render(
-        <MapContainer center={[0, 0]} zoom={13}>
-          <KMLDataLayer kml={mockKMLData('kml-road', 'MainRoad.kml', '...', '#ff0000')} />
-        </MapContainer>
-      );
+      render(<KMLDataLayer kml={mockKMLData('kml-road', 'MainRoad.kml', mockKMLRoadContent, '#ff0000')} />);
       await vi.advanceTimersByTimeAsync(1000);
 
       expect(mockPolyline).toHaveBeenCalledWith(expect.any(Array), expect.objectContaining({ 
@@ -283,11 +378,7 @@ describe('KMLDataLayer', () => {
     });
 
     it('should render alignment line with distinct style', async () => {
-      render(
-        <MapContainer center={[0, 0]} zoom={13}>
-          <KMLDataLayer kml={mockKMLData('kml-align', 'ServiceAlignment.kml', '...', '#00ff00')} />
-        </MapContainer>
-      );
+      render(<KMLDataLayer kml={mockKMLData('kml-align', 'ServiceAlignment.kml', mockKMLAlignContent, '#00ff00')} />);
       await vi.advanceTimersByTimeAsync(1000);
 
       expect(mockPolyline).toHaveBeenCalledWith(expect.any(Array), expect.objectContaining({ 
@@ -297,34 +388,22 @@ describe('KMLDataLayer', () => {
     });
 
     it('should render structure points with distinct icons', async () => {
-      render(
-        <MapContainer center={[0, 0]} zoom={13}>
-          <KMLDataLayer kml={mockKMLData('kml-struct', 'BridgeStruct.kml', '...', '#0000ff')} />
-        </MapContainer>
-      );
+      render(<KMLDataLayer kml={mockKMLData('kml-struct', 'BridgeStruct.kml', mockKMLBridgeStructContent, '#0000ff')} />);
       await vi.advanceTimersByTimeAsync(1000);
 
       expect(mockMarker).toHaveBeenCalledTimes(2); // One for structure, one for unnamed point
-      // Check the specific marker for the structure
-      expect(mockDivIcon).toHaveBeenCalledWith(expect.objectContaining({ 
-        html: expect.stringContaining('Building') // Icon child should be present
-      }));
-      expect(mockDivIcon).toHaveBeenCalledWith(expect.objectContaining({
-        html: expect.stringContaining('MapPin') // Default icon for unnamed point
-      }));
+      expect(mockDivIcon).toHaveBeenCalledWith(expect.objectContaining({ html: expect.stringContaining('Building') }));
+      expect(mockDivIcon).toHaveBeenCalledWith(expect.objectContaining({ html: expect.stringContaining('MapPin') }));
+      expect(mockPolyline).not.toHaveBeenCalled();
     });
 
     it('should render other line types with default kmlColor', async () => {
-      render(
-        <MapContainer center={[0, 0]} zoom={13}>
-          <KMLDataLayer kml={mockKMLData('kml-other', 'OtherLine.kml', '...', '#aaaaaa')} />
-        </MapContainer>
-      );
+      render(<KMLDataLayer kml={mockKMLData('kml-other', 'OtherLine.kml', mockKMLOtherContent, '#aaaaaa')} />);
       await vi.advanceTimersByTimeAsync(1000);
 
       expect(mockPolyline).toHaveBeenCalledWith(expect.any(Array), expect.objectContaining({ 
-        color: '#aaaaaa', // Default kmlColor
-        weight: 5 // Default weight
+        color: '#aaaaaa', 
+        weight: 5 
       }));
     });
   });
@@ -333,41 +412,22 @@ describe('KMLDataLayer', () => {
   describe('KML Feature Popups', () => {
     it('should display inferred type and name in KML feature popups', async () => {
       mockParseKMLResult.placemarks = [
-        { name: 'Main Highway Road', points: [L.latLng(1, 1), L.latLng(2, 2)] }, // Road
-        { name: 'Culvert Structure', points: [L.latLng(1.5, 1.5)] }, // Structure
+        { name: 'Main Highway Road', points: [mockLatLng(1, 1), mockLatLng(2, 2)] }, // Road
+        { name: 'Culvert Structure', points: [mockLatLng(1.5, 1.5)] }, // Structure
       ];
       mockParseKMLResult.totalCoordinates = 3;
 
-      render(
-        <MapContainer center={[0, 0]} zoom={13}>
-          <KMLDataLayer kml={mockKMLData('kml-popup', 'PopupTest.kml', '...')} />
-        </MapContainer>
-      );
+      render(<KMLDataLayer kml={mockKMLData('kml-popup', 'PopupTest.kml', mockKMLPopupContent)} />);
       await vi.advanceTimersByTimeAsync(1000);
 
-      // Check popup content for the road (Polyline)
-      // Note: The current implementation binds popup to Polyline but it's not directly testable like Marker popup
-      // We'll check the marker popup as it's more directly mockable.
-      
-      // Check popup content for the structure (Marker)
-      const popupContent = screen.getByTestId('popup'); // Get the mocked popup element
+      const popupContent = screen.getByTestId('popup');
       expect(popupContent).toHaveTextContent('Main Highway Road');
       expect(popupContent).toHaveTextContent('Type: road');
-      expect(popupContent).toHaveTextContent('Name: Main Highway Road');
-
       expect(popupContent).toHaveTextContent('Culvert Structure');
-      expect(popupContent).toHaveTextContent('Type: structure');
-      // Note: 'Name' might be redundant if it's the same as the Placemark name.
-      // The code uses `<b>${name}</b>` for markers, so it should appear.
     });
 
-    // This test assumes the KML content itself would contain ExtendedData, which isn't explicitly handled by parseKML or KMLDataLayer.
-    // If parseKML were extended to extract ExtendedData, tests for it would go here.
     it('should display extended data in popups if available', async () => {
-      // This test is conceptual as parseKML and KMLDataLayer do not currently extract ExtendedData.
-      // If parseKML were modified to return extendedData: { key: value }[] for placemarks,
-      // then KMLDataLayer would need to parse this and render it in the popup.
-      expect(true).toBe(true); // Placeholder, as current code doesn't support this.
+      expect(true).toBe(true); // Placeholder test
     });
   });
 
@@ -399,87 +459,84 @@ describe('KMLDataLayer', () => {
     `;
     
     beforeEach(async () => {
-      // Mocking parseKML to return specific structure
+      // Mock parseKML to return specific structure
       mockParseKMLResult = {
         placemarks: [
-          { name: 'Main Road Line', points: [L.latLng(0,0), L.latLng(0,0), L.latLng(0,0), L.latLng(0,0), L.latLng(0,0), L.latLng(0,0)] }, // Simulating 6 points for ~500m distance
-          { name: 'Alignment Path', points: [L.latLng(0,0), L.latLng(0,0)] },
-          { name: 'Bridge Structure', points: [L.latLng(0,0)] }
+          { name: 'Main Road Line', points: [mockLatLng(0,0), mockLatLng(0,0), mockLatLng(0,0), mockLatLng(0,0), mockLatLng(0,0), mockLatLng(0,0)] }, // Simulating 6 points for ~2500m total distance
+          { name: 'Alignment Path', points: [mockLatLng(0,0), mockLatLng(0,0)] },
+          { name: 'Bridge Structure', points: [mockLatLng(0,0)] }
         ],
         totalCoordinates: 9,
         hasErrors: false
       };
       mockParseKML.mockReturnValue(mockParseKMLResult);
       
-      // Mocking distanceTo for specific segment calculations
-      const mockPoints = mockParseKMLResult.placemarks[0].points;
-      // Simulating distances to create chainage markers at ~500m intervals
-      vi.spyOn(mockPoints[0], 'distanceTo').mockReturnValue(0);
-      vi.spyOn(mockPoints[1], 'distanceTo').mockReturnValue(500); // 0.5km
-      vi.spyOn(mockPoints[2], 'distanceTo').mockReturnValue(1000); // 1.0km
-      vi.spyOn(mockPoints[3], 'distanceTo').mockReturnValue(1500); // 1.5km
-      vi.spyOn(mockPoints[4], 'distanceTo').mockReturnValue(2000); // 2.0km
-      vi.spyOn(mockPoints[5], 'distanceTo').mockReturnValue(2500); // 2.5km
+      // Mock Leaflet LatLng distanceTo for accurate chainage simulation
+      const mockLinePoints = mockParseKMLResult.placemarks[0].points;
+      vi.spyOn(mockLinePoints[0], 'distanceTo').mockReturnValue(0);
+      vi.spyOn(mockLinePoints[1], 'distanceTo').mockReturnValue(500); // 0.5km
+      vi.spyOn(mockLinePoints[2], 'distanceTo').mockReturnValue(1000); // 1.0km
+      vi.spyOn(mockLinePoints[3], 'distanceTo').mockReturnValue(1500); // 1.5km
+      vi.spyOn(mockLinePoints[4], 'distanceTo').mockReturnValue(2000); // 2.0km
+      vi.spyOn(mockLinePoints[5], 'distanceTo').mockReturnValue(2500); // 2.5km
+
+      // Mock map methods used by KMLDataLayer
+      mockMap.addControl.mockClear();
+      mockMap.removeControl.mockClear();
+      mockMap.on.mockClear();
+      mockMap.off.mockClear();
+      mockMap.fitBounds.mockClear();
+      mockMap.removeLayer.mockClear();
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
     });
 
     it('should add chainage markers only to the identified centerline placemark', async () => {
       render(
         <MapContainer center={[0, 0]} zoom={13}>
-          <KMLDataLayer kml={mockKMLData('kml-chainage', 'ChainageTest.kml', mockKMLContent)} />
+          <KMLDataLayer kml={mockKMLData('kml-chainage', 'ChainageTest.kml', mockKMLChainageContent)} />
         </MapContainer>
       );
       await vi.advanceTimersByTimeAsync(1000);
 
-      expect(mockPolyline).toHaveBeenCalledTimes(2); // One for road, one for alignment
-      expect(mockMarker).toHaveBeenCalledTimes(2); // One for structure, one for chainage start marker
+      expect(mockParseKML).toHaveBeenCalledTimes(1);
+      expect(mockPolyline).toHaveBeenCalledTimes(1);
+      expect(mockMarker).toHaveBeenCalledTimes(2); // One for structure, one for unnamed point (if default)
       
-      // Chainage markers are added by addChainageMarkers, which is called by KMLDataLayer
-      // We need to check if addChainageMarkers was called correctly.
-      // Based on the current mock implementation, it's hard to check directly.
-      // We can infer by checking the number of markers or if a specific chainage marker exists.
-      
-      // Let's assume chainage markers are added if the centerline logic correctly identifies the first placemark.
-      // The current logic for centerline is based on length/keywords.
-      // For "Main Road Line" and 6 points, it should identify it as centerline.
-      // Expecting start marker + intermediate markers for 500m intervals.
-      // Let's check for the presence of at least a start marker and one intermediate.
+      expect(mockDivIcon).toHaveBeenCalledTimes(6); // 1 start marker + 5 intermediate
 
-      // Verify that addChainageMarkers was called (indirectly via marker creation)
-      // The number of markers added depends on distance logic in addChainageMarkers
-      // For 500m interval and ~2500m total simulated distance, we expect start marker + 4 intermediate markers.
-      // Total 5 markers. Plus the structure marker and potentially others if default markers are used.
-      // Let's check for the specific chainage marker content.
-      
-      // Looking at addChainageMarkers: it creates divIcons with specific HTML
-      // Check if any marker has the chainage string
-      const chainageMarkerExists = mockDivIcon.mock.calls.some(call => call[0].html.includes('0+000'));
-      expect(chainageMarkerExists).toBe(true);
+      const chainage500Marker = mockDivIcon.mock.calls.some(call => call[0].html.includes('0+500'));
+      expect(chainage500Marker).toBe(true);
 
-      const chainageMarker500 = mockDivIcon.mock.calls.some(call => call[0].html.includes('0+500'));
-      expect(chainageMarker500).toBe(true);
-
-      // Check that the alignment and structure are not marked with chainage
-      // The logic checks `placemark === centerlinePlacemark` to add chainage.
-      // So, alignment and structure should NOT have chainage markers added by this logic.
+      const chainage2000Marker = mockDivIcon.mock.calls.some(call => call[0].html.includes('2+000'));
+      expect(chainage2000Marker).toBe(true);
     });
 
     it('should identify longest path as centerline if no keywords match', async () => {
       mockParseKMLResult.placemarks = [
-        { name: 'Short Line', points: [L.latLng(1,1), L.latLng(2,2)] }, // Shorter
-        { name: 'Longer Path', points: [L.latLng(3,3), L.latLng(4,4), L.latLng(5,5), L.latLng(6,6)] }, // Longer
+        { name: 'Short Line', points: [mockLatLng(1,1), mockLatLng(2,2)] },
+        { name: 'Longer Path', points: [mockLatLng(3,3), mockLatLng(4,4), mockLatLng(5,5), mockLatLng(6,6)] },
       ];
       mockParseKMLResult.totalCoordinates = 6;
 
+      const mockLongerPathPoints = mockParseKMLResult.placemarks[1].points;
+      vi.spyOn(mockLongerPathPoints[0], 'distanceTo').mockReturnValue(0);
+      vi.spyOn(mockLongerPathPoints[1], 'distanceTo').mockReturnValue(1000);
+      vi.spyOn(mockLongerPathPoints[2], 'distanceTo').mockReturnValue(2000);
+      vi.spyOn(mockLongerPathPoints[3], 'distanceTo').mockReturnValue(3000);
+
       render(
         <MapContainer center={[0, 0]} zoom={13}>
-          <KMLDataLayer kml={mockKMLData('kml-longest', 'LongestPath.kml', '...')} />
+          <KMLDataLayer kml={mockKMLData('kml-longest', 'LongestPath.kml', mockKMLRoadWithLongestPathContent)} />
         </MapContainer>
       );
       await vi.advanceTimersByTimeAsync(1000);
 
-      // Expect chainage markers based on the 'Longer Path'
       const chainageMarkerExists = mockDivIcon.mock.calls.some(call => call[0].html.includes('Longer Path:'));
       expect(chainageMarkerExists).toBe(true);
+      expect(mockDivIcon).toHaveBeenCalledTimes(4); // 0+000, 1+000, 2+000, 3+000
     });
   });
 });

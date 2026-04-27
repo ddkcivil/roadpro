@@ -3,7 +3,6 @@ import { UserRole } from '../../types';
 import { PermissionsService } from '../../services/auth/permissionsService';
 import { validateEmail } from '../../utils/validation/validationUtils';
 import { AuditService } from '../../services/analytics/auditService';
-import { supabase } from '../../lib/supabase';
 import { ArrowLeft, Mail, Lock, Fingerprint, Loader2 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
@@ -78,35 +77,31 @@ const Login: React.FC<Props> = ({ onLogin, onShowRegistration }) => {
     setLoading(true);
     
     try {
-        console.log(`[Login] Attempting direct Supabase auth for ${email}`);
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: email.trim().toLowerCase(),
-          password,
+        console.log(`[Login] Attempting custom auth for ${email}`);
+        const response = await fetch('/api/auth?action=login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
         });
 
-        if (error) {
-            console.error('[Login] Supabase error:', error.message);
-            setMessage({ type: 'destructive', text: error.message || 'Invalid email or password.' });
+        const result = await response.json();
+
+        if (!response.ok) {
+            console.error('[Login] Auth error:', result.error);
+            setMessage({ type: 'destructive', text: result.error || 'Invalid email or password.' });
             return;
         }
 
-        if (data.user) {
-            // Get profile for role information
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', data.user.id)
-              .single();
-
-            const role = profile?.role as UserRole || data.user.user_metadata?.role || UserRole.PROJECT_MANAGER;
-            const name = profile?.full_name || data.user.user_metadata?.full_name || "User";
-            const token = data.session?.access_token;
-            const userId = data.user.id;
+        if (result.user) {
+            const { user, token } = result;
+            const role = user.role as UserRole;
+            const name = user.full_name;
+            const userId = user.id;
             
             await AuditService.logLogin(userId, name);
             
-            // Notify parent, though useAuth onAuthStateChange will also pick this up
-            onLogin(role, name, token, userId, profile?.phone);
+            // Notify parent
+            onLogin(role, name, token, userId, user.phone);
             toast.success(`Welcome back, ${name}`);
         }
     } catch (error: any) {
@@ -125,21 +120,7 @@ const Login: React.FC<Props> = ({ onLogin, onShowRegistration }) => {
           return;
       }
       
-      setLoading(true);
-      try {
-        const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-          redirectTo: `${window.location.origin}/reset-password`,
-        });
-        
-        if (error) throw error;
-        
-        setMessage({ type: 'default', text: `Verification link dispatched to ${resetEmail}` });
-        setTimeout(() => setView('LOGIN'), 5000);
-      } catch (err: any) {
-        setMessage({ type: 'destructive', text: err.message || 'Failed to send reset email.' });
-      } finally {
-        setLoading(false);
-      }
+      setMessage({ type: 'default', text: 'Password reset is currently unavailable in the dual-DB configuration. Please contact your administrator.' });
   };
 
   return (

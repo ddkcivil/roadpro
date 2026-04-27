@@ -1,0 +1,60 @@
+import { v4 as uuidv4 } from 'uuid';
+
+// In-memory mock DB
+const mockDB = {
+  users: new Map(),
+  registrations: new Map()
+};
+
+// Seed admin
+mockDB.users.set('admin-1', {
+  _id: 'admin-1',
+  email: 'admin@myroad.app',
+  full_name: 'Admin User',
+  role: 'ADMIN',
+  avatar_url: 'https://ui-avatars.com/api/?name=Admin',
+  last_seen: new Date().toISOString(),
+  phone: ''
+});
+
+export const createMockMongoClient = () => ({
+  db: () => ({
+    collection: (name: string) => ({
+      // Find one
+      findOne: async (filter: any) => {
+        console.log(`[MockMongo ${name}] findOne`, filter);
+        const collection = mockDB[name as keyof typeof mockDB];
+        if (collection) {
+          for (const doc of collection.values()) {
+            if (Object.entries(filter).every(([k, v]) => doc[k] === v)) return doc;
+          }
+        }
+        return null;
+      },
+      // Insert one
+      insertOne: async (doc: any) => {
+        const id = doc._id || uuidv4();
+        const newDoc = { _id: id, ...doc };
+        if (name === 'users') mockDB.users.set(id, newDoc);
+        return { insertedId: id };
+      },
+      // Update one
+      updateOne: async (filter: any, update: any) => {
+        console.log(`[MockMongo ${name}] updateOne`, filter, update);
+        return { matchedCount: 1, modifiedCount: 1 };
+      },
+      // Delete one
+      deleteOne: async (filter: any) => {
+        console.log(`[MockMongo ${name}] deleteOne`, filter);
+        return { deletedCount: 1 };
+      },
+      // Find all
+      find: async (filter: any) => ({
+        toArray: async () => {
+          console.log(`[MockMongo ${name}] find`, filter);
+          return Array.from(mockDB[name as keyof typeof mockDB]?.values() || []);
+        }
+      })
+    })
+  })
+});

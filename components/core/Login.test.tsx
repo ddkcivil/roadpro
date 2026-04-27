@@ -2,14 +2,15 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Login from './Login';
 import { UserRole } from '~/types';
-import { apiService } from '../../services/api/apiService';
 
-// Mock apiService
-vi.mock('../../services/api/apiService', () => ({
-  apiService: {
-    loginUser: vi.fn(),
-    submitRegistration: vi.fn(),
-    submitAuditLog: vi.fn(),
+// Mock global fetch
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
+
+// Mock AuditService
+vi.mock('../../services/analytics/auditService', () => ({
+  AuditService: {
+    logLogin: vi.fn(),
   },
 }));
 
@@ -37,22 +38,23 @@ describe('Login Component', () => {
     fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
     fireEvent.change(passwordInput, { target: { value: 'password123' } });
     
-    // Find the form and submit it
     const form = emailInput.closest('form');
     if (form) fireEvent.submit(form);
 
     await waitFor(() => {
-      expect(screen.getByTestId('error-summary')).toBeInTheDocument();
+      // Zod validation should show error (might be in summary and near input)
+      expect(screen.getAllByText(/Please enter a valid email address/i).length).toBeGreaterThan(0);
     });
   });
 
   it('calls onLogin on successful authentication', async () => {
-    const mockUser = { id: 'u1', name: 'Test User', email: 'test@example.com', role: UserRole.ADMIN };
-    (apiService.loginUser as any).mockResolvedValue({
-      success: true,
-      user: mockUser,
-      token: 'mock-jwt-token',
-      csrfToken: 'mock-csrf-token'
+    const mockUser = { id: 'u1', full_name: 'Test User', email: 'test@example.com', role: UserRole.ADMIN };
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        user: mockUser,
+        token: 'mock-jwt-token'
+      })
     });
 
     render(<Login onLogin={mockOnLogin} onShowRegistration={mockOnShowRegistration} />);
@@ -62,6 +64,10 @@ describe('Login Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
 
     await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith('/api/auth?action=login', expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ email: 'test@example.com', password: 'password123' })
+      }));
       expect(mockOnLogin).toHaveBeenCalledWith(UserRole.ADMIN, 'Test User', 'mock-jwt-token', 'u1', undefined);
     });
   });

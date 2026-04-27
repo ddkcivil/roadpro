@@ -1,10 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabasePublic, supabaseAdmin } from './_utils/supabaseClient.js';
+import { mongodb } from '../lib/mongodb.js';
 import { withErrorHandler } from './_utils/errorHandler.js';
 import { withAuth } from './_utils/auth.js';
-import { mapUserFromDb, mapUserToDb } from './_utils/mappers.js';
+import { mapUserFromDb } from './_utils/mappers.js';
+import { hashPassword, getUserByEmail, getUserById } from './_utils/mongoAuth.js';
+import { v4 as uuidv4 } from 'uuid';
 
-// Helper to generate avatar URL, similar to the original
 function generateAvatarUrl(name: string): string {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
 }
@@ -14,38 +15,34 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   const userId = (req as any).user?.userId;
   const userRole = (req as any).user?.role;
 
-  // --- HEARTBEAT (already using Supabase) ---
+  // --- HEARTBEAT ---
   if (req.method === 'POST' && action === 'heartbeat') {
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-    const { error } = await supabaseAdmin
-      .from('profiles')
-      .update({ last_seen: new Date().toISOString() })
-      .eq('id', userId);
+    const result = await mongodb.db.collection('users').updateOne(
+      { _id: userId },
+      { $set: { last_seen: new Date().toISOString() } }
+    );
 
-    if (error) throw error; // Let withErrorHandler handle it
+    if (result.matchedCount === 0) throw new Error('User not found');
     return res.status(200).json({ message: 'Heartbeat updated' });
   }
 
   // --- GET USERS ---
   if (req.method === 'GET') {
     try {
-      let query = supabaseAdmin.from('profiles').select('id, full_name, avatar_url, role, last_seen');
-
-      if (id) {
+      if (id && typeof id === 'string') {
         // Fetch a specific user
-        const { data, error } = await query.eq('id', id).single();
-        if (error) throw error;
-        if (!data) return res.status(404).json({ error: 'User not found' });
-        return res.status(200).json(mapUserFromDb(data));
+        const user = await getUserById(id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        return res.status(200).json(mapUserFromDb(user));
       } else {
-        // Fetch all users for chat/messaging feature
-        const { data, error } = await query;
-        if (error) throw error;
-        return res.status(200).json((data || []).map(mapUserFromDb));
+        // Fetch all users
+        const users = await mongodb.db.collection('users').find({}).toArray();
+        return res.status(200).json(users.map(mapUserFromDb));
       }
     } catch (error: any) {
       console.error('Failed to fetch users:', error);
-      throw error; // Let withErrorHandler handle it
+      throw error;
     }
   }
 
@@ -62,50 +59,30 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Name, email, and password are required' });
       }
 
-      // Check if user already exists in Auth
-      // (Profiles doesn't have email anymore, so we check metadata or just try to create)
-
-      // Create user in Supabase Auth
-      const { data: newUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email: email.toLowerCase(),
-        password: password,
-        user_metadata: {
-          full_name: name,
-          phone: phone,
-          role: role || 'SITE_ENGINEER',
-          avatar_url: avatar || generateAvatarUrl(name),
-        },
-        email_confirm: true
-      });
-
-      if (authError) {
-        if (authError.status === 400 || authError.status === 422 || authError.code === 'email_exists' || authError.message.includes('already been registered')) {
-          return res.status(409).json({ error: 'User already exists', details: authError.message });
-        }
-        throw authError;
+      // Check if user already exists
+      const existingUser = await getUserByEmail(email);
+      if (existingUser) {
+        return res.status(409).json({ error: 'User already exists' });
       }
 
-      // Insert user details into profiles table
-      const { error: profileError } = await supabaseAdmin.from('profiles').insert({
-        id: newUser.user.id,
-        full_name: name,
-        role: role || 'SITE_ENGINEER',
-        avatar_url: avatar || generateAvatarUrl(name),
-        last_seen: new Date().toISOString(),
-      });
-
-      if (profileError) throw profileError;
-
-      // Return created user data
-      const userData = {
-        id: newUser.user.id,
-        full_name: name,
+      const hashedPassword = await hashPassword(password);
+      const newUserId = uuidv4();
+      
+      const newUser = {
+        _id: newUserId,
         email: email.toLowerCase(),
+        passwordHash: hashedPassword,
+        full_name: name,
+        phone: phone || '',
         role: role || 'SITE_ENGINEER',
         avatar_url: avatar || generateAvatarUrl(name),
         last_seen: new Date().toISOString(),
+        created_at: new Date().toISOString()
       };
-      return res.status(201).json(userData);
+
+      await mongodb.db.collection('users').insertOne(newUser);
+
+      return res.status(201).json(mapUserFromDb(newUser));
     } catch (error: any) {
       console.error('Failed to create user:', error);
       throw error;
@@ -123,35 +100,32 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-      const { name, role, avatar, password } = req.body;
+      const { name, role, avatar, password, phone } = req.body;
+      const updateData: any = {};
 
-      // Update Supabase Auth user if password is changed
+      if (name) updateData.full_name = name;
+      if (role && userRole?.toUpperCase() === 'ADMIN') updateData.role = role;
+      if (avatar) updateData.avatar_url = avatar;
+      if (phone !== undefined) updateData.phone = phone;
       if (password) {
-        const { error: authUpdateError } = await supabaseAdmin.auth.admin.updateUserById(id, {
-          password: password,
-        });
-        if (authUpdateError) throw authUpdateError;
+        updateData.passwordHash = await hashPassword(password);
       }
 
-      // Update user details in profiles table
-      const { error: profileUpdateError } = await supabaseAdmin
-        .from('profiles')
-        .update({
-          full_name: name,
-          role: role,
-          avatar_url: avatar,
-        })
-        .eq('id', id);
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ error: 'No data to update' });
+      }
 
-      if (profileUpdateError) throw profileUpdateError;
+      const result = await mongodb.db.collection('users').findOneAndUpdate(
+        { _id: id },
+        { $set: updateData },
+        { returnDocument: 'after' }
+      );
 
-      const { data: updatedUser, error: fetchError } = await supabaseAdmin
-        .from('profiles')
-        .select('id, full_name, role, avatar_url, last_seen')
-        .eq('id', id)
-        .single();
+      if (!result) {
+        return res.status(404).json({ error: 'User not found' });
+      }
 
-      if (fetchError) throw fetchError;
+      const updatedUser = (result as any).value || result;
       return res.status(200).json(mapUserFromDb(updatedUser));
 
     } catch (error: any) {
@@ -166,18 +140,16 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'User ID is required for deletion' });
     }
 
-    // Authorize: Only admins can delete users.
     if (userRole?.toUpperCase() !== 'ADMIN') {
       return res.status(403).json({ error: 'Forbidden: Only admins can delete users.' });
     }
 
     try {
-      // Delete user from Supabase Auth. This *should* cascade delete from profiles if RLS is set up correctly.
-      // If not, we might need to delete from profiles first.
-      const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(id);
-      if (authDeleteError) throw authDeleteError;
-
-      return res.status(204).end(); // No content to send back on successful deletion
+      const result = await mongodb.db.collection('users').deleteOne({ _id: id });
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      return res.status(204).end();
     } catch (error: any) {
       console.error('Failed to delete user:', error);
       throw error;
