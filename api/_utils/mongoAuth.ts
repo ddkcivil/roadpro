@@ -43,9 +43,11 @@ export async function verifyToken(token: string): Promise<{ userId: string; emai
 }
 
 export async function getUserById(userId: string): Promise<MongoUser | null> {
-  return mongodb.db.collection('users').findOne({ _id: userId });
+  const db = await mongodb.connect();
+  return db.collection('users').findOne({ _id: userId });
 }
 
 export async function getUserByEmail(email: string): Promise<MongoUser | null> {
-  return mongodb.db.collection('users').findOne({ email: email.toLowerCase() });
+  const db = await mongodb.connect();
+  return db.collection('users').findOne({ email: email.toLowerCase() });
 }

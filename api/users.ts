@@ -18,7 +18,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   // --- HEARTBEAT ---
   if (req.method === 'POST' && action === 'heartbeat') {
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-    const result = await mongodb.db.collection('users').updateOne(
+    const db = await mongodb.connect();
+    const result = await db.collection('users').updateOne(
       { _id: userId },
       { $set: { last_seen: new Date().toISOString() } }
     );
@@ -37,7 +38,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(200).json(mapUserFromDb(user));
       } else {
         // Fetch all users
-        const users = await mongodb.db.collection('users').find({}).toArray();
+        const db = await mongodb.connect();
+        const users = await db.collection('users').find({}).toArray();
         return res.status(200).json(users.map(mapUserFromDb));
       }
     } catch (error: any) {
@@ -80,7 +82,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         created_at: new Date().toISOString()
       };
 
-      await mongodb.db.collection('users').insertOne(newUser);
+      const db = await mongodb.connect();
+      await db.collection('users').insertOne(newUser);
 
       return res.status(201).json(mapUserFromDb(newUser));
     } catch (error: any) {
@@ -115,7 +118,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'No data to update' });
       }
 
-      const result = await mongodb.db.collection('users').findOneAndUpdate(
+      const db = await mongodb.connect();
+      const result = await db.collection('users').findOneAndUpdate(
         { _id: id },
         { $set: updateData },
         { returnDocument: 'after' }
@@ -145,7 +149,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-      const result = await mongodb.db.collection('users').deleteOne({ _id: id });
+      const db = await mongodb.connect();
+      const result = await db.collection('users').deleteOne({ _id: id });
       if (result.deletedCount === 0) {
         return res.status(404).json({ error: 'User not found' });
       }

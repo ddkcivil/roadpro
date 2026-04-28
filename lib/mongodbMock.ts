@@ -10,6 +10,7 @@ const mockDB = {
 mockDB.users.set('admin-1', {
   _id: 'admin-1',
   email: 'admin@myroad.app',
+  passwordHash: '$2b$12$X7JCS7utLDMi/vOCEbZ38esHk.xgsiYU3wDPBbgK8CpBHp/oltLe2', // admin123
   full_name: 'Admin User',
   role: 'ADMIN',
   avatar_url: 'https://ui-avatars.com/api/?name=Admin',
