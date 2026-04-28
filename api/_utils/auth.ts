@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { verifyToken, getUserById } from './mongoAuth';
+import { verifyToken, getUserById } from './mongoAuth.js';
 import { TokenPayload } from './types.js';
 
 export const withAuth = (handler: Function, options: { ignoreExpiration?: boolean } = {}) => async (req: VercelRequest, res: VercelResponse) => {

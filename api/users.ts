@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { mongodb } from '../lib/mongodb.ts';
-import { withErrorHandler } from './_utils/errorHandler.ts';
-import { withAuth } from './_utils/auth.ts';
+import { mongodb } from '../lib/mongodb.js';
+import { withErrorHandler } from './_utils/errorHandler.js';
+import { withAuth } from './_utils/auth.js';
 import { mapUserFromDb } from './_utils/mappers.js';
-import { hashPassword, getUserByEmail, getUserById } from './_utils/mongoAuth.ts';
+import { hashPassword, getUserByEmail, getUserById } from './_utils/mongoAuth.js';
 import { v4 as uuidv4 } from 'uuid';
 
 function generateAvatarUrl(name: string): string {
