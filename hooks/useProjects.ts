@@ -219,17 +219,24 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
   }, []);
 
   const saveProject = useCallback(async (project: Partial<Project>) => {
-    const targetProjectId = project.id || state.selectedProjectId;
+    // Logic to determine if this is a new project creation or an update
+    // If 'name' and 'client' are provided but 'id' is missing, it's likely a new project from the modal.
+    // Otherwise, if no ID is provided, we default to the currently selected project for partial updates.
+    const isFullDefinition = !!(project.name && project.client);
+    const isNewCreation = isFullDefinition && !project.id;
+    
+    const targetProjectId = isNewCreation ? undefined : (project.id || state.selectedProjectId);
     const isUpdate = !!targetProjectId;
+    
     const previousProjects = [...projectsRef.current];
-    const baseProject = projectsRef.current.find(p => p.id === targetProjectId);
+    const baseProject = targetProjectId ? projectsRef.current.find(p => p.id === targetProjectId) : undefined;
 
     const completeProjectData = {
       ...baseProject,
       ...project,
       id: targetProjectId || `proj-${Date.now()}`,
       updatedAt: new Date().toISOString(),
-      contractNo: null,
+      contractNo: project.contractNo || baseProject?.contractNo || null,
     } as unknown as Project;
 
     if (!completeProjectData.name || !completeProjectData.client) {
@@ -249,26 +256,14 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
     });
 
     try {
-      let backendProjectResult;
-      
-      if (isUpdate) {
-        backendProjectResult = await supabase
-          .from('projects')
-          .update(mapProjectToDb(sanitizedProjectData))
-          .eq('id', sanitizedProjectData.id)
-          .select('*')
-          .single();
-      } else {
-        backendProjectResult = await supabase
-          .from('projects')
-          .insert(mapProjectToDb({ ...sanitizedProjectData, id: sanitizedProjectData.id }))
-          .select('*')
-          .single();
-      }
+      // Use upsert to be resilient against optimistic IDs and race conditions
+      const { data: backendProject, error } = await supabase
+        .from('projects')
+        .upsert(mapProjectToDb(sanitizedProjectData))
+        .select('*')
+        .single();
 
-      if (backendProjectResult.error) throw backendProjectResult.error;
-
-      const backendProject = backendProjectResult.data as Project;
+      if (error) throw error;
 
       if (currentUser) {
         await AuditService.logDataModification(
