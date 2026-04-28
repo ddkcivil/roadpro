@@ -56,14 +56,14 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       .select('*', { count: 'exact', head: true });
 
     const results = {
-      profiles: userError ? `Error: ${userError.message}` : `Count: ${userCount}`,
-      insert: insertError ? `Error: ${insertError.message}` : `ID: ${insertResult?.[0]?.id}`,
-      testTable: testError ? `Error: ${testError.message}` : `Count: ${testTableCount}`
+      profiles: userError ? `Error: ${userError.message} (${userError.code || 'no code'})` : `Count: ${userCount}`,
+      insert: insertError ? `Error: ${insertError.message} (${insertError.code || 'no code'})` : `ID: ${insertResult?.[0]?.id}`,
+      testTable: testError ? `Error: ${testError.message} (${testError.code || 'no code'})` : `Count: ${testTableCount}`
     };
-
 
     if (userError || insertError || testError) {
       console.warn('Health check partial failure:', results);
+      console.warn('Supabase URL being used:', supabaseUrl?.substring(0, 20) + '...');
     }
 
 
