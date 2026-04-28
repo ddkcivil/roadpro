@@ -25,12 +25,16 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
     return res.status(401).json({ error: 'Unauthorized: No token provided' });
   }
 
-  console.log(`[MongoAuth] Validating token of length ${token.length}`);
+  console.log(`[MongoAuth] Validating token of length ${token.length}, starts with: ${token.substring(0, 15)}...`);
 
   try {
     const payload = await verifyToken(token);
     if (!payload) {
-      console.error('[MongoAuth] Invalid token:', token.substring(0, 10) + '...');
+      console.error('[MongoAuth] Invalid token (verification failed):', token.substring(0, 20) + '...');
+      // Check if it looks like a Supabase token
+      if (token.length > 500) {
+        console.warn('[MongoAuth] Warning: This token is very long, it might be a Supabase token being sent to a custom Mongo endpoint.');
+      }
       return res.status(401).json({ error: 'Unauthorized: Invalid token' });
     }
 

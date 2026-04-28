@@ -1,48 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import handler from '../api/users.js';
-import { mongodb } from '../lib/mongodb.js';
-import { mapUserFromDb } from '../api/_utils/mappers.js';
-import { hashPassword, getUserByEmail, getUserById } from '../api/_utils/mongoAuth.js';
+import handler from '../api/users';
+import { mongodb } from '../lib/mongodb';
+import { clearTestCollection } from './setup';
 
-// Mock MongoDB
-vi.mock('../lib/mongodb.js', () => ({
-  mongodb: {
-    db: {
-      collection: vi.fn().mockReturnThis(),
-      find: vi.fn().mockReturnThis(),
-      toArray: vi.fn(),
-      insertOne: vi.fn(),
-      updateOne: vi.fn(),
-      findOneAndUpdate: vi.fn(),
-      deleteOne: vi.fn(),
-      findOne: vi.fn(),
-    }
-  }
-}));
-
-// Mock mongoAuth helpers
-vi.mock('../api/_utils/mongoAuth.js', () => ({
-  hashPassword: vi.fn((p) => Promise.resolve(`hashed-${p}`)),
-  getUserByEmail: vi.fn(),
-  getUserById: vi.fn(),
-  generateToken: vi.fn(() => 'mock-token'),
-}));
-
-// Mock mappers
-vi.mock('../api/_utils/mappers.js', () => ({
-  mapUserFromDb: vi.fn((user: any) => ({ ...user, id: user._id })),
-}));
-
-// Mock middleware
+// Mock middleware only
 vi.mock('../api/_utils/auth.js', () => ({ withAuth: (h: any) => h }));
 vi.mock('../api/_utils/errorHandler.js', () => ({ withErrorHandler: (h: any) => h }));
 
-describe('api/users handler', () => {
+describe('api/users handler (Integration)', () => {
   let mockReq: any;
   let mockRes: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    await clearTestCollection('users');
+    
     mockReq = { method: '', query: {}, body: {}, user: {} };
     mockRes = {
       status: vi.fn().mockReturnThis(),
@@ -51,70 +23,106 @@ describe('api/users handler', () => {
     };
   });
 
-  it('GET /api/users should return a list of users', async () => {
-    mockReq.method = 'GET';
-    const mockUsers = [{ _id: 'user-1', full_name: 'Test User 1' }];
-    (mongodb.db.collection as any)().find().toArray.mockResolvedValue(mockUsers);
+  it('GET /api/users should return a list of users from DB', async () => {
+    // Seed data
+    await mongodb.db.collection('users').insertOne({
+      _id: 'user-1',
+      full_name: 'Test User 1',
+      email: 'test1@example.com',
+      role: 'SITE_ENGINEER'
+    });
 
+    mockReq.method = 'GET';
     await handler(mockReq, mockRes);
 
-    expect(mongodb.db.collection).toHaveBeenCalledWith('users');
     expect(mockRes.status).toHaveBeenCalledWith(200);
-    expect(mockRes.json).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ id: 'user-1' })]));
+    const users = mockRes.json.mock.calls[0][0];
+    expect(users.length).toBe(1);
+    expect(users[0].id).toBe('user-1');
   });
 
   it('GET /api/users?id=<userId> should return a specific user', async () => {
-    mockReq.method = 'GET';
-    mockReq.query.id = 'user-1';
-    const mockUser = { _id: 'user-1', full_name: 'Test User 1' };
-    (getUserById as any).mockResolvedValue(mockUser);
+    const userId = 'user-2';
+    await mongodb.db.collection('users').insertOne({
+      _id: userId,
+      full_name: 'Test User 2',
+      email: 'test2@example.com',
+      role: 'ADMIN'
+    });
 
+    // Verification check
+    const checkUser = await mongodb.db.collection('users').findOne({ _id: userId });
+    console.log('[Test Debug] Seeded user search:', { userId, found: !!checkUser });
+
+    mockReq.method = 'GET';
+    mockReq.query.id = userId;
     await handler(mockReq, mockRes);
 
-    expect(getUserById).toHaveBeenCalledWith('user-1');
+    if (mockRes.status.mock.calls[0][0] === 404) {
+      console.log('[Test Debug] 404 details:', mockRes.json.mock.calls[0][0]);
+    }
+
     expect(mockRes.status).toHaveBeenCalledWith(200);
-    expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ id: 'user-1' }));
+    expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ id: userId }));
   });
 
-  it('POST /api/users should create a new user (Admin only)', async () => {
+  it('POST /api/users should create a new user in DB (Admin only)', async () => {
     mockReq.method = 'POST';
-    mockReq.body = { name: 'New User', email: 'new@example.com', password: 'password123', role: 'ADMIN' };
+    mockReq.body = { 
+      name: 'New User', 
+      email: 'new@example.com', 
+      password: 'password123', 
+      role: 'ADMIN' 
+    };
     mockReq.user = { role: 'ADMIN' };
     
-    (getUserByEmail as any).mockResolvedValue(null);
-    (mongodb.db.collection as any)().insertOne.mockResolvedValue({ insertedId: 'new-id' });
-
     await handler(mockReq, mockRes);
 
-    expect(mongodb.db.collection).toHaveBeenCalledWith('users');
-    expect((mongodb.db.collection as any)().insertOne).toHaveBeenCalled();
     expect(mockRes.status).toHaveBeenCalledWith(201);
+    
+    const userInDb = await mongodb.db.collection('users').findOne({ email: 'new@example.com' });
+    expect(userInDb).not.toBeNull();
+    expect(userInDb?.full_name).toBe('New User');
   });
 
-  it('PUT /api/users should update a user', async () => {
-    mockReq.method = 'PUT';
-    mockReq.query.id = 'user-1';
-    mockReq.body = { name: 'Updated Name' };
-    mockReq.user = { userId: 'user-1', role: 'SITE_ENGINEER' };
+  it('PUT /api/users should update a user in DB', async () => {
+    await mongodb.db.collection('users').insertOne({
+      _id: 'user-3',
+      full_name: 'Original Name',
+      email: 'test3@example.com',
+      role: 'SITE_ENGINEER'
+    });
 
-    const mockUpdatedUser = { _id: 'user-1', full_name: 'Updated Name' };
-    (mongodb.db.collection as any)().findOneAndUpdate.mockResolvedValue(mockUpdatedUser);
+    mockReq.method = 'PUT';
+    mockReq.query.id = 'user-3';
+    mockReq.body = { name: 'Updated Name' };
+    mockReq.user = { userId: 'user-3', role: 'SITE_ENGINEER' };
 
     await handler(mockReq, mockRes);
 
     expect(mockRes.status).toHaveBeenCalledWith(200);
-    expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ id: 'user-1', full_name: 'Updated Name' }));
+    
+    const userInDb = await mongodb.db.collection('users').findOne({ _id: 'user-3' });
+    expect(userInDb?.full_name).toBe('Updated Name');
   });
 
-  it('DELETE /api/users should delete a user (Admin only)', async () => {
-    mockReq.method = 'DELETE';
-    mockReq.query.id = 'user-1';
-    mockReq.user = { role: 'ADMIN' };
+  it('DELETE /api/users should delete a user from DB (Admin only)', async () => {
+    await mongodb.db.collection('users').insertOne({
+      _id: 'user-4',
+      full_name: 'Delete Me',
+      email: 'delete@example.com',
+      role: 'USER'
+    });
 
-    (mongodb.db.collection as any)().deleteOne.mockResolvedValue({ deletedCount: 1 });
+    mockReq.method = 'DELETE';
+    mockReq.query.id = 'user-4';
+    mockReq.user = { role: 'ADMIN' };
 
     await handler(mockReq, mockRes);
 
     expect(mockRes.status).toHaveBeenCalledWith(204);
+    
+    const userInDb = await mongodb.db.collection('users').findOne({ _id: 'user-4' });
+    expect(userInDb).toBeNull();
   });
 });

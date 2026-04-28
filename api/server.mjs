@@ -68,6 +68,7 @@ function vercelToExpress(handlerModule) {
 
 // Dynamically import and register all API route files (using .ts directly)
 const apiFiles = [
+  { path: './auth.ts', route: '/api/auth' },
   { path: './messages.ts', route: '/api/messages' },
   { path: './users.ts', route: '/api/users' },
   { path: './audit.ts', route: '/api/audit' },

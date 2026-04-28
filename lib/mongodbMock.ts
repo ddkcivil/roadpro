@@ -19,7 +19,15 @@ mockDB.users.set('admin-1', {
 
 export const createMockMongoClient = () => ({
   db: () => ({
+    listCollections: async () => ({
+      toArray: async () => [{ name: 'users' }, { name: 'registrations' }]
+    }),
     collection: (name: string) => ({
+      listCollections: async function() {
+        return {
+          toArray: async () => Object.keys(mockDB)
+        };
+      },
       // Find one
       findOne: async (filter: any) => {
         console.log(`[MockMongo ${name}] findOne`, filter);

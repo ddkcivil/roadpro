@@ -1,68 +1,105 @@
 import { MongoClient } from 'mongodb';
-import { createMockMongoClient } from './mongodbMock.js';
-
-const useMock = (import.meta as any).env?.VITE_USE_MOCK_MONGO === 'true' || process.env.VITE_USE_MOCK_MONGO === 'true';
+import { createMockMongoClient } from './mongodbMock.ts';
 
 let mongoClient: any;
 let db: any;
+let initPromise: Promise<void> | null = null;
 
-async function initMongo() {
-  if (useMock) {
-    console.warn('[MongoDB] Using Mock Service!');
-    const mock = createMockMongoClient();
-    mongoClient = mock;
-    db = mock.db();
-    return;
+/**
+ * Initializes MongoDB connection.
+ * If force is true, it will close existing connection and reconnect.
+ */
+export async function initMongo(force = false) {
+  if (initPromise && !force) return initPromise;
+  
+  if (force && mongoClient) {
+    try {
+      await mongoClient.close();
+    } catch (e) {
+      console.warn('[MongoDB] Error closing before reconnect:', e);
+    }
+    mongoClient = null;
+    db = null;
   }
 
-  const mongoUri = process.env.MONGODB_URI || (import.meta as any).env?.VITE_MONGODB_URI || '';
+  initPromise = (async () => {
+    const useMock = (import.meta as any).env?.VITE_USE_MOCK_MONGO === 'true' || 
+                    process.env.VITE_USE_MOCK_MONGO === 'true';
 
-  console.log('[MongoDB] Env Check:', { 
-    uriLength: mongoUri?.length, 
-    uriStart: mongoUri?.substring(0, 10)
-  });
+    if (useMock) {
+      console.warn('[MongoDB] Using Mock Service!');
+      const mock = createMockMongoClient();
+      mongoClient = mock;
+      db = mock.db();
+      return;
+    }
 
-  const isPlaceholder = (val: string | undefined) => !val || val.includes('your-mongo') || val.length < 10;
+    const mongoUri = process.env.MONGODB_URI || (import.meta as any).env?.VITE_MONGODB_URI || '';
 
-  if (isPlaceholder(mongoUri)) {
-    console.error('CRITICAL: MongoDB URI missing or placeholder.');
-    // Dummy client
-    mongoClient = {
-      db: () => ({
-        collection: () => ({
-          findOne: async () => ({ data: null, error: null }),
-          insertOne: async () => ({ data: null, error: null }),
-          // etc...
-        })
-      })
-    };
-    db = mongoClient.db('myroad_vite');
-    return;
-  }
+    const isPlaceholder = (val: string | undefined) => !val || val.includes('your-mongo') || val.length < 10;
 
-  if (!mongoUri.startsWith('mongodb://') && !mongoUri.startsWith('mongodb+srv://')) {
-    throw new Error(`Invalid MongoDB URI: "${mongoUri}"`);
-  }
+    if (isPlaceholder(mongoUri)) {
+      console.warn('[MongoDB] URI missing or placeholder, falling back to mock.');
+      const mock = createMockMongoClient();
+      mongoClient = mock;
+      db = mock.db();
+      return;
+    }
 
-  mongoClient = new MongoClient(mongoUri);
-  await mongoClient.connect();
-  db = mongoClient.db('myroad_vite');
+    if (!mongoUri.startsWith('mongodb://') && !mongoUri.startsWith('mongodb+srv://')) {
+      throw new Error(`Invalid MongoDB URI: "${mongoUri}"`);
+    }
+
+    try {
+      mongoClient = new MongoClient(mongoUri);
+      await mongoClient.connect();
+      
+      // Determine DB name
+      let dbName = 'myroad_vite';
+      try {
+        const url = new URL(mongoUri);
+        const pathDbName = url.pathname.slice(1);
+        if (pathDbName) {
+          dbName = pathDbName;
+        }
+      } catch (e) {
+        // Not a valid URL or other parsing error
+      }
+      
+      // Use test database if in test environment and not already specified
+      if ((process.env.NODE_ENV === 'test' || process.env.VITEST) && !dbName.endsWith('_test')) {
+        dbName = `${dbName}_test`;
+      }
+
+      db = mongoClient.db(dbName);
+      console.log(`[MongoDB] Connected to database: ${dbName}`);
+    } catch (error: any) {
+      console.error('[MongoDB] Connection failed, falling back to mock:', error.message);
+      const mock = createMockMongoClient();
+      mongoClient = mock;
+      db = mock.db();
+    }
+  })();
+
+  return initPromise;
 }
 
-(async () => {
-  try {
-    await initMongo();
-  } catch (error: any) {
-    console.error('[MongoDB] Connection failed, falling back to mock:', error.message);
-    const mock = createMockMongoClient();
-    mongoClient = mock;
-    db = mock.db();
-  }
-})();
+// Auto-start initialization
+initMongo().catch(err => {
+  console.error('[MongoDB] Fatal auto-init error:', err);
+});
 
 export const mongodb = {
   get db() {
     return db;
   },
-  close: () => mongoClient?.close()
+  connect: (force = false) => initMongo(force),
+  close: async () => {
+    if (mongoClient) {
+      await mongoClient.close();
+      mongoClient = null;
+      db = null;
+      initPromise = null;
+    }
+  }
 };

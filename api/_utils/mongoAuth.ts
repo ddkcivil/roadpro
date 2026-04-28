@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { mongodb } from '../../lib/mongodb.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me-in-prod';
+console.log(`[MongoAuth] Using JWT_SECRET of length: ${JWT_SECRET.length}, starts with: ${JWT_SECRET.substring(0, 3)}...`);
 const SALT_ROUNDS = 12;
 
 export interface MongoUser {

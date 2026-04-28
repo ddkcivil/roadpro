@@ -170,7 +170,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
     }
   }, [currentUser, dispatch]);
 
-  const fetchProjects = async (page = 1) => {
+  const fetchProjects = useCallback(async (page = 1) => {
     startTransition(() => {
       dispatch({ type: 'FETCH_START' });
     });
@@ -199,13 +199,13 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
         dispatch({ type: 'FETCH_ERROR', payload: error.message || 'Failed to fetch projects from Supabase.' });
       });
     }
-  };
+  }, [dispatch]);
 
   useEffect(() => {
     if (isAuthenticated && isHydrated) {
       fetchProjects();
     }
-  }, [isAuthenticated, isHydrated]);
+  }, [isAuthenticated, isHydrated, fetchProjects]);
 
   const currentProject = useMemo(() => {
     if (!state?.projects) return undefined;
