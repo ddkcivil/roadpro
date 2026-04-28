@@ -49,6 +49,9 @@ export async function initMongo(force = false) {
         return;
       }
 
+      const maskedUri = mongoUri.replace(/\/\/.*:.*@/, '//****:****@');
+      console.log(`[MongoDB] Attempting to connect to: ${maskedUri}`);
+
       if (!mongoUri.startsWith('mongodb://') && !mongoUri.startsWith('mongodb+srv://')) {
         throw new Error(`Invalid MongoDB URI: "${mongoUri}"`);
       }
