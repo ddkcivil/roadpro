@@ -50,15 +50,15 @@ export function mapProjectToDb(proj: any): any {
     id: proj.id,
     name: proj.name,
     client: proj.client,
-    // Write using camelCase column names that match the current DB migration
-    ownerId: proj.ownerId,
+    // Use lowercase column names as Postgres folds unquoted identifiers to lowercase.
+    ownerid: proj.ownerId,
     location: proj.location,
     status: proj.status,
     budget: proj.budget,
-    startDate: proj.startDate,
-    endDate: proj.endDate,
-    createdAt: proj.createdAt,
-    updatedAt: proj.updatedAt,
+    startdate: proj.startDate,
+    enddate: proj.endDate,
+    createdat: proj.createdAt,
+    updatedat: proj.updatedAt,
     description: proj.description,
     metadata: proj.metadata
   };
