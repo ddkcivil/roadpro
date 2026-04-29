@@ -30,14 +30,15 @@ export function mapProjectFromDb(dbProj: any): any {
     id: dbProj.id,
     name: dbProj.name,
     client: dbProj.client,
-    ownerId: dbProj.ownerid,
+    // Support both snake_case and camelCase column names returned by different DB migrations
+    ownerId: dbProj.ownerId || dbProj.ownerid,
     location: dbProj.location,
     status: dbProj.status,
     budget: dbProj.budget,
-    startDate: dbProj.startdate,
-    endDate: dbProj.enddate,
-    createdAt: dbProj.createdat,
-    updatedAt: dbProj.updatedat,
+    startDate: dbProj.startDate || dbProj.startdate,
+    endDate: dbProj.endDate || dbProj.enddate,
+    createdAt: dbProj.createdAt || dbProj.createdat,
+    updatedAt: dbProj.updatedAt || dbProj.updatedat,
     description: dbProj.description,
     metadata: dbProj.metadata
   };
@@ -49,14 +50,15 @@ export function mapProjectToDb(proj: any): any {
     id: proj.id,
     name: proj.name,
     client: proj.client,
-    ownerid: proj.ownerId,
+    // Write using camelCase column names that match the current DB migration
+    ownerId: proj.ownerId,
     location: proj.location,
     status: proj.status,
     budget: proj.budget,
-    startdate: proj.startDate,
-    enddate: proj.endDate,
-    createdat: proj.createdAt,
-    updatedat: proj.updatedAt,
+    startDate: proj.startDate,
+    endDate: proj.endDate,
+    createdAt: proj.createdAt,
+    updatedAt: proj.updatedAt,
     description: proj.description,
     metadata: proj.metadata
   };
