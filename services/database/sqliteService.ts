@@ -1,6 +1,8 @@
 // Lightweight pure localStorage shim for sqliteService
 // Ensures the app can run cleanly in browser without loading sql.js/WASM.
 
+import { LocalStorageUtils } from '../../utils/data/localStorageUtils';
+
 export const sqliteService = {
   async initialize(): Promise<void> {
     console.log('[sqliteService] Initializing pure localStorage shim...');
@@ -48,8 +50,9 @@ export const sqliteService = {
         } catch (e: any) {
           if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
             console.warn('[sqliteService] Settings quota exceeded, pruning...');
-            const { LocalStorageUtils } = await import('../../utils/data/localStorageUtils');
-            LocalStorageUtils.emergencyCleanup();
+            if (LocalStorageUtils && LocalStorageUtils.emergencyCleanup) {
+              LocalStorageUtils.emergencyCleanup();
+            }
             // Retry with minimal settings
             const minimalSettings = { last_cleanup: Date.now().toString() };
             localStorage.setItem(key, JSON.stringify(minimalSettings));
@@ -73,8 +76,9 @@ export const sqliteService = {
         } catch (e: any) {
           if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
             console.warn(`[sqliteService] ${key} quota exceeded, aggressive prune...`);
-            const { LocalStorageUtils } = await import('../../utils/data/localStorageUtils');
-            LocalStorageUtils.emergencyCleanup();
+            if (LocalStorageUtils && LocalStorageUtils.emergencyCleanup) {
+              LocalStorageUtils.emergencyCleanup();
+            }
             // Keep only newest 50 items
             const pruned = data.slice(-50);
             localStorage.setItem(key, JSON.stringify(pruned));

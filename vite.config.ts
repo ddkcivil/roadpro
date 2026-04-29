@@ -54,7 +54,6 @@ export default defineConfig(({ mode }) => {
         rollupOptions: {
           output: {
             manualChunks: {
-              'vendor-react': ['react', 'react-dom'],
               'vendor-charts': ['recharts'],
               'vendor-pdf': ['jspdf', 'html2canvas'],
               'vendor-ui': ['lucide-react', 'framer-motion', '@tanstack/react-table'],
