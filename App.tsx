@@ -173,9 +173,7 @@ const App: React.FC = () => {
   }, []);
 
   const handleSaveProject = useCallback((project: Partial<Project>) => {
-    startTransition(() => {
-      saveProject(project);
-    });
+    return saveProject(project);
   }, [saveProject]);
   
   const [users, setUsers] = useState<User[]>(() => {
@@ -279,7 +277,7 @@ const App: React.FC = () => {
         <ProjectModal 
           open={isProjectModalOpen} 
           onClose={() => setIsProjectModalOpen(false)} 
-          onSave={(p) => { saveProject(p); setIsProjectModalOpen(false); }}
+          onSave={async (p) => { await saveProject(p); setIsProjectModalOpen(false); }}
           project={editProject}
         />
       </Suspense>
@@ -426,7 +424,7 @@ const App: React.FC = () => {
         <ProjectModal 
           open={isProjectModalOpen} 
           onClose={() => startTransition(() => setIsProjectModalOpen(false))} 
-          onSave={(p) => { handleSaveProject(p); startTransition(() => setIsProjectModalOpen(false)); }}
+          onSave={async (p) => { await handleSaveProject(p); startTransition(() => setIsProjectModalOpen(false)); }}
           project={editProject}
         />
         
