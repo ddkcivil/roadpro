@@ -1,5 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { verifyToken, getUserById } from './mongoAuth.js';
+import { supabaseAdmin } from './supabaseClient.js';
 import { TokenPayload } from './types.js';
 
 export const withAuth = (handler: Function, options: { ignoreExpiration?: boolean } = {}) => async (req: VercelRequest, res: VercelResponse) => {
@@ -28,24 +29,43 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
   console.log(`[MongoAuth] Validating token of length ${token.length}, starts with: ${token.substring(0, 15)}...`);
 
   try {
-    const payload = await verifyToken(token);
+    let payload = await verifyToken(token);
     if (!payload) {
-      console.error('[MongoAuth] Invalid token (verification failed):', token.substring(0, 20) + '...');
-      // Check if it looks like a Supabase token
-      if (token.length > 500) {
-        console.warn('[MongoAuth] Warning: This token is very long, it might be a Supabase token being sent to a custom Mongo endpoint.');
+      console.warn('[Auth] Mongo JWT verification failed. Attempting Supabase token fallback...');
+      try {
+        const { data: supUser, error: supError } = await supabaseAdmin.auth.getUser(token as string) as any;
+        if (supError || !supUser || !supUser.user) {
+          console.error('[Auth] Supabase token check failed or returned no user:', supError?.message || 'no user');
+          return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+        }
+
+        // Attempt to read role from Supabase profiles table
+        const { data: profile, error: profileErr } = await supabaseAdmin
+          .from('profiles')
+          .select('*')
+          .eq('id', supUser.user.id)
+          .single();
+
+        const role = profileErr || !profile ? 'SITE_ENGINEER' : (profile.role || 'SITE_ENGINEER').toUpperCase();
+
+        payload = {
+          userId: supUser.user.id,
+          email: supUser.user.email,
+          role
+        } as any;
+      } catch (e: any) {
+        console.error('[Auth] Supabase fallback error:', e);
+        return res.status(401).json({ error: 'Unauthorized: Invalid token' });
       }
-      return res.status(401).json({ error: 'Unauthorized: Invalid token' });
     }
 
     // Fetch user role from MongoDB
-    const userDoc = await getUserById(payload.userId);
-    if (!userDoc) {
-      console.error('[MongoAuth] User not found:', payload.userId);
-      return res.status(401).json({ error: 'Unauthorized: User not found' });
+    // Try to fetch user from Mongo first (legacy). If not found, rely on payload.role (from Supabase fallback)
+    let userRole = (payload.role || 'SITE_ENGINEER').toUpperCase();
+    const userDoc = await getUserById(payload.userId).catch(() => null);
+    if (userDoc) {
+      userRole = (userDoc.role || userRole).toUpperCase();
     }
-
-    const userRole = (userDoc.role || 'SITE_ENGINEER').toUpperCase();
 
     const decoded = {
       userId: payload.userId,
