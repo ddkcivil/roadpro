@@ -46,12 +46,11 @@ export function mapProjectFromDb(dbProj: any): any {
 
 export function mapProjectToDb(proj: any): any {
   if (!proj) return null;
-  return {
+  const out: any = {
     id: proj.id,
     name: proj.name,
     client: proj.client,
     // Use lowercase column names as Postgres folds unquoted identifiers to lowercase.
-    ownerid: proj.ownerId,
     location: proj.location,
     status: proj.status,
     budget: proj.budget,
@@ -62,6 +61,12 @@ export function mapProjectToDb(proj: any): any {
     description: proj.description,
     metadata: proj.metadata
   };
+
+  if (proj.ownerId) {
+    out.ownerid = proj.ownerId;
+  }
+
+  return out;
 }
 
 /**
