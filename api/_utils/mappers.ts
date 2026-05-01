@@ -1,4 +1,5 @@
 import type { MongoUser } from './mongoAuth.js';
+import { isUuid } from './uuidUtils.js';
 
 /**
  * USER MAPPERS
@@ -64,8 +65,11 @@ export function mapProjectToDb(proj: any): any {
     metadata: proj.metadata
   };
 
-  if (proj.ownerId) {
+  if (proj.ownerId && isUuid(proj.ownerId)) {
     out.owner_id = proj.ownerId;
+  } else {
+    // If not a valid UUID, let Supabase handle it or set to null
+    out.owner_id = null;
   }
 
   return out;

@@ -8,7 +8,7 @@ export const createMockSupabaseClient = () => ({
       if (email === 'admin@myroad.app' && password === 'Admin123!ChangeMe') {
         return {
           data: {
-            user: { id: 'admin-1', email, user_metadata: { role: 'admin' } },
+            user: { id: '00000000-0000-0000-0000-000000000000', email, user_metadata: { role: 'admin' } },
             session: { access_token: 'mock-jwt-token', refresh_token: 'mock-refresh-token' }
           },
           error: null
@@ -27,7 +27,7 @@ export const createMockSupabaseClient = () => ({
       eq: (col: string, val: any) => ({
         single: async () => {
           if (table === 'profiles' && val === 'admin@myroad.app') {
-            return { data: { id: 'admin-1', email: 'admin@myroad.app' }, error: null };
+            return { data: { id: '00000000-0000-0000-0000-000000000000', email: 'admin@myroad.app' }, error: null };
           }
           return { data: null, error: { message: 'Not found' } };
         }
