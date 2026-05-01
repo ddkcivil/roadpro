@@ -275,7 +275,7 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(({
                   <Avatar className="h-full w-full rounded-none">
                     <AvatarImage src={currentUser.avatar} />
                     <AvatarFallback className="bg-slate-900 text-white font-black text-[10px] uppercase tracking-tighter rounded-none">
-                      {currentUser.name.split(' ').map(n => n[0]).join('')}
+                      {currentUser.name?.split(' ').map(n => n[0]).join('') || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>
@@ -290,7 +290,7 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(({
                     <Avatar className="h-full w-full rounded-none">
                       <AvatarImage src={currentUser.avatar} />
                       <AvatarFallback className="bg-slate-900 text-white font-black text-xl">
-                        {currentUser.name.split(' ').map(n => n[0]).join('')}
+                        {currentUser.name?.split(' ').map(n => n[0]).join('') || 'U'}
                       </AvatarFallback>
                     </Avatar>
                   </div>
