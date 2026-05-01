@@ -1,17 +1,27 @@
 const CACHE_NAME = 'roadmaster-v11';
 const ASSETS_TO_CACHE = [
   '/',
-  '/index.html',
   '/manifest.json',
-  '/favicon.ico'
+  '/favicon.ico',
+  '/apple-touch-icon.png'
 ];
 
-// Install Event - Cache static assets
+// Install Event - Cache static assets individually to be more robust
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Caching app shell');
-      return cache.addAll(ASSETS_TO_CACHE);
+    caches.open(CACHE_NAME).then(async (cache) => {
+      console.log('[SW] Caching app shell assets individually');
+      // Use individual add for each asset to avoid total failure on one 404
+      const cachePromises = ASSETS_TO_CACHE.map(async (asset) => {
+        try {
+          const response = await fetch(asset);
+          if (!response.ok) throw new Error(`Offline cache fetch failed for ${asset}: ${response.status}`);
+          await cache.put(asset, response);
+        } catch (error) {
+          console.warn(`[SW] Failed to cache asset: ${asset}`, error);
+        }
+      });
+      return Promise.all(cachePromises);
     })
   );
   self.skipWaiting();
