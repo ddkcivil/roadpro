@@ -42,7 +42,8 @@ export function mapProjectFromDb(dbProj: any): any {
     createdAt: dbProj.createdAt || dbProj.created_at || dbProj.createdat,
     updatedAt: dbProj.updatedAt || dbProj.updated_at || dbProj.updatedat,
     description: dbProj.description,
-    metadata: dbProj.metadata
+    metadata: dbProj.metadata,
+    contractor: dbProj.contractor
   };
 }
 
@@ -62,7 +63,8 @@ export function mapProjectToDb(proj: any): any {
     created_at: proj.createdAt,
     updated_at: proj.updatedAt,
     description: proj.description,
-    metadata: proj.metadata
+    metadata: proj.metadata,
+    contractor: proj.contractor
   };
 
   if (proj.ownerId && isUuid(proj.ownerId)) {

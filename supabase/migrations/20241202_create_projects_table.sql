@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS public.projects (
   start_date timestamptz,
   end_date timestamptz,
   description text,
+  contractor text,
   metadata jsonb DEFAULT '{}',
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()

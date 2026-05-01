@@ -17,12 +17,12 @@ import { useAuth } from '~/hooks/useAuth';
 const projectFormSchema = z.object({
   name: z.string().min(3, "Project name must be at least 3 characters"),
   code: z.string().min(2, "Project code must be at least 2 characters"),
-  startDate: z.string().min(1, "Commencement date is required"),
-  endDate: z.string().min(1, "Completion date is required"),
+  startDate: z.string().nullable().optional().refine(val => !!val, "Commencement date is required"),
+  endDate: z.string().nullable().optional().refine(val => !!val, "Completion date is required"),
   client: z.string().min(2, "Client name is required"),
-  contractor: z.string().min(2, "Contractor name is required"),
-  location: z.string().optional(),
-  contractNo: z.string().optional(),
+  contractor: z.string().nullable().optional().refine(val => !!val, "Contractor name is required"),
+  location: z.string().nullable().optional(),
+  contractNo: z.string().nullable().optional(),
 });
 
 interface Props {
