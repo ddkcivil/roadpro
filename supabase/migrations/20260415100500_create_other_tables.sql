@@ -2,15 +2,8 @@
 
 -- Table for user profiles (skip if exists)
 
--- Table for projects
-CREATE TABLE IF NOT EXISTS public.projects (
-    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    -- owner_id references profiles.id
-    owner_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+-- Table for projects is already created in 20241202_create_projects_table.sql
+-- We skip re-creating it here to avoid conflicting id types (text vs uuid).
 
 -- Table for road types reference
 CREATE TABLE IF NOT EXISTS public.road_types (
@@ -23,13 +16,18 @@ CREATE TABLE IF NOT EXISTS public.road_types (
 -- Table for messages
 CREATE TABLE IF NOT EXISTS public.messages (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    -- project_id links to projects
-    project_id uuid REFERENCES public.projects(id) ON DELETE CASCADE,
+    -- project_id links to projects (must be text to support 'general')
+    project_id text REFERENCES public.projects(id) ON DELETE CASCADE,
     -- sender_id links to profiles
     sender_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+    receiver_id text,
     content TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    read_at TIMESTAMP WITH TIME ZONE
+    read_at TIMESTAMP WITH TIME ZONE,
+    read boolean DEFAULT false,
+    attachment_url text,
+    attachment_name text,
+    attachment_type text
 );
 
 -- Add indexes for common foreign key lookups

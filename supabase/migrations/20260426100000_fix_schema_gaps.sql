@@ -38,6 +38,7 @@ DROP POLICY IF EXISTS "Users can update own projects" ON public.projects;
 DROP POLICY IF EXISTS "Users can delete own projects" ON public.projects;
 
 -- Allow all authenticated users to view projects
+DROP POLICY IF EXISTS "Authenticated users can view projects" ON public.projects;
 CREATE POLICY "Authenticated users can view projects" ON public.projects
     FOR SELECT TO authenticated
     USING (true);

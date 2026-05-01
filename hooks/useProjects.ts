@@ -3,6 +3,7 @@ import { useEffect, useMemo, startTransition, useCallback, useRef } from 'react'
 import { Project } from '../types';
 import { apiService } from '../services/api/apiService';
 import { DataCache, getCacheKey } from '../utils/data/cacheUtils';
+import { retryWithBackoff, DEFAULT_RETRY_OPTIONS } from '../utils/retryUtils';
 import { prepareProjectWithMaterials } from '../utils/migration/materialMigrationUtils';
 import { toast } from 'sonner';
 import { useDebounce } from './useDebounce';
@@ -218,7 +219,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
     });
   }, []);
 
-  const saveProject = useCallback(async (project: Partial<Project>) => {
+  const saveProject = useCallback(async (project: Partial<Project>): Promise<void> => {
     // Logic to determine if this is a new project creation or an update
     // If 'name' and 'client' are provided but 'id' is missing, it's likely a new project from the modal.
     // Otherwise, if no ID is provided, we default to the currently selected project for partial updates.
@@ -241,7 +242,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
 
     if (!completeProjectData.name || !completeProjectData.client) {
       toast.error("Save Blocked", { description: "Project name and employer/client are required." });
-      return;
+      throw new Error("Project name and employer/client are required.");
     }
 
     const sanitizedProjectData = sanitizationUtils.sanitizeObject(completeProjectData) as any;
@@ -256,14 +257,28 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
     });
 
     try {
-      // Use upsert to be resilient against optimistic IDs and race conditions
-      const { data: backendProject, error } = await supabase
-        .from('projects')
-        .upsert(mapProjectToDb(sanitizedProjectData))
-        .select('*')
-        .single();
-
-      if (error) throw error;
+      // Use retry logic for backend operations
+      let backendProject: Project;
+      
+      if (isNewCreation) {
+        backendProject = await retryWithBackoff(
+          () => apiService.createProject(mapProjectToDb(sanitizedProjectData)),
+          {
+            ...DEFAULT_RETRY_OPTIONS,
+            maxRetries: 3,
+            initialDelayMs: 1000,
+          }
+        );
+      } else {
+        backendProject = await retryWithBackoff(
+          () => apiService.updateProject(sanitizedProjectData.id!, mapProjectToDb(sanitizedProjectData)),
+          {
+            ...DEFAULT_RETRY_OPTIONS,
+            maxRetries: 3,
+            initialDelayMs: 1000,
+          }
+        );
+      }
 
       if (currentUser) {
         await AuditService.logDataModification(
@@ -280,6 +295,9 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
 
       startTransition(() => {
         const finalProjects = projectsRef.current.map(p => p.id === backendProject.id ? backendProject : p);
+        if (!isUpdate && !projectsRef.current.find(p => p.id === backendProject.id)) {
+          finalProjects.push(backendProject);
+        }
         dispatch({ type: 'UPDATE_PROJECTS', payload: finalProjects });
         debouncedCacheSync(finalProjects);
       });
@@ -293,10 +311,24 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
       startTransition(() => {
         dispatch({ type: 'UPDATE_PROJECTS', payload: previousProjects });
       });
-      const errorMsg = error.message || 'Unknown server error';
+      
+      // Provide user-friendly error messages
+      let errorMsg = error.message || 'Unknown server error';
+      if (error.message?.includes('Failed to fetch')) {
+        errorMsg = 'Network error: Please check your internet connection';
+      } else if (error.message?.includes('ERR_INTERNET_DISCONNECTED')) {
+        errorMsg = 'No internet connection. Your changes are saved locally.';
+      } else if (error.status === 401 || error.status === 403) {
+        errorMsg = 'Permission denied. Please check your access rights.';
+      } else if (error.status >= 500) {
+        errorMsg = 'Server error. The service may be temporarily unavailable.';
+      }
+      
       toast.error("Cloud Sync Failed", {
         description: `Changes kept locally but failed to sync: ${errorMsg}`,
       });
+      
+      throw new Error(errorMsg);
     }
   }, [state.selectedProjectId, debouncedCacheSync, currentUser, dispatch]);
 
