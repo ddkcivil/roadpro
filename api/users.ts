@@ -1,5 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { supabaseAdmin } from './_utils/supabaseClient.js';
+>>>>>>> Stashed changes
+import { withErrorHandler } from './_utils/errorHandler.js';
+=======
 import { mongodb } from '../lib/mongodb.js';
+import { supabaseAdmin } from './_utils/supabaseClient.js';
+import { withErrorHandler } from './_utils/errorHandler.js';
+=======
+import { supabaseAdmin } from './_utils/supabaseClient.js';
+>>>>>>> Stashed changes
 import { withErrorHandler } from './_utils/errorHandler.js';
 import { withAuth } from './_utils/auth.js';
 import { mapUserFromDb } from './_utils/mappers.js';
