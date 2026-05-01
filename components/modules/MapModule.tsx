@@ -163,7 +163,7 @@ export const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
 function addChainageMarkers(map: L.Map, points: L.LatLng[], name: string, markers: L.Layer[], color: string = '#4f46e5') {
   if (points.length < 2) return;
 
-  const prefix = name.split('.')[0];
+  const prefix = name?.split('.')[0] || 'file';
 
   // Add start marker
   const startMarker = L.marker(points[0], { 
@@ -718,7 +718,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
       parsed.placemarks.forEach(placemark => {
         const points: L.LatLng[] = placemark.points;
         if (points && points.length >= 2) {
-          lines.push({ name: kml.name.split('.')[0], coords: points });
+          lines.push({ name: kml.name?.split('.')[0] || 'KML', coords: points });
         }
       });
     });
@@ -760,9 +760,9 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   // Structure markers
   const structureMarkers = useMemo(() => {
     if (!project.structures || !layerVisibility.structures) return [];
-    return project.structures.map((structure: StructureAsset) => {
+    return (project.structures || []).map((structure: StructureAsset) => {
       if (!structure.coordinates) return null;
-      const [lat, lng] = structure.coordinates.split(',').map(Number);
+      const [lat, lng] = (structure.coordinates?.split(',') || []).map(Number);
       if (isNaN(lat) || isNaN(lng)) return null;
       
       const nearestKML = getNearestChainage(L.latLng(lat, lng));
@@ -803,7 +803,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   // Vehicle markers
   const vehicleMarkers = useMemo(() => {
     if (!project.vehicles || !layerVisibility.vehicles) return [];
-    return project.vehicles.map((vehicle: Vehicle) => {
+    return (project.vehicles || []).map((vehicle: Vehicle) => {
       const location = vehicle.gpsLocation || vehicle.lastKnownLocation;
       if (!location) return null;
       
@@ -854,7 +854,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   // Staff markers
   const staffMarkers = useMemo(() => {
     if (!project.staffLocations || !layerVisibility.staff) return [];
-    return project.staffLocations.map((staff: StaffLocation) => {
+    return (project.staffLocations || []).map((staff: StaffLocation) => {
       const nearestKML = getNearestChainage(L.latLng(staff.latitude, staff.longitude));
       const userDetails = users.find(u => u.id === staff.userId);
       
@@ -875,7 +875,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                     <img src={userDetails.avatar} alt={staff.userName} className="h-full w-full object-cover" />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center font-black text-amber-500 bg-amber-50">
-                      {staff.userName.split(' ').map(n => n[0]).join('')}
+                      {(staff.userName?.split(' ') || []).map(n => n[0]).join('') || 'U'}
                     </div>
                   )}
                 </div>
@@ -924,13 +924,13 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   // Land Parcel polygons
   const landParcelPolygons = useMemo(() => {
     if (!project.landParcels || !layerVisibility.landParcels) return [];
-    return project.landParcels.map((parcel: LandParcel) => {
+    return (project.landParcels || []).map((parcel: LandParcel) => {
       if (!parcel.coordinates || parcel.coordinates.length < 3) return null;
       
       return (
         <Polygon
           key={`parcel-${parcel.id}`}
-          positions={parcel.coordinates.map(c => [c.lat, c.lng])}
+          positions={(parcel.coordinates || []).map(c => [c.lat, c.lng])}
           pathOptions={{
             color: '#8b5cf6',
             fillColor: '#8b5cf6',
@@ -954,13 +954,13 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   // Map Overlays (Alignment, Boundaries, etc.)
   const mapOverlayLayers = useMemo(() => {
     if (!project.mapOverlays || !layerVisibility.overlays) return [];
-    return project.mapOverlays.map((overlay: MapOverlay) => {
+    return (project.mapOverlays || []).map((overlay: MapOverlay) => {
       if (!overlay.visible) return null;
       
       return (
         <Polyline
           key={`overlay-${overlay.id}`}
-          positions={overlay.coordinates.map(c => [c.lat, c.lng])}
+          positions={(overlay.coordinates || []).map(c => [c.lat, c.lng])}
           pathOptions={{
             color: overlay.color,
             weight: 4,
@@ -1006,7 +1006,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   // Site Photo markers
   const sitePhotoMarkers = useMemo(() => {
     if (!project.sitePhotos || !layerVisibility.sitePhotos) return [];
-    return project.sitePhotos.map((photo: SitePhoto) => {
+    return (project.sitePhotos || []).map((photo: SitePhoto) => {
       const pos = parseLocation(photo.location);
       if (!pos) return null;
       
@@ -1041,7 +1041,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   // RFI markers
   const rfiMarkers = useMemo(() => {
     if (!project.rfis || !layerVisibility.rfis) return [];
-    return project.rfis.map(rfi => {
+    return (project.rfis || []).map(rfi => {
       const pos = parseLocation(rfi.location);
       if (!pos) return null;
       
@@ -1074,7 +1074,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   // NCR markers
   const ncrMarkers = useMemo(() => {
     if (!project.ncrs || !layerVisibility.ncrs) return [];
-    return project.ncrs.map(ncr => {
+    return (project.ncrs || []).map(ncr => {
       const pos = parseLocation(ncr.location);
       if (!pos) return null;
       
@@ -1107,7 +1107,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   // Lab Test markers
   const labTestMarkers = useMemo(() => {
     if (!project.labTests || !layerVisibility.labTests) return [];
-    return project.labTests.map(test => {
+    return (project.labTests || []).map(test => {
       const pos = parseLocation(test.location);
       if (!pos) return null;
       
@@ -1196,7 +1196,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   const linearWorksLayers = useMemo(() => {
     if (!project.linearWorks || !layerVisibility.linearWorks || !alignmentOverlay) return [];
     
-    return project.linearWorks.map((work: LinearWorkLog) => {
+    return (project.linearWorks || []).map((work: LinearWorkLog) => {
       const positions = getCoordinatesForChainage(work.startChainage, work.endChainage);
       if (positions.length < 2) return null;
 
@@ -1236,7 +1236,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
       features: [
         ...(project.structures || []).map(s => {
           if (!s.coordinates) return null;
-          const [lat, lng] = s.coordinates.split(',').map(Number);
+          const [lat, lng] = (s.coordinates?.split(',') || []).map(Number);
           return {
             type: 'Feature',
             geometry: { type: 'Point', coordinates: [lng, lat] },
@@ -1247,7 +1247,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
           type: 'Feature',
           geometry: { 
             type: 'LineString', 
-            coordinates: o.coordinates.map(c => [c.lng, c.lat]) 
+            coordinates: (o.coordinates || []).map(c => [c.lng, c.lat]) 
           },
           properties: { name: o.name, type: o.type, color: o.color }
         }))
@@ -1345,21 +1345,27 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
             preferCanvas={true}
           >
             <LayersControl position="topright">
-              <BaseLayer checked name="OpenStreetMap">
+              <BaseLayer checked name="Roads (Fast)">
                 <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors'
+                  url="https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png"
                 />
               </BaseLayer>
-              <BaseLayer name="Satellite View">
+              <BaseLayer name="Light">
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                  url="https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
+                />
+              </BaseLayer>
+              <BaseLayer name="Satellite">
                 <TileLayer
                   attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
                   url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                 />
               </BaseLayer>
-              <BaseLayer name="Terrain/Topo">
+              <BaseLayer name="Terrain">
                 <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  attribution='Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'
                   url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
                 />
               </BaseLayer>
@@ -1512,7 +1518,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                       {/* Road Alignments Listing */}
                       {layerVisibility.roadAlignments && project.roads && project.roads.length > 0 && (
                         <div className="pl-4 space-y-3 mt-2 border-l-2 border-indigo-100">
-                          {project.roads.flatMap(road => road.alignments || []).map((alignment) => (
+                          {(project.roads || []).flatMap(road => road.alignments || []).map((alignment) => (
                             <div key={alignment.id} className="flex items-center justify-between group">
                               <div className="flex flex-col min-w-0 pr-4">
                                 <span className="text-[11px] font-bold truncate leading-tight text-slate-600" title={alignment.name}>
@@ -1572,7 +1578,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                       {/* Road Structures Listing */}
                       {layerVisibility.roadStructures && project.structures && project.structures.length > 0 && (
                         <div className="pl-4 space-y-3 mt-2 border-l-2 border-blue-100">
-                          {project.structures.map((structure: StructureAsset) => (
+                          {(project.structures || []).map((structure: StructureAsset) => (
                             <div key={structure.id} className="flex flex-col min-w-0 pr-4">
                               <span className="text-[11px] font-bold truncate leading-tight text-slate-600" title={structure.name}>
                                 {structure.name}
@@ -1658,7 +1664,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                                         <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
                                       ) : (
                                         <div className="h-full w-full flex items-center justify-center text-[8px] font-black text-green-500">
-                                          {user.name.split(' ').map(n => n[0]).join('')}
+                                          {(user.name?.split(' ') || []).map(n => n[0]).join('') || 'U'}
                                         </div>
                                       )}
                                     </div>
@@ -1686,7 +1692,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                                       <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
                                     ) : (
                                       <div className="h-full w-full flex items-center justify-center text-[8px] font-black text-slate-400">
-                                        {user.name.split(' ').map(n => n[0]).join('')}
+                                        {(user.name?.split(' ') || []).map(n => n[0]).join('') || 'U'}
                                       </div>
                                     )}
                                   </div>
@@ -1800,7 +1806,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                       {/* Site Photos Listing */}
                       {layerVisibility.sitePhotos && project.sitePhotos && project.sitePhotos.length > 0 && (
                         <div className="pl-4 space-y-3 mt-2 border-l-2 border-pink-100">
-                          {project.sitePhotos.map((photo) => (
+                          {(project.sitePhotos || []).map((photo) => (
                             <div key={photo.id} className="flex items-center justify-between group">
                               <div className="flex flex-col min-w-0 pr-4">
                                 <span className="text-[11px] font-bold truncate leading-tight text-slate-600" title={photo.caption}>
@@ -1915,7 +1921,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                       {/* Individual KML Files */}
                       {layerVisibility.kml && project.kmlData && project.kmlData.length > 0 && (
                         <div className="pl-4 space-y-3 mt-2 border-l-2 border-indigo-100">
-                          {project.kmlData.map((kml) => (
+                          {(project.kmlData || []).map((kml) => (
                             <div key={kml.id} className="flex items-center justify-between group">
                               <div className="flex flex-col min-w-0 pr-4">
                                 <span className="text-[11px] font-bold truncate leading-tight text-slate-600" title={kml.name}>

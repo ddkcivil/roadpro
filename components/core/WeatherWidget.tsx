@@ -198,8 +198,8 @@ const WeatherWidget = () => {
                             <div key={i} className="flex items-center justify-between p-2 rounded-xl bg-muted/20 border border-border/40 hover:bg-muted/40 transition-colors">
                                 <div className="flex items-center gap-3">
                                     <div className="text-center min-w-[30px]">
-                                        <p className="text-[10px] font-black">{record.date.split('-')[2]}</p>
-                                        <p className="text-[8px] font-bold text-muted-foreground uppercase">{new Date(record.date).toLocaleString('default', { weekday: 'short' })}</p>
+                                        <p className="text-[10px] font-black">{record.date?.split('-')[2] || '??'}</p>
+                                        <p className="text-[8px] font-bold text-muted-foreground uppercase">{record.date ? new Date(record.date).toLocaleString('default', { weekday: 'short' }) : '---'}</p>
                                     </div>
                                     <WeatherIcon icon={record.icon} className="w-5 h-5" />
                                     <div>

@@ -1,4 +1,5 @@
 import type { MongoUser } from './mongoAuth.js';
+import { isUuid } from './uuidUtils.js';
 
 /**
  * USER MAPPERS
@@ -30,36 +31,50 @@ export function mapProjectFromDb(dbProj: any): any {
     id: dbProj.id,
     name: dbProj.name,
     client: dbProj.client,
-    ownerId: dbProj.ownerid,
+    contractNo: dbProj.contract_no || dbProj.contractNo || dbProj.contractno,
+    // Support both snake_case and camelCase column names returned by different DB migrations
+    ownerId: dbProj.owner_id || dbProj.ownerId || dbProj.ownerid,
     location: dbProj.location,
     status: dbProj.status,
     budget: dbProj.budget,
-    startDate: dbProj.startdate,
-    endDate: dbProj.enddate,
-    createdAt: dbProj.createdat,
-    updatedAt: dbProj.updatedat,
+    startDate: dbProj.startDate || dbProj.start_date || dbProj.startdate,
+    endDate: dbProj.endDate || dbProj.end_date || dbProj.enddate,
+    createdAt: dbProj.createdAt || dbProj.created_at || dbProj.createdat,
+    updatedAt: dbProj.updatedAt || dbProj.updated_at || dbProj.updatedat,
     description: dbProj.description,
-    metadata: dbProj.metadata
+    metadata: dbProj.metadata,
+    contractor: dbProj.contractor
   };
 }
 
 export function mapProjectToDb(proj: any): any {
   if (!proj) return null;
-  return {
+  const out: any = {
     id: proj.id,
     name: proj.name,
     client: proj.client,
-    ownerid: proj.ownerId,
+    contract_no: proj.contractNo,
+    // Use lowercase column names as Postgres folds unquoted identifiers to lowercase.
     location: proj.location,
     status: proj.status,
     budget: proj.budget,
-    startdate: proj.startDate,
-    enddate: proj.endDate,
-    createdat: proj.createdAt,
-    updatedat: proj.updatedAt,
+    start_date: proj.startDate,
+    end_date: proj.endDate,
+    created_at: proj.createdAt,
+    updated_at: proj.updatedAt,
     description: proj.description,
-    metadata: proj.metadata
+    metadata: proj.metadata,
+    contractor: proj.contractor
   };
+
+  if (proj.ownerId && isUuid(proj.ownerId)) {
+    out.owner_id = proj.ownerId;
+  } else {
+    // If not a valid UUID, let Supabase handle it or set to null
+    out.owner_id = null;
+  }
+
+  return out;
 }
 
 /**

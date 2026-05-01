@@ -89,8 +89,8 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
     const handleCreateAutoMB = () => {
         if (selectedLogs.length === 0) return;
 
-        const logsToProcess = uncertifiedLogs.filter(l => selectedLogs.includes(l.id));
-        
+        const logsToProcess = (project.logs || []).filter(log => selectedLogs.includes(log.id));
+
         // Group logs by BOQ Item ID to create combined entries
         const groupedEntries: Record<string, number> = {};
         logsToProcess.forEach(log => {
@@ -316,7 +316,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
 
             // 2. Update BOQ items based on entries in this sheet
             const updatedBoq = [...project.boq];
-            sheet.entries.forEach(entry => {
+            (sheet.entries || []).forEach(entry => {
                 const boqIdx = updatedBoq.findIndex(b => b.id === entry.boqItemId);
                 if (boqIdx !== -1) {
                     updatedBoq[boqIdx] = {
@@ -339,49 +339,21 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
         }
     };
 
-    const financialSummary = useMemo(() => {
-        const boqItems = project.boq || [];
-        const vatRate = settings?.vatRate || 13;
-        
-        // --- Original Contract Calculation (a + b + c) ---
-        const originalPS = boqItems
-            .filter(item => item.unit?.toUpperCase() === 'PS')
-            .reduce((acc, item) => acc + (item.quantity * item.rate), 0);
-            
-        const originalNonPS = boqItems
-            .filter(item => item.unit?.toUpperCase() !== 'PS')
-            .reduce((acc, item) => acc + (item.quantity * item.rate), 0);
-            
-        const originalVAT = originalNonPS * (vatRate / 100);
-        const originalTotal = originalPS + originalNonPS + originalVAT;
+    const filteredBOQItems = useMemo(() => {
+      const items = project.boq?.items || []; // Ensure items is always an array
+      return items
+        .filter(item => 
+          item.description?.toLowerCase().includes(boqSearch.toLowerCase()) ||
+          item.unit?.toLowerCase().includes(boqSearch.toLowerCase()) ||
+          item.category?.toLowerCase().includes(boqSearch.toLowerCase())
+        )
+        .slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+    }, [project.boq?.items, boqSearch, currentPage, rowsPerPage]);
 
-        // --- Revised Contract Calculation (a_rev + b_rev + c_rev) ---
-        const revisedPS = boqItems
-            .filter(item => item.unit?.toUpperCase() === 'PS')
-            .reduce((acc, item) => acc + ((item.quantity + (item.variationQuantity || 0)) * item.rate), 0);
-            
-        const revisedNonPS = boqItems
-            .filter(item => item.unit?.toUpperCase() !== 'PS')
-            .reduce((acc, item) => acc + ((item.quantity + (item.variationQuantity || 0)) * item.rate), 0);
-            
-        const revisedVAT = revisedNonPS * (vatRate / 100);
-        const revisedTotal = revisedPS + revisedNonPS + revisedVAT;
-
-        const currentCompletedValue = boqItems.reduce((acc, item) => acc + (item.completedQuantity * item.rate), 0);
-        
-        return { 
-            original: originalTotal, 
-            revised: revisedTotal,
-            variation: revisedTotal - originalTotal,
-            completed: currentCompletedValue, 
-            percent: revisedTotal > 0 ? (currentCompletedValue / revisedTotal) * 100 : 0,
-            amountWithPS: revisedTotal,
-            amountWithoutPS: revisedNonPS,
-            provisionalSum: revisedPS,
-            vatAmount: revisedVAT,
-            totalContractValue: revisedTotal
-        };
-    }, [project.boq, settings]);
+    const totalBOQValue = useMemo(() => {
+      const items = project.boq?.items || []; // Ensure items is always an array
+      return items.reduce((sum, item) => sum + (item.value || 0), 0);
+    }, [project.boq?.items]);
 
     return (
         <div className="animate-in fade-in duration-500 p-4">

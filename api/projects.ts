@@ -42,7 +42,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .from('projects')
         .select('*')
         .range(skip, skip + limit - 1) // Supabase uses 0-based indexing for range
-        .order('createdat', { ascending: false }); // Example: order by creation date, adjust as needed
+        .order('created_at', { ascending: false }); // Example: order by creation date, adjust as needed
 
       if (fetchError) throw fetchError;
       
@@ -224,8 +224,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       delete patchData.id;
       delete patchData._id;
       delete patchData.__v;
-      delete patchData.createdat;
-      delete patchData.updatedat; // Let Supabase handle updated_at if it has a trigger, or set it here
+      delete patchData.created_at;
+      delete patchData.updated_at; // Let Supabase handle updated_at if it has a trigger, or set it here
 
       // Supabase update operation for general project fields
       const { data: updatedProject, error } = await supabaseAdmin

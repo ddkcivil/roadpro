@@ -3,6 +3,7 @@ import { useEffect, useMemo, startTransition, useCallback, useRef } from 'react'
 import { Project } from '../types';
 import { apiService } from '../services/api/apiService';
 import { DataCache, getCacheKey } from '../utils/data/cacheUtils';
+import { retryWithBackoff, DEFAULT_RETRY_OPTIONS } from '../utils/retryUtils';
 import { prepareProjectWithMaterials } from '../utils/migration/materialMigrationUtils';
 import { toast } from 'sonner';
 import { useDebounce } from './useDebounce';
@@ -95,16 +96,11 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
   const refreshCurrentProject = useCallback(async () => {
     if (!state.selectedProjectId) return;
     try {
-      const { data: updatedProject, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', state.selectedProjectId)
-        .single();
+      const updatedProject = await apiService.getProject(state.selectedProjectId);
 
-      if (error) throw error;
       if (!updatedProject) throw new Error('Project not found after refresh.');
 
-      const processedProject = prepareProjectWithMaterials(mapProjectFromDb(updatedProject) as Project);
+      const processedProject = prepareProjectWithMaterials(updatedProject);
       
       startTransition(() => {
         dispatch({ 
@@ -149,45 +145,25 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
     if (now - lastLocationUpdateRef.current > LOCATION_THROTTLE) {
       lastLocationUpdateRef.current = now;
       try {
-        const { error } = await supabase
-          .from('staff_locations')
-          .upsert([
-            {
-              project_id: projectId,
-              user_id: currentUser?.id,
-              latitude: latitude,
-              longitude: longitude,
-              timestamp: new Date().toISOString(),
-            }
-          ], { onConflict: 'project_id, user_id' });
-
-        if (error) {
-          throw error;
-        }
+        await apiService.updateStaffLocation(projectId, latitude, longitude);
       } catch (error) {
-        console.warn('[GPS] Failed to sync location to Supabase backend:', error);
+        console.warn('[GPS] Failed to sync location via API:', error);
       }
     }
   }, [currentUser, dispatch]);
 
-  const fetchProjects = async (page = 1) => {
+  const fetchProjects = useCallback(async (page = 1) => {
     startTransition(() => {
       dispatch({ type: 'FETCH_START' });
     });
     try {
-      const { data: fetchedProjects, error } = await supabase
-        .from('projects')
-        .select('*')
-        .order('createdat', { ascending: false })
-        .range((page - 1) * 50, page * 50 - 1);
+      const response = await apiService.getProjects(page);
 
-      if (error) throw error;
-
-      if (!fetchedProjects) {
+      if (!response || !response.data) {
         throw new Error('No projects found or error fetching projects.');
       }
 
-      const processedProjects = (fetchedProjects || []).map((p: any) => prepareProjectWithMaterials(mapProjectFromDb(p) as Project));
+      const processedProjects = response.data.map(p => prepareProjectWithMaterials(p));
 
       startTransition(() => {
         dispatch({ type: 'FETCH_SUCCESS', payload: processedProjects });
@@ -199,13 +175,13 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
         dispatch({ type: 'FETCH_ERROR', payload: error.message || 'Failed to fetch projects from Supabase.' });
       });
     }
-  };
+  }, [dispatch]);
 
   useEffect(() => {
     if (isAuthenticated && isHydrated) {
       fetchProjects();
     }
-  }, [isAuthenticated, isHydrated]);
+  }, [isAuthenticated, isHydrated, fetchProjects]);
 
   const currentProject = useMemo(() => {
     if (!state?.projects) return undefined;
@@ -218,23 +194,30 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
     });
   }, []);
 
-  const saveProject = useCallback(async (project: Partial<Project>) => {
-    const targetProjectId = project.id || state.selectedProjectId;
+  const saveProject = useCallback(async (project: Partial<Project>): Promise<void> => {
+    // Logic to determine if this is a new project creation or an update
+    // If 'name' and 'client' are provided but 'id' is missing, it's likely a new project from the modal.
+    // Otherwise, if no ID is provided, we default to the currently selected project for partial updates.
+    const isFullDefinition = !!(project.name && project.client);
+    const isNewCreation = isFullDefinition && !project.id;
+    
+    const targetProjectId = isNewCreation ? undefined : (project.id || state.selectedProjectId);
     const isUpdate = !!targetProjectId;
+    
     const previousProjects = [...projectsRef.current];
-    const baseProject = projectsRef.current.find(p => p.id === targetProjectId);
+    const baseProject = targetProjectId ? projectsRef.current.find(p => p.id === targetProjectId) : undefined;
 
     const completeProjectData = {
       ...baseProject,
       ...project,
       id: targetProjectId || `proj-${Date.now()}`,
       updatedAt: new Date().toISOString(),
-      contractNo: null,
+      contractNo: project.contractNo || baseProject?.contractNo || null,
     } as unknown as Project;
 
     if (!completeProjectData.name || !completeProjectData.client) {
       toast.error("Save Blocked", { description: "Project name and employer/client are required." });
-      return;
+      throw new Error("Project name and employer/client are required.");
     }
 
     const sanitizedProjectData = sanitizationUtils.sanitizeObject(completeProjectData) as any;
@@ -249,26 +232,28 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
     });
 
     try {
-      let backendProjectResult;
+      // Use retry logic for backend operations
+      let backendProject: Project;
       
-      if (isUpdate) {
-        backendProjectResult = await supabase
-          .from('projects')
-          .update(mapProjectToDb(sanitizedProjectData))
-          .eq('id', sanitizedProjectData.id)
-          .select('*')
-          .single();
+      if (isNewCreation) {
+        backendProject = await retryWithBackoff(
+          () => apiService.createProject(mapProjectToDb(sanitizedProjectData)),
+          {
+            ...DEFAULT_RETRY_OPTIONS,
+            maxRetries: 3,
+            initialDelayMs: 1000,
+          }
+        );
       } else {
-        backendProjectResult = await supabase
-          .from('projects')
-          .insert(mapProjectToDb({ ...sanitizedProjectData, id: sanitizedProjectData.id }))
-          .select('*')
-          .single();
+        backendProject = await retryWithBackoff(
+          () => apiService.updateProject(sanitizedProjectData.id!, mapProjectToDb(sanitizedProjectData)),
+          {
+            ...DEFAULT_RETRY_OPTIONS,
+            maxRetries: 3,
+            initialDelayMs: 1000,
+          }
+        );
       }
-
-      if (backendProjectResult.error) throw backendProjectResult.error;
-
-      const backendProject = backendProjectResult.data as Project;
 
       if (currentUser) {
         await AuditService.logDataModification(
@@ -285,6 +270,9 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
 
       startTransition(() => {
         const finalProjects = projectsRef.current.map(p => p.id === backendProject.id ? backendProject : p);
+        if (!isUpdate && !projectsRef.current.find(p => p.id === backendProject.id)) {
+          finalProjects.push(backendProject);
+        }
         dispatch({ type: 'UPDATE_PROJECTS', payload: finalProjects });
         debouncedCacheSync(finalProjects);
       });
@@ -298,10 +286,24 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
       startTransition(() => {
         dispatch({ type: 'UPDATE_PROJECTS', payload: previousProjects });
       });
-      const errorMsg = error.message || 'Unknown server error';
+      
+      // Provide user-friendly error messages
+      let errorMsg = error.message || 'Unknown server error';
+      if (error.message?.includes('Failed to fetch')) {
+        errorMsg = 'Network error: Please check your internet connection';
+      } else if (error.message?.includes('ERR_INTERNET_DISCONNECTED')) {
+        errorMsg = 'No internet connection. Your changes are saved locally.';
+      } else if (error.status === 401 || error.status === 403) {
+        errorMsg = 'Permission denied. Please check your access rights.';
+      } else if (error.status >= 500) {
+        errorMsg = 'Server error. The service may be temporarily unavailable.';
+      }
+      
       toast.error("Cloud Sync Failed", {
         description: `Changes kept locally but failed to sync: ${errorMsg}`,
       });
+      
+      throw new Error(errorMsg);
     }
   }, [state.selectedProjectId, debouncedCacheSync, currentUser, dispatch]);
 
@@ -338,12 +340,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
         }
       }
 
-      const { error: deleteError } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', projectId);
-
-      if (deleteError) throw deleteError;
+      await apiService.deleteProject(projectId);
 
       if (currentUser && projectToDelete) {
         await AuditService.logDataModification(

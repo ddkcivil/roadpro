@@ -2,46 +2,50 @@
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+// Use environment variables confirmed to be working by test_supabase_config.ts
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabase = createClient(supabaseUrl!, serviceKey!);
+if (!supabaseUrl || !serviceKey) {
+    console.error('CRITICAL: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.');
+    console.error('Ensure these are set in your environment or .env file.');
+    process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, serviceKey);
 
 async function introspect() {
   console.log('Introspecting database structure...');
   
-  // Try to use rpc if available, or just a direct query to information_schema if possible
-  // Most Supabase setups allow this if you use the service role key
   try {
-    const { data: profiles, error: pErr } = await supabase
-      .from('profiles')
-      .select('*')
-      .limit(1);
+    // Get columns for the 'projects' table from information_schema
+    const { data: projectColumns, error: projectError } = await supabase.rpc('get_columns', { table_name: 'projects' });
     
-    if (pErr) console.error('Profiles error:', pErr.message);
-    else if (profiles && profiles.length > 0) console.log('Profiles columns:', Object.keys(profiles[0]));
-    else console.log('Profiles table empty - cannot infer columns via select *');
-
-    const { data: projects, error: prErr } = await supabase
-      .from('projects')
-      .select('*')
-      .limit(1);
-    
-    if (prErr) console.error('Projects error:', prErr.message);
-    else if (projects && projects.length > 0) console.log('Projects columns:', Object.keys(projects[0]));
-    else console.log('Projects table empty');
-
-    // Attempt to list columns from information_schema
-    const { data: cols, error: cErr } = await supabase.rpc('get_columns', { table_name: 'projects' });
-    if (cErr) {
-       // If RPC doesn't exist, try a direct query (PostgREST doesn't usually allow this but let's see)
-       console.log('RPC get_columns not found. Trying raw SQL via rest is not possible.');
+    if (projectError) {
+       console.error('Error fetching columns for "projects" table via RPC:', projectError.message);
+       // Fallback: Try to select all and get keys if RPC fails and table not empty
+       const { data: projects, error: selectError } = await supabase.from('projects').select('*').limit(1);
+       if (selectError) {
+           console.error('Error selecting from "projects" table (fallback):', selectError.message);
+       } else if (projects && projects.length > 0) {
+           console.log('Projects columns (from select *):', Object.keys(projects[0]));
+       } else {
+           console.log('Projects table is empty or inaccessible. Cannot infer columns via select *.');
+       }
     } else {
-       console.log('Columns from RPC:', cols);
+       console.log('Columns for "projects" table:', projectColumns);
+    }
+
+    // Get columns for the 'messages' table from information_schema
+    const { data: messageColumns, error: messageError } = await supabase.rpc('get_columns', { table_name: 'messages' });
+    if (messageError) {
+        console.error('Error fetching columns for "messages" table via RPC:', messageError.message);
+    } else {
+        console.log('Columns for "messages" table:', messageColumns);
     }
 
   } catch (e: any) {
-    console.error('Failed:', e.message);
+    console.error('An unexpected error occurred during introspection:', e.message);
   }
 }
 
