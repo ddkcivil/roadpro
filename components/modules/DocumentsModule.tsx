@@ -114,9 +114,8 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
     const analysisToast = toast.loading('Analyzing document with AI OCR...');
 
     try {
-      const base64Data = await fileToBase64(file);
-      // Changed from ocrService.extractText to Os.extractText based on error
-      const ocrResult = await Os.extractText(base64Data);
+      await ocrService.initialize();
+      const ocrResult = await ocrService.extractTextFromImage(file);
 
           // Parse extracted text for metadata (simple heuristic parsing)
     const text = ocrResult.text.toLowerCase();
