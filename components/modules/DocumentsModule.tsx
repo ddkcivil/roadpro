@@ -32,7 +32,7 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import CommentsPanel from './CommentsPanel';
-import { Os } from '../../services/ai/ocrService';
+import { ocrService } from '../../services/ai/ocrService';
 import { toast } from 'sonner';
 import { fileToBase64, base64ToBlobUrl } from '../../utils/data/documentUtils';
 
@@ -120,10 +120,8 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
 
       // Parse extracted text for metadata (simple heuristic parsing)
       const text = ocrResult.text.toLowerCase();
-      const subjectMatch = text.match(/subject[:\-]?\s*([^
-]{1,100})/i);
-      const refMatch = text.match(/ref(?:erence)?[:\-]?\s*([^
-]{1,50})/i);
+      const subjectMatch = text.match(/subject[:\-]?\s*(.{1,100})/i);
+      const refMatch = text.match(/ref(?:erence)?[:\-]?\s*(.{1,50})/i);
       const dateMatch = text.match(/\b(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}|\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/);
       // Robustly check typeMatch and typeMatch[1]
       const typeMatch = text.match(/(incoming|outgoing|out|in|to|from)/i);
