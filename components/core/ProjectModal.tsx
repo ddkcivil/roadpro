@@ -32,7 +32,7 @@ interface Props {
 
 const ProjectModal: React.FC<Props> = ({ open, onClose }) => {
   const { projects, isLoadingProjects, saveProject, deleteProject, fetchProjects } = useProjects(true);
-  const { user: currentUser } = useAuth();
+  const { currentUser } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'new' | 'manage'>('new');
   const [editForm, setEditForm] = useState<Partial<Project>>({});

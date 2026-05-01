@@ -39,45 +39,36 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
     });
     console.log('AI env check:', { hasDeepSeek, hasGemini, hasOpenAI });
 
-    // Fetch real user count from profiles table
+    // Fetch counts from critical tables
     const { count: userCount, error: userError } = await supabaseAdmin
       .from('profiles')
       .select('*', { count: 'exact', head: true });
 
+    const { count: projectCount, error: projectError } = await supabaseAdmin
+      .from('projects')
+      .select('*', { count: 'exact', head: true });
 
-    // Test new test_table: INSERT + count
-    const { data: insertResult, error: insertError } = await supabaseAdmin
-      .from('test_table')
-      .insert({ message: `Health check at ${new Date().toISOString()}` })
-      .select();
-
-    const { count: testTableCount, error: testError } = await supabaseAdmin
-      .from('test_table')
+    const { count: messageCount, error: messageError } = await supabaseAdmin
+      .from('messages')
       .select('*', { count: 'exact', head: true });
 
     const results = {
-      profiles: userError ? `Error: ${userError.message} (${userError.code || 'no code'})` : `Count: ${userCount}`,
-      insert: insertError ? `Error: ${insertError.message} (${insertError.code || 'no code'})` : `ID: ${insertResult?.[0]?.id}`,
-      testTable: testError ? `Error: ${testError.message} (${testError.code || 'no code'})` : `Count: ${testTableCount}`
+      profiles: userError ? `Error: ${userError.message}` : `OK (${userCount} rows)`,
+      projects: projectError ? `Error: ${projectError.message}` : `OK (${projectCount} rows)`,
+      messages: messageError ? `Error: ${messageError.message}` : `OK (${messageCount} rows)`
     };
 
-    if (userError || insertError || testError) {
+    if (userError || projectError || messageError) {
       console.warn('Health check partial failure:', results);
-      console.warn('Supabase URL being used:', supabaseUrl?.substring(0, 20) + '...');
+      console.warn('Supabase URL being used:', supabaseUrl?.substring(0, 25) + '...');
     }
-
-
-
-
-
 
     res.status(200).json({
       status: 'ok',
       timestamp: new Date().toISOString(),
       database: 'connected (Supabase)',
-      userCount: userCount || 0,
-      testTableCount: testTableCount || 0,
-      testInsertId: insertResult?.[0]?.id || null,
+      targetProject: supabaseUrl?.substring(0, 25) + '...',
+      tables: results,
       nodeVersion: process.version,
       envCheck: { 
         SUPABASE_URL: !!hasSupabaseUrl,

@@ -24,6 +24,7 @@ import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group';
 import { TooltipProvider } from '~/components/ui/tooltip';
 import { Separator } from '~/components/ui/separator';
 import { motion } from 'framer-motion';
+import { cn } from '~/lib/utils';
 import WeatherWidget from './WeatherWidget';
 
 interface Props {
