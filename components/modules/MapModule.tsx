@@ -760,7 +760,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   // Structure markers
   const structureMarkers = useMemo(() => {
     if (!project.structures || !layerVisibility.structures) return [];
-    return project.structures.map((structure: StructureAsset) => {
+    return (project.structures || []).map((structure: StructureAsset) => {
       if (!structure.coordinates) return null;
       const [lat, lng] = (structure.coordinates?.split(',') || []).map(Number);
       if (isNaN(lat) || isNaN(lng)) return null;
@@ -803,7 +803,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   // Vehicle markers
   const vehicleMarkers = useMemo(() => {
     if (!project.vehicles || !layerVisibility.vehicles) return [];
-    return project.vehicles.map((vehicle: Vehicle) => {
+    return (project.vehicles || []).map((vehicle: Vehicle) => {
       const location = vehicle.gpsLocation || vehicle.lastKnownLocation;
       if (!location) return null;
       
@@ -854,7 +854,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   // Staff markers
   const staffMarkers = useMemo(() => {
     if (!project.staffLocations || !layerVisibility.staff) return [];
-    return project.staffLocations.map((staff: StaffLocation) => {
+    return (project.staffLocations || []).map((staff: StaffLocation) => {
       const nearestKML = getNearestChainage(L.latLng(staff.latitude, staff.longitude));
       const userDetails = users.find(u => u.id === staff.userId);
       
@@ -924,7 +924,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   // Land Parcel polygons
   const landParcelPolygons = useMemo(() => {
     if (!project.landParcels || !layerVisibility.landParcels) return [];
-    return project.landParcels.map((parcel: LandParcel) => {
+    return (project.landParcels || []).map((parcel: LandParcel) => {
       if (!parcel.coordinates || parcel.coordinates.length < 3) return null;
       
       return (
@@ -954,7 +954,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   // Map Overlays (Alignment, Boundaries, etc.)
   const mapOverlayLayers = useMemo(() => {
     if (!project.mapOverlays || !layerVisibility.overlays) return [];
-    return project.mapOverlays.map((overlay: MapOverlay) => {
+    return (project.mapOverlays || []).map((overlay: MapOverlay) => {
       if (!overlay.visible) return null;
       
       return (
@@ -1006,7 +1006,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   // Site Photo markers
   const sitePhotoMarkers = useMemo(() => {
     if (!project.sitePhotos || !layerVisibility.sitePhotos) return [];
-    return project.sitePhotos.map((photo: SitePhoto) => {
+    return (project.sitePhotos || []).map((photo: SitePhoto) => {
       const pos = parseLocation(photo.location);
       if (!pos) return null;
       
@@ -1041,7 +1041,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   // RFI markers
   const rfiMarkers = useMemo(() => {
     if (!project.rfis || !layerVisibility.rfis) return [];
-    return project.rfis.map(rfi => {
+    return (project.rfis || []).map(rfi => {
       const pos = parseLocation(rfi.location);
       if (!pos) return null;
       
@@ -1074,7 +1074,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   // NCR markers
   const ncrMarkers = useMemo(() => {
     if (!project.ncrs || !layerVisibility.ncrs) return [];
-    return project.ncrs.map(ncr => {
+    return (project.ncrs || []).map(ncr => {
       const pos = parseLocation(ncr.location);
       if (!pos) return null;
       
@@ -1107,7 +1107,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   // Lab Test markers
   const labTestMarkers = useMemo(() => {
     if (!project.labTests || !layerVisibility.labTests) return [];
-    return project.labTests.map(test => {
+    return (project.labTests || []).map(test => {
       const pos = parseLocation(test.location);
       if (!pos) return null;
       
@@ -1196,7 +1196,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   const linearWorksLayers = useMemo(() => {
     if (!project.linearWorks || !layerVisibility.linearWorks || !alignmentOverlay) return [];
     
-    return project.linearWorks.map((work: LinearWorkLog) => {
+    return (project.linearWorks || []).map((work: LinearWorkLog) => {
       const positions = getCoordinatesForChainage(work.startChainage, work.endChainage);
       if (positions.length < 2) return null;
 
@@ -1512,7 +1512,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                       {/* Road Alignments Listing */}
                       {layerVisibility.roadAlignments && project.roads && project.roads.length > 0 && (
                         <div className="pl-4 space-y-3 mt-2 border-l-2 border-indigo-100">
-                          {project.roads.flatMap(road => road.alignments || []).map((alignment) => (
+                          {(project.roads || []).flatMap(road => road.alignments || []).map((alignment) => (
                             <div key={alignment.id} className="flex items-center justify-between group">
                               <div className="flex flex-col min-w-0 pr-4">
                                 <span className="text-[11px] font-bold truncate leading-tight text-slate-600" title={alignment.name}>
@@ -1572,7 +1572,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                       {/* Road Structures Listing */}
                       {layerVisibility.roadStructures && project.structures && project.structures.length > 0 && (
                         <div className="pl-4 space-y-3 mt-2 border-l-2 border-blue-100">
-                          {project.structures.map((structure: StructureAsset) => (
+                          {(project.structures || []).map((structure: StructureAsset) => (
                             <div key={structure.id} className="flex flex-col min-w-0 pr-4">
                               <span className="text-[11px] font-bold truncate leading-tight text-slate-600" title={structure.name}>
                                 {structure.name}
@@ -1800,7 +1800,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                       {/* Site Photos Listing */}
                       {layerVisibility.sitePhotos && project.sitePhotos && project.sitePhotos.length > 0 && (
                         <div className="pl-4 space-y-3 mt-2 border-l-2 border-pink-100">
-                          {project.sitePhotos.map((photo) => (
+                          {(project.sitePhotos || []).map((photo) => (
                             <div key={photo.id} className="flex items-center justify-between group">
                               <div className="flex flex-col min-w-0 pr-4">
                                 <span className="text-[11px] font-bold truncate leading-tight text-slate-600" title={photo.caption}>
@@ -1915,7 +1915,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                       {/* Individual KML Files */}
                       {layerVisibility.kml && project.kmlData && project.kmlData.length > 0 && (
                         <div className="pl-4 space-y-3 mt-2 border-l-2 border-indigo-100">
-                          {project.kmlData.map((kml) => (
+                          {(project.kmlData || []).map((kml) => (
                             <div key={kml.id} className="flex items-center justify-between group">
                               <div className="flex flex-col min-w-0 pr-4">
                                 <span className="text-[11px] font-bold truncate leading-tight text-slate-600" title={kml.name}>
