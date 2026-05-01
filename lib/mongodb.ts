@@ -50,7 +50,14 @@ async function initMongo() {
 }
 
 (async () => {
-  await initMongo();
+  try {
+    await initMongo();
+  } catch (error: any) {
+    console.error('[MongoDB] Connection failed, falling back to mock:', error.message);
+    const mock = createMockMongoClient();
+    mongoClient = mock;
+    db = mock.db();
+  }
 })();
 
 export const mongodb = {
