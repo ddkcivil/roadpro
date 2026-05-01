@@ -591,6 +591,7 @@ export interface MapOverlay {
   coordinates: { lat: number, lng: number }[];
   color: string;
   visible: boolean;
+  status?: string;
 }
 
 export interface KMLData {
