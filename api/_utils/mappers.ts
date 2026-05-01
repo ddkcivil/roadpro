@@ -30,15 +30,16 @@ export function mapProjectFromDb(dbProj: any): any {
     id: dbProj.id,
     name: dbProj.name,
     client: dbProj.client,
+    contractNo: dbProj.contract_no || dbProj.contractNo || dbProj.contractno,
     // Support both snake_case and camelCase column names returned by different DB migrations
     ownerId: dbProj.ownerId || dbProj.ownerid,
     location: dbProj.location,
     status: dbProj.status,
     budget: dbProj.budget,
-    startDate: dbProj.startDate || dbProj.startdate,
-    endDate: dbProj.endDate || dbProj.enddate,
-    createdAt: dbProj.createdAt || dbProj.createdat,
-    updatedAt: dbProj.updatedAt || dbProj.updatedat,
+    startDate: dbProj.startDate || dbProj.start_date || dbProj.startdate,
+    endDate: dbProj.endDate || dbProj.end_date || dbProj.enddate,
+    createdAt: dbProj.createdAt || dbProj.created_at || dbProj.createdat,
+    updatedAt: dbProj.updatedAt || dbProj.updated_at || dbProj.updatedat,
     description: dbProj.description,
     metadata: dbProj.metadata
   };
@@ -50,14 +51,15 @@ export function mapProjectToDb(proj: any): any {
     id: proj.id,
     name: proj.name,
     client: proj.client,
+    contract_no: proj.contractNo,
     // Use lowercase column names as Postgres folds unquoted identifiers to lowercase.
     location: proj.location,
     status: proj.status,
     budget: proj.budget,
-    startdate: proj.startDate,
-    enddate: proj.endDate,
-    createdat: proj.createdAt,
-    updatedat: proj.updatedAt,
+    start_date: proj.startDate,
+    end_date: proj.endDate,
+    created_at: proj.createdAt,
+    updated_at: proj.updatedAt,
     description: proj.description,
     metadata: proj.metadata
   };

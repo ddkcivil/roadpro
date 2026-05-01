@@ -179,7 +179,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
       const { data: fetchedProjects, error } = await supabase
         .from('projects')
         .select('*')
-        .order('createdat', { ascending: false })
+        .order('created_at', { ascending: false })
         .range((page - 1) * 50, page * 50 - 1);
 
       if (error) throw error;
