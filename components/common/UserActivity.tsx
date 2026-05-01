@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../../services/api/apiService';
-import { useAuth } from '../../hooks/useAuth.tsx';
+import { useAuth } from '../../hooks/useAuth';
 import { AuditLog, UserRole } from '../../types';
 import { 
   Search, 
