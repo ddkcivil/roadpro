@@ -163,7 +163,7 @@ export const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
 function addChainageMarkers(map: L.Map, points: L.LatLng[], name: string, markers: L.Layer[], color: string = '#4f46e5') {
   if (points.length < 2) return;
 
-  const prefix = name.split('.')[0];
+  const prefix = name?.split('.')[0] || 'file';
 
   // Add start marker
   const startMarker = L.marker(points[0], { 
@@ -718,7 +718,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
       parsed.placemarks.forEach(placemark => {
         const points: L.LatLng[] = placemark.points;
         if (points && points.length >= 2) {
-          lines.push({ name: kml.name.split('.')[0], coords: points });
+          lines.push({ name: kml.name?.split('.')[0] || 'KML', coords: points });
         }
       });
     });
@@ -762,7 +762,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
     if (!project.structures || !layerVisibility.structures) return [];
     return project.structures.map((structure: StructureAsset) => {
       if (!structure.coordinates) return null;
-      const [lat, lng] = structure.coordinates.split(',').map(Number);
+      const [lat, lng] = (structure.coordinates?.split(',') || []).map(Number);
       if (isNaN(lat) || isNaN(lng)) return null;
       
       const nearestKML = getNearestChainage(L.latLng(lat, lng));
@@ -875,7 +875,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                     <img src={userDetails.avatar} alt={staff.userName} className="h-full w-full object-cover" />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center font-black text-amber-500 bg-amber-50">
-                      {staff.userName.split(' ').map(n => n[0]).join('')}
+                      {(staff.userName?.split(' ') || []).map(n => n[0]).join('') || 'U'}
                     </div>
                   )}
                 </div>
@@ -1236,7 +1236,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
       features: [
         ...(project.structures || []).map(s => {
           if (!s.coordinates) return null;
-          const [lat, lng] = s.coordinates.split(',').map(Number);
+          const [lat, lng] = (s.coordinates?.split(',') || []).map(Number);
           return {
             type: 'Feature',
             geometry: { type: 'Point', coordinates: [lng, lat] },
@@ -1658,7 +1658,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                                         <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
                                       ) : (
                                         <div className="h-full w-full flex items-center justify-center text-[8px] font-black text-green-500">
-                                          {user.name.split(' ').map(n => n[0]).join('')}
+                                          {(user.name?.split(' ') || []).map(n => n[0]).join('') || 'U'}
                                         </div>
                                       )}
                                     </div>
@@ -1686,7 +1686,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                                       <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
                                     ) : (
                                       <div className="h-full w-full flex items-center justify-center text-[8px] font-black text-slate-400">
-                                        {user.name.split(' ').map(n => n[0]).join('')}
+                                        {(user.name?.split(' ') || []).map(n => n[0]).join('') || 'U'}
                                       </div>
                                     )}
                                   </div>
