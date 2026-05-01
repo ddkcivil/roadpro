@@ -1,12 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { withErrorHandler } from './_utils/errorHandler.js';
-import { getUserByEmail, verifyPassword, generateToken } from './_utils/mongoAuth.js';
+import { getUserByEmail, verifyPassword, generateToken, verifyToken } from './_utils/mongoAuth.js';
 import { mapUserFromDb } from './_utils/mappers.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
-  if (req.method === 'POST') {
-    const { action } = req.query;
+  const { action } = req.query;
 
+  if (req.method === 'POST') {
+    // --- LOGIN ---
     if (action === 'login') {
       const { email, password } = req.body;
 
@@ -15,6 +16,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       }
 
       const user = await getUserByEmail(email);
+
       if (!user || !user.passwordHash) {
         return res.status(401).json({ error: 'Invalid email or password' });
       }
@@ -41,6 +43,34 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    // --- VERIFY ---
+    if (action === 'verify') {
+      let token = null;
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.split(' ')[1];
+      } else if (req.headers.cookie) {
+        const cookies = (req.headers.cookie || '').split(';').reduce((acc: any, cookie) => {
+          const [name, value] = cookie.trim().split('=');
+          if (name) acc[name] = value;
+          return acc;
+        }, {});
+        token = cookies['roadmaster-access'];
+      }
+
+      if (!token) {
+        return res.status(401).json({ valid: false, error: 'No token provided' });
+      }
+
+      const payload = await verifyToken(token);
+      if (!payload) {
+        return res.status(401).json({ valid: false, error: 'Invalid or expired token' });
+      }
+
+      return res.status(200).json({ valid: true, user: payload });
+    }
+
+    // --- LOGOUT ---
     if (action === 'logout') {
       res.setHeader('Set-Cookie', 'roadmaster-access=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
       return res.status(200).json({ message: 'Logged out successfully' });

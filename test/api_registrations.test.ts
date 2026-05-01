@@ -1,41 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import handler from '../api/registrations.js';
-import { mongodb } from '../lib/mongodb.js';
-import { hashPassword } from '../api/_utils/mongoAuth.js';
-import { v4 as uuidv4 } from 'uuid';
+import handler from '../api/registrations';
+import { mongodb } from '../lib/mongodb';
+import { clearTestCollection } from './setup';
 
-// Mock MongoDB
-vi.mock('../lib/mongodb.js', () => ({
-  mongodb: {
-    db: {
-      collection: vi.fn().mockReturnThis(),
-      find: vi.fn().mockReturnThis(),
-      sort: vi.fn().mockReturnThis(),
-      toArray: vi.fn(),
-      insertOne: vi.fn(),
-      deleteOne: vi.fn(),
-      findOne: vi.fn(),
-    }
-  }
-}));
-
-// Mock mongoAuth helpers
-vi.mock('../api/_utils/mongoAuth.js', () => ({
-  hashPassword: vi.fn((p) => Promise.resolve(`hashed-${p}`)),
-}));
-
-// Mock uuid
-vi.mock('uuid', () => ({ v4: vi.fn(() => 'mock-uuid-v4') }));
-
-// Mock middleware
+// Mock middleware only
 vi.mock('../api/_utils/errorHandler.js', () => ({ withErrorHandler: (h: any) => h }));
 
-describe('api/registrations handler', () => {
+describe('api/registrations handler (Integration)', () => {
   let mockReq: any;
   let mockRes: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    await clearTestCollection('registrations');
+    await clearTestCollection('users');
+    
     mockReq = { method: '', query: {}, body: {} };
     mockRes = {
       status: vi.fn().mockReturnThis(),
@@ -44,57 +23,86 @@ describe('api/registrations handler', () => {
     };
   });
 
-  it('GET /api/registrations should return a list of registrations', async () => {
+  it('GET /api/registrations should return a list of registrations from DB', async () => {
+    await mongodb.db.collection('registrations').insertOne({
+      _id: 'reg-1',
+      name: 'Test Reg 1',
+      email: 'reg1@example.com',
+      created_at: new Date().toISOString()
+    });
+
     mockReq.method = 'GET';
-    const mockRegistrations = [{ _id: 'reg-1', name: 'Test User 1' }];
-    (mongodb.db.collection as any)().find().sort().toArray.mockResolvedValue(mockRegistrations);
-
     await handler(mockReq, mockRes);
 
-    expect(mongodb.db.collection).toHaveBeenCalledWith('registrations');
     expect(mockRes.status).toHaveBeenCalledWith(200);
-    expect(mockRes.json).toHaveBeenCalledWith(mockRegistrations);
+    const regs = mockRes.json.mock.calls[0][0];
+    expect(regs.length).toBe(1);
+    expect(regs[0]._id).toBe('reg-1');
   });
 
-  it('POST /api/registrations (submit) should create a new registration', async () => {
+  it('POST /api/registrations (submit) should create a new registration in DB', async () => {
     mockReq.method = 'POST';
-    mockReq.body = { name: 'New User', email: 'new@example.com', password: 'password123', requestedRole: 'USER' };
+    mockReq.body = { 
+      name: 'New Registrant', 
+      email: 'newreg@example.com', 
+      password: 'password123', 
+      requestedRole: 'USER' 
+    };
     
-    (mongodb.db.collection as any)().findOne.mockResolvedValue(null);
-    (mongodb.db.collection as any)().insertOne.mockResolvedValue({ insertedId: 'mock-uuid-v4' });
-
     await handler(mockReq, mockRes);
 
-    expect(mongodb.db.collection).toHaveBeenCalledWith('registrations');
     expect(mockRes.status).toHaveBeenCalledWith(201);
-    expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Registration submitted successfully. Awaiting administrator approval.' }));
+    
+    const regInDb = await mongodb.db.collection('registrations').findOne({ email: 'newreg@example.com' });
+    expect(regInDb).not.toBeNull();
+    expect(regInDb?.name).toBe('New Registrant');
   });
 
-  it('POST /api/registrations?action=approve should approve a registration', async () => {
+  it('POST /api/registrations?action=approve should approve a registration and create user', async () => {
+    const regId = 'reg-approve-1';
+    await mongodb.db.collection('registrations').insertOne({
+      _id: regId,
+      name: 'To Approve',
+      email: 'approve@example.com',
+      password: 'hashed-password',
+      requestedRole: 'SITE_ENGINEER',
+      created_at: new Date().toISOString()
+    });
+
     mockReq.method = 'POST';
     mockReq.query.action = 'approve';
-    mockReq.query.id = 'reg-1';
-
-    const mockReg = { _id: 'reg-1', name: 'User', email: 'user@example.com', password: 'pass', requestedRole: 'USER' };
-    (mongodb.db.collection as any)().findOne.mockResolvedValueOnce(mockReg); // Find registration
-    (mongodb.db.collection as any)().findOne.mockResolvedValueOnce(null); // No existing user
-    (mongodb.db.collection as any)().insertOne.mockResolvedValue({ insertedId: 'new-user-id' }); // Create user
-    (mongodb.db.collection as any)().deleteOne.mockResolvedValue({ deletedCount: 1 }); // Delete registration
+    mockReq.query.id = regId;
 
     await handler(mockReq, mockRes);
 
     expect(mockRes.status).toHaveBeenCalledWith(200);
-    expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Registration approved successfully' }));
+    
+    // Check user created
+    const userInDb = await mongodb.db.collection('users').findOne({ email: 'approve@example.com' });
+    expect(userInDb).not.toBeNull();
+    expect(userInDb?.full_name).toBe('To Approve');
+    
+    // Check registration deleted
+    const regInDb = await mongodb.db.collection('registrations').findOne({ _id: regId });
+    expect(regInDb).toBeNull();
   });
 
-  it('DELETE /api/registrations should delete a registration', async () => {
-    mockReq.method = 'DELETE';
-    mockReq.query.id = 'reg-1';
+  it('DELETE /api/registrations should delete a registration from DB', async () => {
+    const regId = 'reg-delete-1';
+    await mongodb.db.collection('registrations').insertOne({
+      _id: regId,
+      name: 'Delete Me',
+      email: 'delete@example.com'
+    });
 
-    (mongodb.db.collection as any)().deleteOne.mockResolvedValue({ deletedCount: 1 });
+    mockReq.method = 'DELETE';
+    mockReq.query.id = regId;
 
     await handler(mockReq, mockRes);
 
     expect(mockRes.status).toHaveBeenCalledWith(204);
+    
+    const regInDb = await mongodb.db.collection('registrations').findOne({ _id: regId });
+    expect(regInDb).toBeNull();
   });
 });

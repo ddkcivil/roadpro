@@ -7,9 +7,10 @@ const mockDB = {
 };
 
 // Seed admin
-mockDB.users.set('admin-1', {
-  _id: 'admin-1',
+mockDB.users.set('00000000-0000-0000-0000-000000000000', {
+  _id: '00000000-0000-0000-0000-000000000000',
   email: 'admin@myroad.app',
+  passwordHash: '$2b$12$X7JCS7utLDMi/vOCEbZ38esHk.xgsiYU3wDPBbgK8CpBHp/oltLe2', // admin123
   full_name: 'Admin User',
   role: 'ADMIN',
   avatar_url: 'https://ui-avatars.com/api/?name=Admin',
@@ -19,7 +20,15 @@ mockDB.users.set('admin-1', {
 
 export const createMockMongoClient = () => ({
   db: () => ({
+    listCollections: async () => ({
+      toArray: async () => [{ name: 'users' }, { name: 'registrations' }]
+    }),
     collection: (name: string) => ({
+      listCollections: async function() {
+        return {
+          toArray: async () => Object.keys(mockDB)
+        };
+      },
       // Find one
       findOne: async (filter: any) => {
         console.log(`[MockMongo ${name}] findOne`, filter);

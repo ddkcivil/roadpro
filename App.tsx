@@ -3,7 +3,7 @@ import { Database, Mail, Info, Loader2 } from 'lucide-react';
 import { Project, User, UserRole, Permission } from './types';
 import { LocalStorageUtils } from './utils/data/localStorageUtils';
 import { getNavigationGroups } from './config/navigation';
-import { useAuth } from './hooks/useAuth.tsx';
+import { useAuth } from './hooks/useAuth';
 import { useProjects } from './hooks/useProjects';
 import { useMessages } from './hooks/useMessages';
 import { useSettings } from './hooks/useSettings';
@@ -173,9 +173,7 @@ const App: React.FC = () => {
   }, []);
 
   const handleSaveProject = useCallback((project: Partial<Project>) => {
-    startTransition(() => {
-      saveProject(project);
-    });
+    return saveProject(project);
   }, [saveProject]);
   
   const [users, setUsers] = useState<User[]>(() => {
@@ -279,7 +277,7 @@ const App: React.FC = () => {
         <ProjectModal 
           open={isProjectModalOpen} 
           onClose={() => setIsProjectModalOpen(false)} 
-          onSave={(p) => { saveProject(p); setIsProjectModalOpen(false); }}
+          onSave={async (p: Partial<Project>) => { await saveProject(p); setIsProjectModalOpen(false); }}
           project={editProject}
         />
       </Suspense>
@@ -426,7 +424,7 @@ const App: React.FC = () => {
         <ProjectModal 
           open={isProjectModalOpen} 
           onClose={() => startTransition(() => setIsProjectModalOpen(false))} 
-          onSave={(p) => { handleSaveProject(p); startTransition(() => setIsProjectModalOpen(false)); }}
+          onSave={async (p: Partial<Project>) => { await handleSaveProject(p); startTransition(() => setIsProjectModalOpen(false)); }}
           project={editProject}
         />
         

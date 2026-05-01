@@ -1,33 +1,15 @@
-import { config } from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Load environment variables from various possible locations
-const rootDir = path.join(__dirname, '..', '..');
-[
-  '.env.production',
-  '.env.local',
-  '.env'
-].forEach(file => {
-  config({ path: path.join(rootDir, file), override: true });
-});
-
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+// Rely on Vercel's injected environment variables. 
+// Do not manually load .env files in production as it can cause overrides and path issues.
+
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const isPlaceholder = (val: string | undefined) => !val || val.includes('your-project') || val.includes('your-anon');
+const isPlaceholder = (val: string | undefined) => !val || val.includes('your-project') || val.includes('your-anon') || val.length < 10;
 
-// We'll export a helper to check if the client is valid
-export const isSupabaseConfigured = () => {
-  return !isPlaceholder(supabaseUrl) && !isPlaceholder(supabaseAnonKey) && !!supabaseUrl && supabaseUrl.startsWith('http');
-};
-
-// Initialize only if we have basic requirements to avoid library-level throws
-// We'll use fallbacks if missing, but then check in handlers
+// Initialize clients
 const finalUrl = isPlaceholder(supabaseUrl) ? 'https://placeholder.supabase.co' : supabaseUrl!;
 const finalAnonKey = isPlaceholder(supabaseAnonKey) ? 'placeholder' : supabaseAnonKey!;
 
@@ -42,8 +24,8 @@ export const supabaseAdmin = createClient(
 )
 
 export function ensureSupabaseConfigured() {
-  const currentUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const currentAnon = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const currentUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const currentAnon = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
   if (isPlaceholder(currentUrl) || isPlaceholder(currentAnon)) {
     const missing = [];
@@ -51,15 +33,22 @@ export function ensureSupabaseConfigured() {
     if (isPlaceholder(currentAnon)) missing.push('SUPABASE_ANON_KEY');
 
     console.error(`[CONFIG] Missing or placeholder Supabase variables: ${missing.join(', ')}`);
-    console.error('[CONFIG] process.env keys:', Object.keys(process.env).filter(k => k.includes('SUPABASE')));
     throw new Error(`CRITICAL: Supabase environment variables (${missing.join(', ')}) are missing or using placeholder values.`);
   }
 
   if (!currentUrl!.startsWith('http')) {
-    console.error(`[CONFIG] Invalid SUPABASE_URL format: "${currentUrl}"`);
     throw new Error(`CRITICAL: Invalid SUPABASE_URL format: "${currentUrl}". It must be a valid HTTP/HTTPS URL.`);
   }
 }
+
+export const isSupabaseConfigured = () => {
+  try {
+    ensureSupabaseConfigured();
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 
 

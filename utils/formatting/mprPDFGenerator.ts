@@ -19,7 +19,7 @@ const formatDate = (dateStr: string): string => {
 // Helper to get month name
 const getMonthName = (monthStr: string): string => {
   if (!monthStr) return '';
-  const [year, month] = monthStr.split('-');
+  const [year, month] = monthStr?.split('-') || [];
   const date = new Date(parseInt(year), parseInt(month) - 1, 1);
   return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 };
@@ -202,7 +202,7 @@ export const generateMPRPDF = async (
   const reportDate = getMonthName(reportMonth);
   
   // Fetch data for the Weather Section
-  const [year, month] = reportMonth.split('-').map(Number);
+  const [year, month] = (reportMonth?.split('-') || []).map(Number);
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const weatherHistory = await fetchDailyWeatherHistory(month, year, project.lat || 27.7172, project.lng || 85.3240);
   const weatherSummary = await fetchMonthlySummary(monthNames[month - 1], project.location || 'Butwal, Nepal');

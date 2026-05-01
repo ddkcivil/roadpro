@@ -82,6 +82,133 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
   const [previewDoc, setPreviewDoc] = useState<ProjectDocument | null>(null);
   const [newTagInput, setNewTagInput] = useState('');
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (uploadMode === 'SCAN' && files.length > 1) {
+      toast.error('Scan mode supports only one file at a time.');
+      return;
+    }
+    setUploadFiles(files);
+    setScanStep('IDLE');
+    // Reset metadata for new file
+    setScannedMetadata({
+      subject: '',
+      refNo: '',
+      date: new Date().toISOString().split('T')[0],
+      letterDate: '',
+      correspondenceType: 'incoming',
+      sender: '',
+      recipient: '',
+      subId: ''
+    });
+  };
+
+  const handleScanAnalysis = async () => {
+    if (uploadFiles.length === 0) {
+      toast.error('No file selected for analysis.');
+      return;
+    }
+
+    const file = uploadFiles[0];
+    setScanStep('PROCESSING');
+    const analysisToast = toast.loading('Analyzing document with AI OCR...');
+
+    try {
+      const base64Data = await fileToBase64(file);
+      // Changed from ocrService.extractText to Os.extractText based on error
+      const ocrResult = await Os.extractText(base64Data);
+
+          // Parse extracted text for metadata (simple heuristic parsing)
+    const text = ocrResult.text.toLowerCase();
+    const subjectMatch = text.match(/subject[:\-]?\s*(.{1,100})/i);
+    const refMatch = text.match(/ref(?:erence)?[:\-]?\s*(.{1,50})/i);
+    const dateMatch = text.match(/\b(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}|\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/);
+
+    // Improved regex for correspondenceType to be more specific
+    const typeMatchResult = text.match(/\b(incoming|in|from)\b/i) ? 'incoming' : text.match(/\b(outgoing|out|to)\b/i) ? 'outgoing' : undefined;
+    let finalCorrespondenceType: 'incoming' | 'outgoing' | undefined = undefined;
+
+    if (typeMatchResult === 'incoming') {
+        finalCorrespondenceType = 'incoming';
+    } else if (typeMatchResult === 'outgoing') {
+        finalCorrespondenceType = 'outgoing';
+    }
+
+    setScannedMetadata(prev => ({
+      ...prev,
+      subject: subjectMatch ? subjectMatch[1].trim() : file.name.split('.')[0],
+      refNo: refMatch ? refMatch[1].trim() : '',
+      letterDate: dateMatch ? dateMatch[1] : '',
+      correspondenceType: finalCorrespondenceType, // Use the strictly typed variable
+      sender: '',
+      recipient: '',
+      date: new Date().toISOString().split('T')[0] // Date is already string
+    }));
+
+    setScanStep('REVIEW');
+    toast.dismiss(analysisToast);
+    toast.success('Document analyzed! Review extracted metadata below.');
+  } catch (error) {
+    setScanStep('IDLE');
+    toast.dismiss(analysisToast);
+    toast.error('OCR analysis failed', { description: (error as Error).message });
+    console.error('OCR Error:', error);
+  }
+};
+
+  // PDF Preview State
+  const [pdfComponents, setPdfComponents] = useState<PdfComponents | null>(null);
+  const [currentPageState, setCurrentPageState] = useState(1);
+  const [numPagesState, setNumPagesState] = useState<number | null>(null);
+  const [scaleState, setScaleState] = useState(1.0);
+
+  useEffect(() => {
+    const loadPdfComponents = async () => {
+      try {
+        const pdfModule = await import('react-pdf');
+        const pdfjs = pdfModule.pdfjs;
+        if (pdfjs && pdfjs.GlobalWorkerOptions) {
+          const workerUrl = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+          pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+        }
+        setPdfComponents({
+          Document: pdfModule.Document,
+          Page: pdfModule.Page,
+          pdfjs: pdfjs
+        });
+      } catch (error) {
+        console.warn('Failed to load PDF components:', error);
+      }
+    };
+    loadPdfComponents();
+  }, []);
+
+  const Document = pdfComponents?.Document;
+  const Page = pdfComponents?.Page;
+
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    setNumPagesState(numPages);
+  };
+
+  const goToPrevPage = () => setCurrentPageState(prev => Math.max(1, prev - 1));
+  const goToNextPage = () => setCurrentPageState(prev => Math.min(numPagesState || 1, prev + 1));
+  const zoomIn = () => setScaleState(prev => Math.min(2, prev + 0.2));
+  const zoomOut = () => setScaleState(prev => Math.max(0.5, prev - 0.2));
+
+  const getFileUrl = (doc: ProjectDocument): string => {
+    return doc.fileUrl || '';
+  };
+
+  const filteredDocuments = useMemo(() => {
+    return (project.documents || []).filter(doc => {
+      const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           doc.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           doc.refNo?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesFolder = activeFolder === 'All' || doc.folder === activeFolder;
+      return matchesSearch && matchesFolder;
+    });
+  }, [project.documents, searchTerm, activeFolder]);
+
   const handleAddTag = (docId: string, tag: string) => {
     const trimmedTag = tag.trim();
     if (!trimmedTag) return;
@@ -436,7 +563,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                         ) : (
                             <FileText className="h-4 w-4 text-rose-500"/>
                         )}
-                        <span className={cn("font-medium", doc.status === 'Unavailable' && "line-through text-muted-foreground")}>
+                        <span className={cn("font-medium", (doc.status ?? 'Active') === 'Unavailable' && "line-through text-muted-foreground")}>
                             {doc.name} {doc.status === 'Unavailable' && ' (Unavailable)'}
                         </span>
                       </div>
@@ -571,7 +698,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
               <div className="flex gap-2">
                 <Select
                     value={scannedMetadata.correspondenceType || 'none'}
-                    onValueChange={value => setScannedMetadata({...scannedMetadata, correspondenceType: value === 'none' ? '' : value as any})}
+                    onValueChange={value => setScannedMetadata({...scannedMetadata, correspondenceType: value === 'none' ? undefined : (value as "incoming" | "outgoing")})}
                 >
                     <SelectTrigger aria-label="Correspondence Type">
                         <SelectValue placeholder="Correspondence Type" />
@@ -783,28 +910,6 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                         ))}
                       </ScrollArea>
                     </Card>
-                  </div>
-                  <Separator />
-                  <div>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Discussion</h4>
-                    <CommentsPanel
-                      entityId={previewDoc.id}
-                      entityType="document"
-                      comments={previewDoc.comments || []}
-                      currentUser={{ id: 'current-user', name: 'Current User' }}
-                      onAddComment={(comment) => {
-                        const commentWithId = {
-                          ...comment,
-                          id: `comment-${Date.now()}-${Math.random()}`,
-                          timestamp: new Date().toISOString()
-                        };
-                        const updatedDocs = (project.documents || []).map(d =>
-                          d.id === previewDoc.id ? { ...d, comments: [...(d.comments || []), commentWithId] } : d
-                        );
-                        onProjectUpdate({ ...project, documents: updatedDocs });
-                        setPreviewDoc(prev => prev ? { ...prev, comments: [...(prev.comments || []), commentWithId] } : null);
-                      }}
-                    />
                   </div>
                   <Separator />
                   <div>
