@@ -124,21 +124,14 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
     const dateMatch = text.match(/\b(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}|\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/);
 
     // Improved regex for correspondenceType to be more specific
-    const typeMatchResult = text.match(/\b(incoming|in|from)\b/i) ? 'incoming' : text.match(/\b(outgoing|out|to)\b/i) ? 'outgoing' : undefined;
-    let finalCorrespondenceType: 'incoming' | 'outgoing' | undefined = undefined;
-
-    if (typeMatchResult === 'incoming') {
-        finalCorrespondenceType = 'incoming';
-    } else if (typeMatchResult === 'outgoing') {
-        finalCorrespondenceType = 'outgoing';
-    }
+    const finalCorrespondenceType = text.match(/\b(incoming|in|from)\b/i) ? 'incoming' : text.match(/\b(outgoing|out|to)\b/i) ? 'outgoing' : '';
 
     setScannedMetadata(prev => ({
       ...prev,
       subject: subjectMatch ? subjectMatch[1].trim() : file.name.split('.')[0],
       refNo: refMatch ? refMatch[1].trim() : '',
       letterDate: dateMatch ? dateMatch[1] : '',
-      correspondenceType: finalCorrespondenceType, // Use the strictly typed variable
+      correspondenceType: finalCorrespondenceType,
       sender: '',
       recipient: '',
       date: new Date().toISOString().split('T')[0] // Date is already string
@@ -307,7 +300,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                   subject: (scanStep === 'REVIEW' ? scannedMetadata.subject : '') || f.name.split('.')[0],
                   refNo: scanStep === 'REVIEW' ? scannedMetadata.refNo : undefined,
                   letterDate: scanStep === 'REVIEW' ? scannedMetadata.letterDate : undefined,
-                  correspondenceType: scanStep === 'REVIEW' ? scannedMetadata.correspondenceType : undefined,
+                  correspondenceType: scanStep === 'REVIEW' ? (scannedMetadata.correspondenceType as 'incoming' | 'outgoing' | undefined) || undefined : undefined,
                   fileUrl: uploadResult.url, 
                   fileId: uploadResult.id,
                   currentVersion: 1, 
@@ -697,7 +690,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
               <div className="flex gap-2">
                 <Select
                     value={scannedMetadata.correspondenceType || 'none'}
-                    onValueChange={value => setScannedMetadata({...scannedMetadata, correspondenceType: value === 'none' ? undefined : (value as "incoming" | "outgoing")})}
+                    onValueChange={value => setScannedMetadata({...scannedMetadata, correspondenceType: value === 'none' ? '' : value})}
                 >
                     <SelectTrigger aria-label="Correspondence Type">
                         <SelectValue placeholder="Correspondence Type" />
