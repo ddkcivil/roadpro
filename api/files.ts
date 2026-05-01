@@ -87,11 +87,14 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       
       const buffer = Buffer.from(base64Content, 'base64');
       
+      // Sanitize filename to be safe for Supabase Storage path
+      const safeName = name.replace(/[\/\\?*:\"<>|]/g, '_').replace(/\s+/g, '_'); // Replace disallowed chars and spaces with underscores
+      
       // Construct file path in Supabase Storage
       // Example: 'files/projectId/folder/filename.ext' or 'files/filename.ext'
-      const storagePath = folder 
-        ? `${folder}/${name}` 
-        : `${projectId ? `${projectId}/` : ''}${name}`;
+      const storagePath = folder
+        ? `${folder}/${safeName}`
+        : `${projectId ? `${projectId}/` : ''}${safeName}`;
       
       // Ensure the storage bucket exists before uploading
       const { data: buckets } = await supabaseAdmin.storage.listBuckets();

@@ -6,7 +6,7 @@ import { TokenPayload } from './types.js';
 export const withAuth = (handler: Function, options: { ignoreExpiration?: boolean } = {}) => async (req: VercelRequest, res: VercelResponse) => {
   let token = null;
   const authHeader = req.headers.authorization;
-  
+
   if (authHeader && authHeader.startsWith('Bearer ')) {
     token = authHeader.split(' ')[1];
   } else if (req.headers.cookie) {
@@ -17,7 +17,7 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
       if (name) acc[name] = value;
       return acc;
     }, {});
-    
+
     // Prefer new access token cookie
     token = cookies['roadmaster-access'];
   }
@@ -59,6 +59,10 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
       }
     }
 
+    if (!payload) {
+      return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+    }
+
     // Fetch user role from MongoDB
     // Try to fetch user from Mongo first (legacy). If not found, rely on payload.role (from Supabase fallback)
     let userRole = (payload.role || 'SITE_ENGINEER').toUpperCase();
@@ -82,4 +86,3 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
     return res.status(500).json({ error: 'Authentication failed', details: err.message });
   }
 };
-

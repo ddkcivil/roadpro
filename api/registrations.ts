@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { mongodb } from '~/lib/mongodb';
+import { mongodb } from '../../lib/mongodb.js';
+import { supabaseAdmin } from './_utils/supabaseClient.js';
 import { withErrorHandler } from './_utils/errorHandler.js';
 import { v4 as uuidv4 } from 'uuid';
 import { hashPassword } from './_utils/mongoAuth.js';
@@ -19,8 +20,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       console.error('Failed to fetch pending registrations:', error);
       throw error;
     }
-  } 
-  
+  }
+
   if (req.method === 'POST') {
     if (action === 'approve') {
       if (!id || typeof id !== 'string') return res.status(400).json({ error: 'Invalid ID' });
@@ -55,6 +56,27 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         };
 
         await mongodb.db.collection('users').insertOne(newUser);
+
+        // 5. Create user profile in Supabase
+        const { error: supabaseError } = await supabaseAdmin
+          .from('profiles')
+          .insert([{
+            id: newUser._id, // Map MongoDB _id to Supabase profile id
+            full_name: newUser.full_name,
+            email: newUser.email,
+            role: newUser.role,
+            avatar_url: newUser.avatar_url,
+            last_seen: newUser.last_seen,
+            created_at: newUser.created_at,
+            updated_at: newUser.created_at // Initialize updated_at
+          }]);
+
+        if (supabaseError) {
+          console.error('Supabase profile insertion failed:', supabaseError);
+          // Decide if this should be a critical failure or just logged.
+          // For now, we'll log and proceed, as the user is created in Mongo.
+          // Consider adding a mechanism to re-sync if this fails.
+        }
 
         // 4. Delete pending registration
         await mongodb.db.collection('registrations').deleteOne({ _id: id });
@@ -102,7 +124,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         name,
         email: email.toLowerCase(),
         phone: phone || '',
-        passwordhash: password, // Potential issue: password is not hashed here, unlike in 'approve' action. However, this might not cause insert error unless password itself is malformed.
+        passwordhash: await hashPassword(password), // Password is now hashed upon submission.
         requestedrole: requestedRole,
         status: 'pending',
         created_at: new Date().toISOString()
