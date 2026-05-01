@@ -118,41 +118,43 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
       // Changed from ocrService.extractText to Os.extractText based on error
       const ocrResult = await Os.extractText(base64Data);
 
-      // Parse extracted text for metadata (simple heuristic parsing)
-      const text = ocrResult.text.toLowerCase();
-      const subjectMatch = text.match(/subject[:\-]?\s*(.{1,100})/i);
-      const refMatch = text.match(/ref(?:erence)?[:\-]?\s*(.{1,50})/i);
-      const dateMatch = text.match(/\b(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}|\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/);
-      // Robustly check typeMatch and typeMatch[1]
-      const typeMatch = text.match(/(incoming|outgoing|out|in|to|from)/i);
-      let correspondenceType = 'incoming';
-      if (typeMatch?.[1]) {
-        if (typeMatch[1].startsWith('out') || typeMatch[1].startsWith('to')) {
-          correspondenceType = 'outgoing';
-        }
-      }
+          // Parse extracted text for metadata (simple heuristic parsing)
+    const text = ocrResult.text.toLowerCase();
+    const subjectMatch = text.match(/subject[:\-]?\s*(.{1,100})/i);
+    const refMatch = text.match(/ref(?:erence)?[:\-]?\s*(.{1,50})/i);
+    const dateMatch = text.match(/\b(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}|\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/);
 
-      setScannedMetadata(prev => ({
-        ...prev,
-        subject: subjectMatch ? subjectMatch[1].trim() : file.name.split('.')[0],
-        refNo: refMatch ? refMatch[1].trim() : '',
-        letterDate: dateMatch ? dateMatch[1] : '',
-        correspondenceType: correspondenceType,
-        sender: '',
-        recipient: '',
-        date: new Date().toISOString().split('T')[0] // Date is already string
-      }));
+    // Improved regex for correspondenceType to be more specific
+    const typeMatchResult = text.match(/\b(incoming|in|from)\b/i) ? 'incoming' : text.match(/\b(outgoing|out|to)\b/i) ? 'outgoing' : undefined;
+    let finalCorrespondenceType: 'incoming' | 'outgoing' | undefined = undefined;
 
-      setScanStep('REVIEW');
-      toast.dismiss(analysisToast);
-      toast.success('Document analyzed! Review extracted metadata below.');
-    } catch (error) {
-      setScanStep('IDLE');
-      toast.dismiss(analysisToast);
-      toast.error('OCR analysis failed', { description: (error as Error).message });
-      console.error('OCR Error:', error);
+    if (typeMatchResult === 'incoming') {
+        finalCorrespondenceType = 'incoming';
+    } else if (typeMatchResult === 'outgoing') {
+        finalCorrespondenceType = 'outgoing';
     }
-  };
+
+    setScannedMetadata(prev => ({
+      ...prev,
+      subject: subjectMatch ? subjectMatch[1].trim() : file.name.split('.')[0],
+      refNo: refMatch ? refMatch[1].trim() : '',
+      letterDate: dateMatch ? dateMatch[1] : '',
+      correspondenceType: finalCorrespondenceType, // Use the strictly typed variable
+      sender: '',
+      recipient: '',
+      date: new Date().toISOString().split('T')[0] // Date is already string
+    }));
+
+    setScanStep('REVIEW');
+    toast.dismiss(analysisToast);
+    toast.success('Document analyzed! Review extracted metadata below.');
+  } catch (error) {
+    setScanStep('IDLE');
+    toast.dismiss(analysisToast);
+    toast.error('OCR analysis failed', { description: (error as Error).message });
+    console.error('OCR Error:', error);
+  }
+};
 
   // PDF Preview State
   const [pdfComponents, setPdfComponents] = useState<PdfComponents | null>(null);
@@ -561,7 +563,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                         ) : (
                             <FileText className="h-4 w-4 text-rose-500"/>
                         )}
-                        <span className={cn("font-medium", doc.status === 'Unavailable' && "line-through text-muted-foreground")}>
+                        <span className={cn("font-medium", (doc.status ?? 'Active') === 'Unavailable' && "line-through text-muted-foreground")}>
                             {doc.name} {doc.status === 'Unavailable' && ' (Unavailable)'}
                         </span>
                       </div>
