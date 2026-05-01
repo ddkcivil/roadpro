@@ -82,6 +82,59 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
   const [previewDoc, setPreviewDoc] = useState<ProjectDocument | null>(null);
   const [newTagInput, setNewTagInput] = useState('');
 
+  // PDF Preview State
+  const [pdfComponents, setPdfComponents] = useState<PdfComponents | null>(null);
+  const [currentPageState, setCurrentPageState] = useState(1);
+  const [numPagesState, setNumPagesState] = useState<number | null>(null);
+  const [scaleState, setScaleState] = useState(1.0);
+
+  useEffect(() => {
+    const loadPdfComponents = async () => {
+      try {
+        const pdfModule = await import('react-pdf');
+        const pdfjs = pdfModule.pdfjs;
+        if (pdfjs && pdfjs.GlobalWorkerOptions) {
+          const workerUrl = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+          pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+        }
+        setPdfComponents({
+          Document: pdfModule.Document,
+          Page: pdfModule.Page,
+          pdfjs: pdfjs
+        });
+      } catch (error) {
+        console.warn('Failed to load PDF components:', error);
+      }
+    };
+    loadPdfComponents();
+  }, []);
+
+  const Document = pdfComponents?.Document;
+  const Page = pdfComponents?.Page;
+
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    setNumPagesState(numPages);
+  };
+
+  const goToPrevPage = () => setCurrentPageState(prev => Math.max(1, prev - 1));
+  const goToNextPage = () => setCurrentPageState(prev => Math.min(numPagesState || 1, prev + 1));
+  const zoomIn = () => setScaleState(prev => Math.min(2, prev + 0.2));
+  const zoomOut = () => setScaleState(prev => Math.max(0.5, prev - 0.2));
+
+  const getFileUrl = (doc: ProjectDocument): string => {
+    return doc.fileUrl || '';
+  };
+
+  const filteredDocuments = useMemo(() => {
+    return (project.documents || []).filter(doc => {
+      const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           doc.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           doc.refNo?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesFolder = activeFolder === 'All' || doc.folder === activeFolder;
+      return matchesSearch && matchesFolder;
+    });
+  }, [project.documents, searchTerm, activeFolder]);
+
   const handleAddTag = (docId: string, tag: string) => {
     const trimmedTag = tag.trim();
     if (!trimmedTag) return;
