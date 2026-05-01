@@ -93,12 +93,25 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         ? `${folder}/${name}` 
         : `${projectId ? `${projectId}/` : ''}${name}`;
       
+      // Ensure the storage bucket exists before uploading
+      const { data: buckets } = await supabaseAdmin.storage.listBuckets();
+      const bucketExists = buckets?.some((b: any) => b.name === BUCKET_NAME);
+      if (!bucketExists) {
+        const { error: createBucketError } = await supabaseAdmin.storage.createBucket(BUCKET_NAME, {
+          public: true,
+          fileSizeLimit: 52428800, // 50MB
+        });
+        if (createBucketError && !createBucketError.message?.includes('already exists')) {
+          throw new Error(`Failed to create storage bucket: ${createBucketError.message}`);
+        }
+      }
+
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-        .from(BUCKET_NAME) // Use the defined BUCKET_NAME constant
+        .from(BUCKET_NAME)
         .upload(storagePath, buffer, {
           contentType,
-          upsert: true, // Overwrite if file with same path exists
+          upsert: true,
         });
 
       if (uploadError) throw uploadError;

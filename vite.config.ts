@@ -42,6 +42,7 @@ export default defineConfig(({ mode }) => {
           '@': path.resolve(__dirname, '.'),
           '~': path.resolve(__dirname, '.'),
           'lib': path.resolve(__dirname, './lib'), // Added alias for lib directory
+          'lib': path.resolve(__dirname, './lib'), // Added alias for lib directory
           'pdfjs-dist/build/pdf.worker.min.mjs': 'pdfjs-worker/pdf.worker.min.mjs',
         }
       },      optimizeDeps: {

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-const { mongodb } = require('../../lib/mongodb.ts');
+const { mongodb } = require('../../lib/mongodb.js');
 import { supabaseAdmin } from './_utils/supabaseClient.js';
 import { withErrorHandler } from './_utils/errorHandler.js';
 import { withAuth } from './_utils/auth.js';
