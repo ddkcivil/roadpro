@@ -96,16 +96,11 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
   const refreshCurrentProject = useCallback(async () => {
     if (!state.selectedProjectId) return;
     try {
-      const { data: updatedProject, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', state.selectedProjectId)
-        .single();
+      const updatedProject = await apiService.getProject(state.selectedProjectId);
 
-      if (error) throw error;
       if (!updatedProject) throw new Error('Project not found after refresh.');
 
-      const processedProject = prepareProjectWithMaterials(mapProjectFromDb(updatedProject) as Project);
+      const processedProject = prepareProjectWithMaterials(updatedProject);
       
       startTransition(() => {
         dispatch({ 
@@ -150,23 +145,9 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
     if (now - lastLocationUpdateRef.current > LOCATION_THROTTLE) {
       lastLocationUpdateRef.current = now;
       try {
-        const { error } = await supabase
-          .from('staff_locations')
-          .upsert([
-            {
-              project_id: projectId,
-              user_id: currentUser?.id,
-              latitude: latitude,
-              longitude: longitude,
-              timestamp: new Date().toISOString(),
-            }
-          ], { onConflict: 'project_id, user_id' });
-
-        if (error) {
-          throw error;
-        }
+        await apiService.updateStaffLocation(projectId, latitude, longitude);
       } catch (error) {
-        console.warn('[GPS] Failed to sync location to Supabase backend:', error);
+        console.warn('[GPS] Failed to sync location via API:', error);
       }
     }
   }, [currentUser, dispatch]);
@@ -176,19 +157,13 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
       dispatch({ type: 'FETCH_START' });
     });
     try {
-      const { data: fetchedProjects, error } = await supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .range((page - 1) * 50, page * 50 - 1);
+      const response = await apiService.getProjects(page);
 
-      if (error) throw error;
-
-      if (!fetchedProjects) {
+      if (!response || !response.data) {
         throw new Error('No projects found or error fetching projects.');
       }
 
-      const processedProjects = (fetchedProjects || []).map((p: any) => prepareProjectWithMaterials(mapProjectFromDb(p) as Project));
+      const processedProjects = response.data.map(p => prepareProjectWithMaterials(p));
 
       startTransition(() => {
         dispatch({ type: 'FETCH_SUCCESS', payload: processedProjects });
@@ -365,12 +340,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
         }
       }
 
-      const { error: deleteError } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', projectId);
-
-      if (deleteError) throw deleteError;
+      await apiService.deleteProject(projectId);
 
       if (currentUser && projectToDelete) {
         await AuditService.logDataModification(

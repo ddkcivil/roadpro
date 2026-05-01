@@ -39,7 +39,11 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
   const [activeChart, setActiveChart] = useState<'periodic' | 'scumulative'>('scumulative');
 
   const stats = useMemo(() => {
-    if (!project || !project.boq) return { earnedValue: 0, totalPlannedValue: 0, actualCost: 0, spi: 0, cpi: 0, physPercent: 0, rfiOpen: 0, rfiClosed: 0, rfiOverdue: 0 };
+    if (!project || !project.boq) return { 
+      earnedValue: 0, totalPlannedValue: 0, actualCost: 0, 
+      spi: 0, cpi: 0, physPercent: 0, rfiOpen: 0, rfiClosed: 0, rfiOverdue: 0,
+      costVariance: 0, scheduleVariance: 0
+    };
     
     // a = Sum of Ps(units)
     const provisionalSum = project.boq
@@ -58,41 +62,121 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
     // totalPlannedValue (Contract Value) = a + b + c
     const totalPlannedValue = provisionalSum + amountWithoutPS + vatAmount;
 
+    // Earned Value (EV) = Sum of (Completed Quantity * Rate)
     const earnedValue = project.boq.reduce((acc, item) => acc + (item.completedQuantity * item.rate), 0);
-    const actualCost = (project.subcontractorPayments || []).reduce((acc, p) => acc + p.amount, 0);
+    
+    // Actual Cost (AC) = Subcontractor Payments + Agency Payments
+    const subPayments = (project.subcontractorPayments || []).reduce((acc, p) => acc + p.amount, 0);
+    const agencyPayments = (project.agencyPayments || []).reduce((acc, p) => acc + p.amount, 0);
+    const actualCost = subPayments + agencyPayments;
+    
+    // Planned Value (PV) = Expected Progress * Total Planned Value
     const startDate = new Date(project.startDate);
     const endDate = new Date(project.endDate);
     const totalDuration = endDate.getTime() - startDate.getTime();
     const elapsedDuration = new Date().getTime() - startDate.getTime();
-    const expectedProgress = totalDuration > 0 ? Math.min(1, elapsedDuration / totalDuration) : 0;
+    
+    // Simple linear expected progress for now
+    const expectedProgress = totalDuration > 0 ? Math.max(0, Math.min(1, elapsedDuration / totalDuration)) : 0;
+    const plannedValue = totalPlannedValue * expectedProgress;
+    
+    // Performance Indices
     const actualProgress = totalPlannedValue > 0 ? (earnedValue / totalPlannedValue) : 0;
-    const spi = expectedProgress > 0 ? actualProgress / expectedProgress : 1;
-    const cpi = actualCost > 0 ? earnedValue / actualCost : 1;
+    const spi = plannedValue > 0 ? earnedValue / plannedValue : (expectedProgress > 0 ? 0 : 1);
+    const cpi = actualCost > 0 ? earnedValue / actualCost : (earnedValue > 0 ? 1.2 : 1); // 1.2 is a "good" default for no cost yet
+    
+    // Variances
+    const costVariance = earnedValue - actualCost;
+    const scheduleVariance = earnedValue - plannedValue;
+
     const rfiOpen = (project.rfis || []).filter(rfi => rfi.status === RFIStatus.OPEN).length;
     const rfiClosed = (project.rfis || []).filter(rfi => rfi.status === RFIStatus.CLOSED).length;
-    const rfiOverdue = (project.rfis || []).filter(rfi => rfi.status === RFIStatus.OPEN && new Date(rfi.date) < new Date()).length;
-    return { earnedValue, totalPlannedValue, actualCost, spi, cpi, physPercent: actualProgress * 100, rfiOpen, rfiClosed, rfiOverdue };
-  }, [project?.boq, project?.startDate, project?.endDate, project?.subcontractorPayments, project?.rfis]);
+    const rfiOverdue = (project.rfis || []).filter(rfi => rfi.status === RFIStatus.OPEN && rfi.date && new Date(rfi.date) < new Date()).length;
+
+    return { 
+      earnedValue, totalPlannedValue, actualCost, spi, cpi, 
+      physPercent: actualProgress * 100, 
+      rfiOpen, rfiClosed, rfiOverdue,
+      costVariance, scheduleVariance
+    };
+  }, [project, settings]);
 
   const sCurveData = useMemo(() => {
-    if (project?.schedule && project.schedule.length > 0) {
-      const sortedTasks = [...project.schedule].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-      let cumulativePlanned = 0;
-      let cumulativeEarned = 0;
-      return sortedTasks.map((task) => {
-        const plannedValue = 0; // Placeholder
-        const earnedValue = (task.progress / 100) * 0; // Placeholder
-        cumulativePlanned += plannedValue;
-        cumulativeEarned += earnedValue;
-        return {
-          name: task.name.substring(0, 3),
-          'Cumulative Planned': cumulativePlanned,
-          'Cumulative Earned': cumulativeEarned,
-        };
-      });
+    if (!project?.startDate || !project?.endDate) return [];
+
+    const start = new Date(project.startDate);
+    const end = new Date(project.endDate);
+    const now = new Date();
+    
+    // Create monthly intervals
+    const months: Date[] = [];
+    let current = new Date(start.getFullYear(), start.getMonth(), 1);
+    while (current <= end || (current.getMonth() <= end.getMonth() && current.getFullYear() <= end.getFullYear())) {
+      months.push(new Date(current));
+      current.setMonth(current.getMonth() + 1);
+      if (months.length > 60) break; // Safety break
     }
-    return [];
-  }, [project?.schedule]);
+
+    let cumulativePlanned = 0;
+    let cumulativeEarned = 0;
+
+    // Map tasks and BOQ items to their completion dates
+    const schedule = project.schedule || [];
+    const boq = project.boq || [];
+    
+    return months.map(monthDate => {
+      const monthLabel = monthDate.toLocaleString('default', { month: 'short', year: '2-digit' });
+      
+      // Calculate Planned Value for this month
+      // In a real S-Curve, PV is distributed over task duration. 
+      // For this implementation, we'll use a simplified model: 
+      // tasks contribute their BOQ value proportionally over their duration.
+      
+      let monthPlanned = 0;
+      let monthEarned = 0;
+
+      schedule.forEach(task => {
+        const taskStart = new Date(task.startDate);
+        const taskEnd = new Date(task.endDate);
+        const taskBoqItem = boq.find(b => b.id === task.boqItemId);
+        const taskValue = taskBoqItem ? (taskBoqItem.quantity * taskBoqItem.rate) : 0;
+
+        // If task overlaps with this month
+        const nextMonth = new Date(monthDate);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+        if (taskStart < nextMonth && taskEnd >= monthDate) {
+          // Calculate overlap days
+          const overlapStart = Math.max(taskStart.getTime(), monthDate.getTime());
+          const overlapEnd = Math.min(taskEnd.getTime(), nextMonth.getTime());
+          const overlapDays = Math.max(0, (overlapEnd - overlapStart) / (1000 * 60 * 60 * 24));
+          const totalDays = Math.max(1, (taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24));
+          
+          monthPlanned += (overlapDays / totalDays) * taskValue;
+
+          // For Earned Value, we use the progress reported on the task
+          // But only if the month is in the past or present
+          if (monthDate <= now) {
+             // Simplified: distributed earned value based on current progress
+             // A better model would use historical progress snapshots
+             const actualProgress = task.progress / 100;
+             monthEarned += (overlapDays / totalDays) * taskValue * actualProgress;
+          }
+        }
+      });
+
+      cumulativePlanned += monthPlanned;
+      cumulativeEarned += monthEarned;
+
+      return {
+        name: monthLabel,
+        'Cumulative Planned': Math.round(cumulativePlanned),
+        'Cumulative Earned': monthDate <= now ? Math.round(cumulativeEarned) : null,
+        'Monthly Planned': Math.round(monthPlanned),
+        'Monthly Earned': monthDate <= now ? Math.round(monthEarned) : null
+      };
+    });
+  }, [project?.schedule, project?.boq, project?.startDate, project?.endDate]);
 
   const financialChartData = useMemo(() => {
     if (project?.boq && project.boq.length > 0) {
@@ -133,10 +217,15 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
   }, [project?.boq]);
 
   useEffect(() => {
-    if (settings && !settings.dashboardWidgets) {
+    if (settings && (!settings.dashboardWidgets || settings.dashboardWidgets.length < 5)) {
       const defaultWidgets: DashboardWidget[] = [
-        { id: 'spi', title: 'Schedule Perf. Index (SPI)', visible: true, position: 0 },
-        { id: 'cpi', title: 'Cost Perf. Index (CPI)', visible: true, position: 1 },
+        { id: 'scurve', title: 'Performance S-Curve', visible: true, position: 0 },
+        { id: 'spi', title: 'Schedule Performance (SPI)', visible: true, position: 1 },
+        { id: 'cpi', title: 'Cost Performance (CPI)', visible: true, position: 2 },
+        { id: 'health', title: 'Project Health Summary', visible: true, position: 3 },
+        { id: 'qa-matrix', title: 'Quality Assurance Matrix', visible: true, position: 4 },
+        { id: 'distribution', title: 'Work Breakdown', visible: true, position: 5 },
+        { id: 'weather', title: 'Site Weather', visible: true, position: 6 },
       ];
       onUpdateSettings({ ...settings, dashboardWidgets: defaultWidgets });
     }
@@ -155,6 +244,14 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
   }
 
   const currency = getCurrencySymbol(settings.currency);
+
+  const isWidgetVisible = (id: string) => {
+    return settings.dashboardWidgets?.find(w => w.id === id)?.visible !== false;
+  };
+
+  const getWidgetPosition = (id: string) => {
+    return settings.dashboardWidgets?.find(w => w.id === id)?.position ?? 99;
+  };
 
   return (
     <TooltipProvider>
@@ -198,7 +295,7 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
                   <DialogDescription className="font-medium text-muted-foreground">Toggle visibility of operational modules.</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-3 py-6">
-                  {settings.dashboardWidgets?.sort((a, b) => a.position - b.position).map((widget) => (
+                  {(settings.dashboardWidgets || []).sort((a, b) => a.position - b.position).map((widget) => (
                     <div key={widget.id} className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40 transition-all hover:bg-muted/40">
                       <div className="flex items-center gap-3">
                         <GripVertical className="h-4 w-4 text-muted-foreground/30" />
@@ -229,185 +326,261 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
         <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-12 grid-rows-auto gap-4 sm:gap-6 pb-12">
           
           {/* Main S-Curve Card - Large Bento Piece */}
-          <Card className="md:col-span-4 lg:col-span-8 row-span-2 rounded-[2.5rem] glass-card overflow-hidden group border-none relative">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-            <CardHeader className="flex flex-row items-center justify-between py-8 px-10 border-b border-white/5">
-              <div>
-                <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full grad-primary shadow-[0_0_10px_rgba(79,70,229,0.5)]" />
-                  Physical vs Financial S-Curve
-                </CardTitle>
-                <p className="text-xs font-medium text-muted-foreground/60 mt-1">Real-time cumulative execution tracking</p>
-              </div>
-              <ToggleGroup type="single" value={activeChart} onValueChange={(val: any) => val && setActiveChart(val)} className="bg-muted/30 p-1 rounded-2xl border border-border/40 backdrop-blur-sm">
-                <ToggleGroupItem value="periodic" className="text-[10px] font-black tracking-widest rounded-xl h-9 px-5 data-[state=on]:bg-white dark:data-[state=on]:bg-slate-950 data-[state=on]:shadow-xl transition-all">PERIODIC</ToggleGroupItem>
-                <ToggleGroupItem value="scumulative" className="text-[10px] font-black tracking-widest rounded-xl h-9 px-5 data-[state=on]:bg-white dark:data-[state=on]:bg-slate-950 data-[state=on]:shadow-xl transition-all">CUMULATIVE</ToggleGroupItem>
-              </ToggleGroup>
-            </CardHeader>
-            <CardContent className="h-[400px] pt-12 px-8 pb-8">
-              <ResponsiveContainer width="100%" height="100%">
-                {activeChart === 'scumulative' ? (
-                  <LineChart data={sCurveData}>
-                    <defs>
-                      <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="12 12" stroke="currentColor" vertical={false} opacity={0.05} />
-                    <XAxis dataKey="name" stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} dy={15} />
-                    <YAxis stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${currency}${v/1000}k`} dx={-15} />
-                    <RechartsTooltip 
-                      contentStyle={{ 
-                        borderRadius: '24px', 
-                        border: '1px solid rgba(255,255,255,0.1)', 
-                        backgroundColor: 'rgba(15,23,42,0.9)', 
-                        backdropFilter: 'blur(20px)',
-                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
-                        padding: '16px 20px'
-                      }}
-                      itemStyle={{ fontSize: '12px', fontWeight: '900', color: '#fff' }}
-                    />
-                    <Line type="monotone" name="Planned" dataKey="Cumulative Planned" stroke="currentColor" strokeWidth={4} dot={false} strokeOpacity={0.1} />
-                    <Line type="monotone" name="Earned" dataKey="Cumulative Earned" stroke="hsl(var(--primary))" strokeWidth={6} dot={{ r: 0 }} activeDot={{ r: 8, strokeWidth: 0 }} />
-                  </LineChart>
-                ) : (
-                  <BarChart data={financialChartData}>
-                    <CartesianGrid strokeDasharray="12 12" stroke="currentColor" vertical={false} opacity={0.05} />
-                    <XAxis dataKey="name" stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} dy={15} />
-                    <YAxis stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${currency}${v/1000}k`} dx={-15} />
-                    <RechartsTooltip contentStyle={{ borderRadius: '24px', border: 'none', backgroundColor: 'rgba(15,23,42,0.9)', backdropFilter: 'blur(20px)' }} />
-                    <Bar dataKey="Planned Value" name="Planned" fill="currentColor" opacity={0.1} radius={[12, 12, 0, 0]} />
-                    <Bar dataKey="Earned Value" name="Actual" fill="hsl(var(--primary))" radius={[12, 12, 0, 0]} />
-                  </BarChart>
-                )}
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          {isWidgetVisible('scurve') && (
+            <Card className="md:col-span-4 lg:col-span-8 row-span-2 rounded-[2.5rem] glass-card overflow-hidden group border-none relative">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+              <CardHeader className="flex flex-row items-center justify-between py-8 px-10 border-b border-white/5">
+                <div>
+                  <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full grad-primary shadow-[0_0_10px_rgba(79,70,229,0.5)]" />
+                    Physical vs Financial S-Curve
+                  </CardTitle>
+                  <p className="text-xs font-medium text-muted-foreground/60 mt-1">Real-time cumulative execution tracking</p>
+                </div>
+                <ToggleGroup type="single" value={activeChart} onValueChange={(val: any) => val && setActiveChart(val)} className="bg-muted/30 p-1 rounded-2xl border border-border/40 backdrop-blur-sm">
+                  <ToggleGroupItem value="periodic" className="text-[10px] font-black tracking-widest rounded-xl h-9 px-5 data-[state=on]:bg-white dark:data-[state=on]:bg-slate-950 data-[state=on]:shadow-xl transition-all">PERIODIC</ToggleGroupItem>
+                  <ToggleGroupItem value="scumulative" className="text-[10px] font-black tracking-widest rounded-xl h-9 px-5 data-[state=on]:bg-white dark:data-[state=on]:bg-slate-950 data-[state=on]:shadow-xl transition-all">CUMULATIVE</ToggleGroupItem>
+                </ToggleGroup>
+              </CardHeader>
+              <CardContent className="h-[400px] pt-12 px-8 pb-8">
+                <ResponsiveContainer width="100%" height="100%">
+                  {activeChart === 'scumulative' ? (
+                    <LineChart data={sCurveData}>
+                      <defs>
+                        <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="12 12" stroke="currentColor" vertical={false} opacity={0.05} />
+                      <XAxis dataKey="name" stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} dy={15} />
+                      <YAxis stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${currency}${Math.round(v/1000)}k`} dx={-15} />
+                      <RechartsTooltip 
+                        contentStyle={{ 
+                          borderRadius: '24px', 
+                          border: '1px solid rgba(255,255,255,0.1)', 
+                          backgroundColor: 'rgba(15,23,42,0.9)', 
+                          backdropFilter: 'blur(20px)',
+                          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+                          padding: '16px 20px'
+                        }}
+                        itemStyle={{ fontSize: '12px', fontWeight: '900', color: '#fff' }}
+                      />
+                      <Line type="monotone" name="Planned" dataKey="Cumulative Planned" stroke="currentColor" strokeWidth={4} dot={false} strokeOpacity={0.1} />
+                      <Line type="monotone" name="Earned" dataKey="Cumulative Earned" stroke="hsl(var(--primary))" strokeWidth={6} dot={{ r: 0 }} activeDot={{ r: 8, strokeWidth: 0 }} />
+                    </LineChart>
+                  ) : (
+                    <BarChart data={sCurveData}>
+                      <CartesianGrid strokeDasharray="12 12" stroke="currentColor" vertical={false} opacity={0.05} />
+                      <XAxis dataKey="name" stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} dy={15} />
+                      <YAxis stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${currency}${Math.round(v/1000)}k`} dx={-15} />
+                      <RechartsTooltip contentStyle={{ borderRadius: '24px', border: 'none', backgroundColor: 'rgba(15,23,42,0.9)', backdropFilter: 'blur(20px)' }} />
+                      <Bar dataKey="Monthly Planned" name="Planned" fill="currentColor" opacity={0.1} radius={[12, 12, 0, 0]} />
+                      <Bar dataKey="Monthly Earned" name="Actual" fill="hsl(var(--primary))" radius={[12, 12, 0, 0]} />
+                    </BarChart>
+                  )}
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
 
           {/* KPI Mini-Cards - Vertical Stack */}
           <div className="md:col-span-4 lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
-            <Card className="rounded-[2rem] glass-card border-none p-8 flex flex-col justify-between overflow-hidden relative group">
-              <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-all duration-700" />
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 mb-1">Schedule Variance</p>
-                <h3 className="text-xs font-black uppercase tracking-tighter text-foreground mb-4 flex items-center gap-2">
-                  <Clock className="w-3 h-3 text-primary" />
-                  Efficiency Index
-                </h3>
-                <div className="text-5xl font-black tracking-tighter text-primary">{stats.spi.toFixed(2)}</div>
-              </div>
-              <div className="mt-6 flex items-center justify-between">
-                <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border-none px-3 py-1 rounded-full font-black text-[10px]">OPTIMAL (+2.4%)</Badge>
-                <TrendingUp size={16} className="text-emerald-500" />
-              </div>
-            </Card>
+            {isWidgetVisible('spi') && (
+              <Card className="rounded-[2rem] glass-card border-none p-8 flex flex-col justify-between overflow-hidden relative group">
+                <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-all duration-700" />
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 mb-1">Schedule Variance</p>
+                  <h3 className="text-xs font-black uppercase tracking-tighter text-foreground mb-4 flex items-center gap-2">
+                    <Clock className="w-3 h-3 text-primary" />
+                    Efficiency Index
+                  </h3>
+                  <div className="text-5xl font-black tracking-tighter text-primary">{stats.spi.toFixed(2)}</div>
+                </div>
+                <div className="mt-6 flex items-center justify-between">
+                  <Badge className={cn(
+                    "border-none px-3 py-1 rounded-full font-black text-[10px]",
+                    stats.spi >= 1 ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20" : "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20"
+                  )}>
+                    {stats.spi >= 1 ? 'OPTIMAL' : 'DELAYED'} ({((stats.spi - 1) * 100).toFixed(1)}%)
+                  </Badge>
+                  {stats.spi >= 1 ? <TrendingUp size={16} className="text-emerald-500" /> : <AlertTriangle size={16} className="text-amber-500" />}
+                </div>
+              </Card>
+            )}
 
-            <Card className="rounded-[2rem] glass-card border-none p-8 flex flex-col justify-between overflow-hidden relative group">
-              <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-violet-500/10 rounded-full blur-3xl group-hover:bg-violet-500/20 transition-all duration-700" />
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 mb-1">Budget Burn</p>
-                <h3 className="text-xs font-black uppercase tracking-tighter text-foreground mb-4 flex items-center gap-2">
-                  <DollarSign className="w-3 h-3 text-violet-500" />
-                  Cost Performance
-                </h3>
-                <div className="text-5xl font-black tracking-tighter text-violet-500">{stats.cpi.toFixed(2)}</div>
-              </div>
-              <div className="mt-6 flex items-center justify-between">
-                <Badge className="bg-violet-500/10 text-violet-500 hover:bg-violet-500/20 border-none px-3 py-1 rounded-full font-black text-[10px]">UNDER BUDGET</Badge>
-                <ShieldCheck size={16} className="text-violet-500" />
-              </div>
-            </Card>
+            {isWidgetVisible('cpi') && (
+              <Card className="rounded-[2rem] glass-card border-none p-8 flex flex-col justify-between overflow-hidden relative group">
+                <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-violet-500/10 rounded-full blur-3xl group-hover:bg-violet-500/20 transition-all duration-700" />
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 mb-1">Budget Burn</p>
+                  <h3 className="text-xs font-black uppercase tracking-tighter text-foreground mb-4 flex items-center gap-2">
+                    <DollarSign className="w-3 h-3 text-violet-500" />
+                    Cost Performance
+                  </h3>
+                  <div className="text-5xl font-black tracking-tighter text-violet-500">{stats.cpi.toFixed(2)}</div>
+                </div>
+                <div className="mt-6 flex items-center justify-between">
+                  <Badge className={cn(
+                    "border-none px-3 py-1 rounded-full font-black text-[10px]",
+                    stats.cpi >= 1 ? "bg-violet-500/10 text-violet-500 hover:bg-violet-500/20" : "bg-rose-500/10 text-rose-500 hover:bg-rose-500/20"
+                  )}>
+                    {stats.cpi >= 1 ? 'UNDER BUDGET' : 'OVER BUDGET'}
+                  </Badge>
+                  {stats.cpi >= 1 ? <ShieldCheck size={16} className="text-violet-500" /> : <AlertTriangle size={16} className="text-rose-500" />}
+                </div>
+              </Card>
+            )}
           </div>
 
           {/* Quality Assurance Bento Piece */}
-          <Card className="md:col-span-4 lg:col-span-4 rounded-[2.5rem] glass-card border-none overflow-hidden group">
-            <CardHeader className="py-8 px-10 border-b border-white/5">
-              <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                QA/QC Matrix
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-10 space-y-8">
-              <div className="flex items-center justify-between group/item">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover/item:scale-110 transition-transform">
-                    <Info size={20} />
+          {isWidgetVisible('qa-matrix') && (
+            <Card className="md:col-span-4 lg:col-span-4 rounded-[2.5rem] glass-card border-none overflow-hidden group">
+              <CardHeader className="py-8 px-10 border-b border-white/5">
+                <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                  QA/QC Matrix
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-10 space-y-8">
+                <div className="flex items-center justify-between group/item">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover/item:scale-110 transition-transform">
+                      <Info size={20} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-foreground">{stats.rfiOpen}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active RFIs</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-black text-foreground">{stats.rfiOpen}</p>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active RFIs</p>
-                  </div>
+                  <ChevronRight size={14} className="text-muted-foreground/30" />
                 </div>
-                <ChevronRight size={14} className="text-muted-foreground/30" />
-              </div>
-              
-              <div className="flex items-center justify-between group/item">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 group-hover/item:scale-110 transition-transform">
-                    <AlertTriangle size={20} />
+                
+                <div className="flex items-center justify-between group/item">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 group-hover/item:scale-110 transition-transform">
+                      <AlertTriangle size={20} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-foreground">{stats.rfiOverdue}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Late Responses</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-black text-foreground">{stats.rfiOverdue}</p>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Late Responses</p>
-                  </div>
+                  <ChevronRight size={14} className="text-muted-foreground/30" />
                 </div>
-                <ChevronRight size={14} className="text-muted-foreground/30" />
-              </div>
 
-              <Separator className="opacity-10" />
+                <Separator className="opacity-10" />
 
-              <div className="pt-4">
-                <div className="flex justify-between items-end mb-3">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Compliance Rating</p>
-                  <span className="text-xs font-black text-emerald-500">98.2%</span>
+                <div className="pt-4">
+                  <div className="flex justify-between items-end mb-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Compliance Rating</p>
+                    <span className="text-xs font-black text-emerald-500">98.2%</span>
+                  </div>
+                  <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: '98.2%' }}
+                      className="h-full grad-primary"
+                    />
+                  </div>
                 </div>
-                <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: '98.2%' }}
-                    className="h-full grad-primary"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Financial Distribution Bento Piece */}
-          <Card className="md:col-span-4 lg:col-span-5 rounded-[2.5rem] glass-card border-none overflow-hidden">
-            <CardHeader className="py-8 px-10 border-b border-white/5">
-              <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
-                Work Done Breakdown
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="h-[300px] flex flex-col items-center justify-center p-8">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={boqCategoryData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={65}
-                    outerRadius={95}
-                    paddingAngle={10}
-                    dataKey="value"
-                    stroke="none"
-                  >
-                    {boqCategoryData.map((_, index) => (
-                      <Cell key={index} fill={['#4f46e5', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'][index % 5]} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip contentStyle={{ borderRadius: '20px', border: 'none', backgroundColor: '#0f172a', color: '#fff' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          {isWidgetVisible('distribution') && (
+            <Card className="md:col-span-4 lg:col-span-5 rounded-[2.5rem] glass-card border-none overflow-hidden">
+              <CardHeader className="py-8 px-10 border-b border-white/5">
+                <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
+                  Work Done Breakdown
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="h-[300px] flex flex-col items-center justify-center p-8">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={boqCategoryData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={65}
+                      outerRadius={95}
+                      paddingAngle={10}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {boqCategoryData.map((_, index) => (
+                        <Cell key={index} fill={['#4f46e5', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'][index % 5]} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip contentStyle={{ borderRadius: '20px', border: 'none', backgroundColor: '#0f172a', color: '#fff' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Project Health / Budget Burn Bento Piece */}
+          {isWidgetVisible('health') && (
+            <Card className="md:col-span-4 lg:col-span-4 rounded-[2.5rem] glass-card border-none overflow-hidden group">
+              <CardHeader className="py-8 px-10 border-b border-white/5">
+                <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                  Project Health
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-10 space-y-8">
+                <div>
+                  <div className="flex justify-between items-end mb-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Physical Progress</p>
+                    <span className="text-xs font-black text-primary">{stats.physPercent.toFixed(1)}%</span>
+                  </div>
+                  <div className="h-2.5 w-full bg-muted/30 rounded-full overflow-hidden p-0.5 border border-white/5">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${stats.physPercent}%` }}
+                      className="h-full rounded-full grad-primary shadow-[0_0_15px_rgba(79,70,229,0.3)]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-end mb-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Budget Burn (Financial)</p>
+                    <span className="text-xs font-black text-violet-500">
+                      {stats.totalPlannedValue > 0 ? ((stats.actualCost / stats.totalPlannedValue) * 100).toFixed(1) : 0}%
+                    </span>
+                  </div>
+                  <div className="h-2.5 w-full bg-muted/30 rounded-full overflow-hidden p-0.5 border border-white/5">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${stats.totalPlannedValue > 0 ? (stats.actualCost / stats.totalPlannedValue) * 100 : 0}%` }}
+                      className="h-full rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 shadow-[0_0_15px_rgba(139,92,246,0.3)]"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-2xl bg-muted/20 border border-border/40">
+                    <p className="text-[8px] font-black text-muted-foreground uppercase mb-1">Earned Value</p>
+                    <p className="text-sm font-black tracking-tight">{currency}{Math.round(stats.earnedValue / 1000)}k</p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-muted/20 border border-border/40">
+                    <p className="text-[8px] font-black text-muted-foreground uppercase mb-1">Actual Cost</p>
+                    <p className="text-sm font-black tracking-tight">{currency}{Math.round(stats.actualCost / 1000)}k</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Site Weather & Intelligence */}
-          <div className="md:col-span-4 lg:col-span-3">
-             <WeatherWidget />
-          </div>
+          {isWidgetVisible('weather') && (
+            <div className="md:col-span-4 lg:col-span-3">
+               <WeatherWidget />
+            </div>
+          )}
 
         </div>
       </div>
