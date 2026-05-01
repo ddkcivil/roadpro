@@ -102,13 +102,21 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         name,
         email: email.toLowerCase(),
         phone: phone || '',
-        passwordhash: password, 
+        passwordhash: password, // Potential issue: password is not hashed here, unlike in 'approve' action. However, this might not cause insert error unless password itself is malformed.
         requestedrole: requestedRole,
         status: 'pending',
         created_at: new Date().toISOString()
       };
 
-      await mongodb.db.collection('registrations').insertOne(newReg);
+      // Log the object being inserted for debugging
+      console.log('Attempting to insert registration:', JSON.stringify(newReg, null, 2));
+
+      try {
+          await mongodb.db.collection('registrations').insertOne(newReg);
+      } catch (insertError: any) {
+          console.error('MongoDB insertOne error:', insertError);
+          throw insertError; // Re-throw to be caught by the outer handler
+      }
 
       return res.status(201).json({
         message: 'Registration submitted successfully. Awaiting administrator approval.',

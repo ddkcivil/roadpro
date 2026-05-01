@@ -16,6 +16,7 @@ import {
     Eye, CloudRain
 } from 'lucide-react';
 import { base64ToBlobUrl } from '../../utils/data/documentUtils';
+import DocumentsModule from './DocumentsModule';
 
 import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
@@ -295,12 +296,16 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
           <p className="text-sm text-muted-foreground">Unified document, photo, and reporting management</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsUploadModalOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" /> Upload Document
-          </Button>
-          <Button variant="outline" onClick={() => photoInputRef.current?.click()}>
-            <Camera className="mr-2 h-4 w-4" /> Add Photo
-          </Button>
+          {activeTab !== 'documents' && (
+            <Button variant="outline" onClick={() => setIsUploadModalOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" /> Upload Document
+            </Button>
+          )}
+          {activeTab === 'site-photos' && (
+            <Button variant="outline" onClick={() => photoInputRef.current?.click()}>
+              <Camera className="mr-2 h-4 w-4" /> Add Photo
+            </Button>
+          )}
           <div className="sr-only">
             <Label htmlFor="photo-upload-input">Select site photo files to upload</Label>
             <Input 
@@ -338,113 +343,12 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="documents" className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-              <Card className="p-4">
-                  <h3 className="text-sm font-semibold text-muted-foreground">Total Documents</h3>
-                  <p className="text-2xl font-bold">{documentStats.total}</p>
-              </Card>
-              <Card className="p-4">
-                  <h3 className="text-sm font-semibold text-muted-foreground">Contracts</h3>
-                  <p className="text-2xl font-bold">{documentStats.contracts}</p>
-              </Card>
-              <Card className="p-4">
-                  <h3 className="text-sm font-semibold text-muted-foreground">Drawings</h3>
-                  <p className="text-2xl font-bold">{documentStats.drawings}</p>
-              </Card>
-              <Card className="p-4">
-                  <h3 className="text-sm font-semibold text-muted-foreground">Reports</h3>
-                  <p className="text-2xl font-bold">{documentStats.reports}</p>
-              </Card>
-            </div>
-            
-            <Card className="mb-4 p-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="relative w-full sm:w-auto flex-grow">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Search documents..." 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-full"
-                    aria-label="Search documents"
-                  />
-                </div>
-                <div className="w-full sm:w-auto">
-                  <Select value={folderFilter} onValueChange={setFolderFilter}>
-                    <SelectTrigger className="w-full" aria-label="Filter by folder">
-                      <SelectValue placeholder="All Folders" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="All">All Folders</SelectItem>
-                      {FOLDERS.map(folder => (
-                        <SelectItem key={folder} value={folder}>{folder}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-0 overflow-hidden">
-                <ScrollArea className="h-[400px] w-full border-none">
-                  <Table>
-                    <TableHeader className="bg-muted">
-                      <TableRow>
-                        <TableHead>Document</TableHead>
-                        <TableHead>Folder</TableHead>
-                        <TableHead>Size</TableHead>
-                        <TableHead>Uploaded</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredDocuments.length > 0 ? filteredDocuments.map(doc => (
-                        <TableRow key={doc.id}>
-                          <TableCell>
-                            <p className="font-semibold">{doc.name}</p>
-                            <p className="text-xs text-muted-foreground">{doc.description || 'No description'}</p>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">{doc.folder}</Badge>
-                          </TableCell>
-                          <TableCell>{(parseInt(doc.size) / 1024 / 1024).toFixed(2)} MB</TableCell>
-                          <TableCell>{new Date(doc.uploadDate || Date.now()).toLocaleDateString()}</TableCell>
-                          <TableCell className="text-right">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" onClick={() => { setPreviewDoc(doc); setCurrentPage(1); setNumPages(null); setScale(1.0); setPdfError(null); }}>
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Preview Document</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" onClick={() => handleDeleteDocument(doc.id)}>
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Delete Document</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </TableCell>
-                        </TableRow>
-                      )) : (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8">
-                            <File className="h-12 w-12 text-muted-foreground mx-auto mb-2 opacity-50" />
-                            <p>No documents found.</p>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-            </Card>
+          <TabsContent value="documents" className="p-0 border-none mt-0">
+            <DocumentsModule 
+              project={project} 
+              userRole={userRole} 
+              onProjectUpdate={onProjectUpdate} 
+            />
           </TabsContent>
 
           <TabsContent value="site-photos" className="p-4">

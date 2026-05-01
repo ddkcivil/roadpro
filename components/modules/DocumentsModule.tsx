@@ -32,7 +32,7 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import CommentsPanel from './CommentsPanel';
-import { ocrService } from '../../services/ai/ocrService';
+import { Os } from '../../services/ai/ocrService';
 import { toast } from 'sonner';
 import { fileToBase64, base64ToBlobUrl } from '../../utils/data/documentUtils';
 
@@ -81,6 +81,80 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
   });
   const [previewDoc, setPreviewDoc] = useState<ProjectDocument | null>(null);
   const [newTagInput, setNewTagInput] = useState('');
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (uploadMode === 'SCAN' && files.length > 1) {
+      toast.error('Scan mode supports only one file at a time.');
+      return;
+    }
+    setUploadFiles(files);
+    setScanStep('IDLE');
+    // Reset metadata for new file
+    setScannedMetadata({
+      subject: '',
+      refNo: '',
+      date: new Date().toISOString().split('T')[0],
+      letterDate: '',
+      correspondenceType: 'incoming',
+      sender: '',
+      recipient: '',
+      subId: ''
+    });
+  };
+
+  const handleScanAnalysis = async () => {
+    if (uploadFiles.length === 0) {
+      toast.error('No file selected for analysis.');
+      return;
+    }
+
+    const file = uploadFiles[0];
+    setScanStep('PROCESSING');
+    const analysisToast = toast.loading('Analyzing document with AI OCR...');
+
+    try {
+      const base64Data = await fileToBase64(file);
+      // Changed from ocrService.extractText to Os.extractText based on error
+      const ocrResult = await Os.extractText(base64Data);
+
+      // Parse extracted text for metadata (simple heuristic parsing)
+      const text = ocrResult.text.toLowerCase();
+      const subjectMatch = text.match(/subject[:\-]?\s*([^
+]{1,100})/i);
+      const refMatch = text.match(/ref(?:erence)?[:\-]?\s*([^
+]{1,50})/i);
+      const dateMatch = text.match(/\b(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}|\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/);
+      // Robustly check typeMatch and typeMatch[1]
+      const typeMatch = text.match(/(incoming|outgoing|out|in|to|from)/i);
+      let correspondenceType = 'incoming';
+      if (typeMatch?.[1]) {
+        if (typeMatch[1].startsWith('out') || typeMatch[1].startsWith('to')) {
+          correspondenceType = 'outgoing';
+        }
+      }
+
+      setScannedMetadata(prev => ({
+        ...prev,
+        subject: subjectMatch ? subjectMatch[1].trim() : file.name.split('.')[0],
+        refNo: refMatch ? refMatch[1].trim() : '',
+        letterDate: dateMatch ? dateMatch[1] : '',
+        correspondenceType: correspondenceType,
+        sender: '',
+        recipient: '',
+        date: new Date().toISOString().split('T')[0] // Date is already string
+      }));
+
+      setScanStep('REVIEW');
+      toast.dismiss(analysisToast);
+      toast.success('Document analyzed! Review extracted metadata below.');
+    } catch (error) {
+      setScanStep('IDLE');
+      toast.dismiss(analysisToast);
+      toast.error('OCR analysis failed', { description: (error as Error).message });
+      console.error('OCR Error:', error);
+    }
+  };
 
   // PDF Preview State
   const [pdfComponents, setPdfComponents] = useState<PdfComponents | null>(null);
@@ -624,7 +698,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
               <div className="flex gap-2">
                 <Select
                     value={scannedMetadata.correspondenceType || 'none'}
-                    onValueChange={value => setScannedMetadata({...scannedMetadata, correspondenceType: value === 'none' ? '' : value as any})}
+                    onValueChange={value => setScannedMetadata({...scannedMetadata, correspondenceType: value === 'none' ? undefined : (value as "incoming" | "outgoing")})}
                 >
                     <SelectTrigger aria-label="Correspondence Type">
                         <SelectValue placeholder="Correspondence Type" />
@@ -836,28 +910,6 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                         ))}
                       </ScrollArea>
                     </Card>
-                  </div>
-                  <Separator />
-                  <div>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Discussion</h4>
-                    <CommentsPanel
-                      entityId={previewDoc.id}
-                      entityType="document"
-                      comments={previewDoc.comments || []}
-                      currentUser={{ id: 'current-user', name: 'Current User' }}
-                      onAddComment={(comment) => {
-                        const commentWithId = {
-                          ...comment,
-                          id: `comment-${Date.now()}-${Math.random()}`,
-                          timestamp: new Date().toISOString()
-                        };
-                        const updatedDocs = (project.documents || []).map(d =>
-                          d.id === previewDoc.id ? { ...d, comments: [...(d.comments || []), commentWithId] } : d
-                        );
-                        onProjectUpdate({ ...project, documents: updatedDocs });
-                        setPreviewDoc(prev => prev ? { ...prev, comments: [...(prev.comments || []), commentWithId] } : null);
-                      }}
-                    />
                   </div>
                   <Separator />
                   <div>
