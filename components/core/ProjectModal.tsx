@@ -28,9 +28,11 @@ const projectFormSchema = z.object({
 interface Props {
   open: boolean;
   onClose: () => void;
+  onSave?: (project: Partial<Project>) => Promise<void>;
+  project?: Partial<Project> | null;
 }
 
-const ProjectModal: React.FC<Props> = ({ open, onClose }) => {
+const ProjectModal: React.FC<Props> = ({ open, onClose, onSave, project }) => {
   const { projects, isLoadingProjects, saveProject, deleteProject, fetchProjects } = useProjects(true);
   const { currentUser } = useAuth();
 
@@ -59,6 +61,17 @@ const ProjectModal: React.FC<Props> = ({ open, onClose }) => {
     setSubmitError(null);
     setSubmitAttempt(0);
   }, []);
+
+  // Update form when project prop changes
+  useEffect(() => {
+    if (project) {
+      setEditForm(project);
+      if (project.id) setActiveTab('manage');
+    } else {
+      setEditForm({});
+      setActiveTab('new');
+    }
+  }, [project]);
 
   const handleEdit = (project: Project) => {
     setEditForm(project);
@@ -103,7 +116,11 @@ const ProjectModal: React.FC<Props> = ({ open, onClose }) => {
     setSubmitAttempt(newAttempt);
 
     try {
-      await saveProject(editForm);
+      if (onSave) {
+        await onSave(editForm);
+      } else {
+        await saveProject(editForm);
+      }
       resetForm();
       if (!editForm.id) {
         // If it was a new project, maybe switch to manage or close
