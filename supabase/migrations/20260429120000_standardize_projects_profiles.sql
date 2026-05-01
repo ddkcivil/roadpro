@@ -12,6 +12,10 @@ ALTER TABLE public.projects
   ADD COLUMN IF NOT EXISTS contract_no TEXT,
   ADD COLUMN IF NOT EXISTS start_date TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS end_date TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS location TEXT,
+  ADD COLUMN IF NOT EXISTS status TEXT,
+  ADD COLUMN IF NOT EXISTS budget NUMERIC,
+  ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}',
   ADD COLUMN IF NOT EXISTS client TEXT;
 
 -- 2) Migrate/rename known variants into canonical columns

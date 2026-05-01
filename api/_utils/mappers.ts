@@ -32,7 +32,7 @@ export function mapProjectFromDb(dbProj: any): any {
     client: dbProj.client,
     contractNo: dbProj.contract_no || dbProj.contractNo || dbProj.contractno,
     // Support both snake_case and camelCase column names returned by different DB migrations
-    ownerId: dbProj.ownerId || dbProj.ownerid,
+    ownerId: dbProj.owner_id || dbProj.ownerId || dbProj.ownerid,
     location: dbProj.location,
     status: dbProj.status,
     budget: dbProj.budget,
@@ -65,7 +65,7 @@ export function mapProjectToDb(proj: any): any {
   };
 
   if (proj.ownerId) {
-    out.ownerid = proj.ownerId;
+    out.owner_id = proj.ownerId;
   }
 
   return out;

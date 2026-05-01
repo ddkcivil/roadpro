@@ -8,6 +8,13 @@ CREATE TABLE IF NOT EXISTS public.projects (
   client text NOT NULL,
   owner_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
   contract_no text,
+  location text,
+  status text,
+  budget numeric,
+  start_date timestamptz,
+  end_date timestamptz,
+  description text,
+  metadata jsonb DEFAULT '{}',
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
