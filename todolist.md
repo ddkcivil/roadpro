@@ -98,14 +98,14 @@ sequenceDiagram
 - [ ] PageTransition: Framer Motion fade/slide
 
 ## 📊 Phase 5: Main Modules & Workflows [ ]
-### 5.1 Project Selector (`/projects`)
-- [ ] Fetch user projects via `api/projects`
-- [ ] Search/Filter by name/code
-- [ ] Click → Set active project → Route to Dashboard
+### 5.1 Project Selector (`/projects`) [x]
+- [x] Fetch user projects via `api/projects`
+- [x] Search/Filter by name/code
+- [x] Click → Set active project → Route to Dashboard
 
-### 5.2 Operations Dashboard (`/dashboard`)
-- [ ] Metrics cards: SPI/CPI, Progress vs Time, Financial S-Curve
-- [ ] Charts: Recharts or Tanstack Charts
+### 5.2 Operations Dashboard (`/dashboard`) [x]
+- [x] Metrics cards: SPI/CPI, Progress vs Time, Financial S-Curve
+- [x] Charts: Recharts or Tanstack Charts (Implemented with Recharts)
 
 ### 5.3 Map Intelligence (`/map`)
 - [ ] Leaflet map + KML overlays (`utils/kmlParser.ts`)

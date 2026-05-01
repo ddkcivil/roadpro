@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { mongodb } from '../lib/mongodb.js';
+import { supabaseAdmin } from './_utils/supabaseClient.js';
 import { withErrorHandler } from './_utils/errorHandler.js';
 import { withAuth } from './_utils/auth.js';
 import { mapUserFromDb } from './_utils/mappers.js';
@@ -18,13 +19,29 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   // --- HEARTBEAT ---
   if (req.method === 'POST' && action === 'heartbeat') {
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-    const db = await mongodb.connect();
-    const result = await db.collection('users').updateOne(
-      { _id: userId },
-      { $set: { last_seen: new Date().toISOString() } }
-    );
+    const now = new Date().toISOString();
+    
+    // Update MongoDB if available
+    try {
+      const db = await mongodb.connect();
+      await db.collection('users').updateOne(
+        { _id: userId },
+        { $set: { last_seen: now } }
+      );
+    } catch (err) {
+      console.warn('[Heartbeat] Mongo update failed (expected if user is Supabase-only):', err);
+    }
 
-    if (result.matchedCount === 0) throw new Error('User not found');
+    // Update Supabase if available
+    try {
+      await supabaseAdmin
+        .from('profiles')
+        .update({ last_seen: now, updated_at: now })
+        .eq('id', userId);
+    } catch (err) {
+      console.warn('[Heartbeat] Supabase update failed:', err);
+    }
+
     return res.status(200).json({ message: 'Heartbeat updated' });
   }
 
