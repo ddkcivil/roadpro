@@ -930,7 +930,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
       return (
         <Polygon
           key={`parcel-${parcel.id}`}
-          positions={parcel.coordinates.map(c => [c.lat, c.lng])}
+          positions={(parcel.coordinates || []).map(c => [c.lat, c.lng])}
           pathOptions={{
             color: '#8b5cf6',
             fillColor: '#8b5cf6',
@@ -960,7 +960,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
       return (
         <Polyline
           key={`overlay-${overlay.id}`}
-          positions={overlay.coordinates.map(c => [c.lat, c.lng])}
+          positions={(overlay.coordinates || []).map(c => [c.lat, c.lng])}
           pathOptions={{
             color: overlay.color,
             weight: 4,
@@ -1247,7 +1247,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
           type: 'Feature',
           geometry: { 
             type: 'LineString', 
-            coordinates: o.coordinates.map(c => [c.lng, c.lat]) 
+            coordinates: (o.coordinates || []).map(c => [c.lng, c.lat]) 
           },
           properties: { name: o.name, type: o.type, color: o.color }
         }))
