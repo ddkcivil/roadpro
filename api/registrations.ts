@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { mongodb } from '../../lib/mongodb.js';
+import { mongodb } from '../lib/mongodb';
 import { supabaseAdmin } from './_utils/supabaseClient.js';
 import { withErrorHandler } from './_utils/errorHandler.js';
 import { v4 as uuidv4 } from 'uuid';

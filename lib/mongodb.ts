@@ -1,5 +1,5 @@
 import { MongoClient } from 'mongodb';
-import { createMockMongoClient } from './mongodbMock.js';
+import { createMockMongoClient } from './mongodbMock.ts';
 
 let mongoClient: any;
 let db: any;
