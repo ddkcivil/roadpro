@@ -1,4 +1,4 @@
-const CACHE_NAME = 'roadmaster-v11';
+const CACHE_NAME = 'roadmaster-v1';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json',
@@ -65,14 +65,14 @@ async function fetchAndCache(request, cacheName) {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
-  
+
   // Bypass service worker for Vite HMR requests
-  if (url.pathname.includes('@vite') || 
-      url.pathname.includes('__vite_ping') || 
-      url.protocol === 'ws:') {
+  if (url.pathname.includes('@vite') ||
+    url.pathname.includes('__vite_ping') ||
+    url.protocol === 'ws:') {
     return;
   }
-  
+
   if (request.method !== 'GET') return;
 
   // Strategy for Navigation (HTML): Network First, then fallback to Cache
@@ -93,7 +93,7 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/api/')) {
     // We don't call respondWith for API calls to let them bypass SW entirely
     // Or we can respondWith a direct fetch without caching
-    return; 
+    return;
   }
 
   // Strategy for Open Meteo (Weather): Network First, then fallback to Cache
