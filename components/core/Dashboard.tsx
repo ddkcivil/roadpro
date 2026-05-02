@@ -324,9 +324,59 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
           </div>
         </div>
 
-        {/* Bento Grid Main Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-12 grid-rows-auto gap-4 sm:gap-6 pb-12">
+        {/* Bento Grid Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-6 auto-rows-min">
           
+          {/* Project Details / Metadata Bento Piece - MOVED TO TOP */}
+          {isWidgetVisible('project-info') && (
+            <Card className="md:col-span-8 lg:col-span-12 rounded-[2.5rem] glass-card border-none overflow-hidden group">
+              <CardHeader className="py-6 px-8 border-b border-white/5">
+                <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-slate-400 shadow-[0_0_10px_rgba(148,163,184,0.5)]" />
+                  Project Identity & Stakeholders
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Contract Number</p>
+                    <p className="text-sm font-mono font-bold text-foreground">{project.contractNo || 'N/A'}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Project Code</p>
+                    <Badge variant="secondary" className="font-mono text-[10px] h-5">{project.code}</Badge>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Commencement</p>
+                    <p className="text-sm font-bold text-foreground">{project.startDate ? project.startDate.split('T')[0] : 'N/A'}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Planned Completion</p>
+                    <p className="text-sm font-bold text-foreground">{project.endDate ? project.endDate.split('T')[0] : 'N/A'}</p>
+                  </div>
+                </div>
+                
+                <Separator className="my-6 opacity-5" />
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Engineer / Consultant</p>
+                    <p className="text-sm font-black text-foreground">{project.engineer || 'Not Assigned'}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Main Contractor</p>
+                    <p className="text-sm font-black text-foreground">{project.contractor || 'Not Assigned'}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Employer / Client</p>
+                    <p className="text-sm font-black text-foreground">{project.client || 'Not Assigned'}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* S-Curve Chart Bento Piece */}
           {/* Main S-Curve Card - Large Bento Piece */}
           {isWidgetVisible('scurve') && (
             <Card className="md:col-span-4 lg:col-span-8 row-span-2 rounded-[2.5rem] glass-card overflow-hidden group border-none relative">
@@ -582,55 +632,6 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
             <div className={cn("md:col-span-4", isWidgetVisible('project-info') ? "lg:col-span-3" : "lg:col-span-12")}>
                <WeatherWidget />
             </div>
-          )}
-
-          {/* Project Details / Metadata Bento Piece */}
-          {isWidgetVisible('project-info') && (
-            <Card className="md:col-span-4 lg:col-span-9 rounded-[2.5rem] glass-card border-none overflow-hidden group">
-              <CardHeader className="py-8 px-10 border-b border-white/5">
-                <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-slate-400 shadow-[0_0_10px_rgba(148,163,184,0.5)]" />
-                  Project Identity & Stakeholders
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-10">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Engineer / Consultant</p>
-                    <p className="text-sm font-black text-foreground">{project.engineer || 'Not Assigned'}</p>
-                  </div>
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Main Contractor</p>
-                    <p className="text-sm font-black text-foreground">{project.contractor || 'Not Assigned'}</p>
-                  </div>
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Employer / Client</p>
-                    <p className="text-sm font-black text-foreground">{project.client || 'Not Assigned'}</p>
-                  </div>
-                </div>
-                
-                <Separator className="my-8 opacity-5" />
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Contract Number</p>
-                    <p className="text-sm font-mono font-bold text-foreground">{project.contractNo || 'N/A'}</p>
-                  </div>
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Project Code</p>
-                    <Badge variant="secondary" className="font-mono text-[10px] h-5">{project.code}</Badge>
-                  </div>
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Commencement</p>
-                    <p className="text-sm font-bold text-foreground">{project.startDate ? project.startDate.split('T')[0] : 'N/A'}</p>
-                  </div>
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Planned Completion</p>
-                    <p className="text-sm font-bold text-foreground">{project.endDate ? project.endDate.split('T')[0] : 'N/A'}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           )}
 
         </div>

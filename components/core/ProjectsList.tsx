@@ -115,7 +115,7 @@ const ProjectsList: React.FC<Props> = ({ projects, onSelectProject, onDeleteProj
         return (
           <div className="min-w-[120px]">
             <div className="flex justify-between mb-1 text-[10px] font-bold">
-              <span className="text-muted-foreground uppercase">Time Burn</span>
+              <span className="text-muted-foreground uppercase">{project.startDate ? project.startDate.split('T')[0] : 'N/A'} - {project.endDate ? project.endDate.split('T')[0] : 'N/A'}</span>
               <span className="text-primary">{timeProgress}%</span>
             </div>
             <Progress 
