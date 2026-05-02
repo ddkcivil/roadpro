@@ -149,9 +149,9 @@ const UserManagement: React.FC = () => {
 
   const approveUser = async (pendingUser: any) => {
     try {
-      const newUser = await apiService.approveRegistration(pendingUser.id);
+      const newUser = await apiService.approveRegistration(pendingUser.id || pendingUser._id);
       setUsers(prev => [...prev, newUser]);
-      setPendingUsers(prev => prev.filter((u: any) => u.id !== pendingUser.id));
+      setPendingUsers(prev => prev.filter((u: any) => (u.id || u._id) !== (pendingUser.id || pendingUser._id)));
       alert(`User ${pendingUser?.name ?? 'user'} has been approved and added to the system.`);
     } catch (error: any) {
       alert(error.message || 'Failed to approve user');
@@ -161,8 +161,8 @@ const UserManagement: React.FC = () => {
   const rejectUser = async (pendingUser: any) => {
     if (window.confirm(`Are you sure you want to reject ${pendingUser?.name ?? 'this user'}'s registration?`)) {
       try {
-        await apiService.rejectRegistration(pendingUser.id);
-        setPendingUsers(prev => prev.filter((u: any) => u.id !== pendingUser.id));
+        await apiService.rejectRegistration(pendingUser.id || pendingUser._id);
+        setPendingUsers(prev => prev.filter((u: any) => (u.id || u._id) !== (pendingUser.id || pendingUser._id)));
         alert(`User ${pendingUser?.name ?? 'The user'}'s registration has been rejected.`);
       } catch (error: any) {
         alert(error.message || 'Failed to reject user');
@@ -232,7 +232,7 @@ const UserManagement: React.FC = () => {
                         </TableHeader>
                         <TableBody>
                             {pendingUsers.map((user: any) => (
-                                <TableRow key={user.id}>
+                                <TableRow key={user.id || user._id}>
                                     <TableCell>
                                         <div className="flex items-center gap-2">
                                             <Avatar>
