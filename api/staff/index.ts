@@ -123,7 +123,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       if (fetchError && fetchError.code !== 'PGRST116' && fetchError.code !== '42703') throw fetchError;
 
-      const personnel = staffProject.personnel || {};
+      const personnel = staffProject?.personnel || {};
       const items = personnel[category] || [];
       personnel[category] = items.filter((item: any) => item.id !== itemId);
 
