@@ -37,13 +37,13 @@ const UserManagement: React.FC = () => {
     phone: ''
   });
 
-  const { 
-    avatarFile, 
-    previewUrl, 
-    setPreviewUrl, 
-    handleFileChange, 
-    clearAvatar, 
-    reset: resetAvatar 
+  const {
+    avatarFile,
+    previewUrl,
+    setPreviewUrl,
+    handleFileChange,
+    clearAvatar,
+    reset: resetAvatar
   } = useAvatarUpload();
 
   useEffect(() => {
@@ -104,15 +104,15 @@ const UserManagement: React.FC = () => {
     const duplicate = users.some(u =>
       u.id !== editingUser.id && u.email.toLowerCase() === editingUser.email.toLowerCase()
     );
-      if (duplicate) { alert(`Duplicate: A user with email "${(editingUser.email ?? '').toLowerCase()}" already exists.`); return; }
+    if (duplicate) { alert(`Duplicate: A user with email "${(editingUser.email ?? '').toLowerCase()}" already exists.`); return; }
 
     try {
       const updatedUser = await apiService.updateUser(editingUser.id, {
-          name: (editingUser.name ?? '').toString(),
-          email: (editingUser.email ?? '').toString(),
-          phone: editingUser.phone ?? '',
-          role: editingUser.role,
-          avatar: previewUrl || editingUser.avatar
+        name: (editingUser.name ?? '').toString(),
+        email: (editingUser.email ?? '').toString(),
+        phone: editingUser.phone ?? '',
+        role: editingUser.role,
+        avatar: previewUrl || editingUser.avatar
       });
 
       const updatedUsers = users.map(user =>
@@ -204,7 +204,7 @@ const UserManagement: React.FC = () => {
                 Add User
               </Button>
               {pendingUsers.length > 0 && (
-                <Button variant="secondary" onClick={() => {}}>
+                <Button variant="secondary" onClick={() => { }}>
                   Pending ({pendingUsers.length})
                 </Button>
               )}
@@ -214,62 +214,62 @@ const UserManagement: React.FC = () => {
           {/* Pending Users Section */}
           {pendingUsers.length > 0 && (
             <Card className="mb-6 border-amber-300">
-                <CardHeader className="bg-amber-100 border-b border-amber-300">
-                    <CardTitle className="text-xl font-bold text-amber-900">
-                        Pending Registrations ({pendingUsers.length})
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="bg-amber-50">
-                                <TableHead className="font-bold text-sm">User</TableHead>
-                                <TableHead className="font-bold text-sm">Requested Role</TableHead>
-                                <TableHead className="font-bold text-sm">Email</TableHead>
-                                <TableHead className="font-bold text-sm">Phone</TableHead>
-                                <TableHead className="text-right font-bold text-sm">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {pendingUsers.map((user: any) => (
-                                <TableRow key={user.id || user._id}>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <Avatar>
-                                              <AvatarImage src={user.avatar} />
-                                              <AvatarFallback>{user?.name ? user.name.charAt(0) : 'U'}</AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <p className="font-semibold">{user.name ?? 'Unknown'}</p>
-                                                <p className="text-xs text-muted-foreground">Registered: {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</p>
-                                            </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                      <Badge className={getUserRoleColor(user.requestedRole)}>{user.requestedRole ?? '-'}</Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-1">
-                                            <Mail className="h-4 w-4 text-muted-foreground" />
-                                            <span>{user.email}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>{user.phone || '-'}</TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <Button variant="outline" size="sm" onClick={() => approveUser(user)}>
-                                                <Shield className="mr-1 h-4 w-4" /> Approve
-                                            </Button>
-                                            <Button variant="destructive" size="sm" onClick={() => rejectUser(user)}>
-                                                <X className="mr-1 h-4 w-4" /> Reject
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
+              <CardHeader className="bg-amber-100 border-b border-amber-300">
+                <CardTitle className="text-xl font-bold text-amber-900">
+                  Pending Registrations ({pendingUsers.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-amber-50">
+                      <TableHead className="font-bold text-sm">User</TableHead>
+                      <TableHead className="font-bold text-sm">Requested Role</TableHead>
+                      <TableHead className="font-bold text-sm">Email</TableHead>
+                      <TableHead className="font-bold text-sm">Phone</TableHead>
+                      <TableHead className="text-right font-bold text-sm">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingUsers.map((user: any) => (
+                      <TableRow key={user.id || user._id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Avatar>
+                              <AvatarImage src={user.avatar} />
+                              <AvatarFallback>{user?.name ? user.name.charAt(0) : 'U'}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-semibold">{user.name ?? 'Unknown'}</p>
+                              <p className="text-xs text-muted-foreground">Registered: {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getUserRoleColor(user.requestedRole)}>{user.requestedRole ?? '-'}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            <span>{user.email}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{user.phone || '-'}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="outline" size="sm" onClick={() => approveUser(user)}>
+                              <Shield className="mr-1 h-4 w-4" /> Approve
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={() => rejectUser(user)}>
+                              <X className="mr-1 h-4 w-4" /> Reject
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
             </Card>
           )}
 
@@ -356,19 +356,19 @@ const UserManagement: React.FC = () => {
 
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="name" className="text-right">Full Name</Label>
-                  <Input id="name" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} className="col-span-3" />
+                  <Input id="name" value={newUser.name} onChange={e => setNewUser({ ...newUser, name: e.target.value })} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="email" className="text-right">Email</Label>
-                  <Input id="email" type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} className="col-span-3" />
+                  <Input id="email" type="email" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="phone" className="text-right">Phone</Label>
-                  <Input id="phone" value={newUser.phone} onChange={e => setNewUser({...newUser, phone: e.target.value})} className="col-span-3" />
+                  <Input id="phone" value={newUser.phone} onChange={e => setNewUser({ ...newUser, phone: e.target.value })} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="role" className="text-right">Role</Label>
-                  <Select value={newUser.role} onValueChange={(value: UserRole) => setNewUser({...newUser, role: value})}>
+                  <Select value={newUser.role} onValueChange={(value: UserRole) => setNewUser({ ...newUser, role: value })}>
                     <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
@@ -422,19 +422,19 @@ const UserManagement: React.FC = () => {
 
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="edit-name" className="text-right">Full Name</Label>
-                      <Input id="edit-name" value={editingUser.name ?? ''} onChange={e => setEditingUser({...editingUser, name: e.target.value})} className="col-span-3" />
+                      <Input id="edit-name" value={editingUser.name ?? ''} onChange={e => setEditingUser({ ...editingUser, name: e.target.value })} className="col-span-3" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="edit-email" className="text-right">Email</Label>
-                      <Input id="edit-email" type="email" value={editingUser.email ?? ''} onChange={e => setEditingUser({...editingUser, email: e.target.value})} className="col-span-3" />
+                      <Input id="edit-email" type="email" value={editingUser.email ?? ''} onChange={e => setEditingUser({ ...editingUser, email: e.target.value })} className="col-span-3" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="edit-phone" className="text-right">Phone</Label>
-                      <Input id="edit-phone" value={editingUser.phone || ''} onChange={e => setEditingUser({...editingUser, phone: e.target.value})} className="col-span-3" />
+                      <Input id="edit-phone" value={editingUser.phone || ''} onChange={e => setEditingUser({ ...editingUser, phone: e.target.value })} className="col-span-3" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="edit-role" className="text-right">Role</Label>
-                      <Select value={editingUser.role} onValueChange={(value: UserRole) => setEditingUser({...editingUser, role: value})}>
+                      <Select value={editingUser.role} onValueChange={(value: UserRole) => setEditingUser({ ...editingUser, role: value })}>
                         <SelectTrigger className="col-span-3">
                           <SelectValue placeholder="Select a role" />
                         </SelectTrigger>

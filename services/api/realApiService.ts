@@ -163,6 +163,7 @@ class RealApiService {
       } else if (options?.method && ['POST', 'PUT', 'DELETE'].includes(options.method)) {
         // Invalidate cache on mutations
         this.cache.clear();
+        await offlineStorage.clearAll().catch((e: any) => console.warn('Offline storage clear failed:', e));
       }
 
       return data;

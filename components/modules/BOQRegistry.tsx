@@ -86,7 +86,7 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
 
   const handleSaveEdit = () => {
     if (editingItem && project) {
-      const updatedBoq = project.boq.map(item =>
+      const updatedBoq = (project.boq || []).map(item =>
         item.id === editingItem.id ? editingItem : item
       );
       startTransition(() => {
@@ -118,7 +118,7 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
     if (newItem.description && newItem.quantity !== undefined && newItem.rate !== undefined && project) {
       const newBoqItem: BOQItem = {
         id: `boq-${Date.now()}`, // Simple unique ID generation
-        itemNo: newItem.itemNo || `ITEM-${(project.boq?.length || 0) + 1}`,
+        itemNo: newItem.itemNo || `ITEM-${((project.boq || []).length || 0) + 1}`,
         description: newItem.description,
         unit: newItem.unit || 'unit',
         quantity: newItem.quantity,
@@ -155,7 +155,7 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
     }
     if (window.confirm('Are you sure you want to delete this BOQ item?')) {
       if (project) {
-        const updatedBoq = project.boq.filter(item => item.id !== itemId);
+        const updatedBoq = (project.boq || []).filter(item => item.id !== itemId);
         startTransition(() => {
           onProjectUpdate({ ...project, boq: updatedBoq });
         });
@@ -170,7 +170,7 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
   const handleCertifyCompletion = (item: BOQItem) => {
     if (window.confirm(`Certify 100% completion for item ${item.itemNo}?`)) {
       const totalQty = item.quantity + (item.variationQuantity || 0);
-      const updatedBoq = project.boq.map(b =>
+      const updatedBoq = (project.boq || []).map(b =>
         b.id === item.id ? { ...b, completedQuantity: totalQty, status: 'Completed' as const } : b
       );
       startTransition(() => {
@@ -181,11 +181,12 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
   };
 
   const filteredBoq = useMemo(() => {
-    if (!project.boq) return [];
-    if (!searchTerm) return project.boq;
+    const boq = project.boq || [];
+    if (boq.length === 0) return [];
+    if (!searchTerm) return boq;
 
     const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    return project.boq.filter(item =>
+    return boq.filter(item =>
       item.itemNo.toLowerCase().includes(lowerCaseSearchTerm) ||
       item.description.toLowerCase().includes(lowerCaseSearchTerm) ||
       item.unit.toLowerCase().includes(lowerCaseSearchTerm) ||

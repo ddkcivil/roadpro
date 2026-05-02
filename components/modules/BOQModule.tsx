@@ -446,7 +446,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {(project.measurementSheets || []).length > 0 ? project.measurementSheets.map(sheet => (
+                                    {(project.measurementSheets || []).length > 0 ? (project.measurementSheets || []).map(sheet => (
                                         <TableRow key={sheet.id}>
                                             <TableCell className="font-bold">{sheet.sheetNumber}</TableCell>
                                             <TableCell>{sheet.title}</TableCell>
@@ -544,7 +544,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                                 <Select value={tempMBEntry.boqItemId} onValueChange={v => setTempMBEntry({...tempMBEntry, boqItemId: v})}>
                                     <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
                                     <SelectContent>
-                                        {project.boq.map(item => <SelectItem key={item.id} value={item.id}>{item.itemNo}: {item.description.substring(0, 40)}...</SelectItem>)}
+                                        {(project.boq || []).map(item => <SelectItem key={item.id} value={item.id}>{item.itemNo}: {item.description.substring(0, 40)}...</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -557,9 +557,9 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                         <div className="border rounded-md max-h-[200px] overflow-auto">
                             <Table>
                                 <TableBody>
-                                    {newMB.entries?.map((e, i) => (
+                                    {(newMB.entries || []).map((e, i) => (
                                         <TableRow key={e.id}>
-                                            <TableCell className="text-xs">{project.boq.find(b => b.id === e.boqItemId)?.itemNo}</TableCell>
+                                            <TableCell className="text-xs">{(project.boq || []).find(b => b.id === e.boqItemId)?.itemNo}</TableCell>
                                             <TableCell className="text-right font-bold">{e.quantity}</TableCell>
                                             <TableCell className="text-right"><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setNewMB({...newMB, entries: newMB.entries?.filter((_, idx) => idx !== i)})}><X size={12} /></Button></TableCell>
                                         </TableRow>
@@ -569,7 +569,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button onClick={handleSaveMB} disabled={!newMB.entries?.length}>Save & Approve</Button>
+                        <Button onClick={handleSaveMB} disabled={!(newMB.entries || []).length}>Save & Approve</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
