@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withErrorHandler } from './utils/errorHandler.js';
-import { getUserByEmail, verifyPassword, generateToken, verifyToken } from './utils/mongoAuth.js';
-import { mapUserFromDb } from './utils/mappers.js';
+import { withErrorHandler } from './utils/errorHandler';
+import { getUserByEmail, verifyPassword, generateToken, verifyToken } from './utils/mongoAuth';
+import { mapUserFromDb } from './utils/mappers';
 
 console.log('[Auth API] Initialized');
 
