@@ -76,6 +76,8 @@ export function mapProjectFromDb(dbProj: any): any {
   mapped.endDate = dbProj.endDate || dbProj.end_date || dbProj.enddate;
   mapped.createdAt = dbProj.createdAt || dbProj.created_at || dbProj.createdat;
   mapped.updatedAt = dbProj.updatedAt || dbProj.updated_at || dbProj.updatedat;
+  mapped.code = dbProj.code;
+  mapped.engineer = dbProj.engineer;
   
   // Ensure all required arrays/objects exist (safety fallbacks)
   mapped.boq = dbProj.boq || [];
@@ -108,7 +110,6 @@ export function mapProjectFromDb(dbProj: any): any {
   mapped.accountingTransactions = dbProj.accountingtransactions || dbProj.accounting_transactions || dbProj.accountingTransactions || [];
   mapped.structureTemplates = dbProj.structuretemplates || dbProj.structure_templates || dbProj.structureTemplates || [];
   mapped.auditLogs = dbProj.auditlogs || dbProj.audit_logs || dbProj.auditLogs || [];
-  mapped.personnel = dbProj.personnel || {};
 
   // Map joined documents and photos if they exist
   mapped.documents = (dbProj.project_documents || dbProj.documents || []).map((d: any) => ({
@@ -166,7 +167,8 @@ export function mapProjectToDb(proj: any): any {
     description: proj.description,
     metadata: proj.metadata,
     contractor: proj.contractor,
-    personnel: proj.personnel
+    code: proj.code,
+    engineer: proj.engineer
   };
 
   if (proj.ownerId && isUuid(proj.ownerId)) {
