@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { withErrorHandler } from './utils/errorHandler.js';
-import { getUserByEmail, verifyPassword, generateToken, verifyToken } from './utils/mongoAuth';
+import { getUserByEmail, verifyPassword, generateToken, verifyToken } from './utils/mongoAuth.js';
 import { mapUserFromDb } from './utils/mappers';
 import { supabasePublic } from './utils/supabaseClient.js';
 
