@@ -5,6 +5,8 @@ import { mongodb } from '../../lib/mongodb.js';
 export const withAuth = (handler: Function, options: { ignoreExpiration?: boolean } = {}) => async (req: VercelRequest, res: VercelResponse) => {
   let token = null;
   const authHeader = req.headers.authorization;
+  
+  console.log('[Auth Middleware] Headers:', JSON.stringify(req.headers));
 
   if (authHeader && authHeader.startsWith('Bearer ')) {
     token = authHeader.split(' ')[1];
@@ -19,6 +21,7 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
   }
 
   if (!token) {
+    console.log('[Auth Middleware] No token found in Authorization header or roadmaster-access cookie.');
     return res.status(401).json({ error: 'Unauthorized: No token provided' });
   }
 
