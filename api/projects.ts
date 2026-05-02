@@ -14,16 +14,29 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') {
     try {
       if (id) {
-        // Fetch a single project by ID with documents and site photos
+        // Fetch a single project by ID
         const { data: project, error } = await supabaseAdmin
           .from('projects')
-          .select('*, project_documents(*), project_site_photos(*)')
+          .select('*')
           .eq('id', id as string)
           .single();
 
         if (error) throw error;
         if (!project) return res.status(404).json({ error: 'Project not found' });
-        return res.status(200).json(mapProjectFromDb(project));
+
+        // Fetch associated documents and photos manually to avoid relationship cache issues
+        const [docsRes, photosRes] = await Promise.all([
+          supabaseAdmin.from('project_documents').select('*').eq('project_id', id as string),
+          supabaseAdmin.from('project_site_photos').select('*').eq('project_id', id as string)
+        ]);
+
+        const projectWithData = {
+          ...project,
+          project_documents: docsRes.data || [],
+          project_site_photos: photosRes.data || []
+        };
+
+        return res.status(200).json(mapProjectFromDb(projectWithData));
       }
 
       // Fetch paginated list of projects
@@ -40,11 +53,39 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       const { data: projects, error: fetchError } = await supabaseAdmin
         .from('projects')
-        .select('*, project_documents(*), project_site_photos(*)')
-        .range(skip, skip + limit - 1) // Supabase uses 0-based indexing for range
-        .order('created_at', { ascending: false }); // Example: order by creation date, adjust as needed
+        .select('*')
+        .range(skip, skip + limit - 1)
+        .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
+
+      if (projects && projects.length > 0) {
+        const projectIds = projects.map(p => p.id);
+        
+        // Fetch docs and photos for all projects in the list
+        const [docsRes, photosRes] = await Promise.all([
+          supabaseAdmin.from('project_documents').select('*').in('project_id', projectIds),
+          supabaseAdmin.from('project_site_photos').select('*').in('project_id', projectIds)
+        ]);
+
+        const docsMap: Record<string, any[]> = {};
+        const photosMap: Record<string, any[]> = {};
+
+        (docsRes.data || []).forEach(d => {
+          if (!docsMap[d.project_id]) docsMap[d.project_id] = [];
+          docsMap[d.project_id].push(d);
+        });
+
+        (photosRes.data || []).forEach(p => {
+          if (!photosMap[p.project_id]) photosMap[p.project_id] = [];
+          photosMap[p.project_id].push(p);
+        });
+
+        projects.forEach(p => {
+          p.project_documents = docsMap[p.id] || [];
+          p.project_site_photos = photosMap[p.id] || [];
+        });
+      }
       
       return res.status(200).json({
         data: (projects || []).map(mapProjectFromDb),
@@ -91,7 +132,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           ownerId: userId,
           updatedAt: new Date().toISOString()
         }))
-        .select('*, project_documents(*), project_site_photos(*)') // Return the inserted row with joined data
+        .select('*') // Return the inserted row without joins to avoid schema cache errors
         .single(); // Expect a single row
 
       if (error) throw error;
@@ -129,7 +170,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           updatedAt: new Date().toISOString() // Ensure updated_at is updated
         }))
         .eq('id', id as string)
-        .select('*, project_documents(*), project_site_photos(*)') // Return the updated row with joined data
+        .select('*') // Return the updated row without joins
         .single(); // Expect a single row
 
       if (error) throw error;
@@ -235,7 +276,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           updatedAt: new Date().toISOString() // Explicitly set updated_at
         }))
         .eq('id', id as string)
-        .select('*, project_documents(*), project_site_photos(*)')
+        .select('*')
         .single();
 
       if (error) throw error;

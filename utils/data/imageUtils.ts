@@ -1,7 +1,8 @@
 /**
- * Utility to compress base64 images to prevent localStorage quota issues.
+ * Utilities for client-side image compression and processing
  */
-export const compressImage = (base64Str: string, maxWidth = 200, maxHeight = 200, quality = 0.7): Promise<string> => {
+
+export async function compressImage(base64Str: string, maxWidth: number = 1200, quality: number = 0.7): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.src = base64Str;
@@ -10,28 +11,49 @@ export const compressImage = (base64Str: string, maxWidth = 200, maxHeight = 200
       let width = img.width;
       let height = img.height;
 
-      if (width > height) {
-        if (width > maxWidth) {
-          height *= maxWidth / width;
-          width = maxWidth;
-        }
-      } else {
-        if (height > maxHeight) {
-          width *= maxHeight / height;
-          height = maxHeight;
-        }
+      // Calculate new dimensions
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
       }
 
       canvas.width = width;
       canvas.height = height;
+
       const ctx = canvas.getContext('2d');
       if (!ctx) {
-        reject(new Error('Failed to get canvas context'));
+        reject(new Error('Could not get canvas context'));
         return;
       }
+
       ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
+
+      // Export as compressed JPEG
+      const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+      resolve(compressedBase64);
     };
     img.onerror = (error) => reject(error);
   });
-};
+}
+
+export async function fileToCompressedBase64(file: File, maxWidth: number = 1200, quality: number = 0.7): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = async (e) => {
+      const base64 = e.target?.result as string;
+      if (file.type.startsWith('image/')) {
+        try {
+          const compressed = await compressImage(base64, maxWidth, quality);
+          resolve(compressed);
+        } catch (error) {
+          console.warn('Compression failed, falling back to original', error);
+          resolve(base64);
+        }
+      } else {
+        resolve(base64);
+      }
+    };
+    reader.onerror = (error) => reject(error);
+  });
+}

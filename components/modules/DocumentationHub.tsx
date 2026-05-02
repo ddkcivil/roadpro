@@ -175,69 +175,63 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
     if (!uploadFile) return;
 
     const file = uploadFile;
-    const reader = new FileReader();
+    const { fileToCompressedBase64 } = await import('../../utils/data/imageUtils');
+    const base64 = await fileToCompressedBase64(file);
     
-    reader.onload = async (e) => {
-      const base64 = e.target?.result as string;
-      const newDoc: ProjectDocument = {
-        id: `doc-${Date.now()}`,
-        name: newDocument.name || file.name,
-        type: file.type,
-        date: new Date().toISOString(),
-        size: String(file.size),
-        folder: newDocument.folder,
-        subject: newDocument.name || file.name,
-        uploadDate: new Date().toISOString(),
-        uploadedBy: userRole,
-        tags: [],
-        fileUrl: base64,
-        description: newDocument.description,
-        currentVersion: 1,
-        versions: [],
-        createdBy: userRole.toString(),
-        lastModified: new Date().toISOString(),
-        status: 'Active',
-        comments: []
-      };
-      
-      const updatedDocs = [...(project.documents || []), newDoc];
-      onProjectUpdate({ ...project, documents: updatedDocs });
-      setNewDocument({ name: '', description: '', folder: 'General' });
-      setUploadFile(null);
-      setIsUploadModalOpen(false);
+    const newDoc: ProjectDocument = {
+      id: `doc-${Date.now()}`,
+      name: newDocument.name || file.name,
+      type: file.type,
+      date: new Date().toISOString(),
+      size: String(file.size),
+      folder: newDocument.folder,
+      subject: newDocument.name || file.name,
+      uploadDate: new Date().toISOString(),
+      uploadedBy: userRole,
+      tags: [],
+      fileUrl: base64,
+      description: newDocument.description,
+      currentVersion: 1,
+      versions: [],
+      createdBy: userRole.toString(),
+      lastModified: new Date().toISOString(),
+      status: 'Active',
+      comments: []
     };
     
-    reader.readAsDataURL(file);
+    const updatedDocs = [...(project.documents || []), newDoc];
+    onProjectUpdate({ ...project, documents: updatedDocs });
+    setNewDocument({ name: '', description: '', folder: 'General' });
+    setUploadFile(null);
+    setIsUploadModalOpen(false);
   };
 
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
+    const { fileToCompressedBase64 } = await import('../../utils/data/imageUtils');
+    let currentPhotos = [...(project.sitePhotos || [])];
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const reader = new FileReader();
+      const base64 = await fileToCompressedBase64(file);
       
-      reader.onload = async (e) => {
-        const base64 = e.target?.result as string;
-        const newPhoto: SitePhoto = {
-          id: `photo-${Date.now()}-${i}`,
-          url: base64,
-          caption: file.name,
-          date: new Date().toISOString(),
-          location: 'Site Location',
-          category: 'General',
-          uploadedBy: userRole,
-          isAnalyzed: false
-        };
-        
-        const updatedPhotos = [...(project.sitePhotos || []), newPhoto];
-        onProjectUpdate({ ...project, sitePhotos: updatedPhotos });
+      const newPhoto: SitePhoto = {
+        id: `photo-${Date.now()}-${i}`,
+        url: base64,
+        caption: file.name,
+        date: new Date().toISOString(),
+        location: 'Site Location',
+        category: 'General',
+        uploadedBy: userRole,
+        isAnalyzed: false
       };
       
-      reader.readAsDataURL(file);
+      currentPhotos.push(newPhoto);
     }
     
+    onProjectUpdate({ ...project, sitePhotos: currentPhotos });
     if (photoInputRef.current) photoInputRef.current.value = '';
   };
 

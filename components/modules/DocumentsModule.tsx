@@ -274,8 +274,9 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                   continue;
               }
               
-              // 1. Convert to base64
-              const base64Data = await fileToBase64(f);
+              // 1. Convert to base64 with compression for images
+              const { fileToCompressedBase64 } = await import('../../utils/data/imageUtils');
+              const base64Data = await fileToCompressedBase64(f);
               
               // 2. Upload to binary store (Vercel Blob via Postgres)
               const uploadResult = await realApiService.uploadFile({
@@ -403,8 +404,9 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
     const { realApiService } = await import('../../services/api/realApiService');
 
     try {
-      // 1. Convert to base64
-      const base64Data = await fileToBase64(file);
+      // 1. Convert to base64 with compression for images
+      const { fileToCompressedBase64 } = await import('../../utils/data/imageUtils');
+      const base64Data = await fileToCompressedBase64(file);
       
       // 2. Upload to binary store
       const uploadResult = await realApiService.uploadFile({
