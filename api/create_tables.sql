@@ -48,3 +48,23 @@ CREATE POLICY IF NOT EXISTS "Users can insert messages" ON public.messages FOR I
 CREATE INDEX IF NOT EXISTS idx_messages_projectId ON public.messages(projectId);
 CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON public.messages(timestamp);
 CREATE INDEX IF NOT EXISTS idx_messages_sender_receiver ON public.messages(senderId, receiverId);
+
+-- Registrations table
+CREATE TABLE IF NOT EXISTS public.registrations (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name text NOT NULL,
+  email text NOT NULL UNIQUE,
+  phone text,
+  password_hash text NOT NULL,
+  requested_role text NOT NULL,
+  status text DEFAULT 'pending',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.registrations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admins can manage registrations" ON public.registrations
+  FOR ALL USING (EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE profiles.id = auth.uid() AND profiles.role = 'ADMIN'
+  ));

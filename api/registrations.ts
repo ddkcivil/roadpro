@@ -1,16 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { mongodb } from '../lib/mongodb.js';
 import { supabaseAdmin } from './utils/supabaseClient.js';
 import { withErrorHandler } from './utils/errorHandler.js';
 import { withAuth } from './utils/auth.js';
-import { v4 as uuidv4 } from 'uuid';
 import { hashPassword } from './utils/mongoAuth.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { id, action } = req.query;
-  
-  // Ensure DB connection
-  await mongodb.connect();
 
   // --- PUBLIC: Submit new registration ---
   if (req.method === 'POST' && !action && !id) {
@@ -21,31 +16,37 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Name, email, password, and requested role are required.' });
       }
 
-      // Check for existing registration
-      const existingReg = await mongodb.db.collection('registrations').findOne({ email: email.toLowerCase() });
+      // Check for existing registration in Supabase
+      const { data: existingReg, error: checkError } = await supabaseAdmin
+        .from('registrations')
+        .select('id')
+        .eq('email', email.toLowerCase())
+        .single();
+
       if (existingReg) {
         return res.status(409).json({ error: 'A registration with this email already exists.' });
       }
 
-      const newRegId = uuidv4();
-      const newReg = {
-        _id: newRegId,
-        name,
-        email: email.toLowerCase(),
-        phone: phone || '',
-        passwordhash: await hashPassword(password),
-        requestedrole: requestedRole,
-        status: 'pending',
-        created_at: new Date().toISOString()
-      };
+      const password_hash = await hashPassword(password);
+      
+      const { data: newReg, error: insertError } = await supabaseAdmin
+        .from('registrations')
+        .insert([{
+          name,
+          email: email.toLowerCase(),
+          phone: phone || '',
+          password_hash,
+          requested_role: requestedRole,
+          status: 'pending'
+        }])
+        .select()
+        .single();
 
-      console.log('Attempting to insert registration:', JSON.stringify(newReg, null, 2));
-
-      await mongodb.db.collection('registrations').insertOne(newReg);
+      if (insertError) throw insertError;
 
       return res.status(201).json({
         message: 'Registration submitted successfully. Awaiting administrator approval.',
-        pendingRegistration: { id: newRegId, ...newReg },
+        pendingRegistration: newReg,
       });
     } catch (error: any) {
       console.error('Error submitting pending registration:', error);
@@ -63,11 +64,14 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
     if (req.method === 'GET') {
       try {
-        const registrations = await mongodb.db.collection('registrations')
-          .find({})
-          .toArray();
+        const { data: registrations, error } = await supabaseAdmin
+          .from('registrations')
+          .select('*')
+          .order('created_at', { ascending: false });
         
-        return res.status(200).json(registrations.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+        if (error) throw error;
+        
+        return res.status(200).json(registrations);
       } catch (error: any) {
         console.error('Failed to fetch pending registrations:', error);
         throw error;
@@ -79,32 +83,37 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         if (!id || typeof id !== 'string') return res.status(400).json({ error: 'Invalid ID' });
 
         try {
-          const pendingReg = await mongodb.db.collection('registrations').findOne({ _id: id });
-          if (!pendingReg) return res.status(404).json({ error: 'Pending registration not found' });
+          const { data: pendingReg, error: fetchError } = await supabaseAdmin
+            .from('registrations')
+            .select('*')
+            .eq('id', id)
+            .single();
 
-          const userId = uuidv4(); 
-          const { error: supabaseError } = await supabaseAdmin
+          if (fetchError || !pendingReg) return res.status(404).json({ error: 'Pending registration not found' });
+
+          // Create Supabase Profile (User account creation should ideally happen via Supabase Auth API, 
+          // but here we are mirroring the previous profile-only logic)
+          const { data: profile, error: supabaseError } = await supabaseAdmin
             .from('profiles')
             .insert([{
-              id: userId,
               full_name: pendingReg.name,
-              role: pendingReg.requestedrole || pendingReg.requested_role || pendingReg.requestedRole || 'SITE_ENGINEER',
+              role: pendingReg.requested_role || 'SITE_ENGINEER',
               avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`,
-              last_seen: new Date().toISOString(),
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }]);
+              last_seen: new Date().toISOString()
+            }])
+            .select()
+            .single();
 
           if (supabaseError) {
             console.error('Supabase profile creation failed:', supabaseError);
             return res.status(500).json({ error: 'Failed to create user profile in Supabase', details: supabaseError.message });
           }
           
-          await mongodb.db.collection('registrations').deleteOne({ _id: id });
+          await supabaseAdmin.from('registrations').delete().eq('id', id);
 
           return res.status(200).json({
             message: 'Registration approved successfully',
-            user: { id: userId, name: pendingReg.name, email: pendingReg.email }
+            user: { id: profile.id, name: pendingReg.name, email: pendingReg.email }
           });
         } catch (error: any) {
           console.error('Error approving registration:', error);
@@ -116,8 +125,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         if (!id || typeof id !== 'string') return res.status(400).json({ error: 'Registration ID is required' });
 
         try {
-          const result = await mongodb.db.collection('registrations').deleteOne({ _id: id });
-          if (result.deletedCount === 0) return res.status(404).json({ error: 'Registration not found' });
+          const { error: deleteError } = await supabaseAdmin.from('registrations').delete().eq('id', id);
+          if (deleteError) throw deleteError;
           return res.status(204).end();
         } catch (error: any) {
           console.error('Failed to reject registration:', error);
@@ -130,8 +139,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       if (!id || typeof id !== 'string') return res.status(400).json({ error: 'Registration ID is required' });
 
       try {
-        const result = await mongodb.db.collection('registrations').deleteOne({ _id: id });
-        if (result.deletedCount === 0) return res.status(404).json({ error: 'Registration not found' });
+        const { error: deleteError } = await supabaseAdmin.from('registrations').delete().eq('id', id);
+        if (deleteError) throw deleteError;
         return res.status(204).end();
       } catch (error: any) {
         console.error('Failed to delete registration:', error);
