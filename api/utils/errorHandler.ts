@@ -7,15 +7,18 @@ export const withErrorHandler = (handler: (req: VercelRequest, res: VercelRespon
     } catch (error: any) {
       console.error(`[API Error] ${req.method} ${req.url}:`, error);
       
+      const errorResponse = { 
+        error: 'Internal Server Error',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+      };
+      console.log('[API Error] Returning response:', JSON.stringify(errorResponse));
+      
       if (error.statusCode) {
         return res.status(error.statusCode).json({ error: error.message });
       }
       
       // Default error response
-      return res.status(500).json({ 
-        error: 'Internal Server Error',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined 
-      });
+      return res.status(500).json(errorResponse);
     }
   };
 };
