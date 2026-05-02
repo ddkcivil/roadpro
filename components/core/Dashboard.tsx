@@ -226,7 +226,8 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
         { id: 'health', title: 'Project Health Summary', visible: true, position: 3 },
         { id: 'qa-matrix', title: 'Quality Assurance Matrix', visible: true, position: 4 },
         { id: 'distribution', title: 'Work Breakdown', visible: true, position: 5 },
-        { id: 'weather', title: 'Site Weather', visible: true, position: 6 },
+        { id: 'project-info', title: 'Project Identity & Stakeholders', visible: true, position: 6 },
+        { id: 'weather', title: 'Site Weather', visible: true, position: 7 },
       ];
       onUpdateSettings({ ...settings, dashboardWidgets: defaultWidgets });
     }
@@ -578,9 +579,58 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
 
           {/* Site Weather & Intelligence */}
           {isWidgetVisible('weather') && (
-            <div className="md:col-span-4 lg:col-span-3">
+            <div className={cn("md:col-span-4", isWidgetVisible('project-info') ? "lg:col-span-3" : "lg:col-span-12")}>
                <WeatherWidget />
             </div>
+          )}
+
+          {/* Project Details / Metadata Bento Piece */}
+          {isWidgetVisible('project-info') && (
+            <Card className="md:col-span-4 lg:col-span-9 rounded-[2.5rem] glass-card border-none overflow-hidden group">
+              <CardHeader className="py-8 px-10 border-b border-white/5">
+                <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-slate-400 shadow-[0_0_10px_rgba(148,163,184,0.5)]" />
+                  Project Identity & Stakeholders
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-10">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Engineer / Consultant</p>
+                    <p className="text-sm font-black text-foreground">{project.engineer || 'Not Assigned'}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Main Contractor</p>
+                    <p className="text-sm font-black text-foreground">{project.contractor || 'Not Assigned'}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Employer / Client</p>
+                    <p className="text-sm font-black text-foreground">{project.client || 'Not Assigned'}</p>
+                  </div>
+                </div>
+                
+                <Separator className="my-8 opacity-5" />
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Contract Number</p>
+                    <p className="text-sm font-mono font-bold text-foreground">{project.contractNo || 'N/A'}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Project Code</p>
+                    <Badge variant="secondary" className="font-mono text-[10px] h-5">{project.code}</Badge>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Commencement</p>
+                    <p className="text-sm font-bold text-foreground">{project.startDate ? new Date(project.startDate).toLocaleDateString() : 'N/A'}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Planned Completion</p>
+                    <p className="text-sm font-bold text-foreground">{project.endDate ? new Date(project.endDate).toLocaleDateString() : 'N/A'}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
         </div>

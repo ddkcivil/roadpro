@@ -48,8 +48,8 @@ const ProjectModal: React.FC<Props> = ({ open, onClose, onSave, project }) => {
   // Filter projects based on search
   const filteredProjects = useMemo(() => {
     if (!projects) return [];
-    return projects.filter(p => 
-      p.name.toLowerCase().includes(projectsSearch.toLowerCase()) || 
+    return projects.filter(p =>
+      p.name.toLowerCase().includes(projectsSearch.toLowerCase()) ||
       p.code?.toLowerCase().includes(projectsSearch.toLowerCase()) ||
       p.client.toLowerCase().includes(projectsSearch.toLowerCase())
     );
@@ -91,7 +91,7 @@ const ProjectModal: React.FC<Props> = ({ open, onClose, onSave, project }) => {
 
   const handleSubmit = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
-    
+
     // Validate form first
     try {
       projectFormSchema.parse(editForm);
@@ -167,9 +167,9 @@ const ProjectModal: React.FC<Props> = ({ open, onClose, onSave, project }) => {
           <div className="flex-1 overflow-y-auto p-6">
             <TabsContent value="new" className="mt-0 outline-none">
               <form onSubmit={handleSubmit} className="grid gap-4">
-                <ErrorSummary 
-                  errors={errors} 
-                  title="Project definition errors" 
+                <ErrorSummary
+                  errors={errors}
+                  title="Project definition errors"
                   onClear={() => setErrors({})}
                 />
 
@@ -272,24 +272,24 @@ const ProjectModal: React.FC<Props> = ({ open, onClose, onSave, project }) => {
                 </div>
 
                 <div className="flex justify-between mt-4">
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
+                  <Button
+                    type="button"
+                    variant="ghost"
                     onClick={resetForm}
                     disabled={isSubmitting}
                   >
                     Reset Form
                   </Button>
                   <div className="flex gap-2">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
+                    <Button
+                      type="button"
+                      variant="outline"
                       onClick={onClose}
                       disabled={isSubmitting}
                     >
                       Cancel
                     </Button>
-                    <Button 
+                    <Button
                       type="submit"
                       disabled={isSubmitting}
                       className="gap-2"
