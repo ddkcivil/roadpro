@@ -88,13 +88,9 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole 
         const uploadToast = toast.loading("Uploading photo to secure storage...");
 
         try {
-            // 1. Convert to base64 for the API payload
-            const base64Data = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(tempFile);
-            });
+            // 1. Convert to base64 with compression for images
+            const { fileToCompressedBase64 } = await import('../../utils/data/imageUtils');
+            const base64Data = await fileToCompressedBase64(tempFile);
 
             // 2. Upload to binary store (MongoDB)
             const { realApiService } = await import('../../services/api/realApiService');

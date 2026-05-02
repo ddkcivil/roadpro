@@ -188,13 +188,8 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
       if (attachedFile) {
           setIsUploading(true);
           try {
-              // Convert to base64 for storage (since we don't have a file storage provider)
-              const base64 = await new Promise<string>((resolve, reject) => {
-                  const reader = new FileReader();
-                  reader.onload = () => resolve(reader.result as string);
-                  reader.onerror = reject;
-                  reader.readAsDataURL(attachedFile.file);
-              });
+              const { fileToCompressedBase64 } = await import('../../utils/data/imageUtils');
+              const base64 = await fileToCompressedBase64(attachedFile.file);
 
               attachment = {
                   url: base64,
