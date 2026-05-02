@@ -226,7 +226,7 @@ const ProjectModal: React.FC<Props> = ({ open, onClose, onSave, project }) => {
                     <Input
                       id="startDate"
                       type="date"
-                      value={editForm.startDate || ''}
+                      value={editForm.startDate ? editForm.startDate.split('T')[0] : ''}
                       onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })}
                       className={cn(errors.startDate && "border-destructive")}
                       disabled={isSubmitting}
@@ -238,7 +238,7 @@ const ProjectModal: React.FC<Props> = ({ open, onClose, onSave, project }) => {
                     <Input
                       id="endDate"
                       type="date"
-                      value={editForm.endDate || ''}
+                      value={editForm.endDate ? editForm.endDate.split('T')[0] : ''}
                       onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })}
                       className={cn(errors.endDate && "border-destructive")}
                       disabled={isSubmitting}
@@ -352,7 +352,7 @@ const ProjectModal: React.FC<Props> = ({ open, onClose, onSave, project }) => {
                             </TableCell>
                             <TableCell>{project.client}</TableCell>
                             <TableCell className="hidden md:table-cell text-xs">
-                              {project.startDate} to {project.endDate}
+                              {project.startDate ? project.startDate.split('T')[0] : 'N/A'} to {project.endDate ? project.endDate.split('T')[0] : 'N/A'}
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">

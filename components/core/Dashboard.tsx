@@ -622,11 +622,11 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
                   </div>
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Commencement</p>
-                    <p className="text-sm font-bold text-foreground">{project.startDate ? new Date(project.startDate).toLocaleDateString() : 'N/A'}</p>
+                    <p className="text-sm font-bold text-foreground">{project.startDate ? project.startDate.split('T')[0] : 'N/A'}</p>
                   </div>
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Planned Completion</p>
-                    <p className="text-sm font-bold text-foreground">{project.endDate ? new Date(project.endDate).toLocaleDateString() : 'N/A'}</p>
+                    <p className="text-sm font-bold text-foreground">{project.endDate ? project.endDate.split('T')[0] : 'N/A'}</p>
                   </div>
                 </div>
               </CardContent>
