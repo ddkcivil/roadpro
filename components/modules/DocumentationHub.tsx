@@ -1,21 +1,14 @@
-import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
-import { Project, UserRole, ProjectDocument, SitePhoto, DailyReport } from '../../types';
+import React, { useState, useRef, useMemo } from 'react';
+import { Project, UserRole, SitePhoto, DailyReport } from '../../types';
 import { analyzeSitePhoto } from '../../services/ai/geminiService';
 
-// Dynamically load PDF components when needed
-interface PdfComponents {
-  Document: any;
-  Page: any;
-  pdfjs: any;
-}
 import { 
-    FileText, Upload, Search, Camera, Trash2, 
-    Calendar, MapPin, X, Plus, Folder, ExternalLink,
-    ImageIcon, Sparkles, File, Loader2, Sun, Cloud,
+    FileText, Camera, Trash2, 
+    Calendar, MapPin, Plus, Folder,
+    ImageIcon, Sparkles, Loader2, Sun, Cloud,
     FileSpreadsheet, AlertTriangle, BookOpen, Printer,
     Eye, CloudRain
 } from 'lucide-react';
-import { base64ToBlobUrl } from '../../utils/data/documentUtils';
 import DocumentsModule from './DocumentsModule';
 
 import { Button } from '~/components/ui/button';
@@ -31,7 +24,6 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { Separator } from '~/components/ui/separator';
 import { Badge } from '~/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
@@ -59,8 +51,9 @@ interface Props {
   onNavigate?: (tab: string) => void;
 }
 
+const PHOTO_CATEGORIES = ['General', 'Earthwork', 'Structures', 'Pavement', 'Safety'];
+
 const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate, onNavigate }) => {
-  const [pdfComponents, setPdfComponents] = useState<PdfComponents | null>(null);
   const [activeTab, setActiveTab] = useState("documents");
 
   if (!project) {
@@ -80,87 +73,20 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
   const photos = project.sitePhotos || [];
   const dailyReports = project.dailyReports || [];
 
-  // === DOCUMENT MANAGEMENT STATE ===
-  const [searchTerm, setSearchTerm] = useState('');
-  const [folderFilter, setFolderFilter] = useState('All');
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [newDocument, setNewDocument] = useState({ name: '', description: '', folder: 'General' });
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  
   // === SITE PHOTOS STATE ===
   const [photoCategoryFilter, setPhotoCategoryFilter] = useState('All');
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<SitePhoto | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
-  
-  // === DOCUMENT PREVIEW STATE ===
-  const [previewDoc, setPreviewDoc] = useState<ProjectDocument | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [numPages, setNumPages] = useState<number | null>(null);
-  const [scale, setScale] = useState(1.0);
-  const [pdfError, setPdfError] = useState<string | null>(null);
-
-  // === CONSTANTS ===
-  const FOLDERS = ['General', 'Contracts', 'Drawings', 'Reports', 'Correspondence', 'Financials', 'Sub-Docs'];
-  const PHOTO_CATEGORIES = ['General', 'Earthwork', 'Structures', 'Pavement', 'Safety'];
-
-  // === EFFECTS ===
-  const getFileUrl = useCallback((doc: ProjectDocument): string => {
-    return doc.fileUrl || '';
-  }, []);
-
-  useEffect(() => {
-    const loadPdfComponents = async () => {
-      try {
-        const pdfModule = await import('react-pdf');
-        const pdfjs = pdfModule.pdfjs;
-        
-        if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-            'pdfjs-dist/build/pdf.worker.min.mjs',
-            import.meta.url,
-          ).toString();
-        }
-
-        setPdfComponents({
-          Document: pdfModule.Document,
-          Page: pdfModule.Page,
-          pdfjs: pdfjs
-        });
-      } catch (error) {
-        console.warn('Failed to load PDF components:', error);
-      }
-    };
-    loadPdfComponents();
-  }, []);
-
-  const Document = pdfComponents?.Document;
-  const Page = pdfComponents?.Page;
 
   // === COMPUTED VALUES ===
-  const filteredDocuments = useMemo(() => {
-    return (project.documents || []).filter(doc => {
-      const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           doc.description?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesFolder = folderFilter === 'All' || doc.folder === folderFilter;
-      return matchesSearch && matchesFolder;
-    });
-  }, [project.documents, searchTerm, folderFilter]);
-
   const filteredPhotos = useMemo(() => {
     return (project.sitePhotos || []).filter(photo => {
       const matchesCategory = photoCategoryFilter === 'All' || photo.category === photoCategoryFilter;
       return matchesCategory;
     });
   }, [project.sitePhotos, photoCategoryFilter]);
-
-  const documentStats = useMemo(() => ({
-    total: project.documents?.length || 0,
-    contracts: project.documents?.filter(d => d.folder === 'Contracts').length || 0,
-    drawings: project.documents?.filter(d => d.folder === 'Drawings').length || 0,
-    reports: project.documents?.filter(d => d.folder === 'Reports').length || 0
-  }), [project.documents]);
 
   const photoStats = useMemo(() => ({
     total: project.sitePhotos?.length || 0,
@@ -169,43 +95,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
     structures: project.sitePhotos?.filter(p => p.category === 'Structures').length || 0
   }), [project.sitePhotos]);
 
-
   // === HANDLERS ===
-  const handleDocumentUpload = async () => {
-    if (!uploadFile) return;
-
-    const file = uploadFile;
-    const { fileToCompressedBase64 } = await import('../../utils/data/imageUtils');
-    const base64 = await fileToCompressedBase64(file);
-    
-    const newDoc: ProjectDocument = {
-      id: `doc-${Date.now()}`,
-      name: newDocument.name || file.name,
-      type: file.type,
-      date: new Date().toISOString(),
-      size: String(file.size),
-      folder: newDocument.folder,
-      subject: newDocument.name || file.name,
-      uploadDate: new Date().toISOString(),
-      uploadedBy: userRole,
-      tags: [],
-      fileUrl: base64,
-      description: newDocument.description,
-      currentVersion: 1,
-      versions: [],
-      createdBy: userRole.toString(),
-      lastModified: new Date().toISOString(),
-      status: 'Active',
-      comments: []
-    };
-    
-    const updatedDocs = [...(project.documents || []), newDoc];
-    onProjectUpdate({ ...project, documents: updatedDocs });
-    setNewDocument({ name: '', description: '', folder: 'General' });
-    setUploadFile(null);
-    setIsUploadModalOpen(false);
-  };
-
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -248,29 +138,6 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
     }
   };
 
-  const handleDownloadDocument = (doc: ProjectDocument) => {
-    const url = getFileUrl(doc);
-    if (url) {
-      if (url.startsWith('blob:')) {
-        window.open(url, '_blank');
-      } else {
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = doc.name;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-    }
-  };
-
-  const handleDeleteDocument = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this document?')) {
-      const updatedDocuments = project.documents?.filter(doc => doc.id !== id) || [];
-      onProjectUpdate({ ...project, documents: updatedDocuments });
-    }
-  };
-
   const handleDeletePhoto = (id: string) => {
     if (window.confirm('Are you sure you want to delete this photo?')) {
       const updatedPhotos = project.sitePhotos?.filter(photo => photo.id !== id) || [];
@@ -290,11 +157,6 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
           <p className="text-sm text-muted-foreground">Unified document, photo, and reporting management</p>
         </div>
         <div className="flex gap-2">
-          {activeTab !== 'documents' && (
-            <Button variant="outline" onClick={() => setIsUploadModalOpen(true)}>
-              <Upload className="mr-2 h-4 w-4" /> Upload Document
-            </Button>
-          )}
           {activeTab === 'site-photos' && (
             <Button variant="outline" onClick={() => photoInputRef.current?.click()}>
               <Camera className="mr-2 h-4 w-4" /> Add Photo
@@ -501,45 +363,6 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
         </Tabs>
       </Card>
 
-      {/* Upload Document Modal */}
-      <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Upload New Document</DialogTitle>
-            <DialogDescription>Attach files relevant to the project documentation.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="documentName">Document Name</Label>
-              <Input id="documentName" value={newDocument.name} onChange={e => setNewDocument({...newDocument, name: e.target.value})} placeholder="e.g. Contract Agreement_Phase1" required />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="documentDescription">Description (Optional)</Label>
-              <Input id="documentDescription" value={newDocument.description} onChange={e => setNewDocument({...newDocument, description: e.target.value})} placeholder="Brief description of the document" />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="documentFolder">Folder</Label>
-              <Select value={newDocument.folder} onValueChange={value => setNewDocument({...newDocument, folder: value})}>
-                <SelectTrigger id="documentFolder">
-                  <SelectValue placeholder="Select Folder" />
-                </SelectTrigger>
-                <SelectContent>
-                  {FOLDERS.map(folder => <SelectItem key={folder} value={folder}>{folder}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="fileInput">Select File</Label>
-              <Input id="fileInput" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" onChange={e => setUploadFile(e.target.files?.[0] || null)} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsUploadModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleDocumentUpload}>Upload Document</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
       {/* Photo Preview Modal */}
       <Dialog open={isPhotoModalOpen} onOpenChange={setIsPhotoModalOpen}>
         <DialogContent className="sm:max-w-lg">
@@ -574,118 +397,6 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
             </Button>
             <Button onClick={() => setIsPhotoModalOpen(false)}>Close</Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Document Preview Modal */}
-      <Dialog open={!!previewDoc} onOpenChange={(open) => { if (!open) { setPreviewDoc(null); setNumPages(null); setCurrentPage(1); setScale(1.0); setPdfError(null); } }}>
-        <DialogContent className="max-w-[calc(100vw-6rem)] h-[calc(100vh-6rem)] flex flex-col p-0">
-          <DialogHeader className="flex flex-row items-center justify-between px-6 py-4 border-b">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              <DialogTitle className="text-lg font-bold">{previewDoc?.name}</DialogTitle>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => { if (previewDoc) handleDownloadDocument(previewDoc); }}>
-                <ExternalLink className="mr-2 h-4 w-4" /> Download
-              </Button>
-              <Button variant="ghost" size="icon" onClick={() => setPreviewDoc(null)}>
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-          </DialogHeader>
-          <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
-            {previewDoc?.fileUrl ? (
-              <div className="w-full h-full flex flex-col items-center justify-center">
-                {(previewDoc.type === 'application/pdf' || previewDoc.fileUrl.toLowerCase().endsWith('.pdf')) ? (
-                  <div className="flex-1 w-full flex items-center justify-center overflow-auto">
-                    {Document ? (
-                      <Document
-                        file={getFileUrl(previewDoc)}
-                        loading={<div className="text-center text-muted-foreground"><Loader2 className="animate-spin mx-auto mb-2" /> Loading PDF...</div>}
-                        error={pdfError || 'Failed to load PDF'}
-                        onLoadError={(error: Error) => {
-                          console.error('PDF load error:', error);
-                          setPdfError(error?.message || 'Unknown PDF error');
-                        }}
-                        onLoadSuccess={({ numPages: totalPages }: { numPages: number }) => { setNumPages(totalPages); setPdfError(null); }}
-                      >
-                        <Page pageNumber={currentPage} scale={scale} renderTextLayer={false} renderAnnotationLayer={false} />
-                      </Document>
-                    ) : (
-                      <div className="text-center p-4 text-muted-foreground">
-                        <Loader2 className="animate-spin mx-auto mb-2" />
-                        <p>Initializing PDF viewer...</p>
-                      </div>
-                    )}
-                    {pdfError && (
-                      <div className="flex flex-col items-center justify-center p-4 text-destructive bg-background/80 absolute inset-0 z-10">
-                        <FileText className="h-12 w-12 mb-2" />
-                        <p className="font-bold">Failed to load PDF</p>
-                        <p className="text-sm text-muted-foreground mt-1 text-center">
-                          {pdfError}
-                        </p>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="mt-4" 
-                          onClick={() => {
-                            if (previewDoc) {
-                              const url = getFileUrl(previewDoc);
-                              window.open(url, '_blank');
-                            }
-                          }}
-                        >
-                          <ExternalLink className="mr-2 h-4 w-4" /> Open in New Tab
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ) : (previewDoc.type?.includes('image') || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => previewDoc.fileUrl?.toLowerCase().endsWith(ext))) ? (
-                  <img
-                    src={getFileUrl(previewDoc)}
-                    alt={previewDoc.name || 'Document image preview'}
-                    title={previewDoc.name || 'Document image preview'}
-                    className="max-w-full max-h-full object-contain rounded-lg"
-                  />
-                ) : (
-                  <div className="text-center p-4 text-muted-foreground">
-                    <FileText className="mx-auto h-12 w-12 mb-2" />
-                    <p>Preview not available for this file type</p>
-                    <p className="text-sm">{previewDoc.name}</p>
-                    <Button variant="outline" size="sm" className="mt-4" onClick={() => { if (previewDoc) handleDownloadDocument(previewDoc); }}>
-                      <ExternalLink className="mr-2 h-4 w-4" /> Download File
-                    </Button>
-                  </div>
-                )}
-                {(previewDoc.type === 'application/pdf' || previewDoc.fileUrl.toLowerCase().endsWith('.pdf')) && numPages && numPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 p-2 bg-background/50 border-t w-full">
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage <= 1}>
-                      Prev
-                    </Button>
-                    <span className="text-sm text-muted-foreground font-mono">Page {currentPage} of {numPages}</span>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(numPages, prev + 1))} disabled={currentPage >= numPages}>
-                      Next
-                    </Button>
-                    <Separator orientation="vertical" className="h-6 mx-2" />
-                    <Button variant="outline" size="sm" onClick={() => setScale(prev => Math.max(0.5, prev - 0.2))}>
-                      -
-                    </Button>
-                    <span className="text-sm text-muted-foreground font-mono">{Math.round(scale * 100)}%</span>
-                    <Button variant="outline" size="sm" onClick={() => setScale(prev => Math.min(2, prev + 0.2))}>
-                      +
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-center p-4 text-muted-foreground">
-                <FileText className="mx-auto h-12 w-12 mb-2" />
-                <p>No preview available</p>
-                <p className="text-sm">{previewDoc?.name}</p>
-              </div>
-            )}
-          </div>
         </DialogContent>
       </Dialog>
     </div>
