@@ -158,8 +158,10 @@ export class PermissionsService {
   /**
    * Get permissions for a specific role
    */
-  static getPermissionsForRole(role: UserRole): Permission[] {
-    const rolePermissions = this.DEFAULT_ROLE_PERMISSIONS.find(rp => rp.role === role);
+  static getPermissionsForRole(role: UserRole | string): Permission[] {
+    const rolePermissions = this.DEFAULT_ROLE_PERMISSIONS.find(rp => 
+      rp.role.toLowerCase() === role.toLowerCase()
+    );
     return rolePermissions ? rolePermissions.permissions : [];
   }
 

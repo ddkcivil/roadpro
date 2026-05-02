@@ -392,7 +392,8 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
     const currentDoc = (project.documents || []).find(doc => doc.id === docId);
     if (!currentDoc) return;
 
-    const currentVersion = currentDoc.versions.find(v => v.version === currentDoc.currentVersion);
+    const versions = currentDoc.versions || [];
+    const currentVersion = versions.find(v => v.version === currentDoc.currentVersion);
     if (currentVersion && 
         currentVersion.filePath.split('_').pop() === file.name &&
         Math.abs(parseFloat(currentVersion.size) - parseFloat(`${(file.size / 1024 / 1024).toFixed(2)} MB`)) < 0.1) {
@@ -898,7 +899,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                         </Button>
                       </div>
                       <ScrollArea className="h-32">
-                        {previewDoc.versions.map(version => (
+                        {(previewDoc.versions || []).map(version => (
                           <div key={version.id} className="flex items-center justify-between text-sm py-1">
                             <div className="flex items-center gap-2">
                               {version.version === previewDoc.currentVersion ? (

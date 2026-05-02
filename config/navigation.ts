@@ -55,14 +55,16 @@ export const getNavigationGroups = (currentUser: User | UserWithPermissions): Na
   ];
   
   const adminItems: NavItem[] = [];
-  if (isAdmin || isManager) {
-    const permissions = (currentUser as UserWithPermissions).permissions || [];
-    if (permissions.includes(Permission.USER_READ)) {
-      adminItems.push({ id: 'user-management', label: 'User Management', icon: UserCheck });
-      adminItems.push({ id: 'user-activity', label: 'User Activity', icon: ClipboardList });
-    }
-    adminItems.push({ id: 'user-registration', label: 'Create Account', icon: Shield });
+  const permissions = (currentUser as UserWithPermissions).permissions || [];
+  
+  if (permissions.includes(Permission.USER_READ)) {
+    adminItems.push({ id: 'user-management', label: 'User Management', icon: UserCheck });
+    adminItems.push({ id: 'user-activity', label: 'User Activity', icon: ClipboardList });
     adminItems.push({ id: 'staff-management', label: 'Staff Management', icon: Users });
+  }
+  
+  if (permissions.includes(Permission.USER_CREATE)) {
+    adminItems.push({ id: 'user-registration', label: 'Create Account', icon: Shield });
   }
 
   const groups: NavGroup[] = [
