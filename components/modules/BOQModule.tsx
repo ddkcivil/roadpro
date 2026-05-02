@@ -89,7 +89,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
     const handleCreateAutoMB = () => {
         if (selectedLogs.length === 0) return;
 
-        const logsToProcess = (project.logs || []).filter(log => selectedLogs.includes(log.id));
+        const logsToProcess = uncertifiedLogs.filter(log => selectedLogs.includes(log.id));
 
         // Group logs by BOQ Item ID to create combined entries
         const groupedEntries: Record<string, number> = {};
@@ -339,21 +339,13 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
         }
     };
 
-    const filteredBOQItems = useMemo(() => {
-      const items = project.boq?.items || []; // Ensure items is always an array
-      return items
-        .filter(item => 
-          item.description?.toLowerCase().includes(boqSearch.toLowerCase()) ||
-          item.unit?.toLowerCase().includes(boqSearch.toLowerCase()) ||
-          item.category?.toLowerCase().includes(boqSearch.toLowerCase())
-        )
-        .slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
-    }, [project.boq?.items, boqSearch, currentPage, rowsPerPage]);
-
-    const totalBOQValue = useMemo(() => {
-      const items = project.boq?.items || []; // Ensure items is always an array
-      return items.reduce((sum, item) => sum + (item.value || 0), 0);
-    }, [project.boq?.items]);
+    const financialSummary = useMemo(() => {
+        const boq = project.boq || [];
+        const original = boq.reduce((acc, item) => acc + item.amount, 0);
+        const completed = boq.reduce((acc, item) => acc + ((item.completedQuantity || 0) * item.rate), 0);
+        const percent = original > 0 ? (completed / original) * 100 : 0;
+        return { original, completed, percent };
+    }, [project.boq]);
 
     return (
         <div className="animate-in fade-in duration-500 p-4">
