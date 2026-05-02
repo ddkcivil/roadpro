@@ -19,36 +19,48 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Email and password are required' });
       }
 
-      // 1. Try Supabase Auth
-      const { data: authData, error: authError } = await supabasePublic.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (!authError && authData.session) {
-        const userId = authData.user.id;
-        const { data: profile } = await supabasePublic
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
-
-        res.setHeader('Set-Cookie', `roadmaster-access=${authData.session.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
-        
-        return res.status(200).json({
-          user: {
-            id: userId,
-            email: authData.user.email,
-            full_name: profile?.full_name || 'User',
-            role: (profile?.role || 'SITE_ENGINEER').toUpperCase(),
-            avatar_url: profile?.avatar_url
-          },
-          token: authData.session.access_token
+      try {
+        // 1. Try Supabase Auth
+        console.log('[Auth API] Calling Supabase signInWithPassword');
+        const { data: authData, error: authError } = await supabasePublic.auth.signInWithPassword({
+          email,
+          password,
         });
+
+        if (authError) {
+          console.log('[Auth API] Supabase auth error:', authError);
+        }
+
+        if (!authError && authData.session) {
+          console.log('[Auth API] Supabase login successful');
+          const userId = authData.user.id;
+          const { data: profile, error: profError } = await supabasePublic
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+
+          if (profError) console.log('[Auth API] Supabase profile fetch error:', profError);
+
+          res.setHeader('Set-Cookie', `roadmaster-access=${authData.session.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
+
+          return res.status(200).json({
+            user: {
+              id: userId,
+              email: authData.user.email,
+              full_name: profile?.full_name || 'User',
+              role: (profile?.role || 'SITE_ENGINEER').toUpperCase(),
+              avatar_url: profile?.avatar_url
+            },
+            token: authData.session.access_token
+          });
+        }
+      } catch (e) {
+        console.error('[Auth API] Supabase flow exception:', e);
       }
 
       // 2. Fallback to MongoDB (Legacy)
-      console.log('[Auth API] Supabase login failed, checking MongoDB fallback...');
+      console.log('[Auth API] Supabase login failed or skipped, checking MongoDB fallback...');
       const user = await getUserByEmail(email);
 
       if (!user || !user.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
@@ -69,7 +81,6 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         token
       });
     }
-
     // --- VERIFY & LOGOUT ---
     // (Existing verify/logout implementation...)
 
