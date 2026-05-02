@@ -26,7 +26,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
         // Fetch associated documents and photos manually to avoid relationship cache issues
         const [docsRes, photosRes] = await Promise.all([
-          supabaseAdmin.from('project_documents').select('*').eq('project_id', id as string),
+          supabaseAdmin.from('project_documents').select('*, document_versions(*)').eq('project_id', id as string),
           supabaseAdmin.from('project_site_photos').select('*').eq('project_id', id as string)
         ]);
 
@@ -64,7 +64,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         
         // Fetch docs and photos for all projects in the list
         const [docsRes, photosRes] = await Promise.all([
-          supabaseAdmin.from('project_documents').select('*').in('project_id', projectIds),
+          supabaseAdmin.from('project_documents').select('*, document_versions(*)').in('project_id', projectIds),
           supabaseAdmin.from('project_site_photos').select('*').in('project_id', projectIds)
         ]);
 

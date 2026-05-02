@@ -66,13 +66,22 @@ export function mapProjectFromDb(dbProj: any): any {
       projectId: d.project_id,
       name: d.name,
       folder: d.folder,
-      tags: d.tags,
+      tags: d.tags || [],
       subject: d.subject,
       refNo: d.ref_no,
       size: d.size,
       type: d.type,
       status: d.status,
       metadata: d.metadata,
+      currentVersion: d.current_version || 1,
+      versions: (d.document_versions || []).map((v: any) => ({
+        id: v.id,
+        version: v.version_num,
+        date: v.created_at,
+        size: v.size ? `${(v.size / 1024 / 1024).toFixed(2)} MB` : '0 MB',
+        filePath: v.blob_url,
+        uploadedBy: 'System'
+      })),
       updatedAt: d.updated_at
     })),
     sitePhotos: (dbProj.project_site_photos || []).map((p: any) => ({
