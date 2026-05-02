@@ -97,7 +97,16 @@ class RealApiService {
         throw error;
       }
 
-      return response.json();
+      const data = await response.json();
+      // Normalize IDs for backward compatibility
+      if (Array.isArray(data)) {
+        return data.map((item: any) => {
+          if (item && item._id && !item.id) item.id = item._id;
+          if (item && item.id && !item._id) item._id = item.id;
+          return item;
+        }) as any;
+      }
+      return data;
     } catch (error) {
       if (retries > 0 && !navigator.onLine) {
         throw error;
@@ -163,7 +172,16 @@ class RealApiService {
         const offlineEntry = await offlineStorage.getItem<{data: T, timestamp: number}>(cacheKey);
         if (offlineEntry !== undefined) {
           console.log(`[API] Serving offline data for: ${endpoint}`);
-          return (offlineEntry as any).data || offlineEntry;
+          const data = (offlineEntry as any).data || offlineEntry;
+          // Normalize IDs for backward compatibility
+          if (Array.isArray(data)) {
+            return data.map((item: any) => {
+              if (item && item._id && !item.id) item.id = item._id;
+              if (item && item.id && !item._id) item._id = item.id;
+              return item;
+            }) as any;
+          }
+          return data;
         }
       }
       
