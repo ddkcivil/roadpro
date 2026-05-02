@@ -39,6 +39,8 @@ export function mapUserFromDb(user: any | null): any {
       full_name: user.full_name,
       role: normalizeRole(user.role),
       avatar_url: user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random`,
+      avatar: user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random`,
+      phone: user.phone || '',
       last_seen: user.last_seen || null,
     };
   }

@@ -119,7 +119,7 @@ const UserManagement: React.FC = () => {
       });
 
       const updatedUsers = users.map(user =>
-        user.id === editingUser.id ? updatedUser : user
+        user.id === editingUser.id ? { ...user, ...updatedUser } : user
       );
 
       setUsers(updatedUsers);
