@@ -126,15 +126,35 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
     // Improved regex for correspondenceType to be more specific
     const finalCorrespondenceType = text.match(/\b(incoming|in|from)\b/i) ? 'incoming' : text.match(/\b(outgoing|out|to)\b/i) ? 'outgoing' : '';
 
+    // Helper to normalize dates to yyyy-MM-dd
+    const normalizeDate = (dateStr: string) => {
+      if (!dateStr) return '';
+      // Try to parse dd-mm-yyyy or dd/mm/yyyy
+      const dmyMatch = dateStr.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})$/);
+      if (dmyMatch) {
+        let [_, d, m, y] = dmyMatch;
+        if (y.length === 2) y = `20${y}`;
+        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+      }
+      // If already yyyy-mm-dd or similar, try native parsing
+      try {
+        const d = new Date(dateStr);
+        if (!isNaN(d.getTime())) {
+          return d.toISOString().split('T')[0];
+        }
+      } catch (e) {}
+      return dateStr;
+    };
+
     setScannedMetadata(prev => ({
       ...prev,
       subject: subjectMatch ? subjectMatch[1].trim() : file.name.split('.')[0],
       refNo: refMatch ? refMatch[1].trim() : '',
-      letterDate: dateMatch ? dateMatch[1] : '',
+      letterDate: dateMatch ? normalizeDate(dateMatch[1]) : '',
       correspondenceType: finalCorrespondenceType,
       sender: '',
       recipient: '',
-      date: new Date().toISOString().split('T')[0] // Date is already string
+      date: new Date().toISOString().split('T')[0]
     }));
 
     setScanStep('REVIEW');
