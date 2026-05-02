@@ -1,13 +1,13 @@
 {
   "compilerOptions": {
     "target": "es2021",
-    "module": "NodeNext",
+    "module": "esnext",
     "lib": ["es2021", "DOM"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "NodeNext",
+    "moduleResolution": "bundler",
     "outDir": "dist/api",
     "rootDir": "../",
     "allowJs": true,
