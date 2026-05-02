@@ -39,46 +39,51 @@ class OCRService {
   }
 
   private async extractTextFromPDF(pdfFile: File): Promise<OCRResult> {
-    // Simulate PDF processing - in a real implementation, we would use a PDF.js library
-    // to extract text from the PDF and then apply OCR to images within the PDF
-    
-    // For demonstration purposes, simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Create mock text based on PDF filename
-    const mockText = `PDF Document Analysis Result:\n\n` +
-      `Document Title: ${pdfFile.name.replace(/\.[^/.]+$/, '')}\n` +
-      `File Size: ${(pdfFile.size / 1024).toFixed(2)} KB\n` +
-      `Page Count: ${Math.floor(Math.random() * 10) + 1}\n\n` +
-      `BOQ Item 1: Earthwork Excavation - 150.00 CuM @ Rs. 450.00/CuM\n` +
-      `BOQ Item 2: Plain Cement Concrete - 75.50 CuM @ Rs. 3200.00/CuM\n` +
-      `BOQ Item 3: Reinforced Cement Concrete - 42.75 CuM @ Rs. 5200.00/CuM\n\n` +
-      `Contractor: ABC Construction Pvt Ltd\n` +
-      `Project Code: RD-2023-001\n` +
-      `Invoice No: INV-2023-0123\n` +
-      `Amount: Rs. 1,250,000.00\n` +
-      `Date: 15/06/2023\n\n` +
-      `Contact: info@abcconstruction.com\n` +
-      `Phone: +977-1-4567890\n\n` +
-      `Additional Notes: Material certification required for RCC works.`;
-    
-    // Higher confidence for PDF text extraction
-    const confidence = Math.floor(Math.random() * 15) + 85; // Between 85-100%
-    
-    const boundingBoxes = [
-      { x: 50, y: 50, width: 200, height: 25, text: "Document Title" },
-      { x: 50, y: 80, width: 150, height: 20, text: pdfFile.name.replace(/\.[^/.]+$/, '') },
-      { x: 50, y: 120, width: 300, height: 20, text: "Earthwork Excavation - 150.00 CuM @ Rs. 450.00/CuM" },
-      { x: 50, y: 150, width: 300, height: 20, text: "Plain Cement Concrete - 75.50 CuM @ Rs. 3200.00/CuM" },
-      { x: 50, y: 180, width: 300, height: 20, text: "Reinforced Cement Concrete - 42.75 CuM @ Rs. 5200.00/CuM" },
-      { x: 50, y: 220, width: 250, height: 20, text: "ABC Construction Pvt Ltd" },
-      { x: 50, y: 250, width: 150, height: 20, text: "RD-2023-001" },
-      { x: 50, y: 280, width: 150, height: 20, text: "INV-2023-0123" },
-      { x: 50, y: 310, width: 150, height: 20, text: "Rs. 1,250,000.00" },
-      { x: 50, y: 340, width: 100, height: 20, text: "15/06/2023" }
-    ];
+    try {
+      console.log('Starting real PDF text extraction for:', pdfFile.name);
+      
+      // Load PDF.js dynamically to avoid issues with SSR or initialization order
+      const pdfjsLib = await import('pdfjs-dist');
+      
+      // Configure worker
+      const pdfjsVersion = pdfjsLib.version || '4.7.432';
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsVersion}/build/pdf.worker.min.mjs`;
 
-    return { text: mockText, confidence, boundingBoxes };
+      const arrayBuffer = await pdfFile.arrayBuffer();
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      const pdf = await loadingTask.promise;
+      
+      let fullText = '';
+      const pageCount = pdf.numPages;
+      console.log(`PDF loaded. Total pages: ${pageCount}`);
+
+      for (let i = 1; i <= pageCount; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map((item: any) => item.str)
+          .join(' ');
+        
+        fullText += `--- Page ${i} ---\n${pageText}\n\n`;
+      }
+
+      console.log('PDF text extraction completed. Length:', fullText.length);
+
+      return {
+        text: fullText || 'No text content found in PDF.',
+        confidence: 95,
+        boundingBoxes: [] // PDF.js text extraction doesn't easily provide bounding boxes in this simple mode
+      };
+    } catch (error) {
+      console.error('Real PDF extraction failed, falling back to basic analysis:', error);
+      
+      // Fallback if PDF.js fails
+      return {
+        text: `Extraction Error: ${(error as Error).message}\n\nFilename: ${pdfFile.name}`,
+        confidence: 0,
+        boundingBoxes: []
+      };
+    }
   }
 
   private async extractTextFromImageFile(imageFile: File): Promise<OCRResult> {
