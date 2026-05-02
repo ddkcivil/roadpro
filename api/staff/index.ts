@@ -19,7 +19,10 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .single();
 
       // PGRST116 is 'no rows found', 42703 is 'undefined_column' (Postgres error)
-      if (error && error.code !== 'PGRST116' && error.code !== '42703') throw error;
+      if (error && error.code !== 'PGRST116' && error.code !== '42703') {
+          console.error('[Staff API] Supabase fetch error:', error);
+          throw error;
+      }
 
       if (!staffProject) {
         // Initial state for staff management
@@ -63,7 +66,10 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .eq('id', STAFF_PROJECT_ID)
         .single();
 
-      if (fetchError && fetchError.code !== 'PGRST116' && fetchError.code !== '42703') throw fetchError;
+      if (fetchError && fetchError.code !== 'PGRST116' && fetchError.code !== '42703') {
+          console.error('[Staff API] Supabase fetch error during save:', fetchError);
+          throw fetchError;
+      }
 
       const personnel = staffProject?.personnel || {
         employees: [],
@@ -90,17 +96,22 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       personnel[category] = items;
       
-      const { error: updateError } = await supabaseAdmin
-        .from('projects')
-        .upsert(mapProjectToDb({
+      const projectData = mapProjectToDb({
           id: STAFF_PROJECT_ID,
           name: 'Staff Management System',
           client: 'Internal',
           personnel,
           updatedAt: new Date().toISOString()
-        }));
+      });
 
-      if (updateError) throw updateError;
+      const { error: updateError } = await supabaseAdmin
+        .from('projects')
+        .upsert(projectData);
+
+      if (updateError) {
+          console.error('[Staff API] Supabase upsert error:', updateError);
+          throw updateError;
+      }
 
       return res.status(200).json(itemData);
     } catch (error: any) {
@@ -127,12 +138,14 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       const items = personnel[category] || [];
       personnel[category] = items.filter((item: any) => item.id !== itemId);
 
-      const { error: updateError } = await supabaseAdmin
-        .from('projects')
-        .update(mapProjectToDb({ 
+      const projectData = mapProjectToDb({ 
           personnel, 
           updatedAt: new Date().toISOString() 
-        }))
+      });
+
+      const { error: updateError } = await supabaseAdmin
+        .from('projects')
+        .update(projectData)
         .eq('id', STAFF_PROJECT_ID);
 
       if (updateError) throw updateError;
@@ -148,5 +161,3 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 };
 
 export default withErrorHandler(withAuth(handler));
-
-

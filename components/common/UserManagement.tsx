@@ -102,7 +102,10 @@ const UserManagement: React.FC = () => {
     if (editingUser.phone && !/^\+?[1-9][\d\-\s]{8,}$/.test(editingUser.phone)) { alert('Please enter a valid phone number'); return; }
 
     const duplicate = users.some(u =>
-      u.id !== editingUser.id && u.email.toLowerCase() === editingUser.email.toLowerCase()
+      u.id !== editingUser.id && 
+      u.email && 
+      editingUser.email && 
+      u.email.toLowerCase() === editingUser.email.toLowerCase()
     );
     if (duplicate) { alert(`Duplicate: A user with email "${(editingUser.email ?? '').toLowerCase()}" already exists.`); return; }
 
