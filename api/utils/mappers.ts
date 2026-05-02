@@ -60,6 +60,7 @@ export function mapProjectFromDb(dbProj: any): any {
     description: dbProj.description,
     metadata: dbProj.metadata,
     contractor: dbProj.contractor,
+    personnel: dbProj.personnel || {},
     // Attach joined documents and photos from Supabase relationship results
     documents: (dbProj.project_documents || []).map((d: any) => ({
       id: d.id,
@@ -113,7 +114,8 @@ export function mapProjectToDb(proj: any): any {
     updated_at: proj.updatedAt,
     description: proj.description,
     metadata: proj.metadata,
-    contractor: proj.contractor
+    contractor: proj.contractor,
+    personnel: proj.personnel
   };
 
   if (proj.ownerId && isUuid(proj.ownerId)) {

@@ -8,6 +8,9 @@ import { hashPassword } from './utils/mongoAuth.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { id, action } = req.query;
+  
+  // Ensure DB connection
+  await mongodb.connect();
 
   // --- PUBLIC: Submit new registration ---
   if (req.method === 'POST' && !action && !id) {

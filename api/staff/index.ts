@@ -18,7 +18,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .eq('id', STAFF_PROJECT_ID)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 is 'no rows found'
+      // PGRST116 is 'no rows found', 42703 is 'undefined_column' (Postgres error)
+      if (error && error.code !== 'PGRST116' && error.code !== '42703') throw error;
 
       if (!staffProject) {
         // Initial state for staff management
@@ -62,7 +63,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .eq('id', STAFF_PROJECT_ID)
         .single();
 
-      if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
+      if (fetchError && fetchError.code !== 'PGRST116' && fetchError.code !== '42703') throw fetchError;
 
       const personnel = staffProject?.personnel || {
         employees: [],
@@ -120,7 +121,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .eq('id', STAFF_PROJECT_ID)
         .single();
 
-      if (fetchError) throw fetchError;
+      if (fetchError && fetchError.code !== 'PGRST116' && fetchError.code !== '42703') throw fetchError;
 
       const personnel = staffProject.personnel || {};
       const items = personnel[category] || [];
