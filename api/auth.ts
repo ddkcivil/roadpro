@@ -3,6 +3,8 @@ import { withErrorHandler } from './utils/errorHandler.js';
 import { getUserByEmail, verifyPassword, generateToken, verifyToken } from './utils/mongoAuth.js';
 import { mapUserFromDb } from './utils/mappers.js';
 
+console.log('[Auth API] Initialized');
+
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { action } = req.query;
 
@@ -10,18 +12,23 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     // --- LOGIN ---
     if (action === 'login') {
       const { email, password } = req.body;
+      console.log('[Auth API] Login attempt for:', email);
 
       if (!email || !password) {
         return res.status(400).json({ error: 'Email and password are required' });
       }
 
+      console.log('[Auth API] Calling getUserByEmail');
       const user = await getUserByEmail(email);
+      console.log('[Auth API] User retrieved:', user ? 'Yes' : 'No');
 
       if (!user || !user.passwordHash) {
         return res.status(401).json({ error: 'Invalid email or password' });
       }
 
+      console.log('[Auth API] Verifying password');
       const isPasswordValid = await verifyPassword(password, user.passwordHash);
+      console.log('[Auth API] Password valid:', isPasswordValid);
       if (!isPasswordValid) {
         return res.status(401).json({ error: 'Invalid email or password' });
       }

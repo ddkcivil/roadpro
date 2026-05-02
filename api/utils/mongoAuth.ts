@@ -43,11 +43,27 @@ export async function verifyToken(token: string): Promise<{ userId: string; emai
 }
 
 export async function getUserById(userId: string): Promise<MongoUser | null> {
-  const db = await mongodb.connect();
-  return db.collection('users').findOne({ _id: userId });
+  console.log('[MongoAuth] Getting user by ID:', userId);
+  try {
+    const db = await mongodb.connect();
+    const user = await db.collection('users').findOne({ _id: userId });
+    console.log('[MongoAuth] User by ID found:', user ? 'Yes' : 'No');
+    return user;
+  } catch (error) {
+    console.error('[MongoAuth] Error getting user by ID:', error);
+    throw error;
+  }
 }
 
 export async function getUserByEmail(email: string): Promise<MongoUser | null> {
-  const db = await mongodb.connect();
-  return db.collection('users').findOne({ email: email.toLowerCase() });
+  console.log('[MongoAuth] Getting user by email:', email);
+  try {
+    const db = await mongodb.connect();
+    const user = await db.collection('users').findOne({ email: email.toLowerCase() });
+    console.log('[MongoAuth] User by email found:', user ? 'Yes' : 'No');
+    return user;
+  } catch (error) {
+    console.error('[MongoAuth] Error getting user by email:', error);
+    throw error;
+  }
 }
