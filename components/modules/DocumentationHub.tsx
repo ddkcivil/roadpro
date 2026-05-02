@@ -117,10 +117,10 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
         const pdfjs = pdfModule.pdfjs;
         
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          // Use the worker from the CDN that matches the exact version of the library
-          // this prevents version mismatch errors like "Rf 2"
-          const workerUrl = `https://unpkg.com/pdfjs-dist@4.7.432/build/pdf.worker.min.mjs`;
-          pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+          pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+            'pdfjs-dist/build/pdf.worker.min.mjs',
+            import.meta.url,
+          ).toString();
         }
 
         setPdfComponents({
