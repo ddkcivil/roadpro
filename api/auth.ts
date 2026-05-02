@@ -44,14 +44,14 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
           res.setHeader('Set-Cookie', `roadmaster-access=${authData.session.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
 
+          const safeUser = mapUserFromDb({
+            id: userId,
+            email: authData.user.email,
+            ...profile
+          });
+
           return res.status(200).json({
-            user: {
-              id: userId,
-              email: authData.user.email,
-              full_name: profile?.full_name || 'User',
-              role: (profile?.role || 'SITE_ENGINEER').toUpperCase(),
-              avatar_url: profile?.avatar_url
-            },
+            user: safeUser,
             token: authData.session.access_token
           });
         }

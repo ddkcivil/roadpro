@@ -54,12 +54,10 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         const mongoUser = await db.collection('users').findOne({ _id: id });
 
         if (mongoUser) {
+          const { mapUserFromDb } = await import('./utils/mappers.js');
+          const mappedUser = mapUserFromDb(mongoUser);
           return res.status(200).json({
-            id: mongoUser._id,
-            full_name: mongoUser.full_name,
-            email: mongoUser.email,
-            role: mongoUser.role,
-            avatar_url: mongoUser.avatar_url,
+            ...mappedUser,
             is_legacy: true
           });
         }

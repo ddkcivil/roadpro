@@ -2,6 +2,27 @@ import type { MongoUser } from './mongoAuth.js';
 import { isUuid } from './uuidUtils.js';
 
 /**
+ * Helper to normalize database roles to UserRole enum values
+ */
+function normalizeRole(role: string): string {
+  if (!role) return 'Site Engineer';
+  
+  // Convert to UPPER_SNAKE_CASE for consistent comparison
+  const r = role.toUpperCase().trim().replace(/\s+/g, '_');
+  
+  switch (r) {
+    case 'ADMIN': return 'Admin';
+    case 'PROJECT_MANAGER': return 'Project Manager';
+    case 'SITE_ENGINEER': return 'Site Engineer';
+    case 'LAB_TECHNICIAN': return 'Lab Technician';
+    case 'HSE_OFFICER': return 'HSE Officer';
+    case 'SUBCONTRACTOR': return 'Subcontractor';
+    case 'SUPERVISOR': return 'Supervisor';
+    default: return 'Site Engineer';
+  }
+}
+
+/**
  * USER MAPPERS
  */
 export function mapUserFromDb(user: any | null): any {
@@ -16,7 +37,7 @@ export function mapUserFromDb(user: any | null): any {
       email: user.email,
       name: user.full_name || 'User',
       full_name: user.full_name,
-      role: (user.role || 'SITE_ENGINEER').toUpperCase(),
+      role: normalizeRole(user.role),
       avatar_url: user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random`,
       last_seen: user.last_seen || null,
     };
@@ -28,7 +49,7 @@ export function mapUserFromDb(user: any | null): any {
     ...safeUser,
     id: user._id,
     name: user.full_name || 'User',
-    role: (user.role || 'SITE_ENGINEER').toUpperCase(),
+    role: normalizeRole(user.role),
     last_seen: user.last_seen || null,
     avatar_url: user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random`,
   };
