@@ -97,7 +97,13 @@ class RealApiService {
         throw error;
       }
 
-      const data = await response.json();
+      if (response.status === 204) {
+        return {} as any;
+      }
+
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : {};
+      
       // Normalize IDs for backward compatibility
       if (Array.isArray(data)) {
         return data.map((item: any) => {
@@ -106,6 +112,13 @@ class RealApiService {
           return item;
         }) as any;
       }
+      
+      // Normalize single object IDs
+      if (data && typeof data === 'object') {
+        if (data._id && !data.id) data.id = data._id;
+        if (data.id && !data._id) data._id = data.id;
+      }
+      
       return data;
     } catch (error) {
       if (retries > 0 && !navigator.onLine) {
