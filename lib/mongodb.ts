@@ -57,7 +57,11 @@ export async function initMongo(force = false) {
       }
 
       try {
-        mongoClient = new MongoClient(mongoUri);
+        mongoClient = new MongoClient(mongoUri, {
+          connectTimeoutMS: 5000, // 5 seconds
+          serverSelectionTimeoutMS: 5000,
+          socketTimeoutMS: 10000,
+        });
         await mongoClient.connect();
         
         // Determine DB name
@@ -92,10 +96,8 @@ export async function initMongo(force = false) {
   return db;
 }
 
-// Auto-start initialization
-initMongo().catch(err => {
-  console.error('[MongoDB] Fatal auto-init error:', err);
-});
+// Auto-start removed to prevent blocking serverless cold starts. 
+// Initialization happens on demand via mongodb.connect().
 
 export const mongodb = {
   get db() {

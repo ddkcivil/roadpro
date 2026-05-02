@@ -104,12 +104,31 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(401).json({ valid: false, error: 'No token provided' });
       }
 
-      const payload = await verifyToken(token);
-      if (!payload) {
-        return res.status(401).json({ valid: false, error: 'Invalid or expired token' });
+      // 1. Try Supabase
+      try {
+        const { data: { user }, error: supError } = await supabasePublic.auth.getUser(token);
+        if (!supError && user) {
+          return res.status(200).json({ 
+            valid: true, 
+            provider: 'supabase',
+            user: {
+              userId: user.id,
+              email: user.email,
+              role: 'RESOLVE_VIA_PROFILE' // Simplified for verify endpoint
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('[Auth API] Supabase verify exception:', e);
       }
 
-      return res.status(200).json({ valid: true, user: payload });
+      // 2. Try MongoDB
+      const payload = await verifyToken(token);
+      if (payload) {
+        return res.status(200).json({ valid: true, provider: 'mongodb', user: payload });
+      }
+
+      return res.status(401).json({ valid: false, error: 'Invalid or expired token' });
     }
 
     // --- LOGOUT ---
