@@ -59,33 +59,6 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       if (fetchError) throw fetchError;
 
-      if (projects && projects.length > 0) {
-        const projectIds = projects.map(p => p.id);
-        
-        // Fetch docs and photos for all projects in the list
-        const [docsRes, photosRes] = await Promise.all([
-          supabaseAdmin.from('project_documents').select('*, document_versions(*)').in('project_id', projectIds),
-          supabaseAdmin.from('project_site_photos').select('*').in('project_id', projectIds)
-        ]);
-
-        const docsMap: Record<string, any[]> = {};
-        const photosMap: Record<string, any[]> = {};
-
-        (docsRes.data || []).forEach(d => {
-          if (!docsMap[d.project_id]) docsMap[d.project_id] = [];
-          docsMap[d.project_id].push(d);
-        });
-
-        (photosRes.data || []).forEach(p => {
-          if (!photosMap[p.project_id]) photosMap[p.project_id] = [];
-          photosMap[p.project_id].push(p);
-        });
-
-        projects.forEach(p => {
-          p.project_documents = docsMap[p.id] || [];
-          p.project_site_photos = photosMap[p.id] || [];
-        });
-      }
       
       return res.status(200).json({
         data: (projects || []).map(mapProjectFromDb),
