@@ -74,6 +74,7 @@ export function mapProjectFromDb(dbProj: any): any {
       status: d.status,
       metadata: d.metadata,
       currentVersion: d.current_version || 1,
+      fileUrl: (d.document_versions || []).find((v: any) => v.version_num === (d.current_version || 1))?.blob_url || d.file_url,
       versions: (d.document_versions || []).map((v: any) => ({
         id: v.id,
         version: v.version_num,
