@@ -74,13 +74,13 @@ export function mapProjectFromDb(dbProj: any): any {
       status: d.status,
       metadata: d.metadata,
       currentVersion: d.current_version || 1,
-      fileUrl: (d.document_versions || []).find((v: any) => v.version_num === (d.current_version || 1))?.blob_url || d.file_url,
+      fileUrl: `/api/files?id=${d.id}`,
       versions: (d.document_versions || []).map((v: any) => ({
         id: v.id,
         version: v.version_num,
         date: v.created_at,
         size: v.size ? `${(v.size / 1024 / 1024).toFixed(2)} MB` : '0 MB',
-        filePath: v.blob_url,
+        filePath: `/api/files?id=${v.id}`,
         uploadedBy: 'System'
       })),
       updatedAt: d.updated_at
