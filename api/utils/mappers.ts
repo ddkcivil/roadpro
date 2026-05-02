@@ -14,6 +14,7 @@ export function mapUserFromDb(user: any | null): any {
     return {
       id: user.id,
       email: user.email,
+      name: user.full_name || 'User',
       full_name: user.full_name,
       role: (user.role || 'SITE_ENGINEER').toUpperCase(),
       avatar_url: user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random`,
@@ -26,6 +27,7 @@ export function mapUserFromDb(user: any | null): any {
   return {
     ...safeUser,
     id: user._id,
+    name: user.full_name || 'User',
     role: (user.role || 'SITE_ENGINEER').toUpperCase(),
     last_seen: user.last_seen || null,
     avatar_url: user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random`,

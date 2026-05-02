@@ -44,7 +44,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           .single();
 
         if (!sbError && profile) {
-          return res.status(200).json(profile);
+          const { mapUserFromDb } = await import('./utils/mappers.js');
+          return res.status(200).json(mapUserFromDb(profile));
         }
 
         // 2. Fallback to MongoDB
@@ -74,7 +75,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           console.error('[API Error] Supabase GET all profiles error:', error);
           throw error;
         }
-        return res.status(200).json(profiles);
+        
+        const { mapUserFromDb } = await import('./utils/mappers.js');
+        return res.status(200).json(profiles.map(mapUserFromDb));
       }
     } catch (error: any) {
       console.error('[API Error] GET users failed:', error);
