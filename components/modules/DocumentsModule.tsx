@@ -180,7 +180,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
         const pdfModule = await import('react-pdf');
         const pdfjs = pdfModule.pdfjs;
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          const workerUrl = `https://unpkg.com/pdfjs-dist@4.7.432/build/pdf.worker.min.mjs`;
+          const workerUrl = `https://unpkg.com/pdfjs-dist@5.4.296/build/pdf.worker.min.mjs`;
           pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
         }
         setPdfComponents({

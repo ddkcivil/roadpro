@@ -74,7 +74,7 @@
     "lucide-react": "0.460.0",
     "mongodb": "^7.2.0",
     "mongoose": "^9.5.0",
-    "pdfjs-dist": "^4.7.432",
+    "pdfjs-dist": "5.4.296",
     "qrcode.react": "^4.2.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",

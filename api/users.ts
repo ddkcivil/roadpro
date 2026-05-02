@@ -153,7 +153,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .single();
 
       if (error) throw error;
-      return res.status(200).json(updatedProfile);
+      const { mapUserFromDb } = await import('./utils/mappers.js');
+      return res.status(200).json(mapUserFromDb(updatedProfile));
 
     } catch (error: any) {
       console.error('Failed to update user:', error);
