@@ -76,8 +76,10 @@ export function mapProjectFromDb(dbProj: any): any {
   mapped.endDate = dbProj.endDate || dbProj.end_date || dbProj.enddate;
   mapped.createdAt = dbProj.createdAt || dbProj.created_at || dbProj.createdat;
   mapped.updatedAt = dbProj.updatedAt || dbProj.updated_at || dbProj.updatedat;
-  mapped.code = dbProj.code;
-  mapped.engineer = dbProj.engineer;
+  
+  // Extract code and engineer from metadata if they don't exist at top level
+  mapped.code = dbProj.code || dbProj.metadata?.code || '';
+  mapped.engineer = dbProj.engineer || dbProj.metadata?.engineer || '';
   
   // Ensure all required arrays/objects exist (safety fallbacks)
   mapped.boq = dbProj.boq || [];
@@ -165,10 +167,12 @@ export function mapProjectToDb(proj: any): any {
     created_at: proj.createdAt,
     updated_at: proj.updatedAt,
     description: proj.description,
-    metadata: proj.metadata,
-    contractor: proj.contractor,
-    code: proj.code,
-    engineer: proj.engineer
+    metadata: {
+      ...proj.metadata,
+      code: proj.code,
+      engineer: proj.engineer
+    },
+    contractor: proj.contractor
   };
 
   if (proj.ownerId && isUuid(proj.ownerId)) {
