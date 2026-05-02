@@ -14,10 +14,10 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') {
     try {
       if (id) {
-        // Fetch a single project by ID
+        // Fetch a single project by ID with documents and site photos
         const { data: project, error } = await supabaseAdmin
           .from('projects')
-          .select('*')
+          .select('*, project_documents(*), project_site_photos(*)')
           .eq('id', id as string)
           .single();
 
@@ -40,7 +40,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       const { data: projects, error: fetchError } = await supabaseAdmin
         .from('projects')
-        .select('*')
+        .select('*, project_documents(*), project_site_photos(*)')
         .range(skip, skip + limit - 1) // Supabase uses 0-based indexing for range
         .order('created_at', { ascending: false }); // Example: order by creation date, adjust as needed
 
@@ -91,7 +91,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           ownerId: userId,
           updatedAt: new Date().toISOString()
         }))
-        .select('*') // Return the inserted row
+        .select('*, project_documents(*), project_site_photos(*)') // Return the inserted row with joined data
         .single(); // Expect a single row
 
       if (error) throw error;
@@ -129,7 +129,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           updatedAt: new Date().toISOString() // Ensure updated_at is updated
         }))
         .eq('id', id as string)
-        .select('*') // Return the updated row
+        .select('*, project_documents(*), project_site_photos(*)') // Return the updated row with joined data
         .single(); // Expect a single row
 
       if (error) throw error;
@@ -235,7 +235,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           updatedAt: new Date().toISOString() // Explicitly set updated_at
         }))
         .eq('id', id as string)
-        .select('*')
+        .select('*, project_documents(*), project_site_photos(*)')
         .single();
 
       if (error) throw error;

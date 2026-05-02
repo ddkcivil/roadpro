@@ -29,28 +29,47 @@ CREATE TABLE IF NOT EXISTS public.document_versions (
   created_at timestamptz DEFAULT now()
 );
 
--- 3. Add indexes
+-- 3. Create project_site_photos table
+CREATE TABLE IF NOT EXISTS public.project_site_photos (
+  id text PRIMARY KEY,
+  project_id text REFERENCES public.projects(id) ON DELETE CASCADE,
+  url text NOT NULL,
+  caption text,
+  location_lat numeric,
+  location_lng numeric,
+  uploaded_by text,
+  created_at timestamptz DEFAULT now()
+);
+
+-- 4. Add indexes
 CREATE INDEX IF NOT EXISTS idx_project_documents_project_id ON public.project_documents(project_id);
 CREATE INDEX IF NOT EXISTS idx_document_versions_doc_id ON public.document_versions(doc_id);
+CREATE INDEX IF NOT EXISTS idx_project_site_photos_project_id ON public.project_site_photos(project_id);
 
--- 4. Enable RLS
+-- 5. Enable RLS
 ALTER TABLE public.project_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.document_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.project_site_photos ENABLE ROW LEVEL SECURITY;
 
--- 5. RLS Policies
--- Allow all authenticated users to view documents
+-- 6. RLS Policies
+-- Allow all authenticated users to view documents/photos
 CREATE POLICY "Authenticated users can view documents" ON public.project_documents
 FOR SELECT TO authenticated USING (true);
 
--- Allow all authenticated users to view versions
 CREATE POLICY "Authenticated users can view document versions" ON public.document_versions
 FOR SELECT TO authenticated USING (true);
 
--- Allow all authenticated users to insert (validation handled in app)
+CREATE POLICY "Authenticated users can view site photos" ON public.project_site_photos
+FOR SELECT TO authenticated USING (true);
+
+-- Allow all authenticated users to insert
 CREATE POLICY "Authenticated users can insert documents" ON public.project_documents
 FOR INSERT TO authenticated WITH CHECK (true);
 
 CREATE POLICY "Authenticated users can insert document versions" ON public.document_versions
+FOR INSERT TO authenticated WITH CHECK (true);
+
+CREATE POLICY "Authenticated users can insert site photos" ON public.project_site_photos
 FOR INSERT TO authenticated WITH CHECK (true);
 
 -- Allow admins and project managers to update/delete (app logic also enforces this)

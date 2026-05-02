@@ -59,7 +59,30 @@ export function mapProjectFromDb(dbProj: any): any {
     updatedAt: dbProj.updatedAt || dbProj.updated_at || dbProj.updatedat,
     description: dbProj.description,
     metadata: dbProj.metadata,
-    contractor: dbProj.contractor
+    contractor: dbProj.contractor,
+    // Attach joined documents and photos from Supabase relationship results
+    documents: (dbProj.project_documents || []).map((d: any) => ({
+      id: d.id,
+      projectId: d.project_id,
+      name: d.name,
+      folder: d.folder,
+      tags: d.tags,
+      subject: d.subject,
+      refNo: d.ref_no,
+      size: d.size,
+      type: d.type,
+      status: d.status,
+      metadata: d.metadata,
+      updatedAt: d.updated_at
+    })),
+    sitePhotos: (dbProj.project_site_photos || []).map((p: any) => ({
+      id: p.id,
+      url: p.url,
+      caption: p.caption,
+      date: p.created_at,
+      uploadedBy: p.uploaded_by,
+      location: p.location_lat ? { lat: p.location_lat, lng: p.location_lng } : null
+    }))
   };
 }
 

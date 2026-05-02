@@ -29,6 +29,21 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       if (docError) throw docError;
 
       if (!docVersions || docVersions.length === 0) {
+        // Fallback: check if it's a site photo
+        const { data: photo, error: photoError } = await supabaseAdmin
+          .from('project_site_photos')
+          .select('url')
+          .eq('id', id as string)
+          .single();
+        
+        if (photo?.url) {
+          return res.redirect(photo.url);
+        }
+
+        if (photoError && !photoError.message?.includes('JSON object')) {
+          console.error('Error fetching photo:', photoError);
+        }
+
         return res.status(404).json({ error: 'File not found' });
       }
 
@@ -124,8 +139,33 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .from(BUCKET_NAME)
         .getPublicUrl(storagePath);
 
-      const publicUrl = publicUrlData?.publicUrl; // This is the URL to access the file
+      const publicUrl = publicUrlData?.publicUrl;
 
+      // Handle Site Photos separately
+      if (folder === 'site-photos') {
+        const photoId = docId || `photo-${uuidv4()}`;
+        const { error: photoError } = await supabaseAdmin
+          .from('project_site_photos')
+          .insert({
+            id: photoId,
+            project_id: projectId,
+            url: publicUrl,
+            caption: metadata?.caption || '',
+            uploaded_by: (req as any).user?.name || 'User',
+            location_lat: metadata?.location?.lat || null,
+            location_lng: metadata?.location?.lng || null
+          });
+        
+        if (photoError) throw photoError;
+
+        return res.status(201).json({
+          id: photoId,
+          url: publicUrl,
+          name,
+          contentType,
+          size: buffer.length
+        });
+      }
 
       const finalDocId = docId || `doc-${uuidv4()}`;
       const versionId = `ver-${uuidv4()}`;
@@ -162,7 +202,6 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       }
 
       // Get current version count to determine next version number
-      // Count versions for the document ID to set the next version number
       const { data: versionCountData, error: versionCountError } = await supabaseAdmin
         .from('document_versions')
         .select('count', { count: 'exact' })
@@ -177,7 +216,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .insert({
           id: versionId,
           doc_id: finalDocId,
-          blob_url: storagePath, // Store the file path in Supabase Storage, not the public URL
+          blob_url: storagePath,
           version_num: nextVersionNum,
           size: buffer.length,
           notes: metadata?.notes || null,
@@ -190,9 +229,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         name,
         contentType,
         size: buffer.length,
-        url: `/api/files?id=${finalDocId}`, // URL to fetch metadata/redirect
-        // Optionally return publicUrl if the frontend needs it directly
-        // publicUrl: publicUrl 
+        url: `/api/files?id=${finalDocId}`,
       });
     } catch (error: any) {
       console.error('Failed to upload file:', error);
