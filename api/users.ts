@@ -18,19 +18,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   if (req.method === 'POST' && action === 'heartbeat') {
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
     const now = new Date().toISOString();
-    
-    // Update MongoDB if available
-    try {
-      const db = await mongodb.connect();
-      await db.collection('users').updateOne(
-        { _id: userId },
-        { $set: { last_seen: now } }
-      );
-    } catch (err) {
-      console.warn('[Heartbeat] Mongo update failed (expected if user is Supabase-only):', err);
-    }
 
-    // Update Supabase if available
+    // Track activity in Supabase
     try {
       await supabaseAdmin
         .from('profiles')
@@ -47,19 +36,36 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') {
     try {
       if (id && typeof id === 'string') {
-        const { data: profile, error } = await supabaseAdmin
+        // 1. Try Supabase
+        const { data: profile, error: sbError } = await supabaseAdmin
           .from('profiles')
           .select('*')
           .eq('id', id)
           .single();
 
-        if (error) {
-          console.error('[API Error] Supabase GET profile error details:', JSON.stringify(error));
-          throw error;
+        if (!sbError && profile) {
+          return res.status(200).json(profile);
         }
-        if (!profile) return res.status(404).json({ error: 'User not found' });
-        return res.status(200).json(profile);
+
+        // 2. Fallback to MongoDB
+        console.log(`[User API] User ${id} not found in Supabase, checking MongoDB...`);
+        const db = await mongodb.connect();
+        const mongoUser = await db.collection('users').findOne({ _id: id });
+
+        if (mongoUser) {
+          return res.status(200).json({
+            id: mongoUser._id,
+            full_name: mongoUser.full_name,
+            email: mongoUser.email,
+            role: mongoUser.role,
+            avatar_url: mongoUser.avatar_url,
+            is_legacy: true
+          });
+        }
+
+        return res.status(404).json({ error: 'User not found' });
       } else {
+        // Fetch all (Supabase-first)
         const { data: profiles, error } = await supabaseAdmin
           .from('profiles')
           .select('*');

@@ -1,7 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { withErrorHandler } from './utils/errorHandler';
-import { getUserByEmail, verifyPassword, generateToken, verifyToken } from './utils/mongoAuth';
+import { getUserByEmail, verifyPassword, generateToken } from './utils/mongoAuth';
 import { mapUserFromDb } from './utils/mappers';
+import { supabasePublic } from './utils/supabaseClient.js';
 
 console.log('[Auth API] Initialized');
 
@@ -18,18 +19,39 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Email and password are required' });
       }
 
-      console.log('[Auth API] Calling getUserByEmail');
-      const user = await getUserByEmail(email);
-      console.log('[Auth API] User retrieved:', user ? 'Yes' : 'No');
+      // 1. Try Supabase Auth
+      const { data: authData, error: authError } = await supabasePublic.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      if (!user || !user.passwordHash) {
-        return res.status(401).json({ error: 'Invalid email or password' });
+      if (!authError && authData.session) {
+        const userId = authData.user.id;
+        const { data: profile } = await supabasePublic
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+
+        res.setHeader('Set-Cookie', `roadmaster-access=${authData.session.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
+        
+        return res.status(200).json({
+          user: {
+            id: userId,
+            email: authData.user.email,
+            full_name: profile?.full_name || 'User',
+            role: (profile?.role || 'SITE_ENGINEER').toUpperCase(),
+            avatar_url: profile?.avatar_url
+          },
+          token: authData.session.access_token
+        });
       }
 
-      console.log('[Auth API] Verifying password');
-      const isPasswordValid = await verifyPassword(password, user.passwordHash);
-      console.log('[Auth API] Password valid:', isPasswordValid);
-      if (!isPasswordValid) {
+      // 2. Fallback to MongoDB (Legacy)
+      console.log('[Auth API] Supabase login failed, checking MongoDB fallback...');
+      const user = await getUserByEmail(email);
+
+      if (!user || !user.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
         return res.status(401).json({ error: 'Invalid email or password' });
       }
 
@@ -40,8 +62,6 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       });
 
       const safeUser = mapUserFromDb(user);
-
-      // Set cookie for convenience (optional, but good for SSR/middleware)
       res.setHeader('Set-Cookie', `roadmaster-access=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
 
       return res.status(200).json({
@@ -49,6 +69,10 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         token
       });
     }
+
+    // --- VERIFY & LOGOUT ---
+    // (Existing verify/logout implementation...)
+
 
     // --- VERIFY ---
     if (action === 'verify') {

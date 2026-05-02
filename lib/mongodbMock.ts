@@ -45,6 +45,7 @@ export const createMockMongoClient = () => ({
         const id = doc._id || uuidv4();
         const newDoc = { _id: id, ...doc };
         if (name === 'users') mockDB.users.set(id, newDoc);
+        if (name === 'registrations') mockDB.registrations.set(id, newDoc);
         return { insertedId: id };
       },
       // Update one
@@ -58,12 +59,14 @@ export const createMockMongoClient = () => ({
         return { deletedCount: 1 };
       },
       // Find all
-      find: async (filter: any) => ({
-        toArray: async () => {
-          console.log(`[MockMongo ${name}] find`, filter);
-          return Array.from(mockDB[name as keyof typeof mockDB]?.values() || []);
-        }
-      })
+      find: (filter: any) => {
+        console.log(`[MockMongo ${name}] find`, filter);
+        const docs = Array.from(mockDB[name as keyof typeof mockDB]?.values() || []);
+        return {
+          toArray: async () => docs,
+          sort: () => ({ toArray: async () => docs }) // Mock sort as well
+        };
+      }
     })
   })
 });

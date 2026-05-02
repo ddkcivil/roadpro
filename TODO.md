@@ -10,20 +10,20 @@ This document outlines the migration to a "Supabase-First" architecture where Su
 ## 2. Migration Steps
 
 ### Phase 1: Identity & Profile Cleanup
-- [ ] Update `api/registrations.ts` to remove MongoDB user creation for approved registrations.
-- [ ] Create a script to sync existing MongoDB users (if any) to the Supabase `profiles` table.
-- [ ] Update `api/users.ts` to fetch user profile data directly from Supabase instead of relying on local MongoDB `users` collection.
-- [ ] Remove `passwordhash` and other auth-related fields from MongoDB `users` collection.
+- [x] Update `api/registrations.ts` to remove MongoDB user creation for approved registrations.
+- [x] Create a script to sync existing MongoDB users (if any) to the Supabase `profiles` table.
+- [x] Update `api/users.ts` to fetch user profile data directly from Supabase instead of relying on local MongoDB `users` collection.
+- [x] Remove `passwordhash` and other auth-related fields from MongoDB `users` collection.
 
 ### Phase 2: Middleware Refactoring
-- [ ] Refactor `api/_utils/auth.ts` to standardize on Supabase JWT verification.
-- [ ] Remove any custom JWT signing or redundant session logic that is not tied to Supabase.
+- [x] Refactor `api/_utils/auth.ts` to standardize on Supabase JWT verification.
+- [x] Remove any custom JWT signing or redundant session logic that is not tied to Supabase.
 
 ### Phase 3: Data Decommissioning
-- [ ] Once tests pass, migrate all application references to `users` to point to Supabase profile UIDs.
-- [ ] Clean up redundant fields in MongoDB collections that map to Supabase profiles (e.g., `role`, `avatar_url`, `full_name`).
+- [x] Once tests pass, migrate all application references to `users` to point to Supabase profile UIDs.
+- [x] Clean up redundant fields in MongoDB collections that map to Supabase profiles (e.g., `role`, `avatar_url`, `full_name`).
 
 ## 3. Immediate Actions
-- [ ] Create `scripts/sync_mongo_to_supabase.ts` to identify users in Mongo that need to be in Supabase.
-- [ ] Refactor `api/registrations.ts` to ONLY create a profile in Supabase upon approval.
-- [ ] Update documentation in `DEVELOPER.md` to reflect the new architecture.
+- [x] Create `scripts/sync_mongo_to_supabase.ts` to identify users in Mongo that need to be in Supabase.
+- [x] Refactor `api/registrations.ts` to ONLY create a profile in Supabase upon approval.
+- [x] Update documentation in `DEVELOPER.md` to reflect the new architecture.

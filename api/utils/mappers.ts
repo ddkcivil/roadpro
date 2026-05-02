@@ -4,11 +4,25 @@ import { isUuid } from './uuidUtils.js';
 /**
  * USER MAPPERS
  */
-export function mapUserFromDb(user: MongoUser | null): any {
+export function mapUserFromDb(user: any | null): any {
   if (!user) return null;
 
-  const { passwordHash, ...safeUser } = user;
+  // Detect if user is from Supabase (has id) or MongoDB (has _id)
+  const isSupabase = !!user.id && !user._id;
   
+  if (isSupabase) {
+    return {
+      id: user.id,
+      email: user.email,
+      full_name: user.full_name,
+      role: (user.role || 'SITE_ENGINEER').toUpperCase(),
+      avatar_url: user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random`,
+      last_seen: user.last_seen || null,
+    };
+  }
+
+  // Legacy MongoDB Mapping
+  const { passwordHash, ...safeUser } = user;
   return {
     ...safeUser,
     id: user._id,

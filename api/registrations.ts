@@ -12,10 +12,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     try {
       const registrations = await mongodb.db.collection('registrations')
         .find({})
-        .sort({ created_at: -1 })
         .toArray();
-
-      return res.status(200).json(registrations);
+      
+      return res.status(200).json(registrations.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
     } catch (error: any) {
       console.error('Failed to fetch pending registrations:', error);
       throw error;
@@ -33,9 +32,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         if (!pendingReg) return res.status(404).json({ error: 'Pending registration not found' });
 
         // 2. Create user profile in Supabase
-        // We use the ID from the pending registration if available, or generate a new UUID.
         const userId = uuidv4(); 
         
+        // Supabase-First: ONLY create the profile in Supabase.
         const { error: supabaseError } = await supabaseAdmin
           .from('profiles')
           .insert([{
@@ -52,6 +51,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           console.error('Supabase profile creation failed:', supabaseError);
           return res.status(500).json({ error: 'Failed to create user profile in Supabase', details: supabaseError.message });
         }
+        
+        // NOTE: MongoDB 'users' collection is no longer populated here.
+        // The registration record is deleted below to finalize the flow.
 
         // 3. Delete pending registration
         await mongodb.db.collection('registrations').deleteOne({ _id: id });
