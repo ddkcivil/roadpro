@@ -1,4 +1,4 @@
-import { supabasePublic } from './api/_utils/supabaseClient.js';
+import { supabasePublic } from './api/utils/supabaseClient.js';
 import handler from './api/users.js';
 
 async function test() {
@@ -34,3 +34,4 @@ async function test() {
   await handler(req, res);
 }
 test();
+

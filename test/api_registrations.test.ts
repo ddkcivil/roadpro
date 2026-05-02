@@ -3,8 +3,14 @@ import handler from '../api/registrations';
 import { mongodb } from '../lib/mongodb';
 import { clearTestCollection } from './setup';
 
-// Mock middleware only
-vi.mock('../api/_utils/errorHandler.js', () => ({ withErrorHandler: (h: any) => h }));
+// Mock middleware and Supabase
+vi.mock('../api/utils/errorHandler.js', () => ({ withErrorHandler: (h: any) => h }));
+vi.mock('../api/utils/supabaseClient.js', () => ({
+  supabaseAdmin: {
+    from: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockResolvedValue({ data: null, error: null }),
+  }
+}));
 
 describe('api/registrations handler (Integration)', () => {
   let mockReq: any;
@@ -106,3 +112,4 @@ describe('api/registrations handler (Integration)', () => {
     expect(regInDb).toBeNull();
   });
 });
+

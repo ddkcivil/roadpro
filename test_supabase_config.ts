@@ -1,6 +1,6 @@
 
 import 'dotenv/config';
-import { supabaseAdmin, isSupabaseConfigured, ensureSupabaseConfigured } from './api/_utils/supabaseClient.ts';
+import { supabaseAdmin, isSupabaseConfigured, ensureSupabaseConfigured } from './api/utils/supabaseClient.ts';
 import { createClient } from '@supabase/supabase-js';
 
 console.log('🧪 Supabase Config Test');
@@ -57,3 +57,4 @@ try {
   console.error('\n💥 Test failed:', error.message);
   process.exit(1);
 }
+

@@ -1,6 +1,6 @@
 import { mongodb } from '../lib/mongodb';
-import { supabaseAdmin } from '../api/_utils/supabaseClient';
-import { hashPassword } from '../api/_utils/mongoAuth';
+import { supabaseAdmin } from '../api/utils/supabaseClient';
+import { hashPassword } from '../api/utils/mongoAuth';
 import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
 
@@ -94,3 +94,4 @@ async function migrate() {
 }
 
 migrate();
+

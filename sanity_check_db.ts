@@ -2,7 +2,7 @@
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 
-// Load variables exactly like api/_utils/supabaseClient.ts
+// Load variables exactly like api/utils/supabaseClient.ts
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -63,3 +63,4 @@ async function runCheck() {
 }
 
 runCheck().catch(err => console.error('Sanity check crashed:', err));
+

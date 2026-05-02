@@ -1,16 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import handler from '../api/files';
-import { supabaseAdmin } from '../api/_utils/supabaseClient.js';
+import { supabaseAdmin } from '../api/utils/supabaseClient.js';
 import { Buffer } from 'buffer'; // Needed for POST request body
 
 // Mock Supabase client and its methods
-vi.mock('../api/_utils/supabaseClient.js', () => ({
+vi.mock('../api/utils/supabaseClient.js', () => ({
   supabaseAdmin: {
     storage: {
       from: vi.fn().mockReturnThis(), // Mocking from('files')
       upload: vi.fn().mockResolvedValue({ data: { publicUrl: 'https://supabase.storage.url/files/test.txt' }, error: null }),
       getPublicUrl: vi.fn().mockResolvedValue({ data: { publicUrl: 'https://supabase.storage.url/files/test.txt' }, error: null }),
       remove: vi.fn().mockResolvedValue({ data: null, error: null }),
+      listBuckets: vi.fn().mockResolvedValue({ data: [{ name: 'project-files' }], error: null }),
+      createBucket: vi.fn().mockResolvedValue({ data: null, error: null }),
     },
     from: vi.fn().mockReturnThis(), // Mocking from('projects') or from('document_versions')
     select: vi.fn().mockReturnThis(),
@@ -30,8 +32,8 @@ vi.mock('../api/_utils/supabaseClient.js', () => ({
 }));
 
 // Mock external utilities that might still be used
-vi.mock('../api/_utils/auth.js', () => ({ withAuth: (h: any) => h }));
-vi.mock('../api/_utils/errorHandler.js', () => ({ withErrorHandler: (h: any) => h }));
+vi.mock('../api/utils/auth.js', () => ({ withAuth: (h: any) => h }));
+vi.mock('../api/utils/errorHandler.js', () => ({ withErrorHandler: (h: any) => h }));
 vi.mock('uuid', () => ({ v4: vi.fn(() => 'mock-uuid-123') })); // Mock uuidv4
 
 describe('api/files handler with Supabase', () => {
@@ -256,3 +258,4 @@ describe('api/files handler with Supabase', () => {
     expect(mockRes.status).toHaveBeenCalledWith(204); // Success in deleting metadata
   });
 });
+

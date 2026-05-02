@@ -41,17 +41,17 @@ const { mockSupabaseAdmin, mockPostgrestBuilder } = vi.hoisted(() => {
   return { mockSupabaseAdmin: supabaseAdmin, mockPostgrestBuilder: builder };
 });
 
-vi.mock('../api/_utils/supabaseClient.js', () => ({
+vi.mock('../api/utils/supabaseClient.js', () => ({
   supabaseAdmin: mockSupabaseAdmin,
   ensureSupabaseConfigured: vi.fn(),
 }));
 
-vi.mock('../api/_utils/mappers.js', () => ({
+vi.mock('../api/utils/mappers.js', () => ({
   mapProjectFromDb: vi.fn((proj: any) => proj),
   mapProjectToDb: vi.fn((proj: any) => proj),
 }));
-vi.mock('../api/_utils/auth.js', () => ({ withAuth: (h: any) => h }));
-vi.mock('../api/_utils/errorHandler.js', () => ({ withErrorHandler: (h: any) => h }));
+vi.mock('../api/utils/auth.js', () => ({ withAuth: (h: any) => h }));
+vi.mock('../api/utils/errorHandler.js', () => ({ withErrorHandler: (h: any) => h }));
 
 describe('api/projects handler', () => {
   let mockReq: any;
@@ -121,3 +121,4 @@ describe('api/projects handler', () => {
     expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ id: 'new-proj-id' }));
   });
 });
+

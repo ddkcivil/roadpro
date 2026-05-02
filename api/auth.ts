@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withErrorHandler } from './_utils/errorHandler.js';
-import { getUserByEmail, verifyPassword, generateToken, verifyToken } from './_utils/mongoAuth.js';
-import { mapUserFromDb } from './_utils/mappers.js';
+import { withErrorHandler } from './utils/errorHandler.js';
+import { getUserByEmail, verifyPassword, generateToken, verifyToken } from './utils/mongoAuth.js';
+import { mapUserFromDb } from './utils/mappers.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { action } = req.query;
@@ -81,3 +81,4 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 };
 
 export default withErrorHandler(handler);
+

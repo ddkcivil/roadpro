@@ -1,6 +1,6 @@
 
 import 'dotenv/config';
-import { supabaseAdmin } from './api/_utils/supabaseClient.ts';
+import { supabaseAdmin } from './api/utils/supabaseClient.ts';
 
 async function debug() {
   const { data, error } = await supabaseAdmin.from('projects').select('*').limit(1);
@@ -21,3 +21,4 @@ async function debug() {
 }
 
 debug();
+

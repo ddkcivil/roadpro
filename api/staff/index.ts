@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from '../_utils/supabaseClient.js';
-import { withErrorHandler } from '../_utils/errorHandler.js';
-import { withAuth } from '../_utils/auth.js';
-import { mapProjectToDb } from '../_utils/mappers.js';
+import { supabaseAdmin } from '../utils/supabaseClient.js';
+import { withErrorHandler } from '../utils/errorHandler.js';
+import { withAuth } from '../utils/auth.js';
+import { mapProjectToDb } from '../utils/mappers.js';
 
 const STAFF_PROJECT_ID = 'ce0387a7-f9d6-48e2-aacb-1347d3394f75';
 
@@ -147,4 +147,5 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 };
 
 export default withErrorHandler(withAuth(handler));
+
 

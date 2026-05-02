@@ -1,4 +1,4 @@
-import { supabaseAdmin } from './api/_utils/supabaseClient.ts';
+import { supabaseAdmin } from './api/utils/supabaseClient.ts';
 
 async function checkRpc() {
   console.log('Checking "append_road_to_project" RPC...');
@@ -15,3 +15,4 @@ async function checkRpc() {
 }
 
 checkRpc();
+

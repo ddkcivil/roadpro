@@ -11,7 +11,7 @@ import { AuditService } from '../services/analytics/auditService';
 import { sanitizationUtils } from '../utils/validation/sanitizationUtils';
 import { useAsyncPersistedReducer } from './usePersistence';
 import { supabase } from '../lib/supabase';
-import { mapProjectFromDb, mapProjectToDb } from '../api/_utils/mappers';
+import { mapProjectFromDb, mapProjectToDb } from '../api/utils/mappers';
 
 interface ProjectsReturn {
   projects: Project[];
@@ -390,3 +390,4 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
     isHydrated: isHydrated, // Added to expose isHydrated
   };
   };
+

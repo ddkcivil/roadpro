@@ -3,10 +3,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import handler from '../api/auth';
 import { mongodb } from '../lib/mongodb';
 import { clearTestCollection } from './setup';
-import { hashPassword } from '../api/_utils/mongoAuth.js';
+import { hashPassword } from '../api/utils/mongoAuth.js';
 
 // Mock middleware only
-vi.mock('../api/_utils/errorHandler.js', () => ({ withErrorHandler: (h: any) => h }));
+vi.mock('../api/utils/errorHandler.js', () => ({ withErrorHandler: (h: any) => h }));
 
 describe('api/auth handler (Integration)', () => {
   let mockReq: any;
@@ -107,3 +107,4 @@ describe('api/auth handler (Integration)', () => {
     expect(verifyRes.json).toHaveBeenCalledWith(expect.objectContaining({ valid: true }));
   });
 });
+

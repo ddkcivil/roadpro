@@ -1,4 +1,4 @@
-import { supabaseAdmin } from './api/_utils/supabaseClient.ts';
+import { supabaseAdmin } from './api/utils/supabaseClient.ts';
 
 async function listColumns() {
   console.log('Fetching columns for "messages" table...');
@@ -28,3 +28,4 @@ async function listColumns() {
 }
 
 listColumns();
+

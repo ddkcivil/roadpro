@@ -1,15 +1,15 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from './_utils/supabaseClient.js';
-import { withErrorHandler } from './_utils/errorHandler.js';
-import { withAuth } from './_utils/auth.js';
-import { mapProjectFromDb, mapProjectToDb } from './_utils/mappers.js';
+import { supabaseAdmin } from './utils/supabaseClient.js';
+import { withErrorHandler } from './utils/errorHandler.js';
+import { withAuth } from './utils/auth.js';
+import { mapProjectFromDb, mapProjectToDb } from './utils/mappers.js';
 // Removed CSRFProtection as it might not be needed with Supabase auth, or needs re-evaluation.
 // Removed connectToDatabase as we use supabaseAdmin directly.
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { id } = req.query;
   
-  // Supabase client is already initialized in _utils/supabaseClient.js
+  // Supabase client is already initialized in utils/supabaseClient.js
 
   if (req.method === 'GET') {
     try {
@@ -283,3 +283,4 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 };
 
 export default withErrorHandler(withAuth(handler));
+

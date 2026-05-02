@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from './_utils/supabaseClient.js';
-import { withErrorHandler } from './_utils/errorHandler.js';
-import { withAuth } from './_utils/auth.js';
-import { mapAuditLogFromDb, mapAuditLogToDb } from './_utils/mappers.js';
+import { supabaseAdmin } from './utils/supabaseClient.js';
+import { withErrorHandler } from './utils/errorHandler.js';
+import { withAuth } from './utils/auth.js';
+import { mapAuditLogFromDb, mapAuditLogToDb } from './utils/mappers.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') {
@@ -90,4 +90,5 @@ export default withErrorHandler(async (req: VercelRequest, res: VercelResponse) 
   console.log('🎯 AUDIT ROUTE: GET path taken (withAuth ADMIN only)');
   return withAuth(handler)(req, res);
 });
+
 

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from './api/_utils/supabaseClient.ts';
+import { supabaseAdmin } from './api/utils/supabaseClient.ts';
 
 async function probeColumns() {
   console.log('Probing "messages" table columns...');
@@ -41,3 +41,4 @@ async function probeColumns() {
 }
 
 probeColumns();
+

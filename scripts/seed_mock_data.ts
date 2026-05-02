@@ -1,6 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { mapProjectToDb } from '../api/_utils/mappers.js';
+import { mapProjectToDb } from '../api/utils/mappers.js';
 
 // Load from local environment variables or hardcode for test script
 const supabaseUrl = 'http://127.0.0.1:54321';
@@ -74,3 +74,4 @@ async function seedData() {
 }
 
 seedData();
+

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from './api/_utils/supabaseClient.ts';
+import { supabaseAdmin } from './api/utils/supabaseClient.ts';
 
 async function syncTestUser() {
   console.log('--- Syncing Test User to Profiles ---');
@@ -38,3 +38,4 @@ async function syncTestUser() {
 }
 
 syncTestUser();
+

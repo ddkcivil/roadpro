@@ -1,4 +1,4 @@
-import { supabaseAdmin, isSupabaseConfigured } from './api/_utils/supabaseClient.ts';
+import { supabaseAdmin, isSupabaseConfigured } from './api/utils/supabaseClient.ts';
 
 async function logEnv() {
   console.log('Is Configured:', isSupabaseConfigured());
@@ -22,3 +22,4 @@ async function logEnv() {
 }
 
 logEnv();
+

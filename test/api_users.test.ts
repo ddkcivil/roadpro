@@ -1,21 +1,38 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import handler from '../api/users';
-import { mongodb } from '../lib/mongodb';
-import { clearTestCollection } from './setup';
+import { supabaseAdmin } from '../api/utils/supabaseClient.js';
+// Mock middleware
+vi.mock('../api/utils/auth.js', () => ({ withAuth: (h: any) => h }));
+vi.mock('../api/utils/errorHandler.js', () => ({ withErrorHandler: (h: any) => h }));
 
-// Mock middleware only
-vi.mock('../api/_utils/auth.js', () => ({ withAuth: (h: any) => h }));
-vi.mock('../api/_utils/errorHandler.js', () => ({ withErrorHandler: (h: any) => h }));
+// Mock Supabase
+vi.mock('../api/utils/supabaseClient.js', () => {
+  const handler = {
+    get: (target: any, prop: string): any => {
+      if (prop === 'then') return target.then;
+      return new Proxy(() => {}, handler);
+    }
+  };
+  const base = {
+    then: vi.fn().mockImplementation((onSuccess: any) => Promise.resolve({ data: null, error: null }).then(onSuccess)),
+  };
+  return { supabaseAdmin: new Proxy(base, handler) };
+});
 
+import { supabaseAdmin } from '../api/utils/supabaseClient.js';
+const mockSupabase = supabaseAdmin as any;
 describe('api/users handler (Integration)', () => {
   let mockReq: any;
   let mockRes: any;
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    await clearTestCollection('users');
-    
-    mockReq = { method: '', query: {}, body: {}, user: {} };
+    mockReq = { 
+      method: '', 
+      query: {}, 
+      body: {}, 
+      user: { userId: 'admin-id', role: 'ADMIN' } 
+    };
     mockRes = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn().mockReturnThis(),
@@ -23,75 +40,47 @@ describe('api/users handler (Integration)', () => {
     };
   });
 
-  it('GET /api/users should return a list of users from DB', async () => {
-    // Seed data
-    await mongodb.db.collection('users').insertOne({
-      _id: 'user-1',
-      full_name: 'Test User 1',
-      email: 'test1@example.com',
-      role: 'SITE_ENGINEER'
-    });
+  it('GET /api/users should return a list of users from Supabase', async () => {
+    const mockUsers = [{ id: 'user-1', full_name: 'Test User' }];
+    mockSupabase.select.mockResolvedValue({ data: mockUsers, error: null });
 
     mockReq.method = 'GET';
     await handler(mockReq, mockRes);
 
     expect(mockRes.status).toHaveBeenCalledWith(200);
-    const users = mockRes.json.mock.calls[0][0];
-    expect(users.length).toBe(1);
-    expect(users[0].id).toBe('user-1');
+    expect(mockRes.json).toHaveBeenCalledWith(mockUsers);
   });
 
   it('GET /api/users?id=<userId> should return a specific user', async () => {
     const userId = 'user-2';
-    await mongodb.db.collection('users').insertOne({
-      _id: userId,
-      full_name: 'Test User 2',
-      email: 'test2@example.com',
-      role: 'ADMIN'
-    });
-
-    // Verification check
-    const checkUser = await mongodb.db.collection('users').findOne({ _id: userId });
-    console.log('[Test Debug] Seeded user search:', { userId, found: !!checkUser });
+    const mockUser = { id: userId, full_name: 'Test User 2' };
+    mockSupabase.single.mockResolvedValue({ data: mockUser, error: null });
 
     mockReq.method = 'GET';
     mockReq.query.id = userId;
     await handler(mockReq, mockRes);
 
-    if (mockRes.status.mock.calls[0][0] === 404) {
-      console.log('[Test Debug] 404 details:', mockRes.json.mock.calls[0][0]);
-    }
-
     expect(mockRes.status).toHaveBeenCalledWith(200);
-    expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ id: userId }));
+    expect(mockRes.json).toHaveBeenCalledWith(mockUser);
   });
 
-  it('POST /api/users should create a new user in DB (Admin only)', async () => {
+  it('POST /api/users should create a new user (Admin only)', async () => {
+    const mockUser = { id: 'new-id', full_name: 'New User' };
+    mockSupabase.single.mockResolvedValue({ data: mockUser, error: null });
+
     mockReq.method = 'POST';
-    mockReq.body = { 
-      name: 'New User', 
-      email: 'new@example.com', 
-      password: 'password123', 
-      role: 'ADMIN' 
-    };
+    mockReq.body = { name: 'New User', email: 'new@example.com', role: 'ADMIN' };
     mockReq.user = { role: 'ADMIN' };
     
     await handler(mockReq, mockRes);
 
     expect(mockRes.status).toHaveBeenCalledWith(201);
-    
-    const userInDb = await mongodb.db.collection('users').findOne({ email: 'new@example.com' });
-    expect(userInDb).not.toBeNull();
-    expect(userInDb?.full_name).toBe('New User');
+    expect(mockRes.json).toHaveBeenCalledWith(mockUser);
   });
 
-  it('PUT /api/users should update a user in DB', async () => {
-    await mongodb.db.collection('users').insertOne({
-      _id: 'user-3',
-      full_name: 'Original Name',
-      email: 'test3@example.com',
-      role: 'SITE_ENGINEER'
-    });
+  it('PUT /api/users should update a user', async () => {
+    const mockUser = { id: 'user-3', full_name: 'Updated Name' };
+    mockSupabase.single.mockResolvedValue({ data: mockUser, error: null });
 
     mockReq.method = 'PUT';
     mockReq.query.id = 'user-3';
@@ -101,18 +90,11 @@ describe('api/users handler (Integration)', () => {
     await handler(mockReq, mockRes);
 
     expect(mockRes.status).toHaveBeenCalledWith(200);
-    
-    const userInDb = await mongodb.db.collection('users').findOne({ _id: 'user-3' });
-    expect(userInDb?.full_name).toBe('Updated Name');
+    expect(mockRes.json).toHaveBeenCalledWith(mockUser);
   });
 
-  it('DELETE /api/users should delete a user from DB (Admin only)', async () => {
-    await mongodb.db.collection('users').insertOne({
-      _id: 'user-4',
-      full_name: 'Delete Me',
-      email: 'delete@example.com',
-      role: 'USER'
-    });
+  it('DELETE /api/users should delete a user (Admin only)', async () => {
+    mockSupabase.delete.mockResolvedValue({ data: null, error: null });
 
     mockReq.method = 'DELETE';
     mockReq.query.id = 'user-4';
@@ -121,8 +103,6 @@ describe('api/users handler (Integration)', () => {
     await handler(mockReq, mockRes);
 
     expect(mockRes.status).toHaveBeenCalledWith(204);
-    
-    const userInDb = await mongodb.db.collection('users').findOne({ _id: 'user-4' });
-    expect(userInDb).toBeNull();
   });
 });
+

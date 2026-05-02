@@ -1,4 +1,4 @@
-import { supabasePublic } from './api/_utils/supabaseClient.ts';
+import { supabasePublic } from './api/utils/supabaseClient.ts';
 
 async function testApiCall() {
   console.log('--- Testing API Call with Auth ---');
@@ -43,3 +43,4 @@ async function testApiCall() {
 }
 
 testApiCall();
+

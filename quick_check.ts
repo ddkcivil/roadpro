@@ -1,4 +1,4 @@
-import { supabaseAdmin, isSupabaseConfigured } from './api/_utils/supabaseClient.ts';
+import { supabaseAdmin, isSupabaseConfigured } from './api/utils/supabaseClient.ts';
 
 async function check() {
   console.log('Project URL:', process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL);
@@ -16,3 +16,4 @@ async function check() {
   }
 }
 check();
+

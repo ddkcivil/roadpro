@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { mongodb } from '../lib/mongodb';
-import { supabaseAdmin } from './_utils/supabaseClient.js';
-import { withErrorHandler } from './_utils/errorHandler.js';
+import { supabaseAdmin } from './utils/supabaseClient.js';
+import { withErrorHandler } from './utils/errorHandler.js';
 import { v4 as uuidv4 } from 'uuid';
-import { hashPassword } from './_utils/mongoAuth.js';
+import { hashPassword } from './utils/mongoAuth.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { id, action } = req.query;
@@ -32,58 +32,33 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
         if (!pendingReg) return res.status(404).json({ error: 'Pending registration not found' });
 
-        // 2. Check if user already exists
-        const existingUser = await mongodb.db.collection('users').findOne({ email: pendingReg.email.toLowerCase() });
-        if (existingUser) {
-          return res.status(409).json({ error: 'User already exists' });
-        }
-
-        // 3. Create user in MongoDB
-        const hashedPassword = await hashPassword(pendingReg.passwordhash || pendingReg.password || `temp-${uuidv4()}`);
-        const newUserId = uuidv4();
-        const role = pendingReg.requestedrole || pendingReg.requested_role || pendingReg.requestedRole || 'SITE_ENGINEER';
-
-        const newUser = {
-          _id: newUserId,
-          email: pendingReg.email.toLowerCase(),
-          passwordHash: hashedPassword,
-          full_name: pendingReg.name,
-          phone: pendingReg.phone || '',
-          role: role,
-          avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`,
-          last_seen: new Date().toISOString(),
-          created_at: new Date().toISOString()
-        };
-
-        await mongodb.db.collection('users').insertOne(newUser);
-
-        // 5. Create user profile in Supabase
+        // 2. Create user profile in Supabase
+        // We use the ID from the pending registration if available, or generate a new UUID.
+        const userId = uuidv4(); 
+        
         const { error: supabaseError } = await supabaseAdmin
           .from('profiles')
           .insert([{
-            id: newUser._id, // Map MongoDB _id to Supabase profile id
-            full_name: newUser.full_name,
-            email: newUser.email,
-            role: newUser.role,
-            avatar_url: newUser.avatar_url,
-            last_seen: newUser.last_seen,
-            created_at: newUser.created_at,
-            updated_at: newUser.created_at // Initialize updated_at
+            id: userId,
+            full_name: pendingReg.name,
+            role: pendingReg.requestedrole || pendingReg.requested_role || pendingReg.requestedRole || 'SITE_ENGINEER',
+            avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`,
+            last_seen: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           }]);
 
         if (supabaseError) {
-          console.error('Supabase profile insertion failed:', supabaseError);
-          // Decide if this should be a critical failure or just logged.
-          // For now, we'll log and proceed, as the user is created in Mongo.
-          // Consider adding a mechanism to re-sync if this fails.
+          console.error('Supabase profile creation failed:', supabaseError);
+          return res.status(500).json({ error: 'Failed to create user profile in Supabase', details: supabaseError.message });
         }
 
-        // 4. Delete pending registration
+        // 3. Delete pending registration
         await mongodb.db.collection('registrations').deleteOne({ _id: id });
 
         return res.status(200).json({
           message: 'Registration approved successfully',
-          user: { id: newUserId, name: pendingReg.name, email: pendingReg.email, role: role }
+          user: { id: userId, name: pendingReg.name, email: pendingReg.email }
         });
       } catch (error: any) {
         console.error('Error approving registration:', error);
@@ -167,3 +142,4 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 };
 
 export default withErrorHandler(handler);
+

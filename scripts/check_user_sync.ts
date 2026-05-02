@@ -1,5 +1,5 @@
 import { mongodb } from '../lib/mongodb.ts';
-import { supabaseAdmin } from '../api/_utils/supabaseClient.ts';
+import { supabaseAdmin } from '../api/utils/supabaseClient.ts';
 
 async function checkSync() {
   try {
@@ -43,3 +43,4 @@ async function checkSync() {
 }
 
 checkSync();
+
