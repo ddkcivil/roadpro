@@ -240,7 +240,7 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
 
   const filteredUsers = (users || []).filter(u => 
       u && u.id !== currentUser?.id && 
-      (u.name || u.full_name || 'User').toLowerCase().includes(searchTerm.toLowerCase())
+      (u.name || 'User').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleWhatsAppClick = (phone?: string) => {

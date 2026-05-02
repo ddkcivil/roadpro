@@ -95,7 +95,7 @@ const Login: React.FC<Props> = ({ onLogin, onShowRegistration }) => {
         if (result.user) {
             const { user, token } = result;
             const role = user.role as UserRole;
-            const name = user.full_name;
+            const name = user.name || user.full_name || 'User';
             const userId = user.id;
             
             await AuditService.logLogin(userId, name);

@@ -48,7 +48,7 @@ describe('Login Component', () => {
   });
 
   it('calls onLogin on successful authentication', async () => {
-    const mockUser = { id: 'u1', full_name: 'Test User', email: 'test@example.com', role: UserRole.ADMIN };
+    const mockUser = { id: 'u1', name: 'Test User', full_name: 'Test User', email: 'test@example.com', role: UserRole.ADMIN };
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
