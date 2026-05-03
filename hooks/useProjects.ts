@@ -11,7 +11,6 @@ import { AuditService } from '../services/analytics/auditService';
 import { sanitizationUtils } from '../utils/validation/sanitizationUtils';
 import { useAsyncPersistedReducer } from './usePersistence';
 import { supabase } from '../lib/supabase';
-import { mapProjectFromDb, mapProjectToDb } from '../api/utils/mappers';
 
 interface ProjectsReturn {
   projects: Project[];
@@ -237,7 +236,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
       
       if (isNewCreation) {
         backendProject = await retryWithBackoff(
-          () => apiService.createProject(mapProjectToDb(sanitizedProjectData)),
+          () => apiService.createProject(sanitizedProjectData),
           {
             ...DEFAULT_RETRY_OPTIONS,
             maxRetries: 3,
@@ -246,7 +245,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
         );
       } else {
         backendProject = await retryWithBackoff(
-          () => apiService.updateProject(sanitizedProjectData.id!, mapProjectToDb(sanitizedProjectData)),
+          () => apiService.updateProject(sanitizedProjectData.id!, sanitizedProjectData),
           {
             ...DEFAULT_RETRY_OPTIONS,
             maxRetries: 3,

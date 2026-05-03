@@ -155,34 +155,81 @@ export function mapProjectFromDb(dbProj: any): any {
 
 export function mapProjectToDb(proj: any): any {
   if (!proj) return null;
-  const out: any = {
-    id: proj.id,
-    name: proj.name,
-    client: proj.client,
-    contract_no: proj.contractNo,
-    // Use lowercase column names as Postgres folds unquoted identifiers to lowercase.
-    location: proj.location,
-    status: proj.status,
-    budget: proj.budget,
-    start_date: proj.startDate || null,
-    end_date: proj.endDate || null,
-    created_at: proj.createdAt,
-    updated_at: proj.updatedAt,
-    description: proj.description,
-    metadata: {
-      ...proj.metadata,
+  
+  const out: any = {};
+  
+  // Basic Fields
+  if (proj.id !== undefined) out.id = proj.id;
+  if (proj.name !== undefined) out.name = proj.name;
+  if (proj.client !== undefined) out.client = proj.client;
+  
+  // Mapped Fields (camelCase to snake_case)
+  if (proj.contractNo !== undefined || proj.contract_no !== undefined) {
+    out.contract_no = proj.contractNo !== undefined ? proj.contractNo : proj.contract_no;
+  }
+  
+  if (proj.location !== undefined) out.location = proj.location;
+  if (proj.status !== undefined) out.status = proj.status;
+  if (proj.budget !== undefined) out.budget = proj.budget;
+  
+  if (proj.startDate !== undefined || proj.start_date !== undefined) {
+    out.start_date = proj.startDate !== undefined ? proj.startDate : proj.start_date;
+  }
+  
+  if (proj.endDate !== undefined || proj.end_date !== undefined) {
+    out.end_date = proj.endDate !== undefined ? proj.endDate : proj.end_date;
+  }
+  
+  if (proj.createdAt !== undefined || proj.created_at !== undefined) {
+    out.created_at = proj.createdAt !== undefined ? proj.createdAt : proj.created_at;
+  }
+  
+  if (proj.updatedAt !== undefined || proj.updated_at !== undefined) {
+    out.updated_at = proj.updatedAt !== undefined ? proj.updatedAt : proj.updated_at;
+  }
+  
+  if (proj.description !== undefined) out.description = proj.description;
+  if (proj.contractor !== undefined) out.contractor = proj.contractor;
+
+  // Complex / JSONB Fields
+  if (proj.metadata !== undefined) {
+    out.metadata = {
+      ...(proj.metadata || {}),
+      code: proj.code !== undefined ? proj.code : proj.metadata?.code,
+      engineer: proj.engineer !== undefined ? proj.engineer : proj.metadata?.engineer
+    };
+  } else if (proj.code !== undefined || proj.engineer !== undefined) {
+    // If metadata is not provided but code/engineer are, we might need to handle it
+    // For now, assume metadata handling is centralized
+    out.metadata = {
       code: proj.code,
       engineer: proj.engineer
-    },
-    contractor: proj.contractor
-  };
-
-  if (proj.ownerId && isUuid(proj.ownerId)) {
-    out.owner_id = proj.ownerId;
-  } else {
-    // If not a valid UUID, let Supabase handle it or set to null
-    out.owner_id = null;
+    };
   }
+
+  // Handle owner_id with UUID validation
+  const ownerId = proj.ownerId !== undefined ? proj.ownerId : proj.owner_id;
+  if (ownerId !== undefined) {
+    if (ownerId && isUuid(ownerId)) {
+      out.owner_id = ownerId;
+    } else if (ownerId === null) {
+      out.owner_id = null;
+    }
+  }
+
+  // Include other known columns if they exist in the input to prevent filtering them out
+  // These might be JSONB columns or arrays depending on the schema
+  const otherColumns = [
+    'personnel', 'roads', 'boq', 'rfis', 'schedule', 'structures', 
+    'agencies', 'materials', 'inventory', 'vehicles', 'ncrs'
+  ];
+  
+  otherColumns.forEach(col => {
+    // Check both camelCase and snake_case for these arrays/objects
+    const camelCol = col.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+    if (proj[col] !== undefined) out[col] = proj[col];
+    else if (proj[camelCol] !== undefined) out[col] = proj[camelCol];
+  });
 
   return out;
 }
