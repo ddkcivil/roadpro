@@ -1,22 +1,24 @@
 -- Migration for enhanced user management: registration, approval, and login metadata.
--- This script updates the 'profiles' table to align with Supabase Auth UUIDs and adds approval status/timestamps.
+-- This script adds columns to the existing 'profiles' table to align with Supabase Auth UUIDs and adds approval status/timestamps.
+-- Safe version using ALTER TABLE instead of DROP to preserve existing data.
 
--- WARNING: This will drop and recreate the 'profiles' table.
--- If you have already populated the 'profiles' table, consider using ALTER TABLE statements instead.
+-- Add missing columns if they don't exist
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS role VARCHAR(50) NOT NULL DEFAULT 'user';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 
-DROP TABLE IF EXISTS public.profiles CASCADE;
-
-CREATE TABLE IF NOT EXISTS public.profiles (
-    id UUID PRIMARY KEY, -- Corresponds to auth.users.id in Supabase Auth
-    full_name VARCHAR(255) NOT NULL,
-    avatar_url TEXT,
-    role VARCHAR(50) NOT NULL, -- e.g., 'admin', 'manager', 'user'
-    -- Status field for managing approval workflow (e.g., pending, approved, rejected, active)
-    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'active')),
-    last_seen TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+-- Add CHECK constraint for status if doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'profiles_status_check'
+    ) THEN
+        ALTER TABLE public.profiles ADD CHECK (status IN ('pending', 'approved', 'rejected', 'active'));
+    END IF;
+END $$;
 
 -- Add indexes for common lookups on role and status
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);

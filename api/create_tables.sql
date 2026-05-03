@@ -1,11 +1,14 @@
--- Profiles table
+-- Profiles table (matches supabase/migrations schema)
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id uuid REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  id uuid PRIMARY KEY,
   full_name text,
   avatar_url text,
-  role text DEFAULT 'SITE_ENGINEER',
+  role text DEFAULT 'USER',
+  status text DEFAULT 'active',
   last_seen timestamptz DEFAULT now(),
-  created_at timestamptz DEFAULT now()
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  phone text
 );
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -19,35 +22,35 @@ CREATE POLICY IF NOT EXISTS "Users can update own profile" ON public.profiles
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
 CREATE INDEX IF NOT EXISTS idx_profiles_last_seen ON public.profiles(last_seen);
 
--- Messages table
+-- Messages table (matches supabase/migrations schema - snake_case)
 CREATE TABLE IF NOT EXISTS public.messages (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  projectId text NOT NULL,
-  senderId uuid NOT NULL REFERENCES public.profiles(id),
-  receiverId text NOT NULL,
+  project_id text NOT NULL,
+  sender_id uuid REFERENCES public.profiles(id),
+  receiver_id text,
   content text,
-  timestamp timestamptz DEFAULT now(),
+  created_at timestamptz DEFAULT now(),
+  read_at timestamptz,
   read boolean DEFAULT false,
-  readAt timestamptz,
-  attachmentUrl text,
-  attachmentName text,
-  attachmentType text
+  attachment_url text,
+  attachment_name text,
+  attachment_type text
 );
 
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 CREATE POLICY IF NOT EXISTS "Users can view project messages" ON public.messages FOR SELECT 
   USING (
-    projectId = 'general' OR 
-    senderId = auth.uid() OR 
-    receiverId = auth.uid() OR
-    receiverId = 'general'
+    project_id = 'general' OR 
+    sender_id = auth.uid() OR 
+    receiver_id = auth.uid() OR
+    receiver_id = 'general'
   );
 CREATE POLICY IF NOT EXISTS "Users can insert messages" ON public.messages FOR INSERT 
-  WITH CHECK (senderId = auth.uid());
+  WITH CHECK (sender_id = auth.uid());
   
-CREATE INDEX IF NOT EXISTS idx_messages_projectId ON public.messages(projectId);
-CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON public.messages(timestamp);
-CREATE INDEX IF NOT EXISTS idx_messages_sender_receiver ON public.messages(senderId, receiverId);
+CREATE INDEX IF NOT EXISTS idx_messages_project_id ON public.messages(project_id);
+CREATE INDEX IF NOT EXISTS idx_messages_created_at ON public.messages(created_at);
+CREATE INDEX IF NOT EXISTS idx_messages_sender_receiver ON public.messages(sender_id, receiver_id);
 
 -- Registrations table
 CREATE TABLE IF NOT EXISTS public.registrations (

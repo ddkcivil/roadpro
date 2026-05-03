@@ -51,6 +51,15 @@ Your experience is tailored to your role (Admin, Project Manager, Site Engineer,
 - Some actions (like deleting projects or managing users) are restricted to administrators.
 - Access denied screens will appear if you attempt to access unauthorized modules.
 
+### Data Management & User Information
+
+RoadMaster Pro leverages a hybrid data management approach:
+
+*   **User Profiles & Authentication**: Your account details, login credentials, and role-based permissions are managed securely by **Supabase**. This ensures a robust and centralized system for your identity within the application.
+*   **Project & Spatial Data**: Specific project data, including mapping and geospatial information, is stored in our database. This information is linked to your user profile via your unique Supabase User ID, ensuring data integrity and proper access control.
+
+This architecture allows us to provide a seamless experience while maintaining high security standards for your information.
+
 ### Offline Support
 RoadMaster Pro works even without an internet connection.
 - **Offline Mode**: You can continue browsing data and making certain changes while offline.

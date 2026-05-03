@@ -1,14 +1,17 @@
--- 20241202_create_profiles_table.sql
--- Create profiles table + seed BEFORE RLS
+-- 20241201_create_profiles_table.sql
+-- Create profiles table for Supabase Auth integration
 
--- Create table
+-- Create table (id references auth.users, compatible with Supabase Auth trigger)
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id uuid REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+  id uuid PRIMARY KEY, -- Corresponds to auth.users.id in Supabase Auth
   full_name text,
   avatar_url text,
-  role text DEFAULT 'User',
+  role text DEFAULT 'USER',
+  status text DEFAULT 'active',
   last_seen timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  phone text
 );
 
 -- Enable RLS (moved here? No, separate)
