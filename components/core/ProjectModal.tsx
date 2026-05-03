@@ -21,6 +21,8 @@ const projectFormSchema = z.object({
   endDate: z.string().nullable().optional().refine(val => !!val, "Completion date is required"),
   client: z.string().min(2, "Client name is required"),
   contractor: z.string().nullable().optional().refine(val => !!val, "Contractor name is required"),
+  engineer: z.string().nullable().optional(),
+  consultantName: z.string().nullable().optional(),
   location: z.string().nullable().optional(),
   contractNo: z.string().nullable().optional(),
 });
@@ -269,6 +271,29 @@ const ProjectModal: React.FC<Props> = ({ open, onClose, onSave, project }) => {
                     disabled={isSubmitting}
                   />
                   {errors.contractor && <p className="text-xs text-destructive">{errors.contractor}</p>}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="engineer">Engineer</Label>
+                    <Input
+                      id="engineer"
+                      value={editForm.engineer || ''}
+                      onChange={(e) => setEditForm({ ...editForm, engineer: e.target.value })}
+                      placeholder="e.g. Lead Engineer Name"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="consultantName">Consultant</Label>
+                    <Input
+                      id="consultantName"
+                      value={editForm.consultantName || ''}
+                      onChange={(e) => setEditForm({ ...editForm, consultantName: e.target.value })}
+                      placeholder="e.g. Design Consultant"
+                      disabled={isSubmitting}
+                    />
+                  </div>
                 </div>
 
                 <div className="flex justify-between mt-4">

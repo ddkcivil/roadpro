@@ -79,9 +79,10 @@ export function mapProjectFromDb(dbProj: any): any {
   mapped.createdAt = dbProj.createdAt || dbProj.created_at || dbProj.createdat;
   mapped.updatedAt = dbProj.updatedAt || dbProj.updated_at || dbProj.updatedat;
   
-  // Extract code and engineer from metadata if they don't exist at top level
+  // Extract code, engineer and consultant from metadata if they don't exist at top level
   mapped.code = dbProj.code || dbProj.metadata?.code || '';
   mapped.engineer = dbProj.engineer || dbProj.metadata?.engineer || '';
+  mapped.consultantName = dbProj.consultantName || dbProj.metadata?.consultantName || '';
   
   // Ensure all required arrays/objects exist (safety fallbacks)
   mapped.boq = dbProj.boq || [];
@@ -196,14 +197,15 @@ export function mapProjectToDb(proj: any): any {
     out.metadata = {
       ...(proj.metadata || {}),
       code: proj.code !== undefined ? proj.code : proj.metadata?.code,
-      engineer: proj.engineer !== undefined ? proj.engineer : proj.metadata?.engineer
+      engineer: proj.engineer !== undefined ? proj.engineer : proj.metadata?.engineer,
+      consultantName: proj.consultantName !== undefined ? proj.consultantName : proj.metadata?.consultantName
     };
-  } else if (proj.code !== undefined || proj.engineer !== undefined) {
-    // If metadata is not provided but code/engineer are, we might need to handle it
-    // For now, assume metadata handling is centralized
+  } else if (proj.code !== undefined || proj.engineer !== undefined || proj.consultantName !== undefined) {
+    // If metadata is not provided but code/engineer/consultant are, handle it
     out.metadata = {
       code: proj.code,
-      engineer: proj.engineer
+      engineer: proj.engineer,
+      consultantName: proj.consultantName
     };
   }
 
