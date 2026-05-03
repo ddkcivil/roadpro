@@ -92,6 +92,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
             .insert([{
               id: userId,
               full_name: pendingReg.name,
+              email: pendingReg.email,
+              phone: pendingReg.phone || '',
               role: pendingReg.requestedrole || pendingReg.requested_role || pendingReg.requestedRole || 'SITE_ENGINEER',
               avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`,
               last_seen: new Date().toISOString(),

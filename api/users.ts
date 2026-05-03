@@ -90,15 +90,12 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-      const { name, email, role, avatar } = req.body;
+      const { name, email, role, avatar, phone } = req.body;
 
       if (!name || !email) {
         return res.status(400).json({ error: 'Name and email are required' });
       }
 
-      // Supabase Auth handles the actual user creation.
-      // We assume the user has already been created in Auth via a separate flow, 
-      // or we just need to create the profile record here.
       const newUserId = uuidv4();
       
       const { data: profile, error } = await supabaseAdmin
@@ -106,17 +103,20 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .insert([{
           id: newUserId,
           full_name: name,
+          email: email,
+          phone: phone || '',
           role: role || 'SITE_ENGINEER',
           avatar_url: avatar || generateAvatarUrl(name),
           last_seen: new Date().toISOString(),
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         }])
         .select()
         .single();
 
       if (error) throw error;
-
-      return res.status(201).json(profile);
+      const { mapUserFromDb } = await import('./utils/mappers.js');
+      return res.status(201).json(mapUserFromDb(profile));
     } catch (error: any) {
       console.error('Failed to create user profile:', error);
       throw error;
@@ -134,10 +134,12 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-      const { name, role, avatar, phone } = req.body;
+      const { name, email, role, avatar, phone } = req.body;
       const updateData: any = { updated_at: new Date().toISOString() };
 
       if (name) updateData.full_name = name;
+      if (email) updateData.email = email;
+      if (phone !== undefined) updateData.phone = phone;
       if (role && userRole?.toUpperCase() === 'ADMIN') updateData.role = role;
       if (avatar) updateData.avatar_url = avatar;
 
