@@ -22,9 +22,13 @@ export const sanitizationUtils = {
     const sanitized = { ...obj };
     
     for (const key in sanitized) {
+      // Skip sanitization for specific fields that are expected to contain plain text
+      // and do not require HTML sanitization (e.g., client names, contract numbers).
+      if (key === 'client' || key === 'contractNo' || key === 'kmlContent') {
+        continue; 
+      }
+
       if (typeof sanitized[key] === 'string') {
-        // Skip sanitization for kmlContent to preserve XML/KML tags
-        if (key === 'kmlContent') continue;
         sanitized[key] = sanitizationUtils.sanitizeString(sanitized[key]) as any;
       } else if (typeof sanitized[key] === 'object' && sanitized[key] !== null && !Array.isArray(sanitized[key])) {
         sanitized[key] = sanitizationUtils.sanitizeObject(sanitized[key]);
