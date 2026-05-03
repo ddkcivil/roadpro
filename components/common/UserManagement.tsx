@@ -68,8 +68,8 @@ const UserManagement: React.FC = () => {
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!newUser.name.trim()) { alert('User name is required'); return; }
-    if (!newUser.email.trim()) { alert('Email is required'); return; }
+    if (!(newUser.name ?? '').trim()) { alert('User name is required'); return; }
+    if (!(newUser.email ?? '').trim()) { alert('Email is required'); return; }
     if (!/^[\w\.-]+@[\w\.-]+\.[a-zA-Z]{2,}$/.test(newUser.email)) { alert('Please enter a valid email address'); return; }
     if (newUser.phone && !/^\+?[1-9][\d\-\s]{8,}$/.test(newUser.phone)) { alert('Please enter a valid phone number'); return; }
 
@@ -96,8 +96,8 @@ const UserManagement: React.FC = () => {
     e.preventDefault();
     if (!editingUser) return;
 
-    if (!editingUser.name.trim()) { alert('User name is required'); return; }
-    if (!editingUser.email.trim()) { alert('Email is required'); return; }
+    if (!(editingUser.name ?? '').trim()) { alert('User name is required'); return; }
+    if (!(editingUser.email ?? '').trim()) { alert('Email is required'); return; }
     if (!/^[\w\.-]+@[\w\.-]+\.[a-zA-Z]{2,}$/.test(editingUser.email)) { alert('Please enter a valid email address'); return; }
     if (editingUser.phone && !/^\+?[1-9][\d\-\s]{8,}$/.test(editingUser.phone)) { alert('Please enter a valid phone number'); return; }
 
