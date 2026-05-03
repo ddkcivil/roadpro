@@ -217,15 +217,14 @@ export function mapProjectToDb(proj: any): any {
     }
   }
 
-  // Include other known columns if they exist in the input to prevent filtering them out
-  // These might be JSONB columns or arrays depending on the schema
-  const otherColumns = [
-    'personnel', 'roads', 'boq', 'rfis', 'schedule', 'structures', 
-    'agencies', 'materials', 'inventory', 'vehicles', 'ncrs'
+  // Include other confirmed JSONB columns
+  const confirmedJsonbColumns = [
+    'roads', 'accountingintegrations', 'accountingtransactions', 
+    'structuretemplates', 'auditlogs'
   ];
   
-  otherColumns.forEach(col => {
-    // Check both camelCase and snake_case for these arrays/objects
+  confirmedJsonbColumns.forEach(col => {
+    // Check both camelCase and snake_case for these JSONB columns
     const camelCol = col.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
     if (proj[col] !== undefined) out[col] = proj[col];
     else if (proj[camelCol] !== undefined) out[col] = proj[camelCol];
