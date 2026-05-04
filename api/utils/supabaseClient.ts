@@ -3,9 +3,14 @@ import { createClient } from '@supabase/supabase-js'
 // Rely on Vercel's injected environment variables. 
 // Do not manually load .env files in production as it can cause overrides and path issues.
 
-const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+// Debug logging
+console.log('[supabaseClient] Checking env vars - keys:', Object.keys(process.env).filter(k => k.includes('SUPABASE') || k.includes('VITE') || k.includes('NEXT')));
+
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+console.log('[supabaseClient] Loaded URL:', supabaseUrl, 'AnonKey:', supabaseAnonKey ? 'set' : 'missing');
 
 const isPlaceholder = (val: string | undefined) => !val || val.includes('your-project') || val.includes('your-anon') || val.length < 10;
 

@@ -1,7 +1,7 @@
 // api/health.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin, ensureSupabaseConfigured } from './utils/supabaseClient.js';
-import { withErrorHandler } from './utils/errorHandler.js';
+import { supabaseAdmin, ensureSupabaseConfigured } from './utils/supabaseClient.ts';
+import { withErrorHandler } from './utils/errorHandler.ts';
 
 export default withErrorHandler(async function (req: VercelRequest, res: VercelResponse) {
   ensureSupabaseConfigured();

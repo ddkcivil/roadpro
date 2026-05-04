@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from './utils/supabaseClient.js';
-import { withErrorHandler } from './utils/errorHandler.js';
-import { withAuth } from './utils/auth.js';
-import { mapProjectFromDb, mapProjectToDb } from './utils/mappers.js';
+import { supabaseAdmin } from './utils/supabaseClient.ts';
+import { withErrorHandler } from './utils/errorHandler.ts';
+import { withAuth } from './utils/auth.ts';
+import { mapProjectFromDb, mapProjectToDb } from './utils/mappers.ts';
 // Removed CSRFProtection as it might not be needed with Supabase auth, or needs re-evaluation.
 // Removed connectToDatabase as we use supabaseAdmin directly.
 

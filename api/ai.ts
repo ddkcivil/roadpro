@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withErrorHandler } from './utils/errorHandler.js';
+import { withErrorHandler } from './utils/errorHandler.ts';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {

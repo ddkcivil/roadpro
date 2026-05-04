@@ -77,12 +77,21 @@ const Login: React.FC<Props> = ({ onLogin, onShowRegistration }) => {
     setLoading(true);
     
     try {
-        console.log(`[Login] Attempting custom auth for ${email}`);
+console.log(`[Login] Attempting custom auth for ${email}`);
         const response = await fetch('/api/auth?action=login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
         });
+
+        // Check content-type before parsing as JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text();
+          console.error('[Login] Non-JSON response:', text.substring(0, 500));
+          setMessage({ type: 'destructive', text: 'Server error. Please try again later.' });
+          return;
+        }
 
         const result = await response.json();
 

@@ -9,47 +9,54 @@ import cors from 'cors';
 import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
 import fs from 'fs';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Load env from api/.env first, then api/.env.local
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 // Manually load API .env vars into process.env
-function loadDotEnv(filePath) {
-  console.log(`[API Server] Current __dirname: ${__dirname}`); // Log current directory
-  console.log(`[API Server] Attempting to load .env from: ${filePath}`); // Add logging
-  if (!fs.existsSync(filePath)) {
-    console.log(`[API Server] .env file not found at: ${filePath}`); // Add logging
-    return;
-  }
-  console.log(`[API Server] Loading .env file from: ${filePath}`); // Add logging
-  const content = fs.readFileSync(filePath, 'utf8');
-  content.split('\n').forEach(line => {
-    line = line.trim();
-    if (!line || line.startsWith('#')) return;
-    const eqIdx = line.indexOf('=');
-    if (eqIdx === -1) return;
-    const key = line.slice(0, eqIdx).trim();
-    let val = line.slice(eqIdx + 1).trim();
-    // Strip surrounding quotes
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
-    }
-    // ALWAYS set/overwrite to ensure local dev values take precedence
-    process.env[key] = val;
-    console.log(`[API Server] Set env var: ${key}`); // Log setting env var
-  });
-}
+// Load from root .env first, then API-specific .env files (e.g., .env.local)
+const loadEnvFiles = () => {
+  const rootEnvPath = path.resolve(__dirname, '..', '.env');
+  const apiEnvPath = path.resolve(__dirname, '.env');
+  const apiLocalEnvPath = path.resolve(__dirname, '.env.local');
+  const vercelEnvPath = path.resolve(__dirname, '..', '.env.vercel');
 
-// Load root .env first to ensure it's picked up reliably
-loadDotEnv(path.join(__dirname, '..', '.env')); 
-// Then load API-Bspecific ones, potentially overwriting root ones if needed
-loadDotEnv(path.join(__dirname, '.env'));
-loadDotEnv(path.join(__dirname, '.env.local'));
+  const envFilesToLoad = [rootEnvPath, apiEnvPath, apiLocalEnvPath, vercelEnvPath];
+
+  envFilesToLoad.forEach(filePath => {
+    console.log(`[API Server] Attempting to load .env from: ${filePath}`);
+    if (fs.existsSync(filePath)) {
+      console.log(`[API Server] Loading .env file from: ${filePath}`);
+      const content = fs.readFileSync(filePath, 'utf8');
+      content.split('\n').forEach(line => {
+        line = line.trim();
+        if (!line || line.startsWith('#')) return;
+        const eqIdx = line.indexOf('=');
+        if (eqIdx === -1) return;
+        const key = line.slice(0, eqIdx).trim();
+        let val = line.slice(eqIdx + 1).trim();
+        // Strip surrounding quotes
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        // ALWAYS set/overwrite to ensure local dev values take precedence
+        process.env[key] = val;
+        console.log(`[API Server] Set env var: ${key}`);
+      });
+    } else {
+      console.log(`[API Server] .env file not found at: ${filePath}`);
+    }
+  });
+};
+
+loadEnvFiles(); // Call the loading function
 
 // Helper: convert a Vercel handler to Express middleware
 function vercelToExpress(handlerModule) {
@@ -122,7 +129,7 @@ async function registerStaffRoutes() {
 }
 
 registerRoutes().then(() => registerStaffRoutes()).then(() => {
-  const PORT = process.env.PORT || 3000;
+  const PORT = process.env.PORT || 3001;
   app.listen(PORT, () => {
     console.log(`
 🚀 API dev server (TS) running at http://localhost:${PORT}/api

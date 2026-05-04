@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withErrorHandler } from './utils/errorHandler.js';
+import { withErrorHandler } from './utils/errorHandler.ts';
 import { getUserByEmail, verifyPassword, generateToken, verifyToken } from './utils/mongoAuth.js';
 import { mapUserFromDb } from './utils/mappers.js';
-import { supabasePublic } from './utils/supabaseClient.js';
+import { supabasePublic, isSupabaseConfigured } from './utils/supabaseClient.js';
 
 console.log('[Auth API] Initialized');
 
@@ -24,39 +24,43 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       try {
         // 1. Try Supabase Auth
-        console.log('[Auth API] Calling Supabase signInWithPassword');
-        const { data: authData, error: authError } = await supabasePublic.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (authError) {
-          console.log('[Auth API] Supabase auth error:', authError);
-        }
-
-        if (!authError && authData.session) {
-          console.log('[Auth API] Supabase login successful');
-          const userId = authData.user.id;
-          const { data: profile, error: profError } = await supabasePublic
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-
-          if (profError) console.log('[Auth API] Supabase profile fetch error:', profError);
-
-          res.setHeader('Set-Cookie', `roadmaster-access=${authData.session.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
-
-          const safeUser = mapUserFromDb({
-            id: userId,
-            email: authData.user.email,
-            ...profile
+        if (isSupabaseConfigured()) {
+          console.log('[Auth API] Calling Supabase signInWithPassword');
+          const { data: authData, error: authError } = await supabasePublic.auth.signInWithPassword({
+            email,
+            password,
           });
 
-          return res.status(200).json({
-            user: safeUser,
-            token: authData.session.access_token
-          });
+          if (authError) {
+            console.log('[Auth API] Supabase auth error:', authError);
+          }
+
+          if (!authError && authData.session) {
+            console.log('[Auth API] Supabase login successful');
+            const userId = authData.user.id;
+            const { data: profile, error: profError } = await supabasePublic
+              .from('profiles')
+              .select('*')
+              .eq('id', userId)
+              .single();
+
+            if (profError) console.log('[Auth API] Supabase profile fetch error:', profError);
+
+            res.setHeader('Set-Cookie', `roadmaster-access=${authData.session.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
+
+            const safeUser = mapUserFromDb({
+              id: userId,
+              email: authData.user.email,
+              ...profile
+            });
+
+            return res.status(200).json({
+              user: safeUser,
+              token: authData.session.access_token
+            });
+          }
+        } else {
+          console.log('[Auth API] Supabase not configured, skipping.');
         }
       } catch (e) {
         console.error('[Auth API] Supabase flow exception:', e);
