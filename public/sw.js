@@ -91,8 +91,6 @@ self.addEventListener('fetch', (event) => {
 
   // Strategy for API calls: Network ONLY (no cache for dynamic data/auth)
   if (url.pathname.startsWith('/api/')) {
-    // We don't call respondWith for API calls to let them bypass SW entirely
-    // Or we can respondWith a direct fetch without caching
     return;
   }
 
@@ -106,6 +104,47 @@ self.addEventListener('fetch', (event) => {
           const cached = await caches.match(request);
           if (cached) return cached;
           return new Response(JSON.stringify({ error: 'Offline' }), { status: 503 });
+        }
+      })()
+    );
+    return;
+  }
+
+  // Strategy for Map Tile Servers: Network First, then fallback to Cache
+  // This handles Stadia Maps, CARTO, Esri, OpenTopoMap, and other tile providers
+  const tileDomains = [
+    'tiles.stadiamaps.com',
+    'cartodb-basemaps-a.global.ssl.fastly.net',
+    'cartodb-basemaps-b.global.ssl.fastly.net',
+    'server.arcgisonline.com',
+    'tile.opentopomap.org',
+    'openstreetmap.org',
+    'tile.openstreetmap.org'
+  ];
+  const isTileRequest = tileDomains.some(domain => url.hostname.includes(domain));
+  
+  if (isTileRequest) {
+    event.respondWith(
+      (async () => {
+        try {
+          // Network First for tiles - always try to get fresh tiles
+          const response = await fetch(request);
+          if (response && response.status === 200) {
+            const cache = await caches.open(CACHE_NAME);
+            cache.put(request, response.clone());
+          }
+          return response;
+        } catch (error) {
+          // Fallback to cache if network fails
+          console.warn('[SW] Tile fetch failed, trying cache:', request.url);
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          // Return a proper error response instead of 408
+          return new Response('Tile unavailable', { 
+            status: 503, 
+            statusText: 'Tile unavailable - offline or server error',
+            headers: { 'X-Service-Worker': 'tile-fallback' }
+          });
         }
       })()
     );
@@ -127,6 +166,3 @@ self.addEventListener('fetch', (event) => {
     })()
   );
 });
-
-
-

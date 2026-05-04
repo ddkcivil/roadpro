@@ -194,9 +194,6 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
   }, []);
 
   const saveProject = useCallback(async (project: Partial<Project>): Promise<void> => {
-    // Logic to determine if this is a new project creation or an update
-    // If 'name' and 'client' are provided but 'id' is missing, it's likely a new project from the modal.
-    // Otherwise, if no ID is provided, we default to the currently selected project for partial updates.
     const isFullDefinition = !!(project.name && project.client);
     const isNewCreation = isFullDefinition && !project.id;
     
@@ -231,12 +228,12 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
     });
 
     try {
-      // Use retry logic for backend operations
       let backendProject: Project;
       
       if (isNewCreation) {
+        // Pass currentUser details for audit logging
         backendProject = await retryWithBackoff(
-          () => apiService.createProject(sanitizedProjectData),
+          () => apiService.createProject(sanitizedProjectData, currentUser?.id, currentUser?.name),
           {
             ...DEFAULT_RETRY_OPTIONS,
             maxRetries: 3,
@@ -244,26 +241,14 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
           }
         );
       } else {
+        // Pass currentUser details and previous project data for audit logging
         backendProject = await retryWithBackoff(
-          () => apiService.updateProject(sanitizedProjectData.id!, sanitizedProjectData),
+          () => apiService.updateProject(sanitizedProjectData.id!, sanitizedProjectData, currentUser?.id, currentUser?.name, baseProject as Partial<Project>),
           {
             ...DEFAULT_RETRY_OPTIONS,
             maxRetries: 3,
             initialDelayMs: 1000,
           }
-        );
-      }
-
-      if (currentUser) {
-        await AuditService.logDataModification(
-          currentUser.id, 
-          currentUser.name, 
-          isUpdate ? 'UPDATE' : 'CREATE', 
-          'project', 
-          backendProject.id, 
-          backendProject.name,
-          baseProject,
-          backendProject
         );
       }
 
@@ -286,7 +271,6 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
         dispatch({ type: 'UPDATE_PROJECTS', payload: previousProjects });
       });
       
-      // Provide user-friendly error messages
       let errorMsg = error.message || 'Unknown server error';
       if (error.message?.includes('Failed to fetch')) {
         errorMsg = 'Network error: Please check your internet connection';
@@ -339,20 +323,9 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
         }
       }
 
-      await apiService.deleteProject(projectId);
+      // Pass currentUser details and project name for audit logging
+      await apiService.deleteProject(projectId, currentUser?.id, currentUser?.name, projectToDelete?.name);
 
-      if (currentUser && projectToDelete) {
-        await AuditService.logDataModification(
-          currentUser.id, 
-          currentUser.name, 
-          'DELETE', 
-          'project', 
-          projectId, 
-          projectToDelete.name,
-          projectToDelete,
-          undefined
-        );
-      }
       debouncedCacheSync(updatedProjects);
       
       toast.success("Project Deleted", {

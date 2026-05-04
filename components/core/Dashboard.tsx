@@ -39,6 +39,15 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
   const [showWidgetSettings, setShowWidgetSettings] = useState(false);
   const [activeChart, setActiveChart] = useState<'periodic' | 'scumulative'>('scumulative');
 
+  const remainingDays = useMemo(() => {
+    if (!project?.endDate) return null;
+    const end = new Date(project.endDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = end.getTime() - today.getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  }, [project?.endDate]);
+
   const stats = useMemo(() => {
     if (!project || !project.boq) return { 
       earnedValue: 0, totalPlannedValue: 0, actualCost: 0, 
@@ -337,7 +346,13 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="mb-8 p-6 rounded-3xl bg-slate-500/5 border border-white/5 relative overflow-hidden group/name">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-primary/40" />
+                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60 mb-2">Full Project Name</p>
+                  <h3 className="text-xl md:text-2xl font-black text-foreground tracking-tight leading-tight">{project.name}</h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Contract Number</p>
                     <p className="text-sm font-mono font-bold text-foreground">{project.contractNo || 'N/A'}</p>
@@ -353,6 +368,20 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Planned Completion</p>
                     <p className="text-sm font-bold text-foreground">{project.endDate ? project.endDate.split('T')[0] : 'N/A'}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Remaining Days</p>
+                    <div className="flex items-center gap-2">
+                      <Clock className={cn("h-4 w-4", remainingDays !== null && remainingDays < 30 ? "text-destructive" : "text-primary")} />
+                      <p className={cn(
+                        "text-sm font-black",
+                        remainingDays !== null && remainingDays < 30 ? "text-destructive" : "text-foreground"
+                      )}>
+                        {remainingDays !== null ? (
+                          remainingDays > 0 ? `${remainingDays} Days` : remainingDays === 0 ? 'Due Today' : `${Math.abs(remainingDays)} Days Overdue`
+                        ) : 'N/A'}
+                      </p>
+                    </div>
                   </div>
                 </div>
                 
