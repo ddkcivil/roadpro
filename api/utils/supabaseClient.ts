@@ -9,9 +9,18 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const isPlaceholder = (val: string | undefined) => !val || val.includes('your-project') || val.includes('your-anon') || val.length < 10;
 
-// Initialize clients
-const finalUrl = isPlaceholder(supabaseUrl) ? 'https://placeholder.supabase.co' : supabaseUrl!;
-const finalAnonKey = isPlaceholder(supabaseAnonKey) ? 'placeholder' : supabaseAnonKey!;
+// Use null instead of placeholder to fail fast rather than connect to invalid URL
+let finalUrl: string;
+let finalAnonKey: string;
+
+if (isPlaceholder(supabaseUrl) || isPlaceholder(supabaseAnonKey)) {
+  console.error('[supabaseClient] Missing or invalid SUPABASE_URL or SUPABASE_ANON_KEY');
+  finalUrl = 'https://placeholder.supabase.co';
+  finalAnonKey = 'placeholder';
+} else {
+  finalUrl = supabaseUrl!;
+  finalAnonKey = supabaseAnonKey!;
+}
 
 export const supabasePublic = createClient(
   finalUrl, 

@@ -9,6 +9,9 @@ console.log('[Auth API] Initialized');
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { action } = req.query;
 
+  // Ensure JSON response
+  res.setHeader('Content-Type', 'application/json');
+
   if (req.method === 'POST') {
     // --- LOGIN ---
     if (action === 'login') {
