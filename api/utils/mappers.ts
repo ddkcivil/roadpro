@@ -247,5 +247,40 @@ export function mapProjectToDb(proj: any): any {
     else if (proj[camelCol] !== undefined) out[col] = proj[camelCol];
   });
 
-  return out;
+return out;
+}
+
+/**
+ * DOCUMENT MAPPERS
+ */
+export function mapDocumentVersionFromDb(doc: any): any {
+  if (!doc) return null;
+  return {
+    id: doc.id,
+    docId: doc.doc_id || doc.docId,
+    blobUrl: doc.blob_url || doc.blobUrl,
+    filePath: doc.blob_url || doc.blobUrl,
+    versionNum: doc.version_num || doc.versionNum,
+    size: doc.size,
+    notes: doc.notes,
+    createdAt: doc.created_at || doc.createdAt
+  };
+}
+
+export function mapProjectDocumentToDb(doc: any): any {
+  if (!doc) return null;
+  return {
+    id: doc.id,
+    project_id: doc.projectId || doc.project_id,
+    name: doc.name,
+    folder: doc.folder,
+    tags: doc.tags || [],
+    subject: doc.subject,
+    ref_no: doc.refNo || doc.ref_no,
+    size: doc.size,
+    type: doc.type,
+    status: doc.status || 'Active',
+    metadata: typeof doc.metadata === 'string' ? doc.metadata : JSON.stringify(doc.metadata || {}),
+    updated_at: doc.updatedAt || doc.updated_at || new Date().toISOString()
+  };
 }
