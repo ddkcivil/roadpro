@@ -12,8 +12,7 @@
     "rootDir": "../",
     "allowJs": true,
     "noEmit": true,
-    "ignoreDeprecations": "5.0",
-    "baseUrl": ".",
+    "allowImportingTsExtensions": true,
     "paths": {
       "~/*": ["../../*"]
     }

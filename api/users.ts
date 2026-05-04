@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 const { mongodb } = await import('../lib/mongodb.js');
-import { supabaseAdmin } from './utils/supabaseClient.ts';
-import { withErrorHandler } from './utils/errorHandler.ts';
-import { withAuth } from './utils/auth.ts';
+import { supabaseAdmin } from './utils/supabaseClient';
+import { withErrorHandler } from './utils/errorHandler';
+import { withAuth } from './utils/auth';
 import { v4 as uuidv4 } from 'uuid';
 
 function generateAvatarUrl(name: string): string {

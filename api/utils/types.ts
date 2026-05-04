@@ -1,4 +1,4 @@
-import { Road } from './roadTypes.ts';
+import { Road } from './roadTypes';
 
 export enum RFIStatus {
   OPEN = 'Open',

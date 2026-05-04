@@ -55,20 +55,29 @@ export function ensureSupabaseConfigured() {
   }
 }
 
-export const isSupabaseConfigured = () => {
-  try {
-    ensureSupabaseConfigured();
-    return true;
-  } catch {
+// NEW: Simple check that returns false gracefully without throwing
+export const isSupabaseConfigured = (): boolean => {
+  // Simply check if valid env vars exist without throwing
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  
+  // Check for placeholders or missing values
+  if (!url || !key || url.includes('your-project') || key.includes('your-anon') || url.length < 10 || key.length < 10) {
+    console.log('[supabaseClient] Supabase not configured (missing or placeholder env vars)');
     return false;
   }
+  
+  // Check if URL is valid format
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    console.log('[supabaseClient] Supabase URL invalid format');
+    return false;
+  }
+  
+  return true;
 };
-
-
 
 // Optional: Setup tables if not exist (run once)
 export async function setupDocumentTables() {
   // Create tables example - run manually or via migration
   console.log('Supabase tables setup - run via dashboard/SQL')
 }
-
