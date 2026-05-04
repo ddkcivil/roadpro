@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withErrorHandler } from './utils/errorHandler';
-import { getUserByEmail, verifyPassword, generateToken, verifyToken } from './utils/mongoAuth';
-import { mapUserFromDb } from './utils/mappers';
-import { supabasePublic, isSupabaseConfigured } from './utils/supabaseClient';
+import { withErrorHandler } from './utils/errorHandler.js';
+import { getUserByEmail, verifyPassword, generateToken, verifyToken } from './utils/mongoAuth.js';
+import { mapUserFromDb } from './utils/mappers.js';
+import { supabasePublic, isSupabaseConfigured } from './utils/supabaseClient.js';
 
 console.log('[Auth API] Initialized');
 

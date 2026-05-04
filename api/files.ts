@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from './utils/supabaseClient';
-import { withErrorHandler } from './utils/errorHandler';
-import { withAuth } from './utils/auth';
-import { mapProjectDocumentToDb, mapDocumentVersionFromDb } from './utils/mappers';
+import { supabaseAdmin } from './utils/supabaseClient.js';
+import { withErrorHandler } from './utils/errorHandler.js';
+import { withAuth } from './utils/auth.js';
+import { mapProjectDocumentToDb, mapDocumentVersionFromDb } from './utils/mappers.js';
 import { v4 as uuidv4 } from 'uuid'; // For generating IDs
 import { Buffer } from 'buffer'; // For Buffer operations
 
