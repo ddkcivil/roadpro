@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withErrorHandler } from './utils/errorHandler.ts';
-import { getUserByEmail, verifyPassword, generateToken, verifyToken } from './utils/mongoAuth.js';
-import { mapUserFromDb } from './utils/mappers.js';
-import { supabasePublic, isSupabaseConfigured } from './utils/supabaseClient.js';
+import { withErrorHandler } from './utils/errorHandler';
+import { getUserByEmail, verifyPassword, generateToken, verifyToken } from './utils/mongoAuth';
+import { mapUserFromDb } from './utils/mappers';
+import { supabasePublic, isSupabaseConfigured } from './utils/supabaseClient';
 
 console.log('[Auth API] Initialized');
 
@@ -23,7 +23,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       }
 
       try {
-        // 1. Try Supabase Auth
+                // 1. Try Supabase Auth
         if (isSupabaseConfigured()) {
           console.log('[Auth API] Calling Supabase signInWithPassword');
           const { data: authData, error: authError } = await supabasePublic.auth.signInWithPassword({
@@ -33,9 +33,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
           if (authError) {
             console.log('[Auth API] Supabase auth error:', authError);
-          }
-
-          if (!authError && authData.session) {
+            // Proceed to MongoDB fallback if Supabase auth fails
+          } else if (authData.session) {
             console.log('[Auth API] Supabase login successful');
             const userId = authData.user.id;
             const { data: profile, error: profError } = await supabasePublic
@@ -59,11 +58,15 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
               token: authData.session.access_token
             });
           }
+          // If Supabase auth failed (authError present or no session), we fall through to MongoDB
         } else {
           console.log('[Auth API] Supabase not configured, skipping.');
+          // Fall through to MongoDB if Supabase is not configured
         }
-      } catch (e) {
-        console.error('[Auth API] Supabase flow exception:', e);
+      } catch (error) {
+        // Catch any exceptions that occur during the Supabase flow or before the MongoDB fallback
+        console.error('[Auth API] Supabase flow exception:', error);
+        // Fall through to MongoDB if Supabase flow throws an exception
       }
 
       // 2. Fallback to MongoDB (Legacy)
