@@ -284,3 +284,38 @@ export function mapProjectDocumentToDb(doc: any): any {
     updated_at: doc.updatedAt || doc.updated_at || new Date().toISOString()
   };
 }
+
+/**
+ * AUDIT LOG MAPPERS
+ */
+export function mapAuditLogFromDb(log: any): any {
+  if (!log) return null;
+  return {
+    id: log.id,
+    userId: log.user_id || log.userId,
+    userName: log.user_name || log.userName,
+    action: log.action,
+    entityType: log.entity_type || log.entityType,
+    entityId: log.entity_id || log.entityId,
+    entityName: log.entity_name || log.entityName,
+    severity: log.severity || 'INFO',
+    metadata: log.metadata,
+    timestamp: log.timestamp || log.created_at || new Date().toISOString()
+  };
+}
+
+export function mapAuditLogToDb(log: any): any {
+  if (!log) return null;
+  return {
+    id: log.id,
+    user_id: log.userId || log.user_id,
+    user_name: log.userName || log.user_name,
+    action: log.action,
+    entity_type: log.entityType || log.entity_type,
+    entity_id: log.entityId || log.entity_id,
+    entity_name: log.entityName || log.entity_name,
+    severity: log.severity || 'INFO',
+    metadata: typeof log.metadata === 'string' ? log.metadata : JSON.stringify(log.metadata || {}),
+    timestamp: log.timestamp || new Date().toISOString()
+  };
+}
