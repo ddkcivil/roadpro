@@ -1,12 +1,12 @@
-import { Project, User, UserRole } from '../types';
-import { supabase } from '../lib/supabase';
-import { mapProjectFromDb, mapProjectToDb } from '../api/utils/mappers';
-import { AuditService } from '../services/analytics/auditService'; // Assuming AuditService is available
+import { Project, User, UserRole } from '../../types';
+import { supabase } from '../../lib/supabase';
+import { mapProjectFromDb, mapProjectToDb } from '../../api/utils/mappers';
+import { AuditService } from '../analytics/auditService';
 
 // Constants for Supabase tables
 const PROJECTS_TABLE = 'projects';
-const USERS_TABLE = 'users';
-const FILES_TABLE = 'files'; // Assuming a files table for document/photo storage
+const USERS_TABLE = 'profiles'; // Fixed: Use 'profiles' table (matches Supabase schema)
+const FILES_TABLE = 'files';
 
 // Configuration for Supabase Storage bucket name
 // **IMPORTANT**: Replace 'your-bucket-name' with the actual name of your Supabase storage bucket.
@@ -211,12 +211,12 @@ export const apiService = {
     };
   },
 
-  // Fetch all users
+// Fetch all users
   getUsers: async (): Promise<User[]> => {
     const { data, error } = await supabase
       .from(USERS_TABLE)
       .select('*')
-      .order('name');
+      .order('full_name'); // Fixed: Use correct column name
 
     if (error) {
       console.error('[Supabase] Failed to fetch users:', error);

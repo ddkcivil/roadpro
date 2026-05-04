@@ -192,7 +192,7 @@ export function mapProjectToDb(proj: any): any {
   if (proj.description !== undefined) out.description = proj.description;
   if (proj.contractor !== undefined) out.contractor = proj.contractor;
 
-  // Complex / JSONB Fields
+// Complex / JSONB Fields
   if (proj.metadata !== undefined) {
     out.metadata = {
       ...(proj.metadata || {}),
@@ -207,6 +207,21 @@ export function mapProjectToDb(proj: any): any {
       engineer: proj.engineer,
       consultantName: proj.consultantName
     };
+  }
+
+  // BOQ Items - explicitly map to JSONB column (fixes Excel import not saving)
+  if (proj.boq !== undefined) {
+    out.boq = proj.boq;
+  }
+
+  // Variation Orders - explicitly map to JSONB column
+  if (proj.variationOrders !== undefined) {
+    out.variation_orders = proj.variationOrders;
+  }
+
+  // Measurement Sheets - explicitly map to JSONB column
+  if (proj.measurementSheets !== undefined) {
+    out.measurement_sheets = proj.measurementSheets;
   }
 
   // Handle owner_id with UUID validation

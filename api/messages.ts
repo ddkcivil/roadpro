@@ -25,8 +25,11 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { projectId, receiverId, after } = req.query;
   const currentUser = (req as any).user;
 
+  console.log('[Messages API] Request received. projectId:', projectId, 'user:', currentUser?.userId);
+
   if (req.method === 'GET') {
     if (!projectId || typeof projectId !== 'string') {
+      console.log('[Messages API] Missing projectId');
       return res.status(400).json({ error: 'projectId is required' });
     }
 
@@ -44,9 +47,15 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     queryBuilder = queryBuilder.order('timestamp', { ascending: true });
 
     try {
+      console.log('[Messages API] Executing Supabase query...');
       const { data, error } = await queryBuilder;
-      if (error) throw error;
+      
+      if (error) {
+        console.error('[Messages API] Supabase query error:', error);
+        throw error;
+      }
 
+      console.log('[Messages API] Query succeeded, received', data?.length || 0, 'messages');
       let filteredData = data || [];
 
       // In-memory filtering to avoid PostgREST UUID casting issues on TEXT columns
@@ -75,7 +84,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       return res.status(200).json(filteredData.map(mapMessageFromDb));
     } catch (queryError: any) {
-      console.error('Messages query failed:', queryError);
+      console.error('[Messages API] Messages query failed:', queryError);
       return res.status(500).json({ error: 'Failed to fetch messages', details: queryError.message });
     }
   }
@@ -111,7 +120,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       if (error) throw error;
       return res.status(201).json(mapMessageFromDb(newMessage));
     } catch (error: any) {
-      console.error('Error creating message:', error);
+      console.error('[Messages API] Error creating message:', error);
       return res.status(500).json({ error: 'Failed to create message', details: error.message });
     }
   }
@@ -138,4 +147,3 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 };
 
 export default withErrorHandler(withAuth(handler));
-
