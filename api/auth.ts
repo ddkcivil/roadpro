@@ -28,49 +28,71 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         console.log('[Auth API] Supabase configured:', supabaseReady);
 
         // 1. Try Supabase Auth (if configured)
-        if (supabaseReady) {
-          console.log('[Auth API] Calling Supabase signInWithPassword');
-          const { data: authData, error: authError } = await supabasePublic.auth.signInWithPassword({
-            email,
-            password,
-          });
+      // 1. Try Supabase Auth (if configured)
+      if (supabaseReady) {
+        console.log('[Auth API] Calling Supabase signInWithPassword');
+        const { data: authData, error: authError } = await supabasePublic.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-          if (authError) {
-            console.log('[Auth API] Supabase auth error:', authError.message);
-            // Proceed to MongoDB fallback if Supabase auth fails
-          } else if (authData?.session) {
-            console.log('[Auth API] Supabase login successful');
-            const userId = authData.user.id;
+        if (authError) {
+          console.error('[Auth API] Supabase auth error:', authError.message, 'Details:', authError);
+          // Proceed to MongoDB fallback if Supabase auth fails
+        } else if (authData?.session) {
+          console.log('[Auth API] Supabase login successful');
+          const userId = authData.user.id;
+          console.log('[Auth API] Supabase login successful, fetching profile for user ID:', userId);
+
+          let profileData = null;
+
+          try {
             const { data: profile, error: profError } = await supabasePublic
               .from('profiles')
               .select('*')
               .eq('id', userId)
               .single();
 
-            if (profError) console.log('[Auth API] Supabase profile fetch error:', profError.message);
-
-            res.setHeader('Set-Cookie', `roadmaster-access=${authData.session.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
-
-            const safeUser = mapUserFromDb({
-              id: userId,
-              email: authData.user.email,
-              ...profile
-            });
-
-            return res.status(200).json({
-              user: safeUser,
-              token: authData.session.access_token
-            });
+            if (profError) {
+              console.error('[Auth API] Supabase profile fetch error:', profError.message, 'Details:', profError);
+              // Log the error but allow fallback to MongoDB if profile is missing
+            } else {
+              profileData = profile; // Assign fetched profile data
+              console.log('[Auth API] Supabase profile fetched successfully:', profileData ? 'Data received' : 'No profile data received.');
+              if (profileData) {
+                // Log profile data structure for inspection, truncated to avoid excessive logs
+                console.log('[Auth API] Profile data structure (first 500 chars):', JSON.stringify(profileData).substring(0, 500));
+              }
+            }
+          } catch (profileFetchError: any) {
+            console.error('[Auth API] Exception during Supabase profile fetch:', profileFetchError.message, 'Details:', profileFetchError);
+            // Fall through to MongoDB if an exception occurs during profile fetch
           }
-          // If Supabase auth failed (authError present or no session), we fall through to MongoDB
-        } else {
-          console.log('[Auth API] Supabase not configured, skipping to MongoDB fallback.');
+
+          // If profile fetch failed or returned no data, profileData will be null.
+          // mapUserFromDb should handle this gracefully.
+          const safeUser = mapUserFromDb({
+            id: userId,
+            email: authData.user.email,
+            ...profileData // Spread profileData, which might be null
+          });
+          
+          res.setHeader('Set-Cookie', `roadmaster-access=${authData.session.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
+
+          return res.status(200).json({
+            user: safeUser,
+            token: authData.session.access_token
+          });
         }
-      } catch (error: any) {
-        // Catch any exceptions that occur during the Supabase flow
-        console.error('[Auth API] Supabase flow exception:', error.message);
-        // Fall through to MongoDB if Supabase flow throws an exception
+        // If Supabase auth failed (authError present or no session), we fall through to MongoDB
+      } else {
+        console.log('[Auth API] Supabase not configured, skipping to MongoDB fallback.');
       }
+    } catch (error: any) {
+      // Catch any exceptions that occur during the Supabase flow (including profile fetch if not caught internally)
+      console.error('[Auth API] Supabase flow exception:', error.message, 'Details:', error); // Added error details
+      // Fall through to MongoDB if Supabase flow throws an exception
+    }
 
       // 2. Fallback to MongoDB (Legacy)
       console.log('[Auth API] Checking MongoDB fallback...');
