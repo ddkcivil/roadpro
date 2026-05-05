@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { mongodb } from '../../lib/mongodb.js';
+import { mongodb } from './mongodb.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me-in-prod';
 

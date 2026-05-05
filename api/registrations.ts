@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { mongodb } from '../lib/mongodb.js';
+import { mongodb } from './utils/mongodb.js';
 import { getSupabaseAdmin, isSupabaseConfigured } from './utils/supabaseClient.js';
 import { withErrorHandler } from './utils/errorHandler.js';
 import { withAuth } from './utils/auth.js';
@@ -105,11 +105,30 @@ if (action === 'approve') {
           await db.collection('users').insertOne(newUser);
           console.log('[Registrations] Created legacy user in MongoDB:', newUser.email);
 
-          // 2. Try Supabase profile creation if configured
+// 2. Try Supabase Auth + Profile creation if configured
           const supabaseReady = isSupabaseConfigured();
           if (supabaseReady) {
             const supabaseAdmin = getSupabaseAdmin();
             if (supabaseAdmin) {
+              // CRITICAL: Create Supabase Auth user first (this is the missing piece!)
+              const { error: authError } = await supabaseAdmin.auth.admin.createUser({
+                email: pendingReg.email,
+                password: pendingReg.password, // Use original password, not hashed
+                email_confirm: true,
+                user_metadata: {
+                  full_name: pendingReg.name,
+                  phone: pendingReg.phone || ''
+                }
+              });
+
+              if (authError) {
+                console.error('[Registrations] Supabase Auth user creation failed:', authError.message);
+                // Continue anyway - user exists in MongoDB, can login via fallback
+              } else {
+                console.log('[Registrations] Created Supabase Auth user for:', pendingReg.email);
+              }
+
+              // Then create profile
               const { error: supabaseError } = await supabaseAdmin
                 .from('profiles')
                 .insert([{

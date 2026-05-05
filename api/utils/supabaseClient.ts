@@ -72,7 +72,13 @@ export function ensureSupabaseConfigured() {
 }
 
 // NEW: Simple check that returns false gracefully without throwing
+// OPTIMIZED: Fail fast to avoid delays
 export const isSupabaseConfigured = (): boolean => {
+  // Cache check result to avoid repeated env var lookups
+  if ((global as any).__supabaseConfigured !== undefined) {
+    return (global as any).__supabaseConfigured;
+  }
+  
   // Simply check if valid env vars exist without throwing
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
@@ -80,15 +86,18 @@ export const isSupabaseConfigured = (): boolean => {
   // Check for placeholders or missing values
   if (!url || !key || url.includes('your-project') || key.includes('your-anon') || url.length < 10 || key.length < 10) {
     console.log('[supabaseClient] Supabase not configured (missing or placeholder env vars)');
+    (global as any).__supabaseConfigured = false;
     return false;
   }
   
   // Check if URL is valid format
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     console.log('[supabaseClient] Supabase URL invalid format');
+    (global as any).__supabaseConfigured = false;
     return false;
   }
   
+  (global as any).__supabaseConfigured = true;
   return true;
 };
 

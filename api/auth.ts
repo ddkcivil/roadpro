@@ -27,49 +27,52 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         const supabaseReady = isSupabaseConfigured();
         console.log('[Auth API] Supabase configured:', supabaseReady);
 
-        // 1. Try Supabase Auth (if configured)
+        // 1. Try Supabase Auth (if configured) - FAIL FAST if not configured
         if (supabaseReady && supabasePublic) {
-          console.log('[Auth API] Calling Supabase signInWithPassword');
-          const { data: authData, error: authError } = await supabasePublic.auth.signInWithPassword({
-            email,
-            password,
-          });
-
-          if (authError) {
-            console.log('[Auth API] Supabase auth error:', authError.message);
-            // Proceed to MongoDB fallback if Supabase auth fails
-          } else if (authData?.session) {
-            console.log('[Auth API] Supabase login successful');
-            const userId = authData.user.id;
-            const { data: profile, error: profError } = await supabasePublic
-              .from('profiles')
-              .select('*')
-              .eq('id', userId)
-              .single();
-
-            if (profError) console.log('[Auth API] Supabase profile fetch error:', profError.message);
-
-            res.setHeader('Set-Cookie', `roadmaster-access=${authData.session.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
-
-            const safeUser = mapUserFromDb({
-              id: userId,
-              email: authData.user.email,
-              ...profile
+          try {
+            console.log('[Auth API] Calling Supabase signInWithPassword');
+            const { data: authData, error: authError } = await supabasePublic.auth.signInWithPassword({
+              email,
+              password,
             });
 
-            return res.status(200).json({
-              user: safeUser,
-              token: authData.session.access_token
-            });
+            if (authError) {
+              console.log('[Auth API] Supabase auth error:', authError.message);
+              // Proceed to MongoDB fallback if Supabase auth fails
+            } else if (authData?.session) {
+              console.log('[Auth API] Supabase login successful');
+              const userId = authData.user.id;
+              const { data: profile, error: profError } = await supabasePublic
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+              if (profError) console.log('[Auth API] Supabase profile fetch error:', profError.message);
+
+              res.setHeader('Set-Cookie', `roadmaster-access=${authData.session.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
+
+              const safeUser = mapUserFromDb({
+                id: userId,
+                email: authData.user.email,
+                ...profile
+              });
+
+              return res.status(200).json({
+                user: safeUser,
+                token: authData.session.access_token
+              });
+            }
+            // If Supabase auth failed (authError present or no session), fall through to MongoDB
+          } catch (supError: any) {
+            console.log('[Auth API] Supabase auth exception:', supError.message);
+            // Fall through to MongoDB on exception
           }
-          // If Supabase auth failed (authError present or no session), we fall through to MongoDB
         } else {
-          console.log('[Auth API] Supabase not configured, skipping to MongoDB fallback.');
+          console.log('[Auth API] Supabase not configured, using MongoDB only.');
         }
       } catch (error: any) {
-        // Catch any exceptions that occur during the Supabase flow
-        console.error('[Auth API] Supabase flow exception:', error.message);
-        // Fall through to MongoDB if Supabase flow throws an exception
+        console.error('[Auth API] Login error:', error.message);
       }
 
       // 2. Fallback to MongoDB (Legacy)
