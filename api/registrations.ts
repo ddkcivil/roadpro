@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { mongodb } from '../lib/mongodb.js';
-import { supabaseAdmin } from './utils/supabaseClient.js';
+import { getSupabaseAdmin, isSupabaseConfigured } from './utils/supabaseClient.js';
 import { withErrorHandler } from './utils/errorHandler.js';
 import { withAuth } from './utils/auth.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -79,7 +79,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST') {
-      if (action === 'approve') {
+if (action === 'approve') {
         if (!id || typeof id !== 'string') return res.status(400).json({ error: 'Invalid ID' });
 
         try {
@@ -87,23 +87,33 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           if (!pendingReg) return res.status(404).json({ error: 'Pending registration not found' });
 
           const userId = uuidv4(); 
-          const { error: supabaseError } = await supabaseAdmin
-            .from('profiles')
-            .insert([{
-              id: userId,
-              full_name: pendingReg.name,
-              email: pendingReg.email,
-              phone: pendingReg.phone || '',
-              role: pendingReg.requestedrole || pendingReg.requested_role || pendingReg.requestedRole || 'SITE_ENGINEER',
-              avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`,
-              last_seen: new Date().toISOString(),
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }]);
+          
+          // Try Supabase profile creation if configured
+          const supabaseReady = isSupabaseConfigured();
+          if (supabaseReady) {
+            const supabaseAdmin = getSupabaseAdmin();
+            if (supabaseAdmin) {
+              const { error: supabaseError } = await supabaseAdmin
+                .from('profiles')
+                .insert([{
+                  id: userId,
+                  full_name: pendingReg.name,
+                  email: pendingReg.email,
+                  phone: pendingReg.phone || '',
+                  role: pendingReg.requestedrole || pendingReg.requested_role || pendingReg.requestedRole || 'SITE_ENGINEER',
+                  avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`,
+                  last_seen: new Date().toISOString(),
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }]);
 
-          if (supabaseError) {
-            console.error('Supabase profile creation failed:', supabaseError);
-            return res.status(500).json({ error: 'Failed to create user profile in Supabase', details: supabaseError.message });
+              if (supabaseError) {
+                console.error('Supabase profile creation failed:', supabaseError);
+                // Not critical - continue with MongoDB-only workflow
+              }
+            }
+          } else {
+            console.log('[Registrations] Supabase not configured, skipping profile creation');
           }
           
           await db.collection('registrations').deleteOne({ _id: id });

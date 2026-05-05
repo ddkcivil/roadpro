@@ -14,28 +14,44 @@ console.log('[supabaseClient] Loaded URL:', supabaseUrl, 'AnonKey:', supabaseAno
 
 const isPlaceholder = (val: string | undefined) => !val || val.includes('your-project') || val.includes('your-anon') || val.length < 10;
 
-// Use null instead of placeholder to fail fast rather than connect to invalid URL
-let finalUrl: string;
-let finalAnonKey: string;
+// Check if properly configured before creating client
+const isProperlyConfigured = (): boolean => {
+  const urlValid = supabaseUrl && !isPlaceholder(supabaseUrl) && 
+    (supabaseUrl.startsWith('http://') || supabaseUrl.startsWith('https://'));
+  const keyValid = supabaseAnonKey && !isPlaceholder(supabaseAnonKey);
+  return urlValid && keyValid;
+};
 
-if (isPlaceholder(supabaseUrl) || isPlaceholder(supabaseAnonKey)) {
-  console.error('[supabaseClient] Missing or invalid SUPABASE_URL or SUPABASE_ANON_KEY');
-  finalUrl = 'https://placeholder.supabase.co';
-  finalAnonKey = 'placeholder';
+// Only create Supabase client if properly configured - DON'T use placeholder values
+let supabasePublic: any = null;
+let supabaseAdmin: any = null;
+
+if (isProperlyConfigured()) {
+  console.log('[supabaseClient] Creating Supabase client with valid config');
+  supabasePublic = createClient(supabaseUrl!, supabaseAnonKey!);
+  supabaseAdmin = createClient(supabaseUrl!, supabaseServiceKey || supabaseAnonKey!);
 } else {
-  finalUrl = supabaseUrl!;
-  finalAnonKey = supabaseAnonKey!;
+  console.log('[supabaseClient] Supabase NOT configured - will use fallback only');
 }
 
-export const supabasePublic = createClient(
-  finalUrl, 
-  finalAnonKey
-)
+export { supabasePublic, supabaseAdmin };
 
-export const supabaseAdmin = createClient(
-  finalUrl,
-  supabaseServiceKey || finalAnonKey
-)
+// Helper function to get Supabase client with null check - prevents crashes when not configured
+export function getSupabaseAdmin() {
+  if (!supabaseAdmin) {
+    console.warn('[supabaseClient] getSupabaseAdmin called but Supabase is not configured. Add SUPABASE_URL and SUPABASE_ANON_KEY to enable.');
+    return null;
+  }
+  return supabaseAdmin;
+}
+
+export function getSupabasePublic() {
+  if (!supabasePublic) {
+    console.warn('[supabaseClient] getSupabasePublic called but Supabase is not configured. Add SUPABASE_URL and SUPABASE_ANON_KEY to enable.');
+    return null;
+  }
+  return supabasePublic;
+}
 
 export function ensureSupabaseConfigured() {
   const currentUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;

@@ -56,6 +56,7 @@
     "@types/xlsx": "^0.0.35",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
+    "claude": "^0.1.1",
     "clsx": "^2.1.1",
     "cors": "^2.8.6",
     "crypto-js": "^4.2.0",

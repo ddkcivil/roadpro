@@ -17,7 +17,20 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  // Add custom error handler for JSON parsing errors
+  onError: (err, req, res, next) => {
+    if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+      console.error('[API Server] JSON Parsing Error:', err.message);
+      // Ensure a JSON response is sent for invalid JSON
+      return res.status(400).json({ error: 'Invalid JSON body', details: err.message });
+    }
+    // Pass other errors to the next middleware
+    next(err);
+  }
+}));
+
 app.use(express.urlencoded({ extended: true }));
 
 // Manually load API .env vars into process.env
