@@ -29,44 +29,51 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
 
   try {
     // 1. Try Supabase JWT Verification
-    const { data: { user }, error: supError } = await supabaseAdmin.auth.getUser(token);
-    
-    if (!supError && user) {
-      // --- Supabase Authentication Successful ---
+    if (supabaseAdmin) {
+      const { data: { user }, error: supError } = await supabaseAdmin.auth.getUser(token);
       
-      // Resolve Role from Supabase profiles
-      const { data: profile } = await supabaseAdmin
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
+      if (!supError && user) {
+        // --- Supabase Authentication Successful ---
+        
+        // Resolve Role from Supabase profiles
+        const { data: profile } = await supabaseAdmin
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
 
-      let userRole = profile?.role ? profile.role.toUpperCase() : 'SITE_ENGINEER';
+        let userRole = profile?.role ? profile.role.toUpperCase() : 'SITE_ENGINEER';
 
-      // Fallback: Check MongoDB for legacy role mapping if profile role is missing/default
-      if (!profile?.role) {
-        try {
-          const db = await mongodb.connect();
-          const mongoUser = await db.collection('users').findOne({ _id: user.id });
-          if (mongoUser?.role) {
-            userRole = mongoUser.role.toUpperCase();
+        // Fallback: Check MongoDB for legacy role mapping if profile role is missing/default
+        if (!profile?.role) {
+          try {
+            const db = await mongodb.connect();
+            const mongoUser = await db.collection('users').findOne({ _id: user.id });
+            if (mongoUser?.role) {
+              userRole = mongoUser.role.toUpperCase();
+            }
+          } catch (mErr) {
+            console.warn('[Auth] MongoDB role fallback failed (non-critical):', (mErr as any).message);
           }
-        } catch (mErr) {
-          console.warn('[Auth] MongoDB role fallback failed (non-critical):', (mErr as any).message);
         }
+
+        (req as any).user = {
+          userId: user.id,
+          email: user.email,
+          role: userRole,
+        };
+
+        return handler(req, res);
       }
-
-      (req as any).user = {
-        userId: user.id,
-        email: user.email,
-        role: userRole,
-      };
-
-      return handler(req, res);
+      if (supError) {
+        console.log('[Auth] Supabase verification error:', supError.message);
+      }
+    } else {
+      console.log('[Auth] Supabase not configured, skipping Supabase verification.');
     }
 
     // 2. Fallback: Try MongoDB JWT Verification
-    console.log('[Auth] Supabase token verification failed, trying MongoDB fallback...');
+    console.log('[Auth] Trying MongoDB fallback verification...');
     const mongoPayload = await verifyToken(token);
     
     if (mongoPayload) {

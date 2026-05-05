@@ -36,7 +36,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         name,
         email: email.toLowerCase(),
         phone: phone || '',
-        passwordhash: await hashPassword(password),
+        passwordHash: await hashPassword(password),
         requestedrole: requestedRole,
         status: 'pending',
         created_at: new Date().toISOString()
@@ -88,7 +88,24 @@ if (action === 'approve') {
 
           const userId = uuidv4(); 
           
-          // Try Supabase profile creation if configured
+          // 1. Create user in MongoDB 'users' collection (Legacy Fallback)
+          // This ensures the user can log in even if Supabase Auth is not fully synced
+          const newUser = {
+            _id: userId,
+            email: pendingReg.email.toLowerCase(),
+            passwordHash: pendingReg.passwordHash, // Preserve the password!
+            full_name: pendingReg.name,
+            role: (pendingReg.requestedrole || pendingReg.requested_role || pendingReg.requestedRole || 'SITE_ENGINEER').toUpperCase(),
+            phone: pendingReg.phone || '',
+            avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`,
+            created_at: new Date().toISOString(),
+            last_seen: new Date().toISOString()
+          };
+          
+          await db.collection('users').insertOne(newUser);
+          console.log('[Registrations] Created legacy user in MongoDB:', newUser.email);
+
+          // 2. Try Supabase profile creation if configured
           const supabaseReady = isSupabaseConfigured();
           if (supabaseReady) {
             const supabaseAdmin = getSupabaseAdmin();
@@ -100,8 +117,8 @@ if (action === 'approve') {
                   full_name: pendingReg.name,
                   email: pendingReg.email,
                   phone: pendingReg.phone || '',
-                  role: pendingReg.requestedrole || pendingReg.requested_role || pendingReg.requestedRole || 'SITE_ENGINEER',
-                  avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`,
+                  role: newUser.role,
+                  avatar_url: newUser.avatar_url,
                   last_seen: new Date().toISOString(),
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString()
@@ -109,11 +126,11 @@ if (action === 'approve') {
 
               if (supabaseError) {
                 console.error('Supabase profile creation failed:', supabaseError);
-                // Not critical - continue with MongoDB-only workflow
+                // Not critical - continue since MongoDB user is created
+              } else {
+                console.log('[Registrations] Created profile in Supabase for:', pendingReg.email);
               }
             }
-          } else {
-            console.log('[Registrations] Supabase not configured, skipping profile creation');
           }
           
           await db.collection('registrations').deleteOne({ _id: id });

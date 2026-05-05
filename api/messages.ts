@@ -61,17 +61,17 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       // In-memory filtering to avoid PostgREST UUID casting issues on TEXT columns
       if (receiverId) {
         if (receiverId === 'general') {
-          filteredData = filteredData.filter(msg => msg.receiver_id === 'general');
+          filteredData = filteredData.filter((msg: any) => msg.receiver_id === 'general');
         } else {
           // Private chat: messages between currentUser and receiverId
-          filteredData = filteredData.filter(msg =>
+          filteredData = filteredData.filter((msg: any) =>
             (msg.sender_id === currentUser.userId && msg.receiver_id === receiverId) ||
             (msg.sender_id === receiverId && msg.receiver_id === currentUser.userId)
           );
         }
       } else {
         // All relevant messages for the project (general + user's private messages)
-        filteredData = filteredData.filter(msg =>
+        filteredData = filteredData.filter((msg: any) =>
           msg.receiver_id === 'general' ||
           msg.sender_id === currentUser.userId ||
           msg.receiver_id === currentUser.userId

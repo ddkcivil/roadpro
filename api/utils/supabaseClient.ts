@@ -16,9 +16,9 @@ const isPlaceholder = (val: string | undefined) => !val || val.includes('your-pr
 
 // Check if properly configured before creating client
 const isProperlyConfigured = (): boolean => {
-  const urlValid = supabaseUrl && !isPlaceholder(supabaseUrl) && 
-    (supabaseUrl.startsWith('http://') || supabaseUrl.startsWith('https://'));
-  const keyValid = supabaseAnonKey && !isPlaceholder(supabaseAnonKey);
+  const urlValid = !!(supabaseUrl && !isPlaceholder(supabaseUrl) && 
+    (supabaseUrl.startsWith('http://') || supabaseUrl.startsWith('https://')));
+  const keyValid = !!(supabaseAnonKey && !isPlaceholder(supabaseAnonKey));
   return urlValid && keyValid;
 };
 

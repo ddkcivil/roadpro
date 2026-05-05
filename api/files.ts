@@ -264,7 +264,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         // Still attempt to delete the main document entry even if versions are missing
       } else {
         // Extract file paths from blob_url (assuming blob_url stores the path)
-        const filePathsToDelete = docVersions.map(version => version.blob_url).filter(path => path);
+        const filePathsToDelete = docVersions.map((version: any) => version.blob_url).filter((path: any) => path);
         
         if (filePathsToDelete.length > 0) {
           // Delete from Supabase Storage

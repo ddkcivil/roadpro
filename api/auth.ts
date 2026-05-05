@@ -28,7 +28,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         console.log('[Auth API] Supabase configured:', supabaseReady);
 
         // 1. Try Supabase Auth (if configured)
-        if (supabaseReady) {
+        if (supabaseReady && supabasePublic) {
           console.log('[Auth API] Calling Supabase signInWithPassword');
           const { data: authData, error: authError } = await supabasePublic.auth.signInWithPassword({
             email,
@@ -117,7 +117,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       // 1. Try Supabase
       try {
         const supabaseReady = isSupabaseConfigured();
-        if (supabaseReady) {
+        if (supabaseReady && supabasePublic) {
           const { data: { user }, error: supError } = await supabasePublic.auth.getUser(token);
           if (!supError && user) {
             return res.status(200).json({ 
