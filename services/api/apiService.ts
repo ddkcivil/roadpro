@@ -1,7 +1,8 @@
-import { Project, User, UserRole } from '../../types';
+import { Project, User, UserRole, Message, StaffLocation } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { mapProjectFromDb, mapProjectToDb } from '../../api/utils/mappers';
 import { AuditService } from '../analytics/auditService';
+import { realApiService } from './realApiService';
 
 // Constants for Supabase tables
 const PROJECTS_TABLE = 'projects';
@@ -305,8 +306,104 @@ export const apiService = {
     // }
   },
 
-  // Heartbeat function
+// Heartbeat function
   heartbeat: async (): Promise<void> => {
     console.log('[API] Sending heartbeat...');
+  },
+
+  // --- Forward to realApiService for Backend API operations ---
+
+  // Registration Management
+  getPendingRegistrations: async (): Promise<any[]> => {
+    return realApiService.getPendingRegistrations();
+  },
+
+  submitRegistration: async (data: any): Promise<any> => {
+    return realApiService.submitRegistration(data);
+  },
+
+  approveRegistration: async (id: string): Promise<User> => {
+    return realApiService.approveRegistration(id);
+  },
+
+  rejectRegistration: async (id: string): Promise<void> => {
+    return realApiService.rejectRegistration(id);
+  },
+
+  // User Management
+  createUser: async (userData: Partial<User>): Promise<User> => {
+    return realApiService.createUser(userData);
+  },
+
+  updateUser: async (id: string, userData: Partial<User>): Promise<User> => {
+    return realApiService.updateUser(id, userData);
+  },
+
+  deleteUser: async (id: string): Promise<void> => {
+    return realApiService.deleteUser(id);
+  },
+
+  // Staff Management
+  getStaffData: async (category: string): Promise<any[]> => {
+    return realApiService.getStaffData(category);
+  },
+
+  saveStaffData: async (category: string, data: any): Promise<any> => {
+    return realApiService.saveStaffData(category, data);
+  },
+
+  deleteStaffData: async (category: string, id: string): Promise<void> => {
+    return realApiService.deleteStaffData(category, id);
+  },
+
+  // Audit Logging
+  getAuditLogs: async (filters?: { userId?: string, action?: string, entityType?: string, limit?: number, offset?: number }): Promise<{ logs: any[], total: number }> => {
+    return realApiService.getAuditLogs(filters);
+  },
+
+  submitAuditLog: async (log: any): Promise<any> => {
+    return realApiService.submitAuditLog(log);
+  },
+
+  // Road Management
+  ingestRoadKml: async (projectId: string, roadName: string, kmlContent: string): Promise<{ success: boolean, road: any }> => {
+    return realApiService.ingestRoadKml(projectId, roadName, kmlContent);
+  },
+
+  // Message Management
+  getMessages: async (projectId: string, receiverId?: string, after?: string): Promise<Message[]> => {
+    return realApiService.getMessages(projectId, receiverId, after);
+  },
+
+  sendMessage: async (messageData: { 
+    content: string, 
+    receiverId: string, 
+    projectId: string,
+    attachmentUrl?: string,
+    attachmentName?: string,
+    attachmentType?: string
+  }): Promise<Message> => {
+    return realApiService.sendMessage(messageData);
+  },
+
+  // File Management
+  uploadFile: async (fileData: { 
+    name: string; 
+    contentType: string; 
+    base64Data: string; 
+    projectId?: string;
+    docId?: string;
+    folder?: string;
+    tags?: string[];
+    subject?: string;
+    refNo?: string;
+    metadata?: any;
+  }): Promise<any> {
+    return realApiService.uploadFile(fileData);
+  },
+
+  // fetchApi for BOQ operations
+  fetchApi: async (endpoint: string, options?: RequestInit, useCache = false, forceRefresh = false): Promise<any> => {
+    return (realApiService as any).fetchApi(endpoint, options, useCache, forceRefresh);
   }
 };

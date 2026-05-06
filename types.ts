@@ -1,4 +1,19 @@
-import { Road } from './models/roadTypes';
+import { Road, Alignment, Structure, Point, Chainage, parseChainage, formatChainage } from './api/utils/roadTypes';
+
+// Re-export road types for convenience
+export type { Road, Alignment, Structure, Point, Chainage };
+export { parseChainage, formatChainage };
+
+// Bill status for financial modules
+export enum BillStatus {
+  DRAFT = 'Draft',
+  SUBMITTED = 'Submitted',
+  APPROVED = 'Approved',
+  PAID = 'Paid'
+}
+
+// BoqItem type alias for backward compatibility
+export type BoqItem = BOQItem;
 
 export enum RFIStatus {
   OPEN = 'Open',
