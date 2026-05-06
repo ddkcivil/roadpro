@@ -1,4 +1,4 @@
-import { Project, User, UserRole, Message, StaffLocation } from '../../types';
+import { Project, User, UserRole, Message, AppSettings, StaffLocation } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { mapProjectFromDb, mapProjectToDb } from '../../api/utils/mappers';
 import { AuditService } from '../analytics/auditService';
@@ -386,7 +386,7 @@ export const apiService = {
     return realApiService.sendMessage(messageData);
   },
 
-  // File Management
+// File Management
   uploadFile: async (fileData: { 
     name: string; 
     contentType: string; 
@@ -398,7 +398,7 @@ export const apiService = {
     subject?: string;
     refNo?: string;
     metadata?: any;
-  }): Promise<any> {
+  }): Promise<any> => {
     return realApiService.uploadFile(fileData);
   },
 
