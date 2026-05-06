@@ -20,7 +20,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     const { action } = req.query;
 
     if (req.method === 'POST') {
-// --- LOGIN ---
+      // --- LOGIN ---
       if (action === 'login') {
         const { email, password } = req.body;
         console.log('[Auth API] Login attempt for:', email);
@@ -35,13 +35,18 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
         if (supabaseConfigured) {
           try {
+            console.log('[Auth API] Getting Supabase client...');
             const supabase = getSupabasePublic();
+            console.log('[Auth API] Got Supabase client:', !!supabase);
+            
             if (supabase) {
               console.log('[Auth API] Calling Supabase signInWithPassword');
               const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                 email,
                 password,
               });
+
+              console.log('[Auth API] Supabase response:', { hasData: !!authData?.session, error: authError?.message });
 
               if (!authError && authData?.session) {
                 console.log('[Auth API] Supabase login successful');
@@ -71,7 +76,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
               }
             }
           } catch (supEx: any) {
-            console.error('[Auth API] Supabase auth exception:', supEx.message);
+            console.error('[Auth API] Supabase auth exception:', supEx.message, supEx.stack);
             // Continue to MongoDB fallback
           }
         }
@@ -102,7 +107,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           console.error('[Auth API] MongoDB auth failure:', mongoEx.message);
           return res.status(500).json({ error: 'Authentication temporarily unavailable' });
         }
-      }
+      } // end login
 
       // --- VERIFY ---
       if (action === 'verify') {
@@ -157,14 +162,14 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         }
 
         return res.status(401).json({ valid: false, error: 'Invalid or expired token' });
-      }
+      } // end verify
 
       // --- LOGOUT ---
       if (action === 'logout') {
         res.setHeader('Set-Cookie', 'roadmaster-access=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
         return res.status(200).json({ message: 'Logged out successfully' });
       }
-    }
+    } // end POST
 
     return res.status(405).json({ error: 'Method Not Allowed' });
   } catch (criticalErr: any) {
