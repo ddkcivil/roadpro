@@ -15,10 +15,8 @@ export default defineConfig({
       '@vercel/postgres': path.resolve(__dirname, 'api/node_modules/@vercel/postgres'),
       '@vercel/blob': path.resolve(__dirname, 'api/node_modules/@vercel/blob'),
     },
-    exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
+exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
     env: {
-      MONGODB_URI: 'mongodb://localhost:27017/myroad_vite_test',
-      VITE_USE_MOCK_MONGO: 'false',
       NODE_ENV: 'test',
     },
   },

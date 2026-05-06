@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { mongodb } from './utils/mongodb.js';
 import { getSupabaseAdmin, isSupabaseConfigured } from './utils/supabaseClient.js';
 import { withErrorHandler } from './utils/errorHandler.js';
 import { withAuth } from './utils/auth.js';
@@ -8,12 +7,13 @@ import { hashPassword } from './utils/mongoAuth.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { id, action } = req.query;
-  
-  // Ensure DB connection
-  const db = await mongodb.connect();
-  if (!db) {
-      return res.status(503).json({ error: 'Database connection failed' });
+
+  // Check Supabase configuration
+  if (!isSupabaseConfigured()) {
+    return res.status(503).json({ error: 'Database service not configured' });
   }
+
+  const supabaseAdmin = getSupabaseAdmin();
 
   // --- PUBLIC: Submit new registration ---
   if (req.method === 'POST' && !action && !id) {
@@ -24,31 +24,45 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Name, email, password, and requested role are required.' });
       }
 
-      // Check for existing registration
-      const existingReg = await db.collection('registrations').findOne({ email: email.toLowerCase() });
+      // Check for existing registration in Supabase
+      const { data: existingReg, error: checkError } = await supabaseAdmin
+        .from('registrations')
+        .select('*')
+        .eq('email', email.toLowerCase())
+        .maybeSingle();
+
       if (existingReg) {
         return res.status(409).json({ error: 'A registration with this email already exists.' });
       }
 
       const newRegId = uuidv4();
-      const newReg = {
-        _id: newRegId,
-        name,
-        email: email.toLowerCase(),
-        phone: phone || '',
-        passwordHash: await hashPassword(password),
-        requestedrole: requestedRole,
-        status: 'pending',
-        created_at: new Date().toISOString()
-      };
+      const passwordHash = await hashPassword(password);
 
-      console.log('[Registrations] Submitting registration for:', email);
+      const { data: newReg, error: insertError } = await supabaseAdmin
+        .from('registrations')
+        .insert([{
+          id: newRegId,
+          name,
+          email: email.toLowerCase(),
+          phone: phone || '',
+          password_hash: passwordHash,
+          requested_role: requestedRole,
+          status: 'pending',
+          created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
 
-      await db.collection('registrations').insertOne(newReg);
+      if (insertError) {
+        console.error('[Registrations] Insert error:', insertError);
+        throw insertError;
+      }
+
+      console.log('[Registrations] Submitted registration for:', email);
 
       return res.status(201).json({
         message: 'Registration submitted successfully. Awaiting administrator approval.',
-        pendingRegistration: { id: newRegId, ...newReg },
+        pendingRegistration: { id: newRegId, name, email, requestedRole },
       });
     } catch (error: any) {
       console.error('[Registrations] Submission error:', error);
@@ -59,18 +73,21 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   // --- PROTECTED: Admin actions ---
   return await withAuth(async (req: VercelRequest, res: VercelResponse) => {
     const userRole = (req as any).user?.role;
-    
+
     if (userRole?.toUpperCase() !== 'ADMIN') {
       return res.status(403).json({ error: 'Forbidden: Admin access required for this action.' });
     }
 
     if (req.method === 'GET') {
       try {
-        const registrations = await db.collection('registrations')
-          .find({})
-          .toArray();
-        
-        return res.status(200).json(registrations.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+        const { data: registrations, error } = await supabaseAdmin
+          .from('registrations')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        return res.status(200).json(registrations || []);
       } catch (error: any) {
         console.error('[Registrations] Fetch failed:', error);
         throw error;
@@ -82,54 +99,50 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         if (!id || typeof id !== 'string') return res.status(400).json({ error: 'Invalid ID' });
 
         try {
-          const pendingReg = await db.collection('registrations').findOne({ _id: id });
-          if (!pendingReg) return res.status(404).json({ error: 'Pending registration not found' });
+          // Get pending registration
+          const { data: pendingReg, error: findError } = await supabaseAdmin
+            .from('registrations')
+            .select('*')
+            .eq('id', id)
+            .single();
 
-          const userId = uuidv4(); 
-          
-          // 1. Create user in MongoDB 'users' collection (Legacy Fallback)
-          const newUser = {
-            _id: userId,
-            email: pendingReg.email.toLowerCase(),
-            passwordHash: pendingReg.passwordHash,
-            full_name: pendingReg.name,
-            role: (pendingReg.requestedrole || 'SITE_ENGINEER').toUpperCase(),
-            phone: pendingReg.phone || '',
-            avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`,
-            created_at: new Date().toISOString(),
-            last_seen: new Date().toISOString()
-          };
-          
-          await db.collection('users').insertOne(newUser);
-          console.log('[Registrations] Approved user moved to MongoDB:', newUser.email);
-
-          // 2. Try Supabase Profile creation if configured
-          if (isSupabaseConfigured()) {
-            const supabaseAdmin = getSupabaseAdmin();
-            if (supabaseAdmin) {
-              const { error: supabaseError } = await supabaseAdmin
-                .from('profiles')
-                .insert([{
-                  id: userId,
-                  full_name: pendingReg.name,
-                  email: pendingReg.email,
-                  phone: pendingReg.phone || '',
-                  role: newUser.role,
-                  avatar_url: newUser.avatar_url,
-                  last_seen: new Date().toISOString(),
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString()
-                }]);
-
-              if (supabaseError) {
-                console.error('[Registrations] Supabase profile sync failed:', supabaseError.message);
-              } else {
-                console.log('[Registrations] Supabase profile synced for:', pendingReg.email);
-              }
-            }
+          if (findError || !pendingReg) {
+            return res.status(404).json({ error: 'Pending registration not found' });
           }
-          
-          await db.collection('registrations').deleteOne({ _id: id });
+
+          const userId = uuidv4();
+
+          // Create user profile in Supabase
+          const { error: profileError } = await supabaseAdmin
+            .from('profiles')
+            .insert([{
+              id: userId,
+              full_name: pendingReg.name,
+              email: pendingReg.email,
+              phone: pendingReg.phone || '',
+              role: (pendingReg.requested_role || 'SITE_ENGINEER').toUpperCase(),
+              avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`,
+              last_seen: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }]);
+
+          if (profileError) {
+            console.error('[Registrations] Profile creation failed:', profileError);
+            throw profileError;
+          }
+
+          console.log('[Registrations] Approved user created in Supabase:', pendingReg.email);
+
+          // Delete the registration
+          const { error: deleteError } = await supabaseAdmin
+            .from('registrations')
+            .delete()
+            .eq('id', id);
+
+          if (deleteError) {
+            console.error('[Registrations] Delete failed:', deleteError);
+          }
 
           return res.status(200).json({
             message: 'Registration approved successfully',
@@ -145,8 +158,16 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         if (!id || typeof id !== 'string') return res.status(400).json({ error: 'Registration ID is required' });
 
         try {
-          const result = await db.collection('registrations').deleteOne({ _id: id });
-          if (result.deletedCount === 0) return res.status(404).json({ error: 'Registration not found' });
+          const { error: deleteError } = await supabaseAdmin
+            .from('registrations')
+            .delete()
+            .eq('id', id);
+
+          if (deleteError) {
+            console.error('[Registrations] Rejection failed:', deleteError);
+            throw deleteError;
+          }
+
           return res.status(204).end();
         } catch (error: any) {
           console.error('[Registrations] Rejection failed:', error);
@@ -159,8 +180,16 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       if (!id || typeof id !== 'string') return res.status(400).json({ error: 'Registration ID is required' });
 
       try {
-        const result = await db.collection('registrations').deleteOne({ _id: id });
-        if (result.deletedCount === 0) return res.status(404).json({ error: 'Registration not found' });
+        const { error: deleteError } = await supabaseAdmin
+          .from('registrations')
+          .delete()
+          .eq('id', id);
+
+        if (deleteError) {
+          console.error('[Registrations] Deletion failed:', deleteError);
+          throw deleteError;
+        }
+
         return res.status(204).end();
       } catch (error: any) {
         console.error('[Registrations] Deletion failed:', error);
