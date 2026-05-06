@@ -502,9 +502,7 @@ ALTER TABLE ONLY "public"."structures"
 
 
 
-CREATE POLICY "Admin full access to profiles" ON "public"."profiles" USING ((EXISTS ( SELECT 1
-   FROM "public"."profiles" "admin_profile"
-  WHERE (("admin_profile"."id" = "auth"."uid"()) AND (("admin_profile"."role")::"text" = ANY (ARRAY[('Admin'::character varying)::"text", ('ADMIN'::character varying)::"text"])))))) WITH CHECK (true);
+CREATE POLICY "Admin full access to profiles" ON "public"."profiles" FOR ALL USING (auth.role() = 'admin') WITH CHECK (auth.role() = 'admin');
 
 
 
@@ -606,17 +604,11 @@ CREATE POLICY "Users insert own profile" ON "public"."profiles" FOR INSERT WITH 
 
 
 
-CREATE POLICY "Users update own profile" ON "public"."profiles" FOR UPDATE USING ((("auth"."uid"() = "id") OR (EXISTS ( SELECT 1
-   FROM "public"."profiles" "admin_profile"
-  WHERE (("admin_profile"."id" = "auth"."uid"()) AND (("admin_profile"."role")::"text" = ANY (ARRAY[('Admin'::character varying)::"text", ('ADMIN'::character varying)::"text"]))))))) WITH CHECK ((("auth"."uid"() = "id") OR (EXISTS ( SELECT 1
-   FROM "public"."profiles" "admin_profile"
-  WHERE (("admin_profile"."id" = "auth"."uid"()) AND (("admin_profile"."role")::"text" = ANY (ARRAY[('Admin'::character varying)::"text", ('ADMIN'::character varying)::"text"])))))));
+CREATE POLICY "Users update own profile" ON "public"."profiles" FOR UPDATE USING (("auth"."uid"() = "id") OR (auth.role() = 'admin')) WITH CHECK (("auth"."uid"() = "id") OR (auth.role() = 'admin'));
 
 
 
-CREATE POLICY "Users view own profile" ON "public"."profiles" FOR SELECT USING ((("auth"."uid"() = "id") OR (EXISTS ( SELECT 1
-   FROM "public"."profiles" "admin_profile"
-  WHERE (("admin_profile"."id" = "auth"."uid"()) AND (("admin_profile"."role")::"text" = ANY (ARRAY[('Admin'::character varying)::"text", ('ADMIN'::character varying)::"text"])))))));
+CREATE POLICY "Users view own profile" ON "public"."profiles" FOR SELECT USING (auth.uid() = id);
 
 
 
