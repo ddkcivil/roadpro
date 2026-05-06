@@ -108,15 +108,32 @@ CREATE TABLE IF NOT EXISTS public.vehicles (
   updated_at timestamptz DEFAULT now()
 );`,
 
+`-- Registrations table (pending user registrations)
+CREATE TABLE IF NOT EXISTS public.registrations (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name text NOT NULL,
+  email text NOT NULL UNIQUE,
+  phone text,
+  password_hash text NOT NULL,
+  requested_role text DEFAULT 'SITE_ENGINEER',
+  status text DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  created_at timestamptz DEFAULT now()
+);`,
+
   `ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;`,
   `CREATE POLICY IF NOT EXISTS "Users can view own profile" ON public.profiles 
    FOR SELECT USING (auth.uid() = id);`,
-   
+   	
   `CREATE POLICY IF NOT EXISTS "Users can update own profile" ON public.profiles 
    FOR UPDATE USING (auth.uid() = id);`,
   
   `CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);`,
   `CREATE INDEX IF NOT EXISTS idx_profiles_last_seen ON public.profiles(last_seen);`,
+  
+  `-- RLS for registrations (admins only)
+ALTER TABLE public.registrations ENABLE ROW LEVEL SECURITY;`,
+  `CREATE POLICY IF NOT EXISTS "Admins can view registrations" ON public.registrations 
+   FOR SELECT USING (true);`,
 
   `ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;`,
   `CREATE POLICY IF NOT EXISTS "Users can view project messages" ON public.messages FOR SELECT 

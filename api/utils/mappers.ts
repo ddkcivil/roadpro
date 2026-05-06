@@ -1,5 +1,5 @@
-import type { MongoUser } from './mongoAuth';
-import { isUuid } from './uuidUtils';
+import type { MongoUser } from './mongoAuth.js';
+import { isUuid } from './uuidUtils.js';
 
 /**
  * Helper to normalize database roles to UserRole enum values

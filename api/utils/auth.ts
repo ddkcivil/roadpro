@@ -1,6 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { supabaseAdmin, isSupabaseConfigured } from './supabaseClient.js';
-import { verifyToken } from './mongoAuth.js';
 
 export const withAuth = (handler: Function, options: { ignoreExpiration?: boolean } = {}) => async (req: VercelRequest, res: VercelResponse) => {
   let token = null;
@@ -27,8 +26,7 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
   }
 
   try {
-// 1. Try Supabase JWT Verification (PRIMARY)
-    // OPTIMIZED: Fail fast if Supabase not configured
+    // Use Supabase JWT Verification only
     const supabaseReady = isSupabaseConfigured();
     if (supabaseReady && supabaseAdmin) {
       try {
@@ -37,7 +35,7 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
         if (!supError && user) {
           // --- Supabase Authentication Successful ---
           
-          // CENTRALIZED: Resolve Role from Supabase profiles ONLY (single source of truth)
+          // Resolve Role from Supabase profiles ONLY (single source of truth)
           const { data: profile } = await supabaseAdmin
             .from('profiles')
             .select('role')
@@ -62,25 +60,11 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
         console.log('[Auth] Supabase verification exception:', supErr.message);
       }
     } else {
-      console.log('[Auth] Supabase not configured, using MongoDB only.');
+      console.log('[Auth] Supabase not configured.');
     }
 
-    // 2. Fallback: Try MongoDB JWT Verification
-    console.log('[Auth] Trying MongoDB fallback verification...');
-    const mongoPayload = await verifyToken(token);
-    
-    if (mongoPayload) {
-      console.log('[Auth] MongoDB token verification successful for user:', mongoPayload.email);
-      (req as any).user = {
-        userId: mongoPayload.userId,
-        email: mongoPayload.email,
-        role: mongoPayload.role.toUpperCase(),
-      };
-      return handler(req, res);
-    }
-
-    // Both failed
-    console.error('[Auth] Token verification failed for all providers.');
+    // Token verification failed
+    console.error('[Auth] Token verification failed for Supabase.');
     return res.status(401).json({ error: 'Unauthorized: Invalid token' });
 
   } catch (err: any) {

@@ -42,7 +42,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         created_at: new Date().toISOString()
       };
 
-      console.log('Attempting to insert registration:', JSON.stringify(newReg, null, 2));
+      console.log('[Registrations] Submitting registration for:', email);
 
       await db.collection('registrations').insertOne(newReg);
 
@@ -51,13 +51,12 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         pendingRegistration: { id: newRegId, ...newReg },
       });
     } catch (error: any) {
-      console.error('Error submitting pending registration:', error);
+      console.error('[Registrations] Submission error:', error);
       throw error;
     }
   }
 
   // --- PROTECTED: Admin actions ---
-  // Await the auth middleware result
   return await withAuth(async (req: VercelRequest, res: VercelResponse) => {
     const userRole = (req as any).user?.role;
     
@@ -73,13 +72,13 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         
         return res.status(200).json(registrations.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
       } catch (error: any) {
-        console.error('Failed to fetch pending registrations:', error);
+        console.error('[Registrations] Fetch failed:', error);
         throw error;
       }
     }
 
     if (req.method === 'POST') {
-if (action === 'approve') {
+      if (action === 'approve') {
         if (!id || typeof id !== 'string') return res.status(400).json({ error: 'Invalid ID' });
 
         try {
@@ -89,13 +88,12 @@ if (action === 'approve') {
           const userId = uuidv4(); 
           
           // 1. Create user in MongoDB 'users' collection (Legacy Fallback)
-          // This ensures the user can log in even if Supabase Auth is not fully synced
           const newUser = {
             _id: userId,
             email: pendingReg.email.toLowerCase(),
-            passwordHash: pendingReg.passwordHash, // Preserve the password!
+            passwordHash: pendingReg.passwordHash,
             full_name: pendingReg.name,
-            role: (pendingReg.requestedrole || pendingReg.requested_role || pendingReg.requestedRole || 'SITE_ENGINEER').toUpperCase(),
+            role: (pendingReg.requestedrole || 'SITE_ENGINEER').toUpperCase(),
             phone: pendingReg.phone || '',
             avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`,
             created_at: new Date().toISOString(),
@@ -103,32 +101,12 @@ if (action === 'approve') {
           };
           
           await db.collection('users').insertOne(newUser);
-          console.log('[Registrations] Created legacy user in MongoDB:', newUser.email);
+          console.log('[Registrations] Approved user moved to MongoDB:', newUser.email);
 
-// 2. Try Supabase Auth + Profile creation if configured
-          const supabaseReady = isSupabaseConfigured();
-          if (supabaseReady) {
+          // 2. Try Supabase Profile creation if configured
+          if (isSupabaseConfigured()) {
             const supabaseAdmin = getSupabaseAdmin();
             if (supabaseAdmin) {
-              // CRITICAL: Create Supabase Auth user first (this is the missing piece!)
-              const { error: authError } = await supabaseAdmin.auth.admin.createUser({
-                email: pendingReg.email,
-                password: pendingReg.password, // Use original password, not hashed
-                email_confirm: true,
-                user_metadata: {
-                  full_name: pendingReg.name,
-                  phone: pendingReg.phone || ''
-                }
-              });
-
-              if (authError) {
-                console.error('[Registrations] Supabase Auth user creation failed:', authError.message);
-                // Continue anyway - user exists in MongoDB, can login via fallback
-              } else {
-                console.log('[Registrations] Created Supabase Auth user for:', pendingReg.email);
-              }
-
-              // Then create profile
               const { error: supabaseError } = await supabaseAdmin
                 .from('profiles')
                 .insert([{
@@ -144,10 +122,9 @@ if (action === 'approve') {
                 }]);
 
               if (supabaseError) {
-                console.error('Supabase profile creation failed:', supabaseError);
-                // Not critical - continue since MongoDB user is created
+                console.error('[Registrations] Supabase profile sync failed:', supabaseError.message);
               } else {
-                console.log('[Registrations] Created profile in Supabase for:', pendingReg.email);
+                console.log('[Registrations] Supabase profile synced for:', pendingReg.email);
               }
             }
           }
@@ -159,7 +136,7 @@ if (action === 'approve') {
             user: { id: userId, name: pendingReg.name, email: pendingReg.email }
           });
         } catch (error: any) {
-          console.error('Error approving registration:', error);
+          console.error('[Registrations] Approval error:', error);
           throw error;
         }
       }
@@ -172,7 +149,7 @@ if (action === 'approve') {
           if (result.deletedCount === 0) return res.status(404).json({ error: 'Registration not found' });
           return res.status(204).end();
         } catch (error: any) {
-          console.error('Failed to reject registration:', error);
+          console.error('[Registrations] Rejection failed:', error);
           throw error;
         }
       }
@@ -186,7 +163,7 @@ if (action === 'approve') {
         if (result.deletedCount === 0) return res.status(404).json({ error: 'Registration not found' });
         return res.status(204).end();
       } catch (error: any) {
-        console.error('Failed to delete registration:', error);
+        console.error('[Registrations] Deletion failed:', error);
         throw error;
       }
     }

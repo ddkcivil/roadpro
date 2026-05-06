@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { mongodb } from './mongodb.js';
 
 const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET || 'dev-secret-change-me-in-prod';
@@ -45,31 +44,5 @@ export async function verifyToken(token: string): Promise<{ userId: string; emai
     };
   } catch {
     return null;
-  }
-}
-
-export async function getUserById(userId: string): Promise<MongoUser | null> {
-  console.log('[MongoAuth] Getting user by ID:', userId);
-  try {
-    const db = await mongodb.connect();
-    const user = await db.collection('users').findOne({ _id: userId });
-    console.log('[MongoAuth] User by ID found:', user ? 'Yes' : 'No');
-    return user;
-  } catch (error) {
-    console.error('[MongoAuth] Error getting user by ID:', error);
-    throw error;
-  }
-}
-
-export async function getUserByEmail(email: string): Promise<MongoUser | null> {
-  console.log('[MongoAuth] Getting user by email:', email);
-  try {
-    const db = await mongodb.connect();
-    const user = await db.collection('users').findOne({ email: email.toLowerCase() });
-    console.log('[MongoAuth] User by email found:', user ? 'Yes' : 'No');
-    return user;
-  } catch (error) {
-    console.error('[MongoAuth] Error getting user by email:', error);
-    throw error;
   }
 }

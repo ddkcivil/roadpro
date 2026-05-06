@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-const { mongodb } = await import('./utils/mongodb.js');
 import { supabaseAdmin } from './utils/supabaseClient.js';
 import { withErrorHandler } from './utils/errorHandler.js';
 import { withAuth } from './utils/auth.js';
@@ -36,35 +35,21 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') {
     try {
       if (id && typeof id === 'string') {
-        // 1. Try Supabase
+        // Get user from Supabase
         const { data: profile, error: sbError } = await supabaseAdmin
           .from('profiles')
           .select('*')
           .eq('id', id)
           .single();
 
-        if (!sbError && profile) {
-          const { mapUserFromDb } = await import('./utils/mappers.js');
-          return res.status(200).json(mapUserFromDb(profile));
+        if (sbError || !profile) {
+          return res.status(404).json({ error: 'User not found' });
         }
 
-        // 2. Fallback to MongoDB
-        console.log(`[User API] User ${id} not found in Supabase, checking MongoDB...`);
-        const db = await mongodb.connect();
-        const mongoUser = await db.collection('users').findOne({ _id: id });
-
-        if (mongoUser) {
-          const { mapUserFromDb } = await import('./utils/mappers.js');
-          const mappedUser = mapUserFromDb(mongoUser);
-          return res.status(200).json({
-            ...mappedUser,
-            is_legacy: true
-          });
-        }
-
-        return res.status(404).json({ error: 'User not found' });
+        const { mapUserFromDb } = await import('./utils/mappers.js');
+        return res.status(200).json(mapUserFromDb(profile));
       } else {
-        // Fetch all (Supabase-first)
+        // Fetch all users from Supabase
         const { data: profiles, error } = await supabaseAdmin
           .from('profiles')
           .select('*');
@@ -193,4 +178,3 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 };
 
 export default withErrorHandler(withAuth(handler));
-

@@ -1,13 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { withErrorHandler } from './utils/errorHandler.js';
-import { getUserByEmail, verifyPassword, generateToken, verifyToken } from './utils/mongoAuth.js';
 import { mapUserFromDb } from './utils/mappers.js';
 import { getSupabasePublic, isSupabaseConfigured } from './utils/supabaseClient.js';
 
 // Debug: Log startup and env availability
 console.log('[Auth API] Server started. Env check:', {
   hasSupabaseUrl: !!(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL),
-  hasMongoUri: !!process.env.MONGODB_URI,
   nodeEnv: process.env.NODE_ENV,
   vercelEnv: process.env.VERCEL,
 });
@@ -29,82 +27,58 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           return res.status(400).json({ error: 'Email and password are required' });
         }
 
-        // --- 1. Try Supabase Auth (if configured) ---
+        // Use Supabase Auth only
         const supabaseConfigured = isSupabaseConfigured();
         console.log('[Auth API] Supabase configured:', supabaseConfigured);
 
-        if (supabaseConfigured) {
-          try {
-            console.log('[Auth API] Getting Supabase client...');
-            const supabase = getSupabasePublic();
-            console.log('[Auth API] Got Supabase client:', !!supabase);
-            
-            if (supabase) {
-              console.log('[Auth API] Calling Supabase signInWithPassword');
-              const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-              });
-
-              console.log('[Auth API] Supabase response:', { hasData: !!authData?.session, error: authError?.message });
-
-              if (!authError && authData?.session) {
-                console.log('[Auth API] Supabase login successful');
-                const userId = authData.user.id;
-                const { data: profile, error: profError } = await supabase
-                  .from('profiles')
-                  .select('*')
-                  .eq('id', userId)
-                  .single();
-
-                if (profError) console.warn('[Auth API] Supabase profile fetch error:', profError.message);
-
-                res.setHeader('Set-Cookie', `roadmaster-access=${authData.session.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
-
-                const safeUser = mapUserFromDb({
-                  id: userId,
-                  email: authData.user.email,
-                  ...profile
-                });
-
-                return res.status(200).json({
-                  user: safeUser,
-                  token: authData.session.access_token
-                });
-              } else if (authError) {
-                console.log('[Auth API] Supabase auth error (trying MongoDB):', authError.message);
-              }
-            }
-          } catch (supEx: any) {
-            console.error('[Auth API] Supabase auth exception:', supEx.message, supEx.stack);
-            // Continue to MongoDB fallback
-          }
+        if (!supabaseConfigured) {
+          return res.status(503).json({ error: 'Authentication service not configured' });
         }
 
-        // --- 2. Fallback to MongoDB (Legacy) ---
-        console.log('[Auth API] Trying MongoDB fallback...');
         try {
-          const user = await getUserByEmail(email);
+          console.log('[Auth API] Getting Supabase client...');
+          const supabase = getSupabasePublic();
+          console.log('[Auth API] Got Supabase client:', !!supabase);
+          
+          if (supabase) {
+            console.log('[Auth API] Calling Supabase signInWithPassword');
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+              email,
+              password,
+            });
 
-          if (!user || !(await verifyPassword(password, user.passwordHash || ''))) {
-            return res.status(401).json({ error: 'Invalid email or password' });
+            console.log('[Auth API] Supabase response:', { hasData: !!authData?.session, error: authError?.message });
+
+            if (!authError && authData?.session) {
+              console.log('[Auth API] Supabase login successful');
+              const userId = authData.user.id;
+              const { data: profile, error: profError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+              if (profError) console.warn('[Auth API] Supabase profile fetch error:', profError.message);
+
+              res.setHeader('Set-Cookie', `roadmaster-access=${authData.session.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
+
+              const safeUser = mapUserFromDb({
+                id: userId,
+                email: authData.user.email,
+                ...profile
+              });
+
+              return res.status(200).json({
+                user: safeUser,
+                token: authData.session.access_token
+              });
+            } else {
+              console.log('[Auth API] Supabase auth error:', authError?.message);
+              return res.status(401).json({ error: 'Invalid email or password' });
+            }
           }
-
-          const token = generateToken({
-            userId: user._id,
-            email: user.email,
-            role: user.role
-          });
-
-          const safeUser = mapUserFromDb(user);
-          res.setHeader('Set-Cookie', `roadmaster-access=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
-
-          return res.status(200).json({
-            user: safeUser,
-            token
-          });
-        } catch (mongoEx: any) {
-          console.error('[Auth API] MongoDB auth failure:', mongoEx.message);
+        } catch (supEx: any) {
+          console.error('[Auth API] Supabase auth exception:', supEx.message, supEx.stack);
           return res.status(500).json({ error: 'Authentication temporarily unavailable' });
         }
       } // end login
@@ -128,37 +102,25 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           return res.status(401).json({ valid: false, error: 'No token provided' });
         }
 
-        // 1. Try Supabase
+        // Use Supabase for verification
         try {
-          if (isSupabaseConfigured()) {
-            const supabase = getSupabasePublic();
-            if (supabase) {
-              const { data: { user }, error: supError } = await supabase.auth.getUser(token);
-              if (!supError && user) {
-                return res.status(200).json({ 
-                  valid: true, 
-                  provider: 'supabase',
-                  user: {
-                    userId: user.id,
-                    email: user.email,
-                    role: 'RESOLVE_VIA_PROFILE'
-                  }
-                });
-              }
+          const supabase = getSupabasePublic();
+          if (supabase) {
+            const { data: { user }, error: supError } = await supabase.auth.getUser(token);
+            if (!supError && user) {
+              return res.status(200).json({ 
+                valid: true, 
+                provider: 'supabase',
+                user: {
+                  userId: user.id,
+                  email: user.email,
+                  role: 'RESOLVE_VIA_PROFILE'
+                }
+              });
             }
           }
         } catch (e: any) {
           console.warn('[Auth API] Supabase verify exception:', e.message);
-        }
-
-        // 2. Try MongoDB
-        try {
-          const payload = await verifyToken(token);
-          if (payload) {
-            return res.status(200).json({ valid: true, provider: 'mongodb', user: payload });
-          }
-        } catch (mongoEx: any) {
-          console.warn('[Auth API] MongoDB verify exception:', mongoEx.message);
         }
 
         return res.status(401).json({ valid: false, error: 'Invalid or expired token' });
