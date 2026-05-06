@@ -214,7 +214,7 @@ console.log(`[Login] Attempting custom auth for ${email}`);
                       className="text-[10px] h-8 font-bold border-indigo-100 text-indigo-600 hover:bg-indigo-50"
                       onClick={() => {
                         setEmail('admin@myroad.app');
-                        setPassword('admin123');
+                        setPassword('Admin123!ChangeMe');
                         setMessage({ type: 'default', text: 'Admin credentials loaded. Click Continue to sign in.' });
                         toast.info("Admin credentials loaded.");
                       }}
