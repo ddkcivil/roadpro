@@ -120,12 +120,12 @@ const App: React.FC = () => {
     isHydrated // Added isHydrated
   } = useProjects(isAuthenticated && (systemReady || !isInitialLoading), currentUser);
 
-  const {
+const {
     messages,
     sendMessage,
     markAsRead,
     isLoading: isLoadingMessages
-  } = useMessages(currentUser, currentProject?.id || 'general', isAuthenticated && (systemReady || !isInitialLoading));
+  } = useMessages(currentUser, currentProject?.id ?? null, isAuthenticated && (systemReady || !isInitialLoading));
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
