@@ -1,5 +1,4 @@
 import { MongoClient } from 'mongodb';
-import { createMockMongoClient } from './mongodbMock.js';
 
 let mongoClient: any;
 let db: any;
@@ -26,27 +25,12 @@ export async function initMongo(force = false) {
 
   if (!initPromise) {
     initPromise = (async () => {
-      const useMock = (import.meta as any).env?.VITE_USE_MOCK_MONGO === 'true' || 
-                      process.env.VITE_USE_MOCK_MONGO === 'true';
-
-      if (useMock) {
-        console.warn('[MongoDB] Using Mock Service!');
-        const mock = createMockMongoClient();
-        mongoClient = mock;
-        db = mock.db();
-        return;
-      }
-
       const mongoUri = process.env.MONGODB_URI || (import.meta as any).env?.VITE_MONGODB_URI || '';
 
-      const isPlaceholder = (val: string | undefined) => !val || val.includes('your-mongo') || val.length < 10;
+      const isMissing = (val: string | undefined) => !val || val.includes('your-mongo') || val.length < 10;
 
-      if (isPlaceholder(mongoUri)) {
-        console.warn('[MongoDB] URI missing or placeholder, falling back to mock.');
-        const mock = createMockMongoClient();
-        mongoClient = mock;
-        db = mock.db();
-        return;
+      if (isMissing(mongoUri)) {
+        throw new Error('[MongoDB] MONGODB_URI is missing or invalid. Please configure VITE_MONGODB_URI in your environment.');
       }
 
       const maskedUri = mongoUri.replace(/\/\/.*:.*@/, '//****:****@');
@@ -56,39 +40,32 @@ export async function initMongo(force = false) {
         throw new Error(`Invalid MongoDB URI: "${mongoUri}"`);
       }
 
+      mongoClient = new MongoClient(mongoUri, {
+        connectTimeoutMS: 5000, // 5 seconds
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 10000,
+      });
+      await mongoClient.connect();
+      
+      // Determine DB name
+      let dbName = 'myroad_vite';
       try {
-        mongoClient = new MongoClient(mongoUri, {
-          connectTimeoutMS: 5000, // 5 seconds
-          serverSelectionTimeoutMS: 5000,
-          socketTimeoutMS: 10000,
-        });
-        await mongoClient.connect();
-        
-        // Determine DB name
-        let dbName = 'myroad_vite';
-        try {
-          const url = new URL(mongoUri);
-          const pathDbName = url.pathname.slice(1);
-          if (pathDbName) {
-            dbName = pathDbName;
-          }
-        } catch (e) {
-          // Not a valid URL or other parsing error
+        const url = new URL(mongoUri);
+        const pathDbName = url.pathname.slice(1);
+        if (pathDbName) {
+          dbName = pathDbName;
         }
-        
-        // Use test database if in test environment and not already specified
-        if ((process.env.NODE_ENV === 'test' || process.env.VITEST) && !dbName.endsWith('_test')) {
-          dbName = `${dbName}_test`;
-        }
-
-        db = mongoClient.db(dbName);
-        console.log(`[MongoDB] Connected to database: ${dbName}`);
-      } catch (error: any) {
-        console.error('[MongoDB] Connection failed, falling back to mock:', error.message);
-        const mock = createMockMongoClient();
-        mongoClient = mock;
-        db = mock.db();
+      } catch (e) {
+        // Not a valid URL or other parsing error
       }
+      
+      // Use test database if in test environment and not already specified
+      if ((process.env.NODE_ENV === 'test' || process.env.VITEST) && !dbName.endsWith('_test')) {
+        dbName = `${dbName}_test`;
+      }
+
+      db = mongoClient.db(dbName);
+      console.log(`[MongoDB] Connected to database: ${dbName}`);
     })();
   }
 
