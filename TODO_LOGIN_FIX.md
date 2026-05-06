@@ -40,4 +40,4 @@ In Vercel Dashboard → Functions → api/auth.ts → Logs
 - Check for any error messages
 
 ## Files Modified
-- api/auth.ts - Added debug logging
+- api/auth.ts - Added debug logging (DONE)

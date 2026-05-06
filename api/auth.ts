@@ -4,6 +4,14 @@ import { getUserByEmail, verifyPassword, generateToken, verifyToken } from './ut
 import { mapUserFromDb } from './utils/mappers.js';
 import { getSupabasePublic, isSupabaseConfigured } from './utils/supabaseClient.js';
 
+// Debug: Log startup and env availability
+console.log('[Auth API] Server started. Env check:', {
+  hasSupabaseUrl: !!(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL),
+  hasMongoUri: !!process.env.MONGODB_URI,
+  nodeEnv: process.env.NODE_ENV,
+  vercelEnv: process.env.VERCEL,
+});
+
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   try {
     const { action } = req.query;
@@ -12,10 +20,14 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     res.setHeader('Content-Type', 'application/json');
 
     if (req.method === 'POST') {
-      // --- LOGIN ---
+// --- LOGIN ---
       if (action === 'login') {
         const { email, password } = req.body;
         console.log('[Auth API] Login attempt for:', email);
+        
+        // Debug logging for env availability
+        const supabaseConfigured = isSupabaseConfigured();
+        console.log('[Auth API] Supabase configured:', supabaseConfigured);
 
         if (!email || !password) {
           return res.status(400).json({ error: 'Email and password are required' });
@@ -23,7 +35,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
         // --- 1. Try Supabase Auth (if configured) ---
         try {
-          if (isSupabaseConfigured()) {
+          if (supabaseConfigured) {
             const supabase = getSupabasePublic();
             if (supabase) {
               console.log('[Auth API] Calling Supabase signInWithPassword');
