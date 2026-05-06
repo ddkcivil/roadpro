@@ -608,7 +608,7 @@ CREATE POLICY "Users update own profile" ON "public"."profiles" FOR UPDATE USING
 
 
 
-CREATE POLICY "Users view own profile" ON "public"."profiles" FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users view own profile" ON "public"."profiles" FOR SELECT USING (auth.uid() = id AND auth.role() <> 'admin');
 
 
 
