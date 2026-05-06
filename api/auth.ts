@@ -13,29 +13,28 @@ console.log('[Auth API] Server started. Env check:', {
 });
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
+  // ALWAYS set JSON header first
+  res.setHeader('Content-Type', 'application/json');
+
   try {
     const { action } = req.query;
-
-    // Ensure JSON response - ALWAYS set this first
-    res.setHeader('Content-Type', 'application/json');
 
     if (req.method === 'POST') {
 // --- LOGIN ---
       if (action === 'login') {
         const { email, password } = req.body;
         console.log('[Auth API] Login attempt for:', email);
-        
-        // Debug logging for env availability
-        const supabaseConfigured = isSupabaseConfigured();
-        console.log('[Auth API] Supabase configured:', supabaseConfigured);
 
         if (!email || !password) {
           return res.status(400).json({ error: 'Email and password are required' });
         }
 
         // --- 1. Try Supabase Auth (if configured) ---
-        try {
-          if (supabaseConfigured) {
+        const supabaseConfigured = isSupabaseConfigured();
+        console.log('[Auth API] Supabase configured:', supabaseConfigured);
+
+        if (supabaseConfigured) {
+          try {
             const supabase = getSupabasePublic();
             if (supabase) {
               console.log('[Auth API] Calling Supabase signInWithPassword');
@@ -68,20 +67,21 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
                   token: authData.session.access_token
                 });
               } else if (authError) {
-                console.log('[Auth API] Supabase auth failed (proceeding to MongoDB):', authError.message);
+                console.log('[Auth API] Supabase auth error (trying MongoDB):', authError.message);
               }
             }
+          } catch (supEx: any) {
+            console.error('[Auth API] Supabase auth exception:', supEx.message);
+            // Continue to MongoDB fallback
           }
-        } catch (supEx: any) {
-          console.error('[Auth API] Supabase auth exception:', supEx.message);
         }
 
         // --- 2. Fallback to MongoDB (Legacy) ---
+        console.log('[Auth API] Trying MongoDB fallback...');
         try {
-          console.log('[Auth API] Checking MongoDB fallback...');
           const user = await getUserByEmail(email);
 
-          if (!user || !user.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
+          if (!user || !(await verifyPassword(password, user.passwordHash || ''))) {
             return res.status(401).json({ error: 'Invalid email or password' });
           }
 
@@ -100,7 +100,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           });
         } catch (mongoEx: any) {
           console.error('[Auth API] MongoDB auth failure:', mongoEx.message);
-          return res.status(500).json({ error: 'Database connection failed' });
+          return res.status(500).json({ error: 'Authentication temporarily unavailable' });
         }
       }
 
