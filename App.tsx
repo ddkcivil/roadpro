@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, lazy, Suspense, startTransition, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense, startTransition, useCallback, useRef } from 'react';
 import { Database, Mail, Info, Loader2 } from 'lucide-react';
 import { Project, User, UserRole, Permission } from './types';
 import { LocalStorageUtils } from './utils/data/localStorageUtils';
@@ -211,17 +211,34 @@ const App: React.FC = () => {
     }
   }, [isAuthenticated, fetchUsers]);
 
-  // Add this useEffect to handle the auth failure event
+// Add this useEffect to handle the auth failure event
+  // Use refs to store the callback to prevent duplicate listener registrations
+  const authStateRef = useRef({ isAuthenticated, isAuthLoading, isInitialLoading });
+  const logoutRef = useRef(logout);
+  
+  // Update refs when values change
+  useEffect(() => {
+    authStateRef.current = { isAuthenticated, isAuthLoading, isInitialLoading };
+  }, [isAuthenticated, isAuthLoading, isInitialLoading]);
+  
+  useEffect(() => {
+    logoutRef.current = logout;
+  }, [logout]);
+
   useEffect(() => {
     console.log('[App] Setting up event listener for roadmaster-auth-failure');
     const handleAuthFailure = () => {
+      // Use refs to get the current state to avoid stale closures
+      const { isAuthenticated: currentIsAuthenticated, isAuthLoading: currentIsAuthLoading, isInitialLoading: currentIsInitialLoading } = authStateRef.current;
+      const currentLogout = logoutRef.current;
+      
       // Only logout if the user is authenticated and not currently loading auth/initialization
       // This prevents interfering with the initial login or logout processes
-      if (isAuthenticated && !isAuthLoading && !isInitialLoading) {
+      if (currentIsAuthenticated && !currentIsAuthLoading && !currentIsInitialLoading) {
         console.warn('[App] Detected roadmaster-auth-failure. Logging out user.');
-        logout();
+        currentLogout();
       } else {
-        console.log('[App] roadmaster-auth-failure detected, but not performing logout due to current state (isAuthenticated:', isAuthenticated, ', isAuthLoading:', isAuthLoading, ', isInitialLoading:', isInitialLoading, ')');
+        console.log('[App] roadmaster-auth-failure detected, but not performing logout due to current state (isAuthenticated:', currentIsAuthenticated, ', isAuthLoading:', currentIsAuthLoading, ', isInitialLoading:', currentIsInitialLoading, ')');
       }
     };
 
@@ -231,7 +248,7 @@ const App: React.FC = () => {
       console.log('[App] Removing event listener for roadmaster-auth-failure');
       window.removeEventListener('roadmaster-auth-failure', handleAuthFailure);
     };
-  }, [logout, isAuthenticated, isAuthLoading, isInitialLoading]); // Add dependencies
+  }, []); // Empty dependencies - listeners are now stable via refs
 
   const navGroups = useMemo(() => {
       if (!currentUser) return [];
