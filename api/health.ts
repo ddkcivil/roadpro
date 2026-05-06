@@ -1,10 +1,9 @@
 // api/health.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin, ensureSupabaseConfigured } from './utils/supabaseClient.js';
+import { getSupabaseAdmin, isSupabaseConfigured } from './utils/supabaseClient.js';
 import { withErrorHandler } from './utils/errorHandler.js';
 
 export default withErrorHandler(async function (req: VercelRequest, res: VercelResponse) {
-  ensureSupabaseConfigured();
   if (req.method !== 'GET') {
     res.status(405).json({ error: 'Method Not Allowed' });
     return;
@@ -26,7 +25,7 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
     const hasGemini = !!process.env.VITE_GEMINI_API_KEY;
     const hasOpenAI = !!process.env.VITE_OPENAI_API_KEY;
     
-    const supabaseReady = hasSupabaseUrl && hasSupabaseAnonKey && hasSupabaseServiceKey;
+    const supabaseReady = isSupabaseConfigured();
     
     console.log('--- HEALTH CHECK RUNNING ---');
     console.log('Supabase env check:', {
@@ -39,35 +38,45 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
     });
     console.log('AI env check:', { hasDeepSeek, hasGemini, hasOpenAI });
 
-    // Fetch counts from critical tables
-    const { count: userCount, error: userError } = await supabaseAdmin
-      .from('profiles')
-      .select('*', { count: 'exact', head: true });
+    let results: any = {};
+    
+    if (supabaseReady) {
+      const supabase = getSupabaseAdmin();
+      if (supabase) {
+        // Fetch counts from critical tables
+        const { count: userCount, error: userError } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
 
-    const { count: projectCount, error: projectError } = await supabaseAdmin
-      .from('projects')
-      .select('*', { count: 'exact', head: true });
+        const { count: projectCount, error: projectError } = await supabase
+          .from('projects')
+          .select('*', { count: 'exact', head: true });
 
-    const { count: messageCount, error: messageError } = await supabaseAdmin
-      .from('messages')
-      .select('*', { count: 'exact', head: true });
+        const { count: messageCount, error: messageError } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true });
 
-    const results = {
-      profiles: userError ? `Error: ${userError.message}` : `OK (${userCount} rows)`,
-      projects: projectError ? `Error: ${projectError.message}` : `OK (${projectCount} rows)`,
-      messages: messageError ? `Error: ${messageError.message}` : `OK (${messageCount} rows)`
-    };
+        results = {
+          profiles: userError ? `Error: ${userError.message}` : `OK (${userCount} rows)`,
+          projects: projectError ? `Error: ${projectError.message}` : `OK (${projectCount} rows)`,
+          messages: messageError ? `Error: ${messageError.message}` : `OK (${messageCount} rows)`
+        };
 
-    if (userError || projectError || messageError) {
-      console.warn('Health check partial failure:', results);
-      console.warn('Supabase URL being used:', supabaseUrl?.substring(0, 25) + '...');
+        if (userError || projectError || messageError) {
+          console.warn('Health check partial failure:', results);
+        }
+      } else {
+        results = { status: 'Supabase client could not be initialized' };
+      }
+    } else {
+      results = { status: 'Supabase not configured' };
     }
 
     res.status(200).json({
       status: 'ok',
       timestamp: new Date().toISOString(),
-      database: 'connected (Supabase)',
-      targetProject: supabaseUrl?.substring(0, 25) + '...',
+      database: supabaseReady ? 'connected (Supabase)' : 'not configured',
+      targetProject: supabaseUrl ? (supabaseUrl.substring(0, 25) + '...') : 'none',
       tables: results,
       nodeVersion: process.version,
       envCheck: { 
@@ -92,4 +101,3 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
     });
   }
 })
-
