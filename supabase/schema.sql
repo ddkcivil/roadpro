@@ -158,6 +158,57 @@ ALTER TABLE public.registrations ENABLE ROW LEVEL SECURITY;`,
   `CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON public.messages(timestamp);`,
   `CREATE INDEX IF NOT EXISTS idx_messages_sender_receiver ON public.messages(senderId, receiverId);`,
 
+  `-- Projects table
+  CREATE TABLE IF NOT EXISTS public.projects (
+    id text PRIMARY KEY,
+    name text NOT NULL,
+    client text,
+    contract_no text,
+    start_date date,
+    end_date date,
+    updated_at timestamptz DEFAULT now(),
+    contractor text,
+    metadata jsonb,
+    boq jsonb,
+    variation_orders jsonb,
+    measurement_sheets jsonb,
+    owner_id uuid REFERENCES public.profiles(id)
+  );`,
+  `ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;`,
+
+  `-- RLS policies for projects table
+  -- Allow authenticated users with specific roles to insert projects.
+  CREATE POLICY IF NOT EXISTS "Admins and Project Managers can insert projects" ON public.projects FOR INSERT TO authenticated
+  USING (
+      (SELECT role FROM public.profiles WHERE id = auth.uid()) IN ('admin', 'project manager', 'manager', 'project_manager')
+  );`,
+
+  `-- Allow authenticated users with specific roles to select projects.
+  CREATE POLICY IF NOT EXISTS "Admins and Project Managers can select projects" ON public.projects FOR SELECT TO authenticated
+  USING (
+      (SELECT role FROM public.profiles WHERE id = auth.uid()) IN ('admin', 'project manager', 'manager', 'project_manager')
+  );`,
+
+  `-- Allow project owners to select their own projects.
+  CREATE POLICY IF NOT EXISTS "Owners can select their own projects" ON public.projects FOR SELECT TO authenticated
+  USING (
+      owner_id = auth.uid()
+  );`,
+
+  `-- Optional: Policies for UPDATE and DELETE can be added here if needed.
+  -- Example: Allow project owner to update their project.
+  -- CREATE POLICY IF NOT EXISTS "Owners can update own projects" ON public.projects FOR UPDATE TO authenticated
+  -- USING (owner_id = auth.uid());
+
+  `-- Example: Allow admins to delete any project.
+  -- CREATE POLICY IF NOT EXISTS "Admins can delete any project" ON public.projects FOR DELETE TO authenticated
+  -- USING (
+  --     (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+  -- );`,
+
+  `CREATE INDEX IF NOT EXISTS idx_projects_owner_id ON public.projects(owner_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_projects_created_at ON public.projects(start_date);`, -- Assuming start_date can be used for ordering
+
   `-- Seed data for existing tables
 INSERT INTO public.profiles (id, full_name, avatar_url, role, last_seen)
 VALUES 
