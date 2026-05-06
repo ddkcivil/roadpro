@@ -234,17 +234,25 @@ export function mapProjectToDb(proj: any): any {
     }
   }
 
-  // Include other confirmed JSONB columns
+// Include other confirmed JSONB columns - map both camelCase and snake_case inputs to snake_case for Supabase
   const confirmedJsonbColumns = [
     'roads', 'accountingintegrations', 'accountingtransactions', 
     'structuretemplates', 'auditlogs'
   ];
   
   confirmedJsonbColumns.forEach(col => {
-    // Check both camelCase and snake_case for these JSONB columns
+    // Generate the camelCase version for checking
     const camelCol = col.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-    if (proj[col] !== undefined) out[col] = proj[col];
-    else if (proj[camelCol] !== undefined) out[col] = proj[camelCol];
+    // Check for snake_case input first, then camelCase input
+    if (proj[col] !== undefined) {
+      out[col] = proj[col];
+    } else if (proj[camelCol] !== undefined) {
+      out[col] = proj[camelCol];
+    }
+    // For accounting integrations and transactions, also check with underscore prefix (rare case)
+    else if (col === 'accountingintegrations' && proj.AccountingIntegration !== undefined) {
+      out[col] = proj.AccountingIntegration;
+    }
   });
 
 return out;

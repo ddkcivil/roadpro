@@ -120,15 +120,23 @@ CREATE TABLE IF NOT EXISTS public.registrations (
   created_at timestamptz DEFAULT now()
 );`,
 
-  `ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;`,
-  `CREATE POLICY IF NOT EXISTS "Users can view own profile" ON public.profiles 
-   FOR SELECT USING (auth.uid() = id);`,
-   	
-  `CREATE POLICY IF NOT EXISTS "Users can update own profile" ON public.profiles 
-   FOR UPDATE USING (auth.uid() = id);`,
-  
-  `CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);`,
-  `CREATE INDEX IF NOT EXISTS idx_profiles_last_seen ON public.profiles(last_seen);`,
+  ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+  -- Policy for Admin access: Admins can perform all actions.
+  CREATE POLICY IF NOT EXISTS "Admin full access to profiles" ON public.profiles FOR ALL USING (auth.role() = 'admin');
+
+  -- Policy for users viewing their own profile or if they are admin.
+  CREATE POLICY IF NOT EXISTS "Users can view own profile" ON public.profiles 
+   FOR SELECT USING (auth.uid() = id OR auth.role() = 'admin');
+
+  -- Policy for users updating their own profile or if they are admin.
+  CREATE POLICY IF NOT EXISTS "Users can update own profile" ON public.profiles 
+   FOR UPDATE USING (auth.uid() = id OR auth.role() = 'admin') WITH CHECK (auth.uid() = id OR auth.role() = 'admin');
+
+  -- Policy for users inserting their own profile.
+  CREATE POLICY IF NOT EXISTS "Users insert own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+
+  CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
+  CREATE INDEX IF NOT EXISTS idx_profiles_last_seen ON public.profiles(last_seen);
   
   `-- RLS for registrations (admins only)
 ALTER TABLE public.registrations ENABLE ROW LEVEL SECURITY;`,

@@ -78,14 +78,38 @@ export const apiService = {
   createProject: async (projectData: Partial<Project>, userId?: string, userName?: string): Promise<Project> => {
     const mappedProject = mapProjectToDb(projectData);
     
-// Use mapProjectToDb to convert camelCase to snake_case for Supabase
-    // The mappedProject already has proper snake_case column names for the database
     const projectToInsert = {
       ...mappedProject,
-      // Ensure all JSONB arrays have defaults (use values from mappedProject which are already snake_case)
-      boq: mappedProject.boq || mappedProject.boq_items || [],
-      variation_orders: mappedProject.variation_orders || mappedProject.variationOrders || [],
-      measurement_sheets: mappedProject.measurement_sheets || mappedProject.measurementSheets || [],
+      boq: mappedProject.boq || [],
+      variationOrders: mappedProject.variationOrders || [],
+      rfis: mappedProject.rfis || [],
+      labTests: mappedProject.labTests || [],
+      schedule: mappedProject.schedule || [],
+      structures: mappedProject.structures || [],
+      agencies: mappedProject.agencies || [],
+      agencyPayments: mappedProject.agencyPayments || [],
+      agencyMaterials: mappedProject.agencyMaterials || [],
+      agencyBills: mappedProject.agencyBills || [],
+      materials: mappedProject.materials || [],
+      purchaseOrders: mappedProject.purchaseOrders || [],
+      inventoryTransactions: mappedProject.inventoryTransactions || [],
+      vehicles: mappedProject.vehicles || [],
+      vehicleLogs: mappedProject.vehicleLogs || [],
+      documents: mappedProject.documents || [],
+      sitePhotos: mappedProject.sitePhotos || [],
+      dailyReports: mappedProject.dailyReports || [],
+      preConstruction: mappedProject.preConstruction || [],
+      landParcels: mappedProject.landParcels || [],
+      mapOverlays: mappedProject.mapOverlays || [],
+      ncrs: mappedProject.ncrs || [],
+      contractBills: mappedProject.contractBills || [],
+      measurementSheets: mappedProject.measurementSheets || [],
+      staffLocations: mappedProject.staffLocations || [],
+      environmentRegistry: mappedProject.environmentRegistry || { sprinklingLogs: [], treeLogs: [] },
+      accountingIntegrations: mappedProject.accountingIntegrations || [],
+      accountingTransactions: mappedProject.accountingTransactions || [],
+      structureTemplates: mappedProject.structureTemplates || [],
+      auditLogs: mappedProject.auditLogs || [],
     };
     
     const { data, error } = await supabase
@@ -374,11 +398,11 @@ export const apiService = {
     subject?: string;
     refNo?: string;
     metadata?: any;
-  }): Promise<any> => {
+  }): Promise<any> {
     return realApiService.uploadFile(fileData);
   },
 
-  // fetchApi for BOQ operations
+// fetchApi for BOQ operations
   fetchApi: async (endpoint: string, options?: RequestInit, useCache = false, forceRefresh = false): Promise<any> => {
     return (realApiService as any).fetchApi(endpoint, options, useCache, forceRefresh);
   }
