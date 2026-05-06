@@ -202,7 +202,7 @@ export const apiService = {
       throw new Error(error.message || 'Failed to fetch users.');
     }
 
-    return data.map(user => ({
+return data.map((user: any) => ({
       id: user.id,
       name: user.full_name || user.name || 'User',
       email: user.email,
