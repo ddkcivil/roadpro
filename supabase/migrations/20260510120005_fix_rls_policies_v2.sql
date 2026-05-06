@@ -75,11 +75,11 @@ ON projects FOR SELECT
 TO authenticated
 USING (true);
 
--- Create INSERT policy - authenticated users can create projects
+-- Create INSERT policy - any authenticated user can create projects (fully permissive)
 CREATE POLICY "projects_insert_authenticated"
 ON projects FOR INSERT
 TO authenticated
-WITH CHECK (auth.uid() IS NOT NULL);
+WITH CHECK (true);
 
 -- Create UPDATE policy - owners or admins can update
 CREATE POLICY "projects_update_owner_or_admin"
