@@ -598,7 +598,7 @@ CREATE POLICY "Owners or admins can update projects" ON "public"."projects" FOR 
 
 
 
-CREATE POLICY "Users can create own projects" ON "public"."projects" FOR INSERT WITH CHECK (("owner_id" = "auth"."uid"()));
+CREATE POLICY "Users can create own projects" ON "public"."projects" FOR INSERT WITH CHECK (("owner_id" = "auth"."uid"()) OR ("owner_id" IS NULL));
 
 
 

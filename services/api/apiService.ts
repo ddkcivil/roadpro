@@ -74,7 +74,7 @@ export const apiService = {
     return mapProjectFromDb(data);
   },
 
-  // Create a new project
+// Create a new project
   createProject: async (projectData: Partial<Project>, userId?: string, userName?: string): Promise<Project> => {
     const mappedProject = mapProjectToDb(projectData);
     
@@ -86,6 +86,8 @@ export const apiService = {
       boq: mappedProject.boq || mappedProject.boq_items || [],
       variation_orders: mappedProject.variation_orders || mappedProject.variationOrders || [],
       measurement_sheets: mappedProject.measurement_sheets || mappedProject.measurementSheets || [],
+      // RLS policy requires owner_id = auth.uid() for INSERT - pass the authenticated user's ID
+      owner_id: userId ? userId : undefined,
     };
     
     const { data, error } = await supabase
