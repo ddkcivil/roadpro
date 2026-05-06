@@ -2,13 +2,14 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { mongodb } from './mongodb.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me-in-prod';
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET || 'dev-secret-change-me-in-prod';
+  if (secret === 'dev-secret-change-me-in-prod' && process.env.NODE_ENV === 'production') {
+    console.warn('[CRITICAL] Using default JWT_SECRET in production!');
+  }
+  return secret;
+};
 
-if (JWT_SECRET === 'dev-secret-change-me-in-prod' && process.env.NODE_ENV === 'production') {
-  console.error('[CRITICAL] Using default JWT_SECRET in production! Please set JWT_SECRET env var.');
-}
-
-console.log(`[MongoAuth] Using JWT_SECRET of length: ${JWT_SECRET.length}, starts with: ${JWT_SECRET.substring(0, 3)}...`);
 const SALT_ROUNDS = 12;
 
 export interface MongoUser {
@@ -31,12 +32,12 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export function generateToken(payload: { userId: string; email: string; role: string }): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '7d' });
 }
 
 export async function verifyToken(token: string): Promise<{ userId: string; email: string; role: string } | null> {
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as any;
+    const payload = jwt.verify(token, getJwtSecret()) as any;
     return {
       userId: payload.userId,
       email: payload.email,

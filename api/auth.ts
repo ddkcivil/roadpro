@@ -2,15 +2,13 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { withErrorHandler } from './utils/errorHandler.js';
 import { getUserByEmail, verifyPassword, generateToken, verifyToken } from './utils/mongoAuth.js';
 import { mapUserFromDb } from './utils/mappers.js';
-import { supabasePublic, isSupabaseConfigured } from './utils/supabaseClient.js';
-
-console.log('[Auth API] Initialized');
+import { getSupabasePublic, isSupabaseConfigured } from './utils/supabaseClient.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   try {
     const { action } = req.query;
 
-    // Ensure JSON response
+    // Ensure JSON response - ALWAYS set this first
     res.setHeader('Content-Type', 'application/json');
 
     if (req.method === 'POST') {
@@ -25,39 +23,41 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
         // --- 1. Try Supabase Auth (if configured) ---
         try {
-          const supabaseReady = isSupabaseConfigured();
-          if (supabaseReady && supabasePublic) {
-            console.log('[Auth API] Calling Supabase signInWithPassword');
-            const { data: authData, error: authError } = await supabasePublic.auth.signInWithPassword({
-              email,
-              password,
-            });
-
-            if (!authError && authData?.session) {
-              console.log('[Auth API] Supabase login successful');
-              const userId = authData.user.id;
-              const { data: profile, error: profError } = await supabasePublic
-                .from('profiles')
-                .select('*')
-                .eq('id', userId)
-                .single();
-
-              if (profError) console.warn('[Auth API] Supabase profile fetch error:', profError.message);
-
-              res.setHeader('Set-Cookie', `roadmaster-access=${authData.session.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
-
-              const safeUser = mapUserFromDb({
-                id: userId,
-                email: authData.user.email,
-                ...profile
+          if (isSupabaseConfigured()) {
+            const supabase = getSupabasePublic();
+            if (supabase) {
+              console.log('[Auth API] Calling Supabase signInWithPassword');
+              const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                email,
+                password,
               });
 
-              return res.status(200).json({
-                user: safeUser,
-                token: authData.session.access_token
-              });
-            } else if (authError) {
-              console.log('[Auth API] Supabase auth failed (proceeding to MongoDB):', authError.message);
+              if (!authError && authData?.session) {
+                console.log('[Auth API] Supabase login successful');
+                const userId = authData.user.id;
+                const { data: profile, error: profError } = await supabase
+                  .from('profiles')
+                  .select('*')
+                  .eq('id', userId)
+                  .single();
+
+                if (profError) console.warn('[Auth API] Supabase profile fetch error:', profError.message);
+
+                res.setHeader('Set-Cookie', `roadmaster-access=${authData.session.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
+
+                const safeUser = mapUserFromDb({
+                  id: userId,
+                  email: authData.user.email,
+                  ...profile
+                });
+
+                return res.status(200).json({
+                  user: safeUser,
+                  token: authData.session.access_token
+                });
+              } else if (authError) {
+                console.log('[Auth API] Supabase auth failed (proceeding to MongoDB):', authError.message);
+              }
             }
           }
         } catch (supEx: any) {
@@ -113,19 +113,21 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
         // 1. Try Supabase
         try {
-          const supabaseReady = isSupabaseConfigured();
-          if (supabaseReady && supabasePublic) {
-            const { data: { user }, error: supError } = await supabasePublic.auth.getUser(token);
-            if (!supError && user) {
-              return res.status(200).json({ 
-                valid: true, 
-                provider: 'supabase',
-                user: {
-                  userId: user.id,
-                  email: user.email,
-                  role: 'RESOLVE_VIA_PROFILE'
-                }
-              });
+          if (isSupabaseConfigured()) {
+            const supabase = getSupabasePublic();
+            if (supabase) {
+              const { data: { user }, error: supError } = await supabase.auth.getUser(token);
+              if (!supError && user) {
+                return res.status(200).json({ 
+                  valid: true, 
+                  provider: 'supabase',
+                  user: {
+                    userId: user.id,
+                    email: user.email,
+                    role: 'RESOLVE_VIA_PROFILE'
+                  }
+                });
+              }
             }
           }
         } catch (e: any) {
