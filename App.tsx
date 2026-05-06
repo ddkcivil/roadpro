@@ -125,7 +125,7 @@ const {
     sendMessage,
     markAsRead,
     isLoading: isLoadingMessages
-  } = useMessages(currentUser, currentProject?.id ?? null, isAuthenticated && (systemReady || !isInitialLoading));
+} = useMessages(currentUser, currentProject?.id || '', isAuthenticated && (systemReady || !isInitialLoading));
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);

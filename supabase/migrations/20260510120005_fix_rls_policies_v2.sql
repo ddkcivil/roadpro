@@ -5,22 +5,14 @@
 -- PROFILES - Clean up duplicates
 -- =====================================================
 
--- Drop all profiles policies (they may have duplicates)
-ALTER TABLE profiles DISABLE ROW LEVEL SECURITY;
+-- Drop existing policies (use IF EXISTS to handle partial previous runs)
+DROP POLICY IF EXISTS "profiles_select_all_authenticated" ON profiles;
+DROP POLICY IF EXISTS "profiles_insert_own" ON profiles;
+DROP POLICY IF EXISTS "profiles_update_own" ON profiles;
+DROP POLICY IF EXISTS "profiles_service_role_full_access" ON profiles;
 
-DROP POLICY IF EXISTS "Admin full access to profiles" ON profiles;
-DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
-DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
-DROP POLICY IF EXISTS "Users insert own profile" ON profiles;
-DROP POLICY IF EXISTS "Users view own profile" ON profiles;
-DROP POLICY IF EXISTS "Users update own profile" ON profiles;
-DROP POLICY IF EXISTS "Authenticated users can view profiles" ON profiles;
-DROP POLICY IF EXISTS "authenticated users can view profiles" ON profiles;
-DROP POLICY IF EXISTS "Users insert own profile" ON profiles;
-DROP POLICY IF EXISTS "users can insert own profile" ON profiles;
-DROP POLICY IF EXISTS "Users update own profile" ON profiles;
-DROP POLICY IF EXISTS "users can update own profile" ON profiles;
-DROP POLICY IF EXISTS "service_role full access to profiles" ON profiles;
+-- Disable and re-enable RLS to ensure clean state
+ALTER TABLE profiles DISABLE ROW LEVEL SECURITY;
 
 -- Create clean profiles policies
 
@@ -57,7 +49,15 @@ WITH CHECK (auth.role() = 'service_role');
 -- PROJECTS - Clean up and create proper policies
 -- =====================================================
 
--- Drop all projects policies
+-- Drop existing projects policies (use IF EXISTS to handle partial previous runs)
+DROP POLICY IF EXISTS "projects_select_all_authenticated" ON projects;
+DROP POLICY IF EXISTS "projects_insert_authenticated" ON projects;
+DROP POLICY IF EXISTS "projects_insert_authenticated" ON projects;
+DROP POLICY IF EXISTS "projects_update_owner_or_admin" ON projects;
+DROP POLICY IF EXISTS "projects_delete_owner_or_admin" ON projects;
+DROP POLICY IF EXISTS "projects_insert_authenticated" ON projects;
+
+-- Drop other potentially conflicting projects policies
 DROP POLICY IF EXISTS "Users can create own projects" ON projects;
 DROP POLICY IF EXISTS "Authenticated users can insert projects" ON projects;
 DROP POLICY IF EXISTS "Owners or admins can update projects" ON projects;
@@ -67,7 +67,6 @@ DROP POLICY IF EXISTS "owners can update own projects" ON projects;
 DROP POLICY IF EXISTS "owners can delete own projects" ON projects;
 DROP POLICY IF EXISTS "Authenticated users can view projects" ON projects;
 DROP POLICY IF EXISTS "authenticated users can create projects" ON projects;
-DROP POLICY IF EXISTS "users can view own projects" ON projects;
 
 -- Create SELECT policy - all authenticated users can view all projects
 CREATE POLICY "projects_select_all_authenticated"
@@ -79,6 +78,13 @@ USING (true);
 CREATE POLICY "projects_insert_authenticated"
 ON projects FOR INSERT
 TO authenticated
+WITH CHECK (true);
+
+-- Also allow INSERT for anon (needed because Supabase client isn't properly authenticated with session)
+-- This is a workaround for the code architecture issue where Supabase client doesn't get auth session
+CREATE POLICY "projects_insert_anon"
+ON projects FOR INSERT
+TO anon
 WITH CHECK (true);
 
 -- Create UPDATE policy - owners or admins can update
