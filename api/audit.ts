@@ -5,6 +5,8 @@ import { withAuth } from './utils/auth.js';
 import { mapAuditLogFromDb, mapAuditLogToDb } from './utils/mappers.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
+  const supabaseAdmin = getSupabaseAdmin();
+
   if (req.method === 'GET') {
     const userRole = (req as any).user?.role;
     if (userRole?.toUpperCase() !== 'ADMIN') {
@@ -90,9 +92,3 @@ export default withErrorHandler(async (req: VercelRequest, res: VercelResponse) 
   console.log('🎯 AUDIT ROUTE: GET path taken (withAuth ADMIN only)');
   return withAuth(handler)(req, res);
 });
-
-
-rn withAuth(handler)(req, res);
-});
-
-
