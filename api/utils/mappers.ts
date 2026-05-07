@@ -238,7 +238,7 @@ export function mapProjectToDb(proj: any): any {
 // Include other confirmed JSONB columns - map both camelCase and snake_case inputs to snake_case for Supabase
 const confirmedJsonbColumns = [
     'roads', 'accountingintegrations', 'accountingtransactions', 
-    'structure_templates', 'audit_logs'
+    'structuretemplates', 'auditlogs'
   ];
   
   confirmedJsonbColumns.forEach(col => {

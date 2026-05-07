@@ -56,7 +56,10 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     queryBuilder = queryBuilder.order('timestamp', { ascending: true });
 
     try {
-      console.log('[Messages API] Executing Supabase query...');
+      console.log('[Messages API] Executing Supabase query for project:', projectId);
+      console.log('[Messages API] Query parameters: receiverId=', receiverId, 'after=', after);
+      console.log('[Messages API] Authenticated user details:', { userId: currentUser?.userId, roles: (currentUser as any)?.roles }); // Log user details without logging sensitive data
+
       const { data, error } = await queryBuilder;
       
       if (error) {
@@ -64,39 +67,58 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         throw error;
       }
 
-      console.log('[Messages API] Query succeeded, received', data?.length || 0, 'messages');
+      console.log('[Messages API] Supabase query succeeded, received', data?.length || 0, 'messages');
       let filteredData = data || [];
 
-      // In-memory filtering to avoid PostgREST UUID casting issues on TEXT columns
-      if (receiverId) {
-        if (receiverId === 'general') {
+      // Log values before filtering
+      const currentUserId = String(currentUser?.userId || '');
+      const receiverIdParam = String(receiverId || ''); // Ensure receiverId is a string, default to empty string if undefined
+
+      console.log('[Messages API] Filtering messages. CurrentUserID:', currentUserId, 'ReceiverIDParam:', receiverIdParam);
+      
+      if (receiverIdParam) { // Check if receiverIdParam is a non-empty string
+        if (receiverIdParam === 'general') {
+          // Filter for general messages
+          console.log('[Messages API] Applying filter for general messages.');
           filteredData = filteredData.filter((msg: any) => msg.receiver_id === 'general');
+          console.log('[Messages API] Filtered for general messages. Count:', filteredData.length);
         } else {
           // Private chat: messages between currentUser and receiverId
-          filteredData = filteredData.filter((msg: any) =>
-            (msg.sender_id === currentUser.userId && msg.receiver_id === receiverId) ||
-            (msg.sender_id === receiverId && msg.receiver_id === currentUser.userId)
-          );
+          console.log('[Messages API] Filtering for private messages between:', currentUserId, 'and', receiverIdParam);
+          filteredData = filteredData.filter((msg: any) => {
+            const senderIdDb = String(msg.sender_id || '');
+            const receiverIdDb = String(msg.receiver_id || '');
+
+            const isMatch1 = senderIdDb === currentUserId && receiverIdDb === receiverIdParam;
+            const isMatch2 = senderIdDb === receiverIdParam && receiverIdDb === currentUserId;
+            
+            return isMatch1 || isMatch2;
+          });
+          console.log('[Messages API] Filtered for private messages. Count:', filteredData.length);
         }
       } else {
         // All relevant messages for the project (general + user's private messages)
-        filteredData = filteredData.filter((msg: any) =>
-          msg.receiver_id === 'general' ||
-          msg.sender_id === currentUser.userId ||
-          msg.receiver_id === currentUser.userId
-        );
+        console.log('[Messages API] Filtering for general and user messages for user ID:', currentUserId);
+        filteredData = filteredData.filter((msg: any) => {
+          const senderIdDb = String(msg.sender_id || '');
+          const receiverIdDb = String(msg.receiver_id || '');
+          return receiverIdDb === 'general' || senderIdDb === currentUserId || receiverIdDb === currentUserId;
+        });
+        console.log('[Messages API] Filtered for general and user messages. Count:', filteredData.length);
       }
 
       const limitNum = parseInt(req.query.limit as string) || 100;
       const offsetNum = parseInt(req.query.offset as string) || 0;
       filteredData = filteredData.slice(offsetNum, offsetNum + limitNum);
 
+      console.log('[Messages API] Final data prepared for response.');
       return res.status(200).json(filteredData.map(mapMessageFromDb));
     } catch (queryError: any) {
       console.error('[Messages API] Messages query failed:', queryError);
       return res.status(500).json({ error: 'Failed to fetch messages', details: queryError.message });
     }
   }
+
 
   if (req.method === 'POST') {
     const { content, receiverId: bodyReceiverId, projectId: bodyProjectId, attachmentUrl, attachmentName, attachmentType } = req.body;
