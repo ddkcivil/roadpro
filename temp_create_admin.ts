@@ -21,66 +21,69 @@ const supabaseAdmin = createClient(supabaseUrl, serviceKey, {
 });
 
 async function createOrUpdateAdmin() {
-  const ADMIN_EMAIL = 'dharmadkunwar20@gmail.com';
-  const ADMIN_PASSWORD = 'ddK152207';
-  const ADMIN_NAME = 'Admin User';
+  // Create both admin emails
+  const admins = [
+    { email: 'dharmadkunwar20@gmail.com', password: 'ddK152207', name: 'Dharma Admin' },
+    { email: 'admin@myroad.app', password: 'Admin123!ChangeMe', name: 'MyRoad Admin' }
+  ];
 
-  console.log('🚀 Attempting to create or update Admin User: ' + ADMIN_EMAIL + '...');
+  for (const admin of admins) {
+    console.log('\n🚀 Processing: ' + admin.email + '...');
+    let userId = null;
 
-  let userId = null;
-
-  try {
-    // Check if user already exists by listing users and filtering
-    const { data: users, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-    if (listError) {
-        throw new Error('Error listing users: ' + listError.message);
-    }
-
-    const existingUser = users.find((user: any) => user.email === ADMIN_EMAIL); // Explicitly typed 'user' as any
-
-    if (existingUser && existingUser.id) {
-      userId = existingUser.id;
-      console.log('ℹ️ User ' + ADMIN_EMAIL + ' already exists with ID: ' + userId + '. Updating profile.');
-    } else {
-      // Create user if not exists
-      const { data: newUser, error: newUserError } = await supabaseAdmin.auth.admin.createUser({
-        email: ADMIN_EMAIL,
-        password: ADMIN_PASSWORD,
-        email_confirm: true,
-        user_metadata: { role: 'Admin' }
-      });
-      if (newUserError) {
-        throw new Error('Auth user creation failed: ' + newUserError.message);
+    try {
+      // Check if user already exists
+      const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+      if (listError) {
+          throw new Error('Error listing users: ' + listError.message);
       }
-      userId = newUser.user?.id;
-      console.log('✅ Auth user created successfully. ID: ' + userId);
+
+      const users = listData?.users || [];
+      const existingUser = users.find((user: any) => user.email === admin.email);
+
+      if (existingUser && existingUser.id) {
+        userId = existingUser.id;
+        console.log('ℹ️ User ' + admin.email + ' already exists with ID: ' + userId);
+      } else {
+        // Create user
+        const { data: newUser, error: newUserError } = await supabaseAdmin.auth.admin.createUser({
+          email: admin.email,
+          password: admin.password,
+          email_confirm: true,
+          user_metadata: { full_name: admin.name }
+        });
+        if (newUserError) {
+          console.warn('⚠️ Could not create ' + admin.email + ': ' + newUserError.message);
+          continue;
+        }
+        userId = newUser.user?.id;
+        console.log('✅ Auth user created: ' + userId);
+      }
+
+      if (userId) {
+        // Create profile
+        const { error: profileError } = await supabaseAdmin
+          .from('profiles')
+          .upsert({
+            id: userId,
+            full_name: admin.name,
+            avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(admin.name)}&background=6366f1`,
+            role: 'Admin',
+            last_seen: new Date().toISOString()
+          });
+
+        if (profileError) {
+          console.error('Profile error:', profileError);
+        } else {
+          console.log('✅ Profile created for ' + admin.email);
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Error with ' + admin.email + ':', error.message);
     }
-
-    // Create or Update profile in 'profiles' table
-    const { error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .upsert({
-        id: userId,
-        full_name: ADMIN_NAME,
-        avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(ADMIN_NAME)}&background=6366f1`,
-        role: 'Admin',
-        last_seen: new Date().toISOString()
-      });
-
-    if (profileError) {
-      throw new Error('Profile upsert failed: ' + profileError.message);
-    }
-
-    console.log('✅ Admin profile linked and updated in public.profiles.');
-    console.log('🔑 LOGIN DETAILS:');
-    console.log('   Email: ' + ADMIN_EMAIL);
-    console.log('   Password: ' + ADMIN_PASSWORD);
-    console.log('📝 NOTE: Use these credentials to sign in.');
-
-  } catch (error: any) {
-    console.error('❌ Admin creation or update failed:', error.message);
-    process.exit(1);
   }
+
+  console.log('\n🎉 Admin setup complete!');
 }
 
 createOrUpdateAdmin();

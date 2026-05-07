@@ -4,6 +4,7 @@ import { isUuid } from './uuidUtils.js';
 /**
  * Helper to normalize database roles to UserRole enum values
  */
+
 function normalizeRole(role: string): string {
   if (!role) return 'Site Engineer';
   
@@ -235,8 +236,8 @@ export function mapProjectToDb(proj: any): any {
   }
 
 // Include other confirmed JSONB columns - map both camelCase and snake_case inputs to snake_case for Supabase
-  const confirmedJsonbColumns = [
-    'roads', 'accounting_integrations', 'accounting_transactions', 
+const confirmedJsonbColumns = [
+    'roads', 'accountingintegrations', 'accountingtransactions', 
     'structure_templates', 'audit_logs'
   ];
   
@@ -253,9 +254,12 @@ export function mapProjectToDb(proj: any): any {
     } else if (proj[pureCamelCol] !== undefined) {
       out[col] = proj[pureCamelCol];
     }
-    // For accounting integrations and transactions, also check with underscore prefix (rare case)
-    else if (col === 'accounting_integrations' && proj.AccountingIntegration !== undefined) {
+// For accounting integrations and transactions (using correct column names without underscores)
+    else if (col === 'accountingintegrations' && proj.AccountingIntegration !== undefined) {
       out[col] = proj.AccountingIntegration;
+    }
+    else if (col === 'accountingtransactions' && proj.AccountingTransaction !== undefined) {
+      out[col] = proj.AccountingTransaction;
     }
   });
 
