@@ -180,7 +180,7 @@ ALTER TABLE public.registrations ENABLE ROW LEVEL SECURITY;`,
   -- Allow authenticated users with specific roles to insert projects.
   CREATE POLICY IF NOT EXISTS "Admins and Project Managers can insert projects" ON public.projects FOR INSERT TO authenticated
   USING (
-      (SELECT role FROM public.profiles WHERE id = auth.uid()) IN ('admin', 'project manager', 'manager', 'project_manager')
+      (SELECT role FROM public.profiles WHERE id = auth.uid()) IN ('admin', 'project manager', 'manager', 'project_project_manager', 'SITE_ENGINEER')
   );`,
 
   `-- Allow authenticated users with specific roles to select projects.
