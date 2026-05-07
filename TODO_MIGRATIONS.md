@@ -2,6 +2,11 @@
 
 ## Current Status: FIXED ✅
 
+### New Migration Added (May 14, 2026):
+- 20260514000000_add_missing_project_columns.sql - Add agencies and other missing JSONB columns to projects table
+  - Fixes: "Could not find the 'agencies' column of 'projects' in the schema cache" error
+  - Added 22 missing columns: agencies, agency_payments, agency_materials, agency_bills, materials, linear_works, inventory, purchase_orders, inventory_transactions, vehicles, vehicle_logs, daily_reports, pre_construction, land_parcels, map_overlays, ncrs, contract_bills, staff_locations, environment_registry, lab_tests, schedule, rfis
+
 ### Problem Identified (May 26, 2026):
 - Local migrations were out of sync with remote Supabase schema
 - Migration `20260504214341_remote_commit.sql` was failing with errors:

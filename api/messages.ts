@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from './utils/supabaseClient.js';
+import { getSupabaseAdmin, isSupabaseConfigured } from './utils/supabaseClient.js';
 import { withErrorHandler } from './utils/errorHandler.js';
 import { withAuth } from './utils/auth.js';
 
@@ -22,7 +22,15 @@ function mapMessageFromDb(dbMsg: any): any {
 }
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
+  // Get Supabase admin client using getter
+  if (!isSupabaseConfigured()) {
+    return res.status(503).json({ error: 'Database service not configured' });
+  }
   const supabaseAdmin = getSupabaseAdmin();
+  if (!supabaseAdmin) {
+    return res.status(503).json({ error: 'Database service not available' });
+  }
+  
   const { projectId, receiverId, after } = req.query;
   const currentUser = (req as any).user;
 

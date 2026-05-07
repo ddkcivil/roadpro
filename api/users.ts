@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from './utils/supabaseClient.js';
+import { getSupabaseAdmin, isSupabaseConfigured } from './utils/supabaseClient.js';
 import { withErrorHandler } from './utils/errorHandler.js';
 import { withAuth } from './utils/auth.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -9,7 +9,15 @@ function generateAvatarUrl(name: string): string {
 }
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
+  // Get Supabase admin client using getter
+  if (!isSupabaseConfigured()) {
+    return res.status(503).json({ error: 'Database service not configured' });
+  }
   const supabaseAdmin = getSupabaseAdmin();
+  if (!supabaseAdmin) {
+    return res.status(503).json({ error: 'Database service not available' });
+  }
+  
   const { id, action } = req.query;
   const userId = (req as any).user?.userId;
   const userRole = (req as any).user?.role;
