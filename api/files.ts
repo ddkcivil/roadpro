@@ -9,6 +9,7 @@ import { Buffer } from 'buffer'; // For Buffer operations
 const BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || 'project-files';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
+  const supabaseAdmin = getSupabaseAdmin();
   const { id } = req.query;
 
 

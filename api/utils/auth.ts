@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin, isSupabaseConfigured } from './supabaseClient.js';
+import { getSupabaseAdmin, isSupabaseConfigured } from './supabaseClient.js';
 
 export const withAuth = (handler: Function, options: { ignoreExpiration?: boolean } = {}) => async (req: VercelRequest, res: VercelResponse) => {
   let token = null;
@@ -25,9 +25,11 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
     return res.status(401).json({ error: 'Unauthorized: No token provided' });
   }
 
-  try {
+try {
     // Use Supabase JWT Verification only
     const supabaseReady = isSupabaseConfigured();
+    const supabaseAdmin = supabaseReady ? getSupabaseAdmin() : null;
+    
     if (supabaseReady && supabaseAdmin) {
       try {
         const { data: { user }, error: supError } = await supabaseAdmin.auth.getUser(token);

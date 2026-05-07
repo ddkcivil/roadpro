@@ -9,6 +9,7 @@ function generateAvatarUrl(name: string): string {
 }
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
+  const supabaseAdmin = getSupabaseAdmin();
   const { id, action } = req.query;
   const userId = (req as any).user?.userId;
   const userRole = (req as any).user?.role;

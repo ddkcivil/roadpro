@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { mapProjectToDb } from './utils/mappers.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
+  const supabaseAdmin = getSupabaseAdmin();
   const { action, projectId } = req.query;
 
   if (req.method === 'POST' && action === 'ingest') {

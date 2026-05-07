@@ -22,6 +22,7 @@ function mapMessageFromDb(dbMsg: any): any {
 }
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
+  const supabaseAdmin = getSupabaseAdmin();
   const { projectId, receiverId, after } = req.query;
   const currentUser = (req as any).user;
 

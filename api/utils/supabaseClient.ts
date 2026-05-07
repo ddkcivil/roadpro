@@ -39,9 +39,9 @@ export function getSupabaseAdmin() {
   return supabaseAdmin;
 }
 
-// Compatibility exports
-export { supabasePublic, supabaseAdmin };
-
+// NOTE: Only getter functions are exported
+// Use getSupabasePublic() or getSupabaseAdmin() to get clients
+// Do NOT import supabasePublic or supabaseAdmin directly as they may be null
 
 // Optional: Setup tables if not exist (run once)
 export async function setupDocumentTables() {

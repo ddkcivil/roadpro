@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin, isSupabaseConfigured } from './utils/supabaseClient.js';
+import { getSupabaseAdmin, getSupabasePublic, isSupabaseConfigured } from './utils/supabaseClient.js';
 import { withErrorHandler } from './utils/errorHandler.js';
 import { withAuth } from './utils/auth.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -95,7 +95,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST') {
-      if (action === 'approve') {
+if (action === 'approve') {
         if (!id || typeof id !== 'string') return res.status(400).json({ error: 'Invalid ID' });
 
         try {
@@ -110,13 +110,37 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
             return res.status(404).json({ error: 'Pending registration not found' });
           }
 
+          // Get password hash from registration
+          const passwordHash = pendingReg.password_hash;
+
+          if (!passwordHash) {
+            return res.status(400).json({ error: 'No password hash found in registration' });
+          }
+
           const userId = uuidv4();
 
-          // Create user profile in Supabase
+          // Step 1: Create a Supabase Auth user using admin API (so they can login)
+          const { data: authUserData, error: authUserError } = await supabaseAdmin.auth.admin.createUser({
+            email: pendingReg.email,
+            password: pendingReg.password || 'TempPass123!', // Use original password if available
+            email_confirm: true,
+            user_metadata: {
+              full_name: pendingReg.name
+            }
+          });
+
+          if (authUserError) {
+            console.error('[Registrations] Auth user creation failed:', authUserError.message);
+            // Continue anyway - profile can still be created
+          }
+
+          const authUserId = authUserData?.user?.id || userId;
+
+          // Step 2: Create user profile in Supabase tables (links to auth user)
           const { error: profileError } = await supabaseAdmin
             .from('profiles')
             .insert([{
-              id: userId,
+              id: authUserId,
               full_name: pendingReg.name,
               email: pendingReg.email,
               phone: pendingReg.phone || '',
@@ -132,7 +156,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
             throw profileError;
           }
 
-          console.log('[Registrations] Approved user created in Supabase:', pendingReg.email);
+          console.log('[Registrations] Approved user created in Supabase Auth + Profile:', pendingReg.email);
 
           // Delete the registration
           const { error: deleteError } = await supabaseAdmin
@@ -144,9 +168,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
             console.error('[Registrations] Delete failed:', deleteError);
           }
 
-          return res.status(200).json({
+return res.status(200).json({
             message: 'Registration approved successfully',
-            user: { id: userId, name: pendingReg.name, email: pendingReg.email }
+            user: { id: authUserId, name: pendingReg.name, email: pendingReg.email }
           });
         } catch (error: any) {
           console.error('[Registrations] Approval error:', error);

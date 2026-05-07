@@ -126,6 +126,35 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(401).json({ valid: false, error: 'Invalid or expired token' });
       } // end verify
 
+// --- REFRESH ---
+      if (action === 'refresh') {
+        const refreshToken = req.body?.refresh_token;
+        
+        if (!refreshToken) {
+          return res.status(400).json({ error: 'Refresh token required' });
+        }
+
+        try {
+          const supabase = getSupabasePublic();
+          if (supabase) {
+            const { data: sessionData, error: refreshError } = await supabase.auth.refreshSession({
+              refresh_token: refreshToken,
+            });
+
+            if (!refreshError && sessionData?.session) {
+              return res.status(200).json({
+                session: sessionData.session,
+                token: sessionData.session.access_token
+              });
+            }
+          }
+          return res.status(401).json({ error: 'Failed to refresh session' });
+        } catch (e: any) {
+          console.error('[Auth API] Refresh error:', e.message);
+          return res.status(500).json({ error: 'Failed to refresh session' });
+        }
+      }
+
       // --- LOGOUT ---
       if (action === 'logout') {
         res.setHeader('Set-Cookie', 'roadmaster-access=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');

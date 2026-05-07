@@ -236,24 +236,62 @@ export function mapProjectToDb(proj: any): any {
 
 // Include other confirmed JSONB columns - map both camelCase and snake_case inputs to snake_case for Supabase
   const confirmedJsonbColumns = [
-    'roads', 'accountingintegrations', 'accountingtransactions', 
-    'structuretemplates', 'auditlogs'
+    'roads', 'accounting_integrations', 'accounting_transactions', 
+    'structure_templates', 'audit_logs'
   ];
   
   confirmedJsonbColumns.forEach(col => {
     // Generate the camelCase version for checking
     const camelCol = col.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+    // Also generate pure camelCase for cases like accountingIntegrations -> accountingIntegrations
+    const pureCamelCol = col.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
     // Check for snake_case input first, then camelCase input
     if (proj[col] !== undefined) {
       out[col] = proj[col];
     } else if (proj[camelCol] !== undefined) {
       out[col] = proj[camelCol];
+    } else if (proj[pureCamelCol] !== undefined) {
+      out[col] = proj[pureCamelCol];
     }
     // For accounting integrations and transactions, also check with underscore prefix (rare case)
-    else if (col === 'accountingintegrations' && proj.AccountingIntegration !== undefined) {
+    else if (col === 'accounting_integrations' && proj.AccountingIntegration !== undefined) {
       out[col] = proj.AccountingIntegration;
     }
   });
+
+  // Map ALL remaining array fields that should be stored as JSONB
+  const allArrayFields = [
+    'rfis', 'lab_tests', 'schedule', 'structures', 'agencies', 
+    'agency_payments', 'agency_materials', 'agency_bills', 'materials',
+    'linear_works', 'inventory', 'purchase_orders', 'inventory_transactions',
+    'vehicles', 'vehicle_logs', 'daily_reports', 'pre_construction',
+    'land_parcels', 'map_overlays', 'ncrs', 'contract_bills',
+    'staff_locations', 'environment_registry'
+  ];
+  
+  allArrayFields.forEach(field => {
+    const camelField = field.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+    if (proj[field] !== undefined) {
+      out[field] = proj[field];
+    } else if (proj[camelField] !== undefined) {
+      out[field] = proj[camelField];
+    }
+  });
+
+  // Map documents and site_photos if present
+  if (proj.documents !== undefined) {
+    out.project_documents = proj.documents;
+  }
+  if (proj.sitePhotos !== undefined) {
+    out.project_site_photos = proj.sitePhotos;
+  }
+
+  // Map owner_id (already handled above, but ensure it uses the auth user ID)
+  if (proj.ownerId !== undefined) {
+    out.owner_id = proj.ownerId;
+  } else if (proj.owner_id !== undefined) {
+    out.owner_id = proj.owner_id;
+  }
 
 return out;
 }

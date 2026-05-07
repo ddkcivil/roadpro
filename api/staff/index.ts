@@ -7,6 +7,7 @@ import { mapProjectToDb } from '../utils/mappers.js';
 const STAFF_PROJECT_ID = 'ce0387a7-f9d6-48e2-aacb-1347d3394f75';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
+  const supabaseAdmin = getSupabaseAdmin();
   const { category, id: itemId } = req.query; // e.g., 'employees', 'leave-requests', 'attendance'
 
   if (req.method === 'GET') {
