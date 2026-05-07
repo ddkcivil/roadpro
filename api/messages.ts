@@ -10,7 +10,7 @@ function mapMessageFromDb(dbMsg: any): any {
     senderId: dbMsg.sender_id,
     receiverId: dbMsg.receiver_id,
     content: dbMsg.content,
-    timestamp: dbMsg.timestamp,
+    timestamp: dbMsg.timestamp || dbMsg.created_at, // Support both column names for compatibility
     read: dbMsg.read,
     projectId: dbMsg.project_id,
     attachmentUrl: dbMsg.attachment_url,
@@ -23,10 +23,15 @@ function mapMessageFromDb(dbMsg: any): any {
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   // Get Supabase admin client using getter
-  if (!isSupabaseConfigured()) {
+  const supabaseReady = isSupabaseConfigured();
+  console.log('[Messages API] Supabase configured:', supabaseReady);
+  
+  if (!supabaseReady) {
     return res.status(503).json({ error: 'Database service not configured' });
   }
   const supabaseAdmin = getSupabaseAdmin();
+  console.log('[Messages API] Supabase admin client:', supabaseAdmin ? 'initialized' : 'NULL');
+  
   if (!supabaseAdmin) {
     return res.status(503).json({ error: 'Database service not available' });
   }
@@ -47,43 +52,52 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     // Apply project filter
     queryBuilder = queryBuilder.eq('project_id', projectId);
 
-    // Apply timestamp filter for 'after'
-    if (after && typeof after === 'string') {
-      queryBuilder = queryBuilder.gt('timestamp', after);
+    // Apply timestamp filter for 'after' - use created_at column (not timestamp)
+    if (after && typeof after === 'string' && after.trim()) {
+      queryBuilder = queryBuilder.gt('created_at', after);
     }
 
-    // Apply sorting
-    queryBuilder = queryBuilder.order('timestamp', { ascending: true });
+    // Apply sorting - use created_at column
+    queryBuilder = queryBuilder.order('created_at', { ascending: true });
 
     try {
       console.log('[Messages API] Executing Supabase query for project:', projectId);
       console.log('[Messages API] Query parameters: receiverId=', receiverId, 'after=', after);
-      console.log('[Messages API] Authenticated user details:', { userId: currentUser?.userId, roles: (currentUser as any)?.roles }); // Log user details without logging sensitive data
+      console.log('[Messages API] Authenticated user details:', { userId: currentUser?.userId, roles: (currentUser as any)?.roles });
 
-      const { data, error } = await queryBuilder;
+      console.log('[Messages API] About to execute query...');
+      let queryResult;
+      try {
+        queryResult = await queryBuilder;
+      } catch (queryExeError: any) {
+        console.error('[Messages API] Query execution error:', queryExeError.message, queryExeError.stack);
+        throw queryExeError;
+      }
+      
+      const { data, error } = queryResult;
       
       if (error) {
         console.error('[Messages API] Supabase query error:', error);
         throw error;
       }
+      
+      console.log('[Messages API] Query executed successfully, data type:', typeof data, 'is array:', Array.isArray(data));
 
       console.log('[Messages API] Supabase query succeeded, received', data?.length || 0, 'messages');
       let filteredData = data || [];
 
       // Log values before filtering
       const currentUserId = String(currentUser?.userId || '');
-      const receiverIdParam = String(receiverId || ''); // Ensure receiverId is a string, default to empty string if undefined
+      const receiverIdParam = String(receiverId || '');
 
       console.log('[Messages API] Filtering messages. CurrentUserID:', currentUserId, 'ReceiverIDParam:', receiverIdParam);
       
-      if (receiverIdParam) { // Check if receiverIdParam is a non-empty string
+      if (receiverIdParam) {
         if (receiverIdParam === 'general') {
-          // Filter for general messages
           console.log('[Messages API] Applying filter for general messages.');
           filteredData = filteredData.filter((msg: any) => msg.receiver_id === 'general');
           console.log('[Messages API] Filtered for general messages. Count:', filteredData.length);
         } else {
-          // Private chat: messages between currentUser and receiverId
           console.log('[Messages API] Filtering for private messages between:', currentUserId, 'and', receiverIdParam);
           filteredData = filteredData.filter((msg: any) => {
             const senderIdDb = String(msg.sender_id || '');
@@ -97,7 +111,6 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           console.log('[Messages API] Filtered for private messages. Count:', filteredData.length);
         }
       } else {
-        // All relevant messages for the project (general + user's private messages)
         console.log('[Messages API] Filtering for general and user messages for user ID:', currentUserId);
         filteredData = filteredData.filter((msg: any) => {
           const senderIdDb = String(msg.sender_id || '');
@@ -139,7 +152,6 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           receiver_id: bodyReceiverId,
           content: content || '',
           project_id: bodyProjectId,
-          timestamp: new Date().toISOString(),
           read: false,
           attachment_url: attachmentUrl || null,
           attachment_name: attachmentName || null,
