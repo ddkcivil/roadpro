@@ -646,27 +646,7 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
           )}
 
           {/* Site Weather & Intelligence */}
-          {isWidgetVisible('weather') && (
-            <div className={cn("md:col-span-4", isWidgetVisible('project-info') ? "lg:col-span-3" : "lg:col-span-12")}>
-               <WeatherWidget />
-            </div>
-          )}
-
-        </div>
-      </div>
-    </TooltipProvider>
-  );
-});
-
-Dashboard.displayName = 'Dashboard';
-
-export default Dashboard;
-eather') && (
-            <div className={cn("md:col-span-4", isWidgetVisible('project-info') ? "lg:col-span-3" : "lg:col-span-12")}>
-               <WeatherWidget />
-            </div>
-          )}
-
+          {
         </div>
       </div>
     </TooltipProvider>
