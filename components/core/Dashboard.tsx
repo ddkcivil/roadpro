@@ -645,8 +645,10 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
             </Card>
           )}
 
-          {/* Site Weather & Intelligence */}
-          {
+{/* Site Weather & Intelligence */}
+          {isWidgetVisible('weather') && (
+            <WeatherWidget />
+          )}
         </div>
       </div>
     </TooltipProvider>
