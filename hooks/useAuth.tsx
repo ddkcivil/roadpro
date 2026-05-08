@@ -2,7 +2,7 @@
  * Authentication Hook
  * Handles user login, logout, and persistent session management using custom MongoDB Auth.
  */
-import { useState, useEffect, useMemo, startTransition } from 'react';
+import { useState, useEffect, useMemo, startTransition, useCallback } from 'react';
 import { UserRole, User, UserWithPermissions } from '../types';
 import { PermissionsService } from '../services/auth/permissionsService';
 import { AuditService } from '../services/analytics/auditService';
@@ -62,7 +62,7 @@ export const useAuth = () => {
     initializeAuth();
   }, []);
 
-  const login = async (role: UserRole, name: string, token?: string, userId?: string, phone?: string) => {
+  const login = useCallback(async (role: UserRole, name: string, token?: string, userId?: string, phone?: string) => {
     console.log('[useAuth] login called:', { role, name, hasToken: !!token, userId, timestamp: new Date().toISOString() });
     
     if (token) {
@@ -93,9 +93,9 @@ export const useAuth = () => {
     setLoading(false);
     
     console.log('[useAuth] ✓ login complete, isAuthenticated:', true);
-  };
+  }, []);
 
-  const logout = async (selectedProjectId?: string | any, projectName?: string) => {
+  const logout = useCallback(async (selectedProjectId?: string | any, projectName?: string) => {
     const actualProjectId = typeof selectedProjectId === 'string' ? selectedProjectId : undefined;
     const actualProjectName = typeof selectedProjectId === 'string' ? projectName : undefined;
 
@@ -110,9 +110,9 @@ export const useAuth = () => {
     
     clearAuthState();
     toast.success("Logged out successfully");
-  };
+  }, [user, clearAuthState]);
 
-  const clearAuthState = () => {
+  const clearAuthState = useCallback(() => {
     startTransition(() => {
       localStorage.removeItem(AUTH_TOKEN_KEY);
       localStorage.removeItem(AUTH_USER_KEY);
@@ -124,7 +124,7 @@ export const useAuth = () => {
       // Clear Supabase session
       supabase.auth.signOut();
     });
-  };
+  }, []);
 
   const currentUser = useMemo(() => {
     const u: User = {
