@@ -33,11 +33,12 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         if (error) throw error;
         if (!project) return res.status(404).json({ error: 'Project not found' });
 
-        // --- TEMPORARY CHANGE FOR DEBUGGING ---
+// --- TEMPORARY CHANGE FOR DEBUGGING ---
         // Removed fetching of related documents/photos and mapping to isolate the issue.
         // We will now return the raw project data directly.
         return res.status(200).json(project); 
-        // --- END TEMPORARY CHANGE ---      }
+        // --- END TEMPORARY CHANGE ---
+      }
 
       // Fetch paginated list of projects
       const page = parseInt(req.query.page as string) || 1;
