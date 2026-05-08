@@ -109,7 +109,7 @@ export const apiService = {
     return createdProject;
   },
 
-  // Update an existing project
+// Update an existing project (with auto-create fallback for orphaned local projects)
   updateProject: async (id: string, projectData: Partial<Project>, userId?: string, userName?: string, previousProjectData?: Partial<Project>): Promise<Project> => {
     const mappedProject = mapProjectToDb(projectData);
     
@@ -117,6 +117,51 @@ export const apiService = {
       Object.entries(mappedProject).filter(([_, v]) => v !== undefined)
     );
 
+    // First, check if the project exists in Supabase
+    const { data: existingProject, error: fetchError } = await supabase
+      .from(PROJECTS_TABLE)
+      .select('id')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (fetchError) {
+      console.error(`[Supabase] Failed to check project existence for ID ${id}:`, fetchError);
+    }
+
+    // If project doesn't exist in Supabase (exists locally but never synced), create it instead of failing
+    if (!existingProject) {
+      console.warn(`[Supabase] Project ${id} not found in backend. Creating as new (likely orphaned local project).`);
+      
+      const projectToInsert = {
+        ...cleanedProjectData,
+        owner_id: userId || cleanedProjectData.owner_id,
+      };
+      
+      const { data: createdData, error: createError } = await supabase
+        .from(PROJECTS_TABLE)
+        .insert([projectToInsert])
+        .select('*');
+
+      if (createError) {
+        console.error(`[Supabase] Failed to create project with ID ${id}:`, createError);
+        throw new Error(createError.message || 'Failed to create project.');
+      }
+
+      const createdProject = mapProjectFromDb(createdData?.[0]);
+      
+      if (!createdProject) {
+        console.error(`[Supabase] Project creation returned no data for ID ${id}`);
+        throw new Error(`Project creation failed for ID: ${id}`);
+      }
+
+      if (userId && userName) {
+        await AuditService.logDataModification(userId, userName, 'CREATE', 'project', createdProject.id, createdProject.name, undefined, createdProject);
+      }
+
+      return createdProject;
+    }
+
+    // Project exists - perform normal update
     const { data, error } = await supabase
       .from(PROJECTS_TABLE)
       .update(cleanedProjectData)
@@ -128,7 +173,7 @@ export const apiService = {
       throw new Error(error.message || 'Failed to update project.');
     }
 
-const updatedProject = mapProjectFromDb(data?.[0]);
+    const updatedProject = mapProjectFromDb(data?.[0]);
     
     // DEFENSIVE: Handle null response from Supabase
     if (!updatedProject) {
