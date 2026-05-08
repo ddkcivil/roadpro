@@ -107,6 +107,22 @@ if (req.method === 'POST') {
       // Generate a unique project ID using UUID v4
       const projectId = projectData.id || randomUUID(); 
 
+      // Check if project with this ID already exists to prevent duplicate key error
+      const { data: existingProject } = await supabaseAdmin
+        .from('projects')
+        .select('id')
+        .eq('id', projectId)
+        .maybeSingle();
+      
+      if (existingProject) {
+        // Project exists - return conflict error with helpful message
+        return res.status(409).json({ 
+          error: 'Project with this ID already exists', 
+          projectId: projectId,
+          hint: 'Please refresh or try a different operation' 
+        });
+      }
+
       const userId = (req as any).user?.userId;
       const { data: newProject, error } = await supabaseAdmin
         .from('projects')
@@ -119,14 +135,25 @@ if (req.method === 'POST') {
         .select('*') // Return the inserted row without joins to avoid schema cache errors
         .single(); // Expect a single row
 
-      if (error) throw error;
+      if (error) {
+        // Handle duplicate key error specifically
+        if (error.code === '23505' || error.message?.includes('duplicate key')) {
+          console.error('Duplicate key error - project likely already exists:', error);
+          return res.status(409).json({ 
+            error: 'Project already exists', 
+            details: 'A project with this ID already exists in the database',
+            projectId: projectId
+          });
+        }
+        throw error;
+      }
 
       return res.status(201).json(mapProjectFromDb(newProject));
     } catch (error: any) {
       console.error('Failed to create project:', error);
       return res.status(500).json({ error: 'Failed to create project', details: error.message });
     }
-  } 
+  }
   if (req.method === 'PUT') {
     const userRole = (req as any).user?.role;
     const r = userRole?.toUpperCase();

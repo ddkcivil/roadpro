@@ -11,6 +11,7 @@ import { AuditService } from '../services/analytics/auditService';
 import { sanitizationUtils } from '../utils/validation/sanitizationUtils';
 import { useAsyncPersistedReducer } from './usePersistence';
 import { supabase } from '../lib/supabase';
+import { generateUniqueId } from '../utils/uuidUtils';
 
 interface ProjectsReturn {
   projects: Project[];
@@ -214,8 +215,8 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
     const previousProjects = [...projectsRef.current];
     const baseProject = targetProjectId ? projectsRef.current.find(p => p.id === targetProjectId) : undefined;
 
-    // DEFENSIVE: Generate a proper ID for new projects
-    const newProjectId = isNewCreation ? `proj-${Date.now()}` : targetProjectId;
+// DEFENSIVE: Generate a proper UUID for new projects (not timestamp-based to avoid collisions)
+    const newProjectId = isNewCreation ? generateUniqueId() : targetProjectId;
 
     // DEFENSIVE: Validate we have an ID before proceeding
     if (!newProjectId) {
