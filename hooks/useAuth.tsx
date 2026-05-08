@@ -7,6 +7,7 @@ import { UserRole, User, UserWithPermissions } from '../types';
 import { PermissionsService } from '../services/auth/permissionsService';
 import { AuditService } from '../services/analytics/auditService';
 import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
 
 const AUTH_TOKEN_KEY = 'roadmaster-token';
 const AUTH_USER_KEY = 'roadmaster-user';
@@ -36,9 +37,16 @@ export const useAuth = () => {
           setToken(storedToken);
           setUser(parsedUser);
           setIsAuthenticated(true);
-          console.log('[useAuth] ✓ Auth restored from localStorage, user:', parsedUser?.full_name);
+          
+          // Synchronize Supabase client session
+          await supabase.auth.setSession({
+            access_token: storedToken,
+            refresh_token: '' // We use access_token from our proxy, refresh is managed there
+          });
+          
+          console.log('[useAuth] ✓ Auth restored and Supabase session synchronized for:', parsedUser?.full_name);
         } catch (e) {
-          console.error('[useAuth] ⚠ Failed to parse stored user', e);
+          console.error('[useAuth] ⚠ Failed to restore auth state:', e);
           clearAuthState();
         }
       } else {
@@ -53,12 +61,17 @@ export const useAuth = () => {
   const login = async (role: UserRole, name: string, token?: string, userId?: string, phone?: string) => {
     console.log('[useAuth] login called:', { role, name, hasToken: !!token, userId, timestamp: new Date().toISOString() });
     
-    // This is now called after a successful /api/auth?action=login call
-    // Removed startTransition to potentially resolve hook-related crashes during login
     if (token) {
       localStorage.setItem(AUTH_TOKEN_KEY, token);
       setToken(token);
-      console.log('[useAuth] ✓ Token stored in localStorage, length:', token.length);
+      
+      // Synchronize Supabase client session
+      await supabase.auth.setSession({
+        access_token: token,
+        refresh_token: ''
+      });
+      
+      console.log('[useAuth] ✓ Token stored and Supabase session set, length:', token.length);
     } else {
       console.warn('[useAuth] ⚠ No token provided to login!');
     }
@@ -103,6 +116,9 @@ export const useAuth = () => {
       setUser(null);
       setIsAuthenticated(false);
       setLoading(false);
+      
+      // Clear Supabase session
+      supabase.auth.signOut();
     });
   };
 
