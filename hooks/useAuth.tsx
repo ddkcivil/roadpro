@@ -38,13 +38,17 @@ export const useAuth = () => {
           setUser(parsedUser);
           setIsAuthenticated(true);
           
-          // Synchronize Supabase client session
-          await supabase.auth.setSession({
-            access_token: storedToken,
-            refresh_token: '' // We use access_token from our proxy, refresh is managed there
-          });
+          // Only synchronize if the session is missing or different
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session || session.access_token !== storedToken) {
+            await supabase.auth.setSession({
+              access_token: storedToken,
+              refresh_token: ''
+            });
+            console.log('[useAuth] ✓ Supabase session synchronized');
+          }
           
-          console.log('[useAuth] ✓ Auth restored and Supabase session synchronized for:', parsedUser?.full_name);
+          console.log('[useAuth] ✓ Auth restored for:', parsedUser?.full_name);
         } catch (e) {
           console.error('[useAuth] ⚠ Failed to restore auth state:', e);
           clearAuthState();
