@@ -94,7 +94,13 @@ if (req.method === 'POST') {
     }
 
     try {
-      const projectData = { ...req.body };
+const projectData = { ...req.body };
+
+      // Get userId from auth middleware
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'User ID not found in authentication token.' });
+      }
 
       if (!projectData.name || !projectData.client) {
         return res.status(400).json({ error: 'Project name and client are required' });
