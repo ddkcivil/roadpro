@@ -191,7 +191,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
     startTransition(() => {
       dispatch({ type: 'SET_SELECTED_PROJECT', payload: id });
     });
-  }, []);
+}, []);
 
   const saveProject = useCallback(async (project: Partial<Project>): Promise<void> => {
     const isFullDefinition = !!(project.name && project.client);
@@ -200,13 +200,34 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
     const targetProjectId = isNewCreation ? undefined : (project.id || state.selectedProjectId);
     const isUpdate = !!targetProjectId;
     
+    // DEFENSIVE: Ensure we have a valid targetProjectId before proceeding (neither new creation nor update without ID)
+    if (!targetProjectId && !isNewCreation) {
+      console.error('[saveProject] Cannot save project: No project ID available', {
+        projectId: project?.id,
+        selectedProjectId: state.selectedProjectId,
+        isNewCreation
+      });
+      toast.error("Save Failed", { description: "No project selected. Please select a project first." });
+      throw new Error("No project selected to save. Please select a project first.");
+    }
+
     const previousProjects = [...projectsRef.current];
     const baseProject = targetProjectId ? projectsRef.current.find(p => p.id === targetProjectId) : undefined;
+
+    // DEFENSIVE: Generate a proper ID for new projects
+    const newProjectId = isNewCreation ? `proj-${Date.now()}` : targetProjectId;
+
+    // DEFENSIVE: Validate we have an ID before proceeding
+    if (!newProjectId) {
+      console.error('[saveProject] Critical: No project ID could be generated', { isNewCreation, targetProjectId });
+      toast.error("Save Failed", { description: "Could not generate project ID." });
+      throw new Error("Project ID is required.");
+    }
 
     const completeProjectData = {
       ...baseProject,
       ...project,
-      id: targetProjectId || `proj-${Date.now()}`,
+      id: newProjectId,
       updatedAt: new Date().toISOString(),
       contractNo: project.contractNo || baseProject?.contractNo || null,
     } as unknown as Project;
@@ -217,6 +238,12 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
     }
 
     const sanitizedProjectData = sanitizationUtils.sanitizeObject(completeProjectData) as any;
+
+    // DEFENSIVE: Final validation that ID survived sanitization
+    if (!sanitizedProjectData.id) {
+      console.error('[saveProject] Project ID was lost during sanitization!', sanitizedProjectData);
+      sanitizedProjectData.id = newProjectId; // Restore ID if lost
+    }
 
     // Optimistic UI Update
     const optimisticProjects = isUpdate 

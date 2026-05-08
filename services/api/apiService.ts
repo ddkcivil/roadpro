@@ -128,8 +128,14 @@ export const apiService = {
       throw new Error(error.message || 'Failed to update project.');
     }
 
-    const updatedProject = mapProjectFromDb(data?.[0]);
+const updatedProject = mapProjectFromDb(data?.[0]);
     
+    // DEFENSIVE: Handle null response from Supabase
+    if (!updatedProject) {
+      console.error(`[Supabase] Project update returned no data for ID ${id}`);
+      throw new Error(`Project not found or update failed for ID: ${id}`);
+    }
+
     if (userId && userName) {
       await AuditService.logDataModification(userId, userName, 'UPDATE', 'project', updatedProject.id, updatedProject.name, previousProjectData, updatedProject);
     }
