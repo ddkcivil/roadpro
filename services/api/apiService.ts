@@ -266,7 +266,7 @@ export const apiService = {
     };
   },
 
-// Fetch all users
+  // Fetch all users
   getUsers: async (): Promise<User[]> => {
     const { data, error } = await supabase
       .from(USERS_TABLE)
@@ -278,15 +278,15 @@ export const apiService = {
       throw new Error(error.message || 'Failed to fetch users.');
     }
 
-return data.map((user: any) => ({
-      id: user.id,
-      name: user.full_name || user.name || 'User',
-      email: user.email,
-      phone: user.phone || '',
-      role: user.role || UserRole.SITE_ENGINEER,
-      avatar: user.avatar_url,
-      lastSeen: user.last_seen || undefined,
-    }));
+    return data.map((user: any) => ({
+          id: user.id,
+          name: user.full_name || user.name || 'User',
+          email: user.email,
+          phone: user.phone || '',
+          role: user.role || UserRole.SITE_ENGINEER,
+          avatar: user.avatar_url,
+          lastSeen: user.last_seen || undefined,
+        }));
   },
 
   // Update staff location
@@ -440,11 +440,10 @@ return data.map((user: any) => ({
     return realApiService.sendMessage(messageData);
   },
 
-// File Management
-  uploadFile: async (fileData: { 
-    name: string; 
-    contentType: string; 
-    base64Data: string; 
+  uploadFile: async (fileData: {
+    name: string;
+    contentType: string;
+    base64Data: string;
     projectId?: string;
     docId?: string;
     folder?: string;
@@ -457,7 +456,7 @@ return data.map((user: any) => ({
   },
 
   // fetchApi for BOQ operations
-  fetchApi: async (endpoint: string, options?: RequestInit, useCache = false, forceRefresh = false): Promise<any> => {
-    return (realApiService as any).fetchApi(endpoint, options, useCache, forceRefresh);
-  }
+    fetchApi: async (endpoint: string, options?: RequestInit, useCache = false, forceRefresh = false): Promise<any> => {
+      return (realApiService as any).fetchApi(endpoint, options, useCache, forceRefresh);
+    },
 };

@@ -111,82 +111,79 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
     };
   }, [project, settings]);
 
-  const sCurveData = useMemo(() => {
-    if (!project?.startDate || !project?.endDate) return [];
+   const sCurveData = useMemo(() => {
+     if (!project?.startDate || !project?.endDate) return [];
 
-    const start = new Date(project.startDate);
-    const end = new Date(project.endDate);
-    const now = new Date();
-    
-    // Create monthly intervals
-    const months: Date[] = [];
-    let current = new Date(start.getFullYear(), start.getMonth(), 1);
-    while (current <= end || (current.getMonth() <= end.getMonth() && current.getFullYear() <= end.getFullYear())) {
-      months.push(new Date(current));
-      current.setMonth(current.getMonth() + 1);
-      if (months.length > 60) break; // Safety break
-    }
+     const start = new Date(project.startDate);
+     const end = new Date(project.endDate);
+     const now = new Date();
 
-    let cumulativePlanned = 0;
-    let cumulativeEarned = 0;
+     // Create monthly intervals
+     const months: Date[] = [];
+     let current = new Date(start.getFullYear(), start.getMonth(), 1);
+     while (current <= end || (current.getMonth() <= end.getMonth() && current.getFullYear() <= end.getFullYear())) {
+       months.push(new Date(current));
+       current.setMonth(current.getMonth() + 1);
+       if (months.length > 60) break; // Safety break
+     }
 
-    // Map tasks and BOQ items to their completion dates
-    const schedule = project.schedule || [];
-    const boq = project.boq || [];
-    
-    return months.map(monthDate => {
-      const monthLabel = monthDate.toLocaleString('default', { month: 'short', year: '2-digit' });
-      
-      // Calculate Planned Value for this month
-      // In a real S-Curve, PV is distributed over task duration. 
-      // For this implementation, we'll use a simplified model: 
-      // tasks contribute their BOQ value proportionally over their duration.
-      
-      let monthPlanned = 0;
-      let monthEarned = 0;
+     let cumulativePlanned = 0;
+     let cumulativeEarned = 0;
 
-      schedule.forEach(task => {
-        const taskStart = new Date(task.startDate);
-        const taskEnd = new Date(task.endDate);
-        const taskBoqItem = boq.find(b => b.id === task.boqItemId);
-        const taskValue = taskBoqItem ? (taskBoqItem.quantity * taskBoqItem.rate) : 0;
+     // Map tasks and BOQ items to their completion dates
+     const schedule = project.schedule || [];
+     const boq = project.boq || [];
 
-        // If task overlaps with this month
-        const nextMonth = new Date(monthDate);
-        nextMonth.setMonth(nextMonth.getMonth() + 1);
+     return months.map(monthDate => {
+       const monthLabel = monthDate.toLocaleString('default', { month: 'short', year: '2-digit' });
 
-        if (taskStart < nextMonth && taskEnd >= monthDate) {
-          // Calculate overlap days
-          const overlapStart = Math.max(taskStart.getTime(), monthDate.getTime());
-          const overlapEnd = Math.min(taskEnd.getTime(), nextMonth.getTime());
-          const overlapDays = Math.max(0, (overlapEnd - overlapStart) / (1000 * 60 * 60 * 24));
-          const totalDays = Math.max(1, (taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24));
-          
-          monthPlanned += (overlapDays / totalDays) * taskValue;
+       // Calculate Planned Value for this month
+       let monthPlanned = 0;
+       let monthEarned = 0;
 
-          // For Earned Value, we use the progress reported on the task
-          // But only if the month is in the past or present
-          if (monthDate <= now) {
-             // Simplified: distributed earned value based on current progress
-             // A better model would use historical progress snapshots
-             const actualProgress = task.progress / 100;
-             monthEarned += (overlapDays / totalDays) * taskValue * actualProgress;
-          }
-        }
-      });
+       schedule.forEach(task => {
+         const taskStart = new Date(task.startDate);
+         const taskEnd = new Date(task.endDate);
+         const taskBoqItem = boq.find(b => b.id === task.boqItemId);
+         const taskValue = taskBoqItem ? (taskBoqItem.quantity * taskBoqItem.rate) : 0;
 
-      cumulativePlanned += monthPlanned;
-      cumulativeEarned += monthEarned;
+         // If task overlaps with this month
+         const nextMonth = new Date(monthDate);
+         nextMonth.setMonth(nextMonth.getMonth() + 1);
 
-      return {
-        name: monthLabel,
-        'Cumulative Planned': Math.round(cumulativePlanned),
-        'Cumulative Earned': monthDate <= now ? Math.round(cumulativeEarned) : null,
-        'Monthly Planned': Math.round(monthPlanned),
-        'Monthly Earned': monthDate <= now ? Math.round(monthEarned) : null
-      };
-    });
-  }, [project?.schedule, project?.boq, project?.startDate, project?.endDate]);
+         if (taskStart < nextMonth && taskEnd >= monthDate) {
+           // Calculate overlap days
+           const overlapStart = Math.max(taskStart.getTime(), monthDate.getTime());
+           const overlapEnd = Math.min(taskEnd.getTime(), nextMonth.getTime());
+           const overlapDays = Math.max(0, (overlapEnd - overlapStart) / (1000 * 60 * 60 * 24));
+           const totalDays = Math.max(1, (taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24));
+
+           monthPlanned += (overlapDays / totalDays) * taskValue;
+
+           // For Earned Value, we use the progress reported on the task
+           // But only if the month is in the past or present
+           if (monthDate <= now) {
+              const actualProgress = task.progress / 100;
+              monthEarned += (overlapDays / totalDays) * taskValue * actualProgress;
+           }
+         }
+       });
+
+       cumulativePlanned += monthPlanned;
+       // Only update cumulativeEarned if the month is in the past or present
+       if (monthDate <= now) {
+         cumulativeEarned += monthEarned;
+       }
+
+       return {
+         name: monthLabel,
+         'Cumulative Planned': Math.round(cumulativePlanned),
+         'Cumulative Earned': Math.round(cumulativeEarned), // This will be the same for future months as the last updated value
+         'Monthly Planned': Math.round(monthPlanned),
+         'Monthly Earned': monthDate <= now ? Math.round(monthEarned) : 0 // Set to 0 for future months so the bar is 0.
+       };
+     });
+   }, [project?.schedule, project?.boq, project?.startDate, project?.endDate]);
 
   const financialChartData = useMemo(() => {
     if (project?.boq && project.boq.length > 0) {
