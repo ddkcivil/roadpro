@@ -1,10 +1,9 @@
-
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, '.', ['VITE_', 'NEXT_PUBLIC_']); // Added NEXT_PUBLIC_ to envPrefix
+  const env = loadEnv(mode, '.', ['VITE_', 'NEXT_PUBLIC_']);
   return {
     server: {
       host: 'localhost',
@@ -32,41 +31,46 @@ export default defineConfig(({ mode }) => {
     define: {
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      // The following lines are redundant if NEXT_PUBLIC_ is exposed via import.meta.env
-      // but kept for now to ensure consistency with existing logic if needed elsewhere.
       'process.env.NEXT_PUBLIC_SUPABASE_URL': JSON.stringify(env.NEXT_PUBLIC_SUPABASE_URL || env.SUPABASE_URL),
       'process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY': JSON.stringify(env.NEXT_PUBLIC_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY)
     },
-      resolve: {
-        alias: {
-          '@': path.resolve(__dirname, '.'),
-          '~': path.resolve(__dirname, '.'),
-          'lib': path.resolve(__dirname, './lib'), // Added alias for lib directory
-          'pdfjs-dist/build/pdf.worker.min.mjs': 'pdfjs-worker/pdf.worker.min.mjs',
-        }
-      },      optimizeDeps: {
-        exclude: [
-          'sql.js',
-          'react-pdf'
-        ]
-      },
-      build: {
-        rollupOptions: {
-          output: {
-            manualChunks: {
-              'vendor-charts': ['recharts'],
-              'vendor-pdf': ['jspdf', 'html2canvas'],
-              'vendor-ui': ['lucide-react', 'framer-motion', '@tanstack/react-table'],
-              'vendor-supabase': ['@supabase/supabase-js'],
-            },
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, '.'),
+        '~': path.resolve(__dirname, '.'),
+        'lib': path.resolve(__dirname, './lib'),
+        'pdfjs-dist/build/pdf.worker.min.mjs': 'pdfjs-worker/pdf.worker.min.mjs',
+      }
+    },
+    optimizeDeps: {
+      exclude: ['sql.js', 'react-pdf'],
+      include: ['recharts'],
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: (id) => {
+            if (id.includes('node_modules/recharts')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('node_modules/jspdf') || id.includes('node_modules/html2canvas')) {
+              return 'vendor-pdf';
+            }
+            if (id.includes('node_modules/lucide-react') || id.includes('node_modules/framer-motion') || id.includes('node_modules/@tanstack')) {
+              return 'vendor-ui';
+            }
+            if (id.includes('node_modules/@supabase')) {
+              return 'vendor-supabase';
+            }
           },
         },
-        chunkSizeWarningLimit: 1000,
       },
-      css: {
-        modules: {
-          localsConvention: 'camelCase',
-        }
-      },
-    };
+      chunkSizeWarningLimit: 1000,
+    },
+    css: {
+      modules: {
+        localsConvention: 'camelCase',
+      }
+    },
+  };
 });

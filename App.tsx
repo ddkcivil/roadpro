@@ -79,7 +79,7 @@ import { ProtectedTab } from './components/common/ProtectedTab';
 
 const App: React.FC = () => {
   console.log('App.tsx: App component function started.');
-  const auth = useAuth();
+  const auth = useAuth() || { isAuthenticated: false, userRole: UserRole.SITE_ENGINEER, userName: '', currentUserId: '', currentUser: null, loading: true, login: () => {}, logout: () => {} };
   const {
     isAuthenticated,
     userRole,
@@ -89,7 +89,7 @@ const App: React.FC = () => {
     loading: isAuthLoading,
     login,
     logout
-  } = auth || {};
+  } = auth;
 
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [systemReady, setSystemReady] = useState(false);

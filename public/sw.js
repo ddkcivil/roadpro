@@ -6,22 +6,28 @@ const ASSETS_TO_CACHE = [
   '/apple-touch-icon.png'
 ];
 
-// Install Event - Cache static assets individually to be more robust
+// Install Event - Cache static assets with better error handling
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
-      console.log('[SW] Caching app shell assets individually');
-      // Use individual add for each asset to avoid total failure on one 404
+      console.log('[SW] Caching app shell assets');
+      // Don't fail install if we can't cache - just warn
       const cachePromises = ASSETS_TO_CACHE.map(async (asset) => {
         try {
-          const response = await fetch(asset);
-          if (!response.ok) throw new Error(`Offline cache fetch failed for ${asset}: ${response.status}`);
-          await cache.put(asset, response);
+          // Use no-cors mode for cross-origin requests
+          const response = await fetch(asset, { mode: 'no-cors' });
+          if (response.ok || response.type === 'opaque') {
+            await cache.put(asset, response);
+            console.log(`[SW] Cached: ${asset}`);
+          }
         } catch (error) {
-          console.warn(`[SW] Failed to cache asset: ${asset}`, error);
+          // Network unavailable during install - that's OK
+          console.log(`[SW] Skipping cache for ${asset} - network unavailable`);
         }
       });
-      return Promise.all(cachePromises);
+      await Promise.all(cachePromises);
+    }).catch(err => {
+      console.warn('[SW] Cache install failed:', err);
     })
   );
   self.skipWaiting();
@@ -45,10 +51,11 @@ self.addEventListener('activate', (event) => {
 });
 
 /**
- * Helper to fetch and cache
+ * Helper to fetch and cache with better error handling
  */
 async function fetchAndCache(request, cacheName) {
   try {
+    // Try network first
     const response = await fetch(request);
     if (response && response.status === 200) {
       const cache = await caches.open(cacheName);
@@ -56,6 +63,18 @@ async function fetchAndCache(request, cacheName) {
     }
     return response;
   } catch (error) {
+    console.log('[SW] Network fetch failed, trying cache:', request.url);
+    // Try cache as fallback
+    const cached = await caches.match(request);
+    if (cached) {
+      return cached;
+    }
+    // If this is a navigation request, return offline page
+    if (request.mode === 'navigate') {
+      const offlinePage = await caches.match('/index.html');
+      if (offlinePage) return offlinePage;
+    }
+    // Re-throw if no cache available
     console.error('[SW] Fetch failed:', error);
     throw error;
   }

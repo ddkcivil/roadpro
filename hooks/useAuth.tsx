@@ -62,6 +62,21 @@ export const useAuth = () => {
     initializeAuth();
   }, []);
 
+// clearAuthState must be defined BEFORE logout since logout references it
+  const clearAuthState = useCallback(() => {
+    startTransition(() => {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(AUTH_USER_KEY);
+      setToken(null);
+      setUser(null);
+      setIsAuthenticated(false);
+      setLoading(false);
+      
+      // Clear Supabase session
+      supabase.auth.signOut();
+    });
+  }, []);
+
   const login = useCallback(async (role: UserRole, name: string, token?: string, userId?: string, phone?: string) => {
     console.log('[useAuth] login called:', { role, name, hasToken: !!token, userId, timestamp: new Date().toISOString() });
     
@@ -111,20 +126,6 @@ export const useAuth = () => {
     clearAuthState();
     toast.success("Logged out successfully");
   }, [user, clearAuthState]);
-
-  const clearAuthState = useCallback(() => {
-    startTransition(() => {
-      localStorage.removeItem(AUTH_TOKEN_KEY);
-      localStorage.removeItem(AUTH_USER_KEY);
-      setToken(null);
-      setUser(null);
-      setIsAuthenticated(false);
-      setLoading(false);
-      
-      // Clear Supabase session
-      supabase.auth.signOut();
-    });
-  }, []);
 
   const currentUser = useMemo(() => {
     const u: User = {
