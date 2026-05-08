@@ -33,20 +33,11 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         if (error) throw error;
         if (!project) return res.status(404).json({ error: 'Project not found' });
 
-        // Fetch associated documents and photos manually to avoid relationship cache issues
-        const [docsRes, photosRes] = await Promise.all([
-          supabaseAdmin.from('project_documents').select('*, document_versions(*)').eq('project_id', id as string),
-          supabaseAdmin.from('project_site_photos').select('*').eq('project_id', id as string)
-        ]);
-
-        const projectWithData = {
-          ...project,
-          project_documents: docsRes.data || [],
-          project_site_photos: photosRes.data || []
-        };
-
-        return res.status(200).json(mapProjectFromDb(projectWithData));
-      }
+        // --- TEMPORARY CHANGE FOR DEBUGGING ---
+        // Removed fetching of related documents/photos and mapping to isolate the issue.
+        // We will now return the raw project data directly.
+        return res.status(200).json(project); 
+        // --- END TEMPORARY CHANGE ---      }
 
       // Fetch paginated list of projects
       const page = parseInt(req.query.page as string) || 1;
