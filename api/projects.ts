@@ -142,9 +142,12 @@ if (req.method === 'POST') {
     try {
       const projectData = { ...req.body };
 
-      // Remove MongoDB specific fields if any are accidentally passed
+// Remove MongoDB specific fields if any are accidentally passed
       delete projectData._id;
       delete projectData.__v;
+
+      // Remove id field to prevent duplicate key constraint violation
+      delete projectData.id;
 
       // Supabase update operation
       const { data: updatedProject, error } = await supabaseAdmin

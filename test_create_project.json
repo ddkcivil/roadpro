@@ -1,0 +1,6 @@
+{
+  "name": "Test Project via Curl",
+  "client": "Test Client Corp",
+  "location": "Test Location",
+  "description": "Testing project creation via curl"
+}
