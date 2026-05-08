@@ -1335,12 +1335,12 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
       </div>
 
       <div className="flex flex-1 gap-4 overflow-hidden relative">
-        {/* Map Container */}
-        <div className="flex-1 relative rounded-2xl overflow-hidden border-2 border-slate-200 shadow-inner bg-slate-100">
+{/* Map Container */}
+        <div className="flex-1 relative rounded-2xl overflow-hidden border-2 border-slate-200 shadow-inner bg-slate-100" style={{ minHeight: '500px' }}>
           <MapContainer
             center={mapCenter}
             zoom={defaultZoom}
-            style={{ height: '100%', width: '100%' }}
+            style={{ height: '100%', width: '100%', minHeight: '500px' }}
             zoomControl={false}
             preferCanvas={true}
           >

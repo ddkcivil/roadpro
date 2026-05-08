@@ -45,6 +45,12 @@ END $$;
 -- STEP 4: Create SIMPLE, non-recursive profiles policies
 -- =====================================================
 
+-- Drop existing profiles policies if they exist (to recreate with correct definition)
+DROP POLICY IF EXISTS "profiles_select_all_authenticated" ON profiles;
+DROP POLICY IF EXISTS "profiles_insert_own" ON profiles;
+DROP POLICY IF EXISTS "profiles_update_own" ON profiles;
+DROP POLICY IF EXISTS "profiles_service_role_full_access" ON profiles;
+
 -- SELECT - Allow all authenticated users to read all profiles
 -- This is needed for user listing in admin interfaces
 CREATE POLICY "profiles_select_all_authenticated"
@@ -75,6 +81,12 @@ WITH CHECK (auth.role() = 'service_role');
 -- STEP 5: Create simple projects policies (no profiles subqueries)
 -- =====================================================
 
+-- Drop existing projects policies if they exist (to recreate with correct definition)
+DROP POLICY IF EXISTS "projects_select_authenticated" ON projects;
+DROP POLICY IF EXISTS "projects_insert_authenticated" ON projects;
+DROP POLICY IF EXISTS "projects_update_owner" ON projects;
+DROP POLICY IF EXISTS "projects_delete_owner" ON projects;
+
 -- SELECT - All authenticated can read
 CREATE POLICY "projects_select_authenticated"
 ON projects FOR SELECT
@@ -102,6 +114,10 @@ USING (owner_id = auth.uid());
 
 -- STEP 6: Create simple audit_logs policies (no profiles subqueries!)
 -- =====================================================
+
+-- DROP existing audit_logs policies if they exist (to recreate with correct definition)
+DROP POLICY IF EXISTS "audit_logs_select_authenticated" ON audit_logs;
+DROP POLICY IF EXISTS "audit_logs_insert_authenticated" ON audit_logs;
 
 -- SELECT - All authenticated can read audit logs
 CREATE POLICY "audit_logs_select_authenticated"
