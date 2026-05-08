@@ -282,13 +282,9 @@ const confirmedJsonbColumns = [
     }
   });
 
-  // Map documents and site_photos if present
-  if (proj.documents !== undefined) {
-    out.project_documents = proj.documents;
-  }
-  if (proj.sitePhotos !== undefined) {
-    out.project_site_photos = proj.sitePhotos;
-  }
+// NOTE: documents and site_photos are stored in separate tables (project_documents, project_site_photos)
+  // NOT as columns in the projects table. Do NOT map them here.
+  // They are managed separately via the files API.
 
   // Map owner_id (already handled above, but ensure it uses the auth user ID)
   if (proj.ownerId !== undefined) {
