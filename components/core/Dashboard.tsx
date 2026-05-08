@@ -434,14 +434,6 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
                       <XAxis dataKey="name" stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} dy={15} />
                       <YAxis stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${currency}${Math.round(v/1000)}k`} dx={-15} />
                       <RechartsTooltip 
-                        contentStyle={{ 
-                          borderRadius: '24px', 
-                          border: '1px solid rgba(255,255,255,0.1)', 
-                          backgroundColor: 'rgba(15,23,42,0.9)', 
-                          backdropFilter: 'blur(20px)',
-                          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
-                          padding: '16px 20px'
-                        }}
                         itemStyle={{ fontSize: '12px', fontWeight: '900', color: '#fff' }}
                       />
                       <Line type="monotone" name="Planned" dataKey="Cumulative Planned" stroke="currentColor" strokeWidth={4} dot={false} strokeOpacity={0.1} />
@@ -655,6 +647,21 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
 
           {/* Site Weather & Intelligence */}
           {isWidgetVisible('weather') && (
+            <div className={cn("md:col-span-4", isWidgetVisible('project-info') ? "lg:col-span-3" : "lg:col-span-12")}>
+               <WeatherWidget />
+            </div>
+          )}
+
+        </div>
+      </div>
+    </TooltipProvider>
+  );
+});
+
+Dashboard.displayName = 'Dashboard';
+
+export default Dashboard;
+eather') && (
             <div className={cn("md:col-span-4", isWidgetVisible('project-info') ? "lg:col-span-3" : "lg:col-span-12")}>
                <WeatherWidget />
             </div>
