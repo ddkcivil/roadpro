@@ -78,6 +78,24 @@ export const apiService = {
   createProject: async (projectData: Partial<Project>, userId?: string, userName?: string): Promise<Project> => {
     const mappedProject = mapProjectToDb(projectData);
     
+    // DEFENSIVE: Get the project ID if it exists in the data
+    const projectId = mappedProject.id;
+    
+    // Check if project with this ID already exists to prevent duplicate key constraint violation
+    if (projectId) {
+      const { data: existingProject, error: checkError } = await supabase
+        .from(PROJECTS_TABLE)
+        .select('*')
+        .eq('id', projectId)
+        .maybeSingle();
+
+      if (!checkError && existingProject) {
+        console.warn(`[Supabase] Project with ID ${projectId} already exists. Updating instead.`);
+        // Project exists - update it instead of creating duplicate
+        return apiService.updateProject(projectId, projectData, userId, userName, mappedProject);
+      }
+    }
+    
 // Use mapProjectToDb to convert camelCase to snake_case for Supabase
     // The mappedProject already has proper snake_case column names for the database
     const projectToInsert = {
@@ -96,6 +114,13 @@ export const apiService = {
       .select('*');
 
     if (error) {
+      // Handle duplicate key error specifically - treat as upsert
+      if (error.code === '23505' || error.message?.includes('duplicate key')) {
+        console.warn(`[Supabase] Project ${projectId} already exists (from error). Updating instead.`);
+        if (projectId) {
+          return apiService.updateProject(projectId, projectData, userId, userName, mappedProject);
+        }
+      }
       console.error('[Supabase] Failed to create project:', error);
       throw new Error(error.message || 'Failed to create project.');
     }

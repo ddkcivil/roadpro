@@ -107,50 +107,47 @@ if (req.method === 'POST') {
       // Generate a unique project ID using UUID v4
       const projectId = projectData.id || randomUUID(); 
 
-      // Check if project with this ID already exists to prevent duplicate key error
-      const { data: existingProject } = await supabaseAdmin
+      // Prepare the project data for upsert, ensuring the ID is set correctly.
+      const projectDataForUpsert = mapProjectToDb({
+        ...projectData,
+        id: projectId,
+        ownerId: userId, // Assuming userId is available from auth middleware
+        updatedAt: new Date().toISOString()
+      });
+
+      // Use upsert with ignoreDuplicates to handle potential race conditions gracefully.
+      // If the ID already exists, Supabase will ignore the insert and not return an error.
+      // We then check if any data was actually returned, indicating a successful insert.
+      const { data: insertedProject, error } = await supabaseAdmin
         .from('projects')
-        .select('id')
-        .eq('id', projectId)
-        .maybeSingle();
-      
-      if (existingProject) {
-        // Project exists - return conflict error with helpful message
-        return res.status(409).json({ 
-          error: 'Project with this ID already exists', 
+        .upsert(projectDataForUpsert, { onConflict: 'id', ignoreDuplicates: true })
+        .select('*') // Select the row. This will either be the newly inserted row or the existing row if ignoreDuplicates was hit.
+        .eq('id', projectId) // Ensure we're looking at the specific ID that was attempted.
+        .single(); // Expect a single row result.
+
+      if (error) {
+        // Catch any errors other than duplicate key violations that upsert might return.
+        console.error('Upsert failed for project:', error);
+        return res.status(500).json({ error: 'Failed to save project', details: error.message });
+      }
+
+      // If insertedProject is null/undefined, it means no row was inserted because ignoreDuplicates prevented it (ID already existed).
+      if (!insertedProject) {
+        console.warn(`Project with ID ${projectId} already exists and was ignored.`);
+        return res.status(409).json({
+          error: 'Project with this ID already exists',
           projectId: projectId,
-          hint: 'Please refresh or try a different operation' 
+          hint: 'This operation was ignored because the project already exists.'
         });
       }
 
-      const userId = (req as any).user?.userId;
-      const { data: newProject, error } = await supabaseAdmin
-        .from('projects')
-        .insert(mapProjectToDb({
-          ...projectData,
-          id: projectId,
-          ownerId: userId,
-          updatedAt: new Date().toISOString()
-        }))
-        .select('*') // Return the inserted row without joins to avoid schema cache errors
-        .single(); // Expect a single row
+      // If insertedProject has data, a new project was successfully inserted.
+      return res.status(201).json(mapProjectFromDb(insertedProject));
 
-      if (error) {
-        // Handle duplicate key error specifically
-        if (error.code === '23505' || error.message?.includes('duplicate key')) {
-          console.error('Duplicate key error - project likely already exists:', error);
-          return res.status(409).json({ 
-            error: 'Project already exists', 
-            details: 'A project with this ID already exists in the database',
-            projectId: projectId
-          });
-        }
-        throw error;
-      }
-
-      return res.status(201).json(mapProjectFromDb(newProject));
     } catch (error: any) {
       console.error('Failed to create project:', error);
+      // This catch block now handles errors that might occur before the upsert operation
+      // or unexpected errors from the upsert operation itself if they bypass the specific error handling.
       return res.status(500).json({ error: 'Failed to create project', details: error.message });
     }
   }
