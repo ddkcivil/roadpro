@@ -3,6 +3,8 @@ import { getSupabaseAdmin, isSupabaseConfigured } from './utils/supabaseClient.j
 import { withErrorHandler } from './utils/errorHandler.js';
 import { withAuth } from './utils/auth.js';
 import { mapProjectFromDb, mapProjectToDb } from './utils/mappers.js';
+import { randomUUID } from 'crypto'; // Import randomUUID for generating unique IDs
+
 // Removed CSRFProtection as it might not be needed with Supabase auth, or needs re-evaluation.
 // Removed connectToDatabase as we use supabaseAdmin directly.
 
@@ -82,10 +84,11 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     }
   } 
   
-  if (req.method === 'POST') {
+if (req.method === 'POST') {
     const userRole = (req as any).user?.role;
     const r = userRole?.toUpperCase();
-    const isProjectAuth = r === 'ADMIN' || r === 'PROJECT MANAGER' || r === 'MANAGER' || r === 'PROJECT_MANAGER' || r === 'ADMIN' || r === 'MANAGER';
+    const allowedRoles = ['ADMIN', 'PROJECT MANAGER', 'MANAGER', 'PROJECT_MANAGER'];
+    const isProjectAuth = allowedRoles.includes(r);
     if (!isProjectAuth) {
       return res.status(403).json({ error: 'Only admins or project managers can create projects' });
     }
@@ -101,7 +104,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       delete projectData._id;
       delete projectData.__v;
 
-      const projectId = projectData.id || `proj-${Date.now()}`; // Fallback ID generator, consider uuidv4 if needed
+      // Generate a unique project ID using UUID v4
+      const projectId = projectData.id || randomUUID(); 
 
       const userId = (req as any).user?.userId;
       const { data: newProject, error } = await supabaseAdmin
@@ -304,4 +308,3 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 };
 
 export default withErrorHandler(withAuth(handler));
-
