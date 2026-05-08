@@ -8,23 +8,40 @@ export const useMessages = (currentUser: UserWithPermissions | null, projectId: 
   const [isLoading, setIsLoading] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchMessages = useCallback(async (isInitial = false) => {
+const fetchMessages = useCallback(async (isInitial = false) => {
     // STRICT GUARD: Check authentication and context before ANY fetch
     // This is the primary gate - useEffect should not call this if not authenticated
+    
+    // Enhanced auth debugging
+    const tokenCheck = localStorage.getItem('roadmaster-token');
+    console.log('[useMessages] Auth state check:', {
+      isAuthenticated,
+      projectId,
+      hasCurrentUser: !!currentUser,
+      userId: currentUser?.id,
+      hasToken: !!tokenCheck,
+      tokenLength: tokenCheck?.length || 0,
+      timestamp: new Date().toISOString()
+    });
+    
     if (!isAuthenticated) {
-      console.log('[useMessages] fetchMessages aborted: Not authenticated');
+      console.warn('[useMessages] ⚠ fetchMessages aborted: Not authenticated');
       return;
     }
     if (!projectId || projectId === 'general') {
-      console.log('[useMessages] fetchMessages aborted: Invalid projectId:', projectId);
+      console.warn('[useMessages] ⚠ fetchMessages aborted: Invalid projectId:', projectId);
       return;
     }
     if (!currentUser) {
-      console.log('[useMessages] fetchMessages aborted: No currentUser');
+      console.warn('[useMessages] ⚠ fetchMessages aborted: No currentUser');
       return;
     }
 
-    console.log('[useMessages] fetchMessages proceeding (authenticated):', { projectId, currentUser: currentUser.id, isAuthenticated });
+    if (!tokenCheck) {
+      console.error('[useMessages] ⚠⚠ CRITICAL: isAuthenticated=true but NO token in localStorage!');
+    }
+
+    console.log('[useMessages] ✓ fetchMessages proceeding (authenticated):', { projectId, currentUser: currentUser.id, isAuthenticated });
     try {
       if (isInitial) setIsLoading(true);
 

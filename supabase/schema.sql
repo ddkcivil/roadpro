@@ -158,7 +158,7 @@ ALTER TABLE public.registrations ENABLE ROW LEVEL SECURITY;`,
   `CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON public.messages(timestamp);`,
   `CREATE INDEX IF NOT EXISTS idx_messages_sender_receiver ON public.messages(senderId, receiverId);`,
 
-  `-- Projects table
+  -- Projects table
   CREATE TABLE IF NOT EXISTS public.projects (
     id text PRIMARY KEY,
     name text NOT NULL,
@@ -172,8 +172,9 @@ ALTER TABLE public.registrations ENABLE ROW LEVEL SECURITY;`,
     boq jsonb,
     variation_orders jsonb,
     measurement_sheets jsonb,
+    structures jsonb,
     owner_id uuid REFERENCES public.profiles(id)
-  );`,
+  );
   `ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;`,
 
   `-- RLS policies for projects table

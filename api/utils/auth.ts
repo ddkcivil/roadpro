@@ -4,24 +4,39 @@ import { getSupabaseAdmin, isSupabaseConfigured } from './supabaseClient.js';
 export const withAuth = (handler: Function, options: { ignoreExpiration?: boolean } = {}) => async (req: VercelRequest, res: VercelResponse) => {
   let token = null;
   const authHeader = req.headers.authorization;
+  const cookieHeader = req.headers.cookie;
   
-  // Minimal logging to avoid noise, but keep critical info
-  console.log(`[Auth Middleware] Request: ${req.method} ${req.url}`);
+  // Enhanced logging for debugging
+  console.log(`[Auth Middleware] Request: ${req.method} ${req.url}`, {
+    hasAuthHeader: !!authHeader,
+    authHeaderPrefix: authHeader ? authHeader.substring(0, 20) : 'none',
+    hasCookieHeader: !!cookieHeader,
+    cookieHeaderPreview: cookieHeader ? cookieHeader.substring(0, 50) + '...' : 'none',
+    timestamp: new Date().toISOString()
+  });
 
   if (authHeader && authHeader.startsWith('Bearer ')) {
     token = authHeader.split(' ')[1];
-  } else if (req.headers.cookie) {
-    const cookies = (req.headers.cookie || '').split(';').reduce((acc: any, cookie) => {
+    console.log('[Auth Middleware] ✓ Token found in Authorization header, length:', token.length);
+  } else if (cookieHeader) {
+    const cookies = (cookieHeader || '').split(';').reduce((acc: any, cookie) => {
       if (!cookie) return acc;
       const [name, value] = cookie.trim().split('=');
       if (name) acc[name] = value;
       return acc;
     }, {});
     token = cookies['roadmaster-access'];
+    console.log('[Auth Middleware] Token from cookie:', token ? `found (${token.length} chars)` : 'NOT FOUND');
   }
 
   if (!token) {
-    console.log('[Auth Middleware] No token found in Authorization header or roadmaster-access cookie.');
+    console.warn('[Auth Middleware] ⚠ No token found in Authorization header or roadmaster-access cookie.');
+    console.warn('[Auth Middleware] Request details:', {
+      url: req.url,
+      method: req.method,
+      hasAuthHeader: !!authHeader,
+      hasCookieHeader: !!cookieHeader
+    });
     return res.status(401).json({ error: 'Unauthorized: No token provided' });
   }
 

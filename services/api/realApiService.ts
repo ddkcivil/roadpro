@@ -54,9 +54,19 @@ class RealApiService {
    * @param options - Request options
    * @param retries - Number of retry attempts for server errors
    */
-  private async fetchWithRetry<T>(endpoint: string, options?: RequestInit, retries = 3): Promise<T> {
+private async fetchWithRetry<T>(endpoint: string, options?: RequestInit, retries = 3): Promise<T> {
     try {
       const token = localStorage.getItem('roadmaster-token');
+      const authTokenKey = 'roadmaster-token';
+      
+      // Enhanced logging for auth debugging
+      console.log(`[API] fetchWithRetry: ${endpoint}`, {
+        hasToken: !!token,
+        tokenLength: token?.length || 0,
+        tokenPrefix: token ? token.substring(0, 20) + '...' : 'none',
+        method: options?.method || 'GET',
+        timestamp: new Date().toISOString()
+      });
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -67,9 +77,11 @@ class RealApiService {
       const publicEndpoints = ['/health', '/audit'];
       if (token && !publicEndpoints.some(p => endpoint.startsWith(p))) {
         headers['Authorization'] = `Bearer ${token}`;
-        console.log(`[API] Sending token of length ${token.length} for ${endpoint}`);
+        console.log(`[API] ✓ Token added for ${endpoint}, length: ${token.length}`);
       } else if (token) {
         console.log(`[API] Skipping token for public endpoint: ${endpoint}`); 
+      } else {
+        console.warn(`[API] ⚠ No token found in localStorage key "${authTokenKey}" for ${endpoint}`);
       }
       const response = await fetch(`/api${endpoint}`, {
         ...options,

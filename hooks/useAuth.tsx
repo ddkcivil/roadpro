@@ -23,16 +23,26 @@ export const useAuth = () => {
       const storedToken = localStorage.getItem(AUTH_TOKEN_KEY);
       const storedUser = localStorage.getItem(AUTH_USER_KEY);
 
+      console.log('[useAuth] initializeAuth:', {
+        hasStoredToken: !!storedToken,
+        tokenLength: storedToken?.length || 0,
+        hasStoredUser: !!storedUser,
+        timestamp: new Date().toISOString()
+      });
+
       if (storedToken && storedUser) {
         try {
           const parsedUser = JSON.parse(storedUser);
           setToken(storedToken);
           setUser(parsedUser);
           setIsAuthenticated(true);
+          console.log('[useAuth] ✓ Auth restored from localStorage, user:', parsedUser?.full_name);
         } catch (e) {
-          console.error('Failed to parse stored user', e);
+          console.error('[useAuth] ⚠ Failed to parse stored user', e);
           clearAuthState();
         }
+      } else {
+        console.log('[useAuth] No stored credentials found');
       }
       setLoading(false);
     };
@@ -41,11 +51,16 @@ export const useAuth = () => {
   }, []);
 
   const login = async (role: UserRole, name: string, token?: string, userId?: string, phone?: string) => {
+    console.log('[useAuth] login called:', { role, name, hasToken: !!token, userId, timestamp: new Date().toISOString() });
+    
     // This is now called after a successful /api/auth?action=login call
     // Removed startTransition to potentially resolve hook-related crashes during login
     if (token) {
       localStorage.setItem(AUTH_TOKEN_KEY, token);
       setToken(token);
+      console.log('[useAuth] ✓ Token stored in localStorage, length:', token.length);
+    } else {
+      console.warn('[useAuth] ⚠ No token provided to login!');
     }
 
     const userData = {
@@ -59,6 +74,8 @@ export const useAuth = () => {
     setUser(userData);
     setIsAuthenticated(true);
     setLoading(false);
+    
+    console.log('[useAuth] ✓ login complete, isAuthenticated:', true);
   };
 
   const logout = async (selectedProjectId?: string | any, projectName?: string) => {
