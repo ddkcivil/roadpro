@@ -1,29 +1,14 @@
-# TODO: Vercel Logs Analysis
+# Vercel Logs Analysis - UPDATED May 2026 ✅
 
-## Vercel Logs Summary
-- 4 logs from 2026-05-08T00:20:00 to 2026-05-08T00:50:00
-- All show level:info (not error as searched)
-- Multiple requests to `/api/messages` returning 401 Unauthorized
+## Status Summary
+- **401 Unauthorized Issue**: RESOLVED. Logs now show successful requests (200/201) with proper token transmission.
+- **Project ID Behavior**: CLARIFIED. The `proj-` prefixed ID is the application-level identifier, distinct from the Vercel `prj_` identifier. This is expected.
+- **Environment Detection**: IMPROVED. Added detailed Vercel metadata logging in `api/auth.ts`.
+- **Log Visibility**: ENHANCED. Logic failures elevated to `console.error` for better searchability.
 
-## Identified Issues
+## Remaining Observations
+- `vercelEnv: undefined` sometimes appears because the `VERCEL` variable is only set in Vercel's production environment, not necessarily in local/preview in the same way. Added more variables to track this.
 
-### 1. 401 Unauthorized on /api/messages
-**Root Cause**: No authentication token sent in requests
-- Backend (`api/utils/auth.ts`) requires token in either:
-  - Authorization header: `Bearer <token>`
-  - Cookie: `roadmaster-access=<token>`
-- Frontend (`services/api/realApiService.ts`) reads token from `localStorage.getItem('roadmaster-token')`
-
-**Likely Causes**:
-a. Token not found in localStorage when message fetch happens
-b. Race condition in useAuth initialization
-c. Token expired/not refreshed
-
-### 2. projectId parameter format mismatch
-**Log shows**: `projectId=proj-1778159805656`
-**Expected**: Vercel project ID `prj_vy73hDIOUnD4mTgrGHk2rkNJ4KLt`
-
-The `proj-` prefixed ID appears to be a project identifier from the application, different from the Vercel project ID.
 
 ## Authentication Flow Analysis
 

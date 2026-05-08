@@ -37,6 +37,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   }
   
   const { projectId, receiverId, after } = req.query;
+  // NOTE: projectId here refers to the application's internal project ID (e.g., 'proj-123'),
+  // not the Vercel infrastructure Project ID (e.g., 'prj_abc').
   const currentUser = (req as any).user;
 
   console.log('[Messages API] Request received. projectId:', projectId, 'user:', currentUser?.userId);

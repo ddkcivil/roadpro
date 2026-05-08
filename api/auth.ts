@@ -8,6 +8,9 @@ console.log('[Auth API] Server started. Env check:', {
   hasSupabaseUrl: !!(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL),
   nodeEnv: process.env.NODE_ENV,
   vercelEnv: process.env.VERCEL,
+  vercelEnvType: process.env.VERCEL_ENV, // 'production', 'preview', or 'development'
+  vercelRegion: process.env.VERCEL_REGION,
+  timestamp: new Date().toISOString()
 });
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {

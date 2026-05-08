@@ -30,12 +30,13 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
   }
 
   if (!token) {
-    console.warn('[Auth Middleware] ⚠ No token found in Authorization header or roadmaster-access cookie.');
-    console.warn('[Auth Middleware] Request details:', {
+    console.error('[Auth Middleware] ⚠ No token found in Authorization header or roadmaster-access cookie.');
+    console.error('[Auth Middleware] Request details:', {
       url: req.url,
       method: req.method,
       hasAuthHeader: !!authHeader,
-      hasCookieHeader: !!cookieHeader
+      hasCookieHeader: !!cookieHeader,
+      timestamp: new Date().toISOString()
     });
     return res.status(401).json({ error: 'Unauthorized: No token provided' });
   }
