@@ -53,6 +53,10 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   phone text -- Added phone column
 );`,
 
+/* 
+  LEGACY TABLES - These are now stored as JSONB columns in the 'projects' table 
+  for better performance and flexibility in this specific application.
+  
   `-- BOQ Items table
 CREATE TABLE IF NOT EXISTS public.boq_items (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -107,6 +111,7 @@ CREATE TABLE IF NOT EXISTS public.vehicles (
   createdAt timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );`,
+*/
 
 `-- Registrations table (pending user registrations)
 CREATE TABLE IF NOT EXISTS public.registrations (
