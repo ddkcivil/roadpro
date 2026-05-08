@@ -84,9 +84,68 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           console.error('[Auth API] Supabase auth exception:', supEx.message, supEx.stack);
           return res.status(500).json({ error: 'Authentication temporarily unavailable' });
         }
-      } // end login
+       } // end login
 
-      // --- VERIFY ---
+       // --- SIGNUP ---
+       if (action === 'signup') {
+         const { email, password, name } = req.body;
+         console.log('[Auth API] Signup attempt for:', email);
+
+         if (!email || !password || !name) {
+           return res.status(400).json({ error: 'Email, password, and name are required' });
+         }
+
+         // Use Supabase Auth only
+         const supabaseConfigured = isSupabaseConfigured();
+         console.log('[Auth API] Supabase configured:', supabaseConfigured);
+
+         if (!supabaseConfigured) {
+           return res.status(503).json({ error: 'Authentication service not configured' });
+         }
+
+         try {
+           console.log('[Auth API] Getting Supabase client...');
+           const supabase = getSupabasePublic();
+           console.log('[Auth API] Got Supabase client:', !!supabase);
+
+           if (supabase) {
+             console.log('[Auth API] Calling Supabase signUp');
+             const { data: authData, error: authError } = await supabase.auth.signUp({
+               email,
+               password,
+               options: {
+                 data: {
+                   name: name
+                 }
+               }
+             });
+
+             console.log('[Auth API] Supabase signUp response:', { hasUser: !!authData?.user, error: authError?.message });
+
+             if (!authError && authData?.user) {
+               console.log('[Auth API] Supabase signup successful');
+               // Note: Supabase sends a confirmation email by default
+               // We don't set a cookie because the user needs to verify email first
+               return res.status(200).json({
+                 user: {
+                   id: authData.user.id,
+                   email: authData.user.email,
+                   name: authData.user.user_metadata?.name || name
+                 },
+                 message: 'Check your email to complete registration'
+               });
+             } else {
+               console.log('[Auth API] Supabase auth error:', authError?.message);
+               return res.status(400).json({ error: authError?.message || 'Signup failed' });
+             }
+           }
+         } catch (supEx: any) {
+           console.error('[Auth API] Supabase signup exception:', supEx.message, supEx.stack);
+           return res.status(500).json({ error: 'Signup temporarily unavailable' });
+         }
+       } // end signup
+
+       // --- VERIFY ---
       if (action === 'verify') {
         let token = null;
         const authHeader = req.headers.authorization;

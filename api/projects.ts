@@ -124,7 +124,7 @@ const projectData = { ...req.body };
       // Use upsert with ignoreDuplicates to handle potential race conditions gracefully.
       // If the ID already exists, Supabase will ignore the insert and not return an error.
       // We then check if any data was actually returned, indicating a successful insert.
-      const { data: insertedProject, error } = await supabaseAdmin
+      const { data: upsertedProject, error } = await supabaseAdmin
         .from('projects')
         .upsert(projectDataForUpsert, { onConflict: 'id', ignoreDuplicates: true })
         .select('*') // Select the row. This will either be the newly inserted row or the existing row if ignoreDuplicates was hit.
@@ -133,22 +133,24 @@ const projectData = { ...req.body };
 
       if (error) {
         // Catch any errors other than duplicate key violations that upsert might return.
-        console.error('Upsert failed for project:', error);
+        console.error('Error during project upsert:', error);
         return res.status(500).json({ error: 'Failed to save project', details: error.message });
       }
 
-      // If insertedProject is null/undefined, it means no row was inserted because ignoreDuplicates prevented it (ID already existed).
-      if (!insertedProject) {
-        console.warn(`Project with ID ${projectId} already exists and was ignored.`);
+      // If upsertedProject is null/undefined, it means no row was inserted or updated because ignoreDuplicates prevented it (ID already existed and was ignored).
+      if (!upsertedProject) {
+        console.warn(`Project with ID ${projectId} already exists and was not updated due to ignoreDuplicates.`);
+        // If a project with this ID existed, we should still return a 409 Conflict,
+        // as the operation did not result in a new creation or an explicit update that returned data.
         return res.status(409).json({
           error: 'Project with this ID already exists',
           projectId: projectId,
-          hint: 'This operation was ignored because the project already exists.'
+          hint: 'This operation was ignored because the project already exists. No changes were made.'
         });
       }
-
-      // If insertedProject has data, a new project was successfully inserted.
-      return res.status(201).json(mapProjectFromDb(insertedProject));
+      
+      // If upsertedProject has data, a new project was successfully inserted or an existing one was updated and returned.
+      return res.status(201).json(mapProjectFromDb(upsertedProject));
 
     } catch (error: any) {
       console.error('Failed to create project:', error);
