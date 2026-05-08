@@ -33,11 +33,19 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         if (error) throw error;
         if (!project) return res.status(404).json({ error: 'Project not found' });
 
-// --- TEMPORARY CHANGE FOR DEBUGGING ---
-        // Removed fetching of related documents/photos and mapping to isolate the issue.
-        // We will now return the raw project data directly.
-        return res.status(200).json(project); 
-        // --- END TEMPORARY CHANGE ---
+      // Fetch associated documents and photos manually to avoid relationship cache issues
+      const [docsRes, photosRes] = await Promise.all([
+        supabaseAdmin.from('project_documents').select('*, document_versions(*)').eq('project_id', id as string),
+        supabaseAdmin.from('project_site_photos').select('*').eq('project_id', id as string)
+      ]);
+
+      const projectWithData = {
+        ...project,
+        project_documents: docsRes.data || [],
+        project_site_photos: photosRes.data || []
+      };
+
+      return res.status(200).json(mapProjectFromDb(projectWithData));
       }
 
       // Fetch paginated list of projects
@@ -292,7 +300,7 @@ if (req.method === 'POST') {
       // For now, assuming it's abstract enough or handled elsewhere.
       // If AuditService.logDataModification needs to be called here, it would be similar to saveProject/deleteProject
 
-      return res.status(204).end();
+      return res.status(200).json({ message: 'Project deleted successfully.' });
     } catch (error: any) {
       console.error('Failed to delete project:', error);
       return res.status(500).json({ error: 'Failed to delete project', details: error.message });
