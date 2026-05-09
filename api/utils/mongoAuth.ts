@@ -11,8 +11,12 @@ const getJwtSecret = () => {
 
 const SALT_ROUNDS = 12;
 
-export interface MongoUser {
-  _id: string;
+// Generic user-like shape for legacy/local mappers.
+// (Kept for type compatibility; DB is expected to be Supabase.)
+export interface UserLike {
+  // Supabase users typically use `id`; legacy code may use `_id`.
+  id?: string;
+  _id?: string;
   email: string;
   passwordHash?: string;
   full_name: string;
@@ -21,6 +25,7 @@ export interface MongoUser {
   last_seen?: string;
   phone?: string;
 }
+
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS);

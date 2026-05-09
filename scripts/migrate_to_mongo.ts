@@ -95,3 +95,9 @@ dotenv.config();
 
 // migrate();
 
+// ------------------------------
+// Quarantined: legacy MongoDB migration script
+// ------------------------------
+throw new Error('LEGACY SCRIPT QUARANTINED: migrate_to_mongo.ts is not supported in the current Supabase-only setup.');
+
+

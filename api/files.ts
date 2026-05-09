@@ -1,3 +1,5 @@
+
+
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin, isSupabaseConfigured } from './utils/supabaseClient.js';
 import { withErrorHandler } from './utils/errorHandler.js';
@@ -6,10 +8,35 @@ import { mapProjectDocumentToDb, mapDocumentVersionFromDb } from './utils/mapper
 import { v4 as uuidv4 } from 'uuid'; // For generating IDs
 import { Buffer } from 'buffer'; // For Buffer operations
 
-const BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || 'project-files';
+const DEFAULT_BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || 'project-files';
+
+/**
+ * Gets the appropriate storage bucket for a project.
+ * Uses project-specific bucket if it exists, otherwise falls back to default bucket.
+ */
+async function getProjectBucket(supabaseAdmin: any, projectId?: string): Promise<string> {
+  if (!projectId) return DEFAULT_BUCKET_NAME;
+  
+  const projectBucket = `project-${projectId}`;
+  try {
+    const { data: buckets } = await supabaseAdmin.storage.listBuckets();
+    const bucketExists = buckets?.some((b: any) => b.name === projectBucket);
+    return bucketExists ? projectBucket : DEFAULT_BUCKET_NAME;
+  } catch (error) {
+    console.warn(`Error checking for project bucket ${projectBucket}:`, error);
+    return DEFAULT_BUCKET_NAME;
+  }
+}
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
+  // Check if Supabase is configured before proceeding
+  if (!isSupabaseConfigured()) {
+    return res.status(503).json({ error: 'Database service not configured' });
+  }
   const supabaseAdmin = getSupabaseAdmin();
+  if (!supabaseAdmin) {
+    return res.status(503).json({ error: 'Database service not available' });
+  }
   const { id } = req.query;
 
 
@@ -48,7 +75,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(404).json({ error: 'File not found' });
       }
 
-      // Assuming blob_url stores the path to the file in Supabase Storage
+// Assuming blob_url stores the path to the file in Supabase Storage
       // e.g., 'files/projectId/filename.ext' or 'files/filename.ext'
       const latestVersion = mapDocumentVersionFromDb(docVersions[0]);
       const filePath = latestVersion.filePath; // correctly mapped from blob_url
@@ -57,9 +84,21 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(404).json({ error: 'File path not found in metadata' });
       }
 
-      // Generate public URL using Supabase Storage client.
+      // Fetch document to get projectId for bucket resolution
+      let projId: string | undefined;
+      try {
+        const { data: doc } = await supabaseAdmin
+          .from('project_documents')
+          .select('project_id')
+          .eq('id', latestVersion.id)
+          .maybeSingle();
+        projId = doc?.project_id;
+      } catch (e) { /* ignore */ }
+
+      // Get the appropriate bucket and generate public URL
+      const bucketName = await getProjectBucket(supabaseAdmin, projId);
       const { data: publicUrlData } = supabaseAdmin.storage
-        .from(BUCKET_NAME)
+        .from(bucketName)
         .getPublicUrl(filePath);
       
       if (publicUrlData?.publicUrl) {
@@ -106,28 +145,50 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       // Sanitize filename to be safe for Supabase Storage path
       const safeName = name.replace(/[\/\?*:"<>|]/g, '_').replace(/\s+/g, '_'); // Replace disallowed chars and spaces with underscores
       
+// Get the appropriate bucket for this project
+      const bucketName = await getProjectBucket(supabaseAdmin, projectId);
+      
+      // Ensure the project-specific bucket exists before uploading
+      const { data: bucketList } = await supabaseAdmin.storage.listBuckets();
+      const projBucketExists = bucketList?.some((b: any) => b.name === bucketName);
+      if (!projBucketExists && bucketName === DEFAULT_BUCKET_NAME) {
+        // Try to create the default bucket if it doesn't exist
+        const { error: createBucketError } = await supabaseAdmin.storage.createBucket(DEFAULT_BUCKET_NAME, {
+          public: true,
+          fileSizeLimit: 52428800, // 50MB
+        });
+        if (createBucketError && !createBucketError.message?.includes('already exists')) {
+          console.warn(`Could not create bucket: ${createBucketError.message}`);
+        }
+      } else if (!projBucketExists) {
+        // Create project-specific bucket
+        const { error: createBucketError } = await supabaseAdmin.storage.createBucket(bucketName, {
+          public: true,
+          fileSizeLimit: 52428800, // 50MB
+        });
+        if (createBucketError && !createBucketError.message?.includes('already exists')) {
+          console.warn(`Could not create project bucket: ${createBucketError.message}`);
+          // Fall back to default bucket
+          const fallbackBucket = DEFAULT_BUCKET_NAME;
+          const { error: fallbackError } = await supabaseAdmin.storage.createBucket(fallbackBucket, {
+            public: true,
+            fileSizeLimit: 52428800,
+          });
+          if (fallbackError && !fallbackError.message?.includes('already exists')) {
+            throw new Error(`Failed to create storage: ${fallbackError.message}`);
+          }
+        }
+      }
+
       // Construct file path in Supabase Storage
       // Example: 'files/projectId/folder/filename.ext' or 'files/filename.ext'
       const storagePath = folder
         ? `${folder}/${safeName}`
         : `${projectId ? `${projectId}/` : ''}${safeName}`;
-      
-      // Ensure the storage bucket exists before uploading
-      const { data: buckets } = await supabaseAdmin.storage.listBuckets();
-      const bucketExists = buckets?.some((b: any) => b.name === BUCKET_NAME);
-      if (!bucketExists) {
-        const { error: createBucketError } = await supabaseAdmin.storage.createBucket(BUCKET_NAME, {
-          public: true,
-          fileSizeLimit: 52428800, // 50MB
-        });
-        if (createBucketError && !createBucketError.message?.includes('already exists')) {
-          throw new Error(`Failed to create storage bucket: ${createBucketError.message}`);
-        }
-      }
 
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-        .from(BUCKET_NAME)
+        .from(bucketName)
         .upload(storagePath, buffer, {
           contentType,
           upsert: true,
@@ -137,7 +198,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       // Get the public URL after upload
       const { data: publicUrlData } = supabaseAdmin.storage
-        .from(BUCKET_NAME)
+        .from(bucketName)
         .getPublicUrl(storagePath);
 
       const publicUrl = publicUrlData?.publicUrl;
@@ -267,10 +328,10 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         // Extract file paths from blob_url (assuming blob_url stores the path)
         const filePathsToDelete = docVersions.map((version: any) => version.blob_url).filter((path: any) => path);
         
-        if (filePathsToDelete.length > 0) {
-          // Delete from Supabase Storage
+if (filePathsToDelete.length > 0) {
+          // Delete from Supabase Storage (use default bucket for backward compatibility)
           const { error: storageError } = await supabaseAdmin.storage
-            .from(BUCKET_NAME) // Use the defined BUCKET_NAME constant
+            .from(DEFAULT_BUCKET_NAME)
             .remove(filePathsToDelete);
           
           if (storageError) {

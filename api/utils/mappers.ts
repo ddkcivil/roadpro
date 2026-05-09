@@ -1,4 +1,4 @@
-import type { MongoUser } from './mongoAuth.js';
+import type { UserLike } from './mongoAuth.js';
 import { isUuid } from './uuidUtils.js';
 
 /**
@@ -46,11 +46,13 @@ export function mapUserFromDb(user: any | null): any {
     };
   }
 
-  // Legacy MongoDB Mapping
+  // Legacy/local fallback mapping (for data shaped like Mongo docs)
+  // Prefer Supabase fields when present.
   const { passwordHash, ...safeUser } = user;
+  const id = user.id ?? user._id;
   return {
     ...safeUser,
-    id: user._id,
+    id,
     name: user.full_name || 'User',
     role: normalizeRole(user.role),
     last_seen: user.last_seen || null,
@@ -58,7 +60,7 @@ export function mapUserFromDb(user: any | null): any {
   };
 }
 
-export function mapUsersFromDb(users: MongoUser[]): any[] {
+export function mapUsersFromDb(users: UserLike[]): any[] {
   return users.map(mapUserFromDb);
 }
 
