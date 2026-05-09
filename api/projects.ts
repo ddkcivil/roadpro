@@ -3,10 +3,67 @@ import { getSupabaseAdmin, isSupabaseConfigured } from './utils/supabaseClient.j
 import { withErrorHandler } from './utils/errorHandler.js';
 import { withAuth } from './utils/auth.js';
 import { mapProjectFromDb, mapProjectToDb } from './utils/mappers.js';
-import { randomUUID } from 'crypto'; // Import randomUUID for generating unique IDs
+import { v4 as randomUUID } from 'uuid'; // Import randomUUID for generating unique IDs
 
-// Added BUCKET_NAME for Supabase Storage access
-const BUCKET_NAME = process.env.SUP supabase_STORAGE_BUCKET || 'project-files';
+// Default shared bucket for backward compatibility
+const DEFAULT_BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || 'project-files';
+
+/**
+ * Creates a dedicated storage bucket for a project
+ * @param supabaseAdmin - The Supabase admin client
+ * @param projectId - The project ID
+ * @returns The name of the created bucket
+ */
+async function createProjectBucket(supabaseAdmin: any, projectId: string): Promise<string> {
+  const bucketName = `project-${projectId}`;
+  
+  try {
+    // Check if bucket already exists
+    const { data: buckets } = await supabaseAdmin.storage.listBuckets();
+    const bucketExists = buckets?.some((b: any) => b.name === bucketName);
+    
+    if (!bucketExists) {
+      const { error: createError } = await supabaseAdmin.storage.createBucket(bucketName, {
+        public: true,
+        fileSizeLimit: 52428800, // 50MB
+      });
+      
+      if (createError && !createError.message?.includes('already exists')) {
+        console.warn(`Failed to create bucket ${bucketName}: ${createError.message}`);
+        return DEFAULT_BUCKET_NAME; // Fallback to default bucket
+      }
+    }
+    
+    return bucketName;
+  } catch (error: any) {
+    console.warn(`Error creating bucket ${bucketName}: ${error.message}`);
+    return DEFAULT_BUCKET_NAME;
+  }
+}
+
+/**
+ * Deletes a project's storage bucket
+ * @param supabaseAdmin - The Supabase admin client
+ * @param projectId - The project ID
+ */
+async function deleteProjectBucket(supabaseAdmin: any, projectId: string): Promise<void> {
+  const bucketName = `project-${projectId}`;
+  
+  try {
+    // Check if bucket exists before attempting to delete
+    const { data: buckets } = await supabaseAdmin.storage.listBuckets();
+    const bucketExists = buckets?.some((b: any) => b.name === bucketName);
+    
+    if (bucketExists) {
+      const { error: deleteError } = await supabaseAdmin.storage.deleteBucket(bucketName);
+      if (deleteError) {
+        console.warn(`Failed to delete bucket ${bucketName}: ${deleteError.message}`);
+      }
+    }
+  } catch (error: any) {
+    console.warn(`Error deleting bucket ${bucketName}: ${error.message}`);
+  }
+}
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { id } = req.query;
@@ -20,7 +77,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     return res.status(503).json({ error: 'Database service not available' });
   }
 
-if (req.method === 'GET') {
+  if (req.method === 'GET') {
     try {
       // Check for search query parameter
       const searchQuery = req.query.search as string;
@@ -44,21 +101,73 @@ if (id) {
         // If project not found, return 404
         if (!project) return res.status(404).json({ error: 'Project not found' });
 
-        // Fetch associated documents and photos - wrap in try-catch to avoid failing the whole request
+        // Fetch associated documents and photos in separate queries.
+        // This avoids fragile join/select behavior that can cause Supabase to throw (500) for GET.
+        const projectId = (id as string).trim();
+
         let docsData: any[] = [];
         let photosData: any[] = [];
-        
+
+        // 1) Documents (no joins)
         try {
-          const [docsRes, photosRes] = await Promise.all([
-            supabaseAdmin.from('project_documents').select('*, document_versions(*)').eq('project_id', (id as string).trim()),
-            supabaseAdmin.from('project_site_photos').select('*').eq('project_id', (id as string).trim())
-          ]);
-          
-          docsData = docsRes.data || [];
-          photosData = photosRes.data || [];
-        } catch (joinError: any) {
-          console.warn('[GET Project] Warning: Could not fetch associated documents/photos:', joinError?.message);
-          // Continue without crashing - documents/photos are optional
+          const { data: docsRes, error: docsError } = await supabaseAdmin
+            .from('project_documents')
+            .select('*')
+            .eq('project_id', projectId);
+
+          if (docsError) {
+            console.warn('[GET Project] Could not fetch project_documents:', docsError.message);
+          }
+
+          docsData = docsRes || [];
+        } catch (docsErr: any) {
+          console.warn('[GET Project] Warning: project_documents query failed:', docsErr?.message);
+        }
+
+        // 2) Document versions for those docs
+        if (docsData.length > 0) {
+          try {
+            const documentIds = docsData.map((doc: any) => doc.id).filter(Boolean);
+            const { data: docVersionsRes, error: docVersionsError } = await supabaseAdmin
+              .from('document_versions')
+              .select('*')
+              .in('doc_id', documentIds);
+
+            if (docVersionsError) {
+              console.warn('[GET Project] Could not fetch document_versions:', docVersionsError.message);
+            } else {
+              // Attach versions to each doc in JS so mappers can remain unchanged
+              const byDocId = new Map<string, any[]>();
+              (docVersionsRes || []).forEach((v: any) => {
+                const list = byDocId.get(v.doc_id) || [];
+                list.push(v);
+                byDocId.set(v.doc_id, list);
+              });
+
+              docsData = docsData.map((doc: any) => ({
+                ...doc,
+                document_versions: byDocId.get(doc.id) || []
+              }));
+            }
+          } catch (dvErr: any) {
+            console.warn('[GET Project] Warning: document_versions query failed:', dvErr?.message);
+          }
+        }
+
+        // 3) Photos
+        try {
+          const { data: photosRes, error: photosError } = await supabaseAdmin
+            .from('project_site_photos')
+            .select('*')
+            .eq('project_id', projectId);
+
+          if (photosError) {
+            console.warn('[GET Project] Could not fetch project_site_photos:', photosError.message);
+          }
+
+          photosData = photosRes || [];
+        } catch (photosErr: any) {
+          console.warn('[GET Project] Warning: project_site_photos query failed:', photosErr?.message);
         }
 
         const projectWithData = {
@@ -204,7 +313,12 @@ const projectData = { ...req.body };
         });
       }
       
-      // If upsertedProject has data, a new project was successfully inserted or an existing one was updated and returned.
+// If upsertedProject has data, a new project was successfully inserted or an existing one was updated and returned.
+      
+      // Create a dedicated storage bucket for the new project
+      const bucketName = await createProjectBucket(supabaseAdmin, projectId);
+      console.log(`Created storage bucket for project ${projectId}: ${bucketName}`);
+      
       return res.status(201).json(mapProjectFromDb(upsertedProject));
 
     } catch (error: any) {
@@ -395,15 +509,19 @@ const projectData = { ...req.body };
           .select('blob_url')
           .in('doc_id', documentIds);
 
-        if (docVersionsError) {
+if (docVersionsError) {
           console.error('Error fetching document versions for cleanup:', docVersionsError);
         } else if (docVersions && docVersions.length > 0) {
           const filePathsToDelete = docVersions.map((version: any) => version.blob_url).filter((path: any) => path);
           
           if (filePathsToDelete.length > 0) {
-            // Delete from Supabase Storage
+            // Try to delete from project-specific bucket first, fall back to default bucket
+            const projectBucket = `project-${projectIdToDelete}`;
+            const { data: buckets } = await supabaseAdmin.storage.listBuckets();
+            const bucketToUse = buckets?.some((b: any) => b.name === projectBucket) ? projectBucket : DEFAULT_BUCKET_NAME;
+            
             const { error: storageError } = await supabaseAdmin.storage
-              .from(BUCKET_NAME) // Use the defined BUCKET_NAME constant
+              .from(bucketToUse)
               .remove(filePathsToDelete);
             
             if (storageError) {
@@ -425,13 +543,16 @@ const projectData = { ...req.body };
         // Log the error but do not throw.
       }
 
-      // --- Project Deletion from 'projects' table ---
+// --- Project Deletion from 'projects' table ---
       const { error: deleteProjectError } = await supabaseAdmin
         .from('projects')
         .delete()
         .eq('id', projectIdToDelete);
 
       if (deleteProjectError) throw deleteProjectError; // This will be caught by the outer catch block
+
+      // Delete the project's storage bucket after all data is cleaned up
+      await deleteProjectBucket(supabaseAdmin, projectIdToDelete);
 
       // If we are here, project table deletion was successful, and cleanup attempts were made (errors logged if any).
       return res.status(200).json({ message: 'Project and associated files/photos deleted successfully.' });
@@ -445,4 +566,12 @@ const projectData = { ...req.body };
   return res.status(405).json({ error: 'Method Not Allowed' });
 };
 
+/**
+ * Gets the storage bucket name for a project
+ * Falls back to default bucket if project-specific bucket doesn't exist
+ */
+// NOTE: getProjectBucketName is currently unused.
+// Keeping the old helper removed to avoid lint warnings/errors.
+
 export default withErrorHandler(withAuth(handler));
+
