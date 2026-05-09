@@ -302,6 +302,9 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
         debouncedCacheSync(finalProjects);
       });
 
+// CACHE INVALIDATION: Clear cache after successful save to ensure fresh data on next fetch
+      DataCache.delete(getCacheKey('projects'));
+      
       toast.success(isUpdate ? "Project Updated" : "Project Created", {
         description: `${completeProjectData.name} has been synchronized with the cloud.`,
       });
@@ -364,9 +367,12 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
         }
       }
 
-      // Pass currentUser details and project name for audit logging
+// Pass currentUser details and project name for audit logging
       await apiService.deleteProject(projectId, currentUser?.id, currentUser?.name, projectToDelete?.name);
 
+      // CACHE INVALIDATION: Clear cache after delete to ensure consistency
+      DataCache.delete(getCacheKey('projects'));
+      
       debouncedCacheSync(updatedProjects);
       
       toast.success("Project Deleted", {

@@ -186,10 +186,35 @@ export const apiService = {
       return createdProject;
     }
 
-    // Project exists - perform normal update
+// Project exists - perform normal update
+    // CONFLICT DETECTION: Get current updated_at before update to track changes
+    const { data: currentProject, error: currentError } = await supabase
+      .from(PROJECTS_TABLE)
+      .select('updated_at')
+      .eq('id', id)
+      .maybeSingle();
+
+    const localUpdatedAt = projectData.updatedAt || mappedProject.updated_at;
+    const remoteUpdatedAt = currentProject?.updated_at;
+
+    // Check for conflict: if remote is newer than what we're updating from
+    if (remoteUpdatedAt && localUpdatedAt) {
+      const localTime = new Date(localUpdatedAt).getTime();
+      const remoteTime = new Date(remoteUpdatedAt).getTime();
+      
+// If remote changed within the last 5 seconds of our local update, there may be a conflict
+      if (remoteTime > localTime && (remoteTime - localTime) < 5000) {
+        console.warn(`[Supabase] Potential conflict detected for project ${id}: remote updated_at (${remoteUpdatedAt}) is newer than local (${localUpdatedAt})`);
+        // For now, we overwrite - but in a full implementation, we'd prompt the user
+      }
+    }
+
     const { data, error, count } = await supabase
       .from(PROJECTS_TABLE)
-      .update(cleanedProjectData)
+      .update({
+        ...cleanedProjectData,
+        updated_at: new Date().toISOString() // Always update timestamp on save
+      })
       .eq('id', id)
       .select('*');
 
