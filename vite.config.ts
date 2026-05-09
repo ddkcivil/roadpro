@@ -15,17 +15,17 @@ export default defineConfig(({ mode }) => {
           target: 'http://localhost:3001',
           changeOrigin: true,
           secure: false,
-           bypass: (req) => {
-             if (req.url && req.url.endsWith('.ts')) {
-               return true; // Bypass .ts files
-             }
-             return false; // Do not bypass other files
-           },
+          bypass: (req) => {
+            if (req.url && req.url.endsWith('.ts')) {
+              return true;
+            }
+            return false;
+          },
         },
       },
-hmr: process.env.VERCEL ? false : {
-  overlay: false
-},
+      hmr: process.env.VERCEL ? false : {
+        overlay: false
+      },
       watch: {
         usePolling: true,
         interval: 1000,

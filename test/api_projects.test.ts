@@ -78,7 +78,7 @@ describe('api/projects handler', () => {
     );
 
     // Default select behavior (can be overridden)
-    mockPostgrestBuilder.select.mockImplementation((_, options) => {
+    mockPostgrestBuilder.select.mockImplementation((_: any, options: any) => {
       if (options?.count === 'exact' && options?.head === true) {
         return { then: (resolve: any) => resolve({ count: 1, error: null }) };
       }

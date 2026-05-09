@@ -60,7 +60,7 @@ class BoqItemApiService {
    */
   async deleteBoqItem(id: string): Promise<void> {
     // Assuming DELETE /api/boq-items?id=...
-    await apiService.fetchApi<void>(`${BASE_URL}?id=${id}`, {
+    await apiService.fetchApi(`${BASE_URL}?id=${id}`, {
       method: 'DELETE',
     });
   }
