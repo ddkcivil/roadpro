@@ -8,10 +8,10 @@ import { mapProjectToDb } from './utils/mappers.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const supabaseAdmin = getSupabaseAdmin();
-  const { action, projectId } = req.query;
+  const { action, (projectId as string).trim() } = req.query;
 
   if (req.method === 'POST' && action === 'ingest') {
-    if (!projectId || typeof projectId !== 'string') {
+    if (!(projectId as string).trim() || typeof (projectId as string).trim() !== 'string') {
       return res.status(400).json({ error: 'Project ID is required' });
     }
 
@@ -73,12 +73,12 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       }
       
       // Step 3: Update project with new road data in Supabase
-      console.log(`[API/ROADS] 3. Updating project ${projectId} with new road data...`);
+      console.log(`[API/ROADS] 3. Updating project ${(projectId as string).trim()} with new road data...`);
       const updateStartTime = Date.now();
       
       // Execute RPC to append road to the project's roads array
       const { error: rpcError } = await supabaseAdmin.rpc('append_road_to_project', {
-        project_id: projectId,
+        project_id: (projectId as string).trim(),
         new_road_data: roadWithId
       });
 
@@ -90,7 +90,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .update(mapProjectToDb({
           updatedAt: new Date().toISOString()
         }))
-        .eq('id', projectId)
+        .eq('id', (projectId as string).trim())
         .select('id, roads')
         .single();
 

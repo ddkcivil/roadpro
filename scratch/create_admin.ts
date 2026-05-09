@@ -81,8 +81,8 @@ async function createAdmin() {
     }
 
     console.log('✅ Admin profile linked and updated in public.profiles');
-    console.log('
-🔑 LOGIN DETAILS:');
+    console.log(`
+ 🔑 LOGIN DETAILS:`);
     console.log(`   Email: ${ADMIN_EMAIL}`);
     console.log('   Password: ' + ADMIN_PASSWORD); // Changed from template literal
     console.log(`

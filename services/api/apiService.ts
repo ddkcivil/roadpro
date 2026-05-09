@@ -187,7 +187,7 @@ export const apiService = {
     }
 
     // Project exists - perform normal update
-    const { data, error } = await supabase
+    const { data, error, count } = await supabase
       .from(PROJECTS_TABLE)
       .update(cleanedProjectData)
       .eq('id', id)
@@ -198,14 +198,35 @@ export const apiService = {
       throw new Error(error.message || 'Failed to update project.');
     }
 
-    const updatedProject = mapProjectFromDb(data?.[0]);
+    // DEFENSIVE: Handle case where update succeeds but returns no data (RLS or other issues)
+    let updatedProject = mapProjectFromDb(data?.[0]);
     
-    // DEFENSIVE: Handle null response from Supabase
-    if (!updatedProject) {
+    if (!updatedProject && count && count > 0) {
+      // Update succeeded (count > 0) but no data returned - fetch the project separately
+      console.warn(`[Supabase] Update returned no data for ID ${id}, fetching project separately`);
+      const { data: fetchedData, error: fetchError } = await supabase
+        .from(PROJECTS_TABLE)
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (fetchError) {
+        console.error(`[Supabase] Failed to fetch updated project with ID ${id}:`, fetchError);
+        throw new Error(fetchError.message || 'Failed to fetch updated project.');
+      }
+      
+      if (!fetchedData) {
+        console.error(`[Supabase] Project update succeeded but project not found for ID ${id}`);
+        throw new Error(`Project not found after update for ID: ${id}`);
+      }
+      
+      updatedProject = mapProjectFromDb(fetchedData);
+    } else if (!updatedProject) {
+      // No data returned and no rows affected
       console.error(`[Supabase] Project update returned no data for ID ${id}`);
       throw new Error(`Project not found or update failed for ID: ${id}`);
     }
-
+    
     if (userId && userName) {
       await AuditService.logDataModification(userId, userName, 'UPDATE', 'project', updatedProject.id, updatedProject.name, previousProjectData, updatedProject);
     }

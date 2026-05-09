@@ -4,7 +4,16 @@ import { Project, Material, AgencyMaterial, InventoryItem } from '../../types';
  * Utility functions for migrating material data from old systems to the new unified Material system
  */
 
+// WeakMap to cache migration results - keyed by project object
+const migrationCache = new WeakMap<Project, Project>();
+
 export const migrateMaterialData = (project: Project): Project => {
+  // Check if we've already migrated this exact project object
+  const cached = migrationCache.get(project);
+  if (cached) {
+    return cached;
+  }
+
   // Create a new copy of the project
   const updatedProject = { ...project };
   
@@ -56,7 +65,7 @@ export const migrateMaterialData = (project: Project): Project => {
       tags: ['migrated-from-agency']
     };
   });
-
+  
   // Migrate InventoryItems to the new Material system
   const inventoryItems = project.inventory || [];
   const migratedFromInventory: Material[] = inventoryItems.map((invItem: InventoryItem) => {
@@ -102,23 +111,26 @@ export const migrateMaterialData = (project: Project): Project => {
       tags: ['migrated-from-inventory']
     };
   });
-
+  
   // Combine all materials
   const allMaterials = [
     ...existingMaterials,
     ...migratedFromAgency,
     ...migratedFromInventory
   ];
-
+  
   // Remove duplicates based on name and unit
   const uniqueMaterials = allMaterials.filter(
     (material, index, self) =>
       index === self.findIndex(m => m.name === material.name && m.unit === material.unit)
   );
-
+  
   // Update the project with the new materials
   updatedProject.materials = uniqueMaterials;
-
+  
+  // Cache the result for this project object
+  migrationCache.set(project, updatedProject);
+  
   return updatedProject;
 };
 

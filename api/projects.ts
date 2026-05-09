@@ -27,7 +27,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         const { data: project, error } = await supabaseAdmin
           .from('projects')
           .select('*')
-          .eq('id', id as string)
+          .eq('id', (id as string).trim())
           .single();
 
         if (error) throw error;
@@ -35,8 +35,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       // Fetch associated documents and photos manually to avoid relationship cache issues
       const [docsRes, photosRes] = await Promise.all([
-        supabaseAdmin.from('project_documents').select('*, document_versions(*)').eq('project_id', id as string),
-        supabaseAdmin.from('project_site_photos').select('*').eq('project_id', id as string)
+        supabaseAdmin.from('project_documents').select('*, document_versions(*)').eq('project_id', (id as string).trim()),
+        supabaseAdmin.from('project_site_photos').select('*').eq('project_id', (id as string).trim())
       ]);
 
       const projectWithData = {
@@ -188,7 +188,7 @@ const projectData = { ...req.body };
           ...projectData,
           updatedAt: new Date().toISOString() // Ensure updated_at is updated
         }))
-        .eq('id', id as string)
+        .eq('id', (id as string).trim())
         .select('*') // Return the updated row without joins
         .single(); // Expect a single row
 
@@ -241,7 +241,7 @@ const projectData = { ...req.body };
           .from('staff_locations') 
           .upsert([ // Use upsert to either insert or update
             {
-              project_id: id as string,
+              project_id: (id as string).trim(),
               user_id: userId,
               latitude: latitude,
               longitude: longitude,
@@ -294,7 +294,7 @@ const projectData = { ...req.body };
           ...patchData,
           updatedAt: new Date().toISOString() // Explicitly set updated_at
         }))
-        .eq('id', id as string)
+        .eq('id', (id as string).trim())
         .select('*')
         .single();
 
@@ -323,7 +323,7 @@ const projectData = { ...req.body };
       const { error: deleteError } = await supabaseAdmin
         .from('projects')
         .delete()
-        .eq('id', id as string);
+        .eq('id', (id as string).trim());
 
       if (deleteError) throw deleteError;
 

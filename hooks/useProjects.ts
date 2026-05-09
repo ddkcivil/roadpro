@@ -179,7 +179,15 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
 
   useEffect(() => {
     if (isAuthenticated && isHydrated) {
-      fetchProjects();
+      const cached = DataCache.get(getCacheKey('projects'));
+      if (cached) {
+        // Set state from cache
+        startTransition(() => {
+          dispatch({ type: 'FETCH_SUCCESS', payload: cached });
+        });
+      } else {
+        fetchProjects();
+      }
     }
   }, [isAuthenticated, isHydrated, fetchProjects]);
 
