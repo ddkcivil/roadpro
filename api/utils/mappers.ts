@@ -110,7 +110,8 @@ export function mapProjectFromDb(dbProj: any): any {
   mapped.ncrs = dbProj.ncrs || [];
   mapped.contractBills = dbProj.contract_bills || dbProj.contractBills || [];
   mapped.measurementSheets = dbProj.measurement_sheets || dbProj.measurementSheets || [];
-      mapped.staffLocations = (dbProj.staff_locations || dbProj.staffLocations || []).filter(
+  mapped.roads = dbProj.roads || [];
+  mapped.staffLocations = (dbProj.staff_locations || dbProj.staffLocations || []).filter(
         (loc: any) => loc && typeof loc.userId === 'string'
       );
   mapped.environmentRegistry = dbProj.environment_registry || dbProj.environmentRegistry || { sprinklingLogs: [], treeLogs: [] };

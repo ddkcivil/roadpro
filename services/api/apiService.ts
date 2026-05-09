@@ -323,28 +323,19 @@ const { data: currentProject } = await supabase
       console.warn(`[Supabase] Could not fetch project ${id} before delete for logging. Continuing delete.`, fetchError);
     }
 
-    const { error } = await supabase
-      .from(PROJECTS_TABLE)
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error(`[Supabase] Failed to delete project with ID ${id}:`, error);
-      let errorMessage = 'Failed to delete project.';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else {
-        errorMessage = String(error); // Fallback for non-Error types
-      }
-      throw new Error(errorMessage);
+    // Use backend API via realApiService instead of direct Supabase to bypass RLS for admins 
+    // and ensure consistent file cleanup handled by the backend.
+    try {
+      await realApiService.deleteProject(id);
+    } catch (error: any) {
+      console.error(`[API] Failed to delete project with ID ${id} via backend API:`, error);
+      throw new Error(error.message || 'Failed to delete project through backend API.');
     }
 
     if (userId && userName) {
       const nameToLog = projectToDelete?.name || projectName || 'Unknown Project';
       await AuditService.logDataModification(userId, userName, 'DELETE', 'project', id, nameToLog, projectToDelete, undefined);
     }
-
-    // TODO: Implement cleanup for related data (files, etc.) if not handled by Supabase cascading deletes.
   },
 
   // Fetch user by ID
@@ -445,58 +436,8 @@ const { data: currentProject } = await supabase
    * @returns A Promise that resolves when the file is deleted.
    */
   deleteFile: async (fileId: string): Promise<void> => {
-    console.log(`[API] Attempting to delete file with ID: ${fileId}`);
-
-    // 1. Fetch file metadata from the 'files' table to get the storage path.
-    //    Assumes 'files' table has an 'id' and 'storage_path' column.
-    const { data: fileData, error: fetchError } = await supabase
-      .from(FILES_TABLE)
-      .select('storage_path') // Assuming 'storage_path' column stores the path in Supabase Storage
-      .eq('id', fileId)
-      .single(); // Assuming fileId is unique
-
-    if (fetchError) {
-      console.error(`[Supabase] Failed to fetch file info for deletion (ID: ${fileId}):`, fetchError);
-      // Log and re-throw to indicate failure
-      let errorMessage = `Failed to fetch file metadata for ID ${fileId}.`;
-      if (fetchError instanceof Error) {
-        errorMessage = fetchError.message;
-      } else {
-        errorMessage = String(fetchError); // Fallback for non-Error types
-      }
-      throw new Error(errorMessage);
-    }
-
-    if (!fileData || !fileData.storage_path) {
-      console.warn(`[Supabase] File storage path not found for ID: ${fileId}. Skipping deletion.`);
-      // If file metadata or path is missing, we can't delete from storage.
-      return; // Or throw an error if this is considered a critical failure
-    }
-
-    // 2. Delete the file from Supabase Storage.
-    const { error: storageError } = await supabase.storage
-      .from(STORAGE_BUCKET_NAME) // Use the configured bucket name (defined at the top of the file)
-      .remove([fileData.storage_path]);
-
-    if (storageError) {
-      console.error(`[Supabase Storage] Failed to delete file ${fileData.storage_path} (ID: ${fileId}):`, storageError);
-      let errorMessage = `Failed to delete file from storage for ID ${fileId}.`;
-      if (storageError instanceof Error) {
-        errorMessage = storageError.message;
-      } else {
-        errorMessage = String(storageError); // Fallback for non-Error types
-      }
-      throw new Error(errorMessage);
-    }
-
-    console.log(`[Supabase Storage] Successfully deleted file: ${fileData.storage_path} (associated with file ID ${fileId})`);
-
-    // Optional: Delete the file record from the 'files' table as well, if desired.
-    // This would be a separate Supabase call.
-    // const { error: recordDeleteError } = await supabase.from(FILES_TABLE).delete().eq('id', fileId);
-    // if (recordDeleteError) {
-    //   console.error(`[Supabase] Failed to delete file record (ID: ${fileId}):`, recordDeleteError);
-    // }
+    // Delegate to realApiService to use backend API which handles both DB and Storage cleanup robustly
+    return realApiService.deleteFile(fileId);
   },
 
 // Heartbeat function

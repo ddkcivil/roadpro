@@ -363,34 +363,9 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: User): Proje
         setSelectedProjectId(null);
       }
 
-      // Cleanup associated files before deleting project
-      if (projectToDelete) {
-        const fileIds: string[] = [];
-        if (projectToDelete.documents) {
-          projectToDelete.documents.forEach((doc: any) => {
-            if (doc.fileId) fileIds.push(doc.fileId);
-          });
-        }
-        if (projectToDelete.sitePhotos) {
-          projectToDelete.sitePhotos.forEach((photo: any) => {
-            if (photo.fileId) fileIds.push(photo.fileId);
-          });
-        }
-        for (const fileId of fileIds) {
-          apiService.deleteFile(fileId).catch((err: unknown) => { // Changed from any to unknown
-            let errorMessage = `Failed to cleanup file ${fileId}.`;
-            if (err instanceof Error) {
-              errorMessage = err.message;
-            } else {
-              errorMessage = String(err); // Fallback for non-Error types
-            }
-            console.error(`Failed to cleanup file ${fileId}:`, errorMessage);
-          });
-        }
-      }
-
 // Pass currentUser details and project name for audit logging
       await apiService.deleteProject(projectId, currentUser?.id, currentUser?.name, projectToDelete?.name);
+
 
       // CACHE INVALIDATION: Clear cache after delete to ensure consistency
       DataCache.delete(getCacheKey('projects'));
