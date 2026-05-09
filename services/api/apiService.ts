@@ -1,4 +1,4 @@
-import { Project, User, UserRole, Message, AppSettings, StaffLocation } from '../../types';
+import { Project, User, UserRole, Message } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { mapProjectFromDb, mapProjectToDb } from '../../api/utils/mappers';
 import { AuditService } from '../analytics/auditService';
@@ -13,17 +13,6 @@ const FILES_TABLE = 'files';
 // **IMPORTANT**: Replace 'your-bucket-name' with the actual name of your Supabase storage bucket.
 // This might be 'public', or a specific bucket configured for project files.
 const STORAGE_BUCKET_NAME = 'public'; // <<< CHANGE THIS TO YOUR ACTUAL BUCKET NAME
-
-// Utility to handle Supabase API responses
-const handleSupabaseResponse = async (response: any, operation: string = 'fetch') => {
-  if (response.error) {
-    console.error(`[Supabase Error] ${operation} failed:`, response.error);
-    // Attempt to extract more specific error messages if available
-    const errorMessage = response.error.message || 'An unknown error occurred.';
-    throw new Error(errorMessage);
-  }
-  return response.data;
-};
 
 // --- Project Operations ---
 export const apiService = {
@@ -138,8 +127,8 @@ export const apiService = {
   updateProject: async (id: string, projectData: Partial<Project>, userId?: string, userName?: string, previousProjectData?: Partial<Project>): Promise<Project> => {
     const mappedProject = mapProjectToDb(projectData);
     
-    const cleanedProjectData = Object.fromEntries(
-      Object.entries(mappedProject).filter(([_, v]) => v !== undefined)
+const cleanedProjectData = Object.fromEntries(
+      Object.entries(mappedProject).filter(([_key, v]) => v !== undefined)
     );
 
     // First, check if the project exists in Supabase
@@ -188,7 +177,7 @@ export const apiService = {
 
 // Project exists - perform normal update
     // CONFLICT DETECTION: Get current updated_at before update to track changes
-    const { data: currentProject, error: currentError } = await supabase
+const { data: currentProject, error: _currentError } = await supabase
       .from(PROJECTS_TABLE)
       .select('updated_at')
       .eq('id', id)

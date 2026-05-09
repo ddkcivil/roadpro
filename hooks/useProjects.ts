@@ -7,10 +7,8 @@ import { retryWithBackoff, DEFAULT_RETRY_OPTIONS } from '../utils/retryUtils';
 import { prepareProjectWithMaterials } from '../utils/migration/materialMigrationUtils';
 import { toast } from 'sonner';
 import { useDebounce } from './useDebounce';
-import { AuditService } from '../services/analytics/auditService';
 import { sanitizationUtils } from '../utils/validation/sanitizationUtils';
 import { useAsyncPersistedReducer } from './usePersistence';
-import { supabase } from '../lib/supabase';
 import { generateUniqueId } from '../utils/uuidUtils';
 
 interface ProjectsReturn {
