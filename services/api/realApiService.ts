@@ -317,26 +317,36 @@ private async fetchWithRetry<T>(endpoint: string, options?: RequestInit, retries
     try {
       const project = await this.getProject(id);
       const fileIds: string[] = [];
-      if (project.documents) {
+      if (project?.documents) { // Use optional chaining for safety
         project.documents.forEach((doc: any) => {
           if (doc.fileId) fileIds.push(doc.fileId);
         });
       }
-      if (project.sitePhotos) {
+      if (project?.sitePhotos) { // Use optional chaining for safety
         project.sitePhotos.forEach((photo: any) => {
           if (photo.fileId) fileIds.push(photo.fileId);
         });
       }
+      
+      // Attempt to delete files. Errors will propagate if not caught here.
       for (const fileId of fileIds) {
-        this.deleteFile(fileId).catch(err => console.error(`Failed to cleanup file ${fileId}:`, err));
+        await this.deleteFile(fileId); // Errors from deleteFile will now propagate to the outer catch block
       }
-    } catch (err) {
-      console.warn('Could not fetch project for file cleanup before deletion');
+    } catch (error: any) { // Catch errors from getProject or deleteFile
+      console.error('[API] Error during file cleanup for project deletion:', error);
+      // If file cleanup fails, re-throw to prevent project deletion
+      throw new Error(`Failed to clean up files for project deletion: ${error.message}`);
     }
 
-    return this.fetchApi<void>(`/projects?id=${id}`, {
-      method: 'DELETE',
-    });
+    // Proceed to delete the project only if file cleanup was successful
+    try {
+      return await this.fetchWithRetry<void>(`/projects?id=${id}`, {
+        method: 'DELETE',
+      }, 0);
+    } catch (error: any) { // Catch errors from project deletion
+      console.error(`[API] Failed to delete project with ID ${id} after file cleanup:`, error);
+      throw new Error(`Failed to delete project: ${error.message}`);
+    }
   }
 
   async updateStaffLocation(projectId: string, latitude: number, longitude: number): Promise<{ success: boolean, location: StaffLocation }> {

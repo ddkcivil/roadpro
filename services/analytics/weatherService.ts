@@ -91,31 +91,27 @@ export const fetchWeather = async (lat: number, lng: number): Promise<WeatherInf
             recommendations,
             impactOnSchedule
         };
-    } catch (error) {
+} catch (error) {
         console.error("Weather Fetch Error:", error);
-        // Fallback mock
+        // Return empty data with error flag when API fails - no mock data
         return {
-            temp: 24,
-            condition: 'Sunny',
-            description: 'Weather service unavailable. Showing estimated values.',
-            humidity: 45,
-            windSpeed: 12,
-            icon: 'Sun',
+            temp: 0,
+            condition: 'Unavailable',
+            description: 'Weather service unavailable. Please check your connection.',
+            humidity: 0,
+            windSpeed: 0,
+            icon: 'Cloud',
             lastUpdated: new Date().toISOString(),
-            forecast: [
-                { day: 'Tue', temp: 26, condition: 'Sunny' },
-                { day: 'Wed', temp: 25, condition: 'Cloudy' },
-                { day: 'Thu', temp: 22, condition: 'Rainy' }
-            ],
-            workableConditions: true,
+            forecast: [],
+            workableConditions: false,
             riskFactors: {
-                precipitation: 20,
-                wind: 20,
-                temperature: 20,
-                visibility: 20
+                precipitation: 100,
+                wind: 100,
+                temperature: 100,
+                visibility: 100
             },
-            recommendations: ['Weather service unavailable. Using estimated values.'],
-            impactOnSchedule: 'None'
+            recommendations: ['Unable to fetch weather data. Please try again later.'],
+            impactOnSchedule: 'Severe'
         };
     }
 };
@@ -136,40 +132,22 @@ export interface MonthlyWeatherSummary {
 
 /**
  * Fetches monthly weather averages for a location.
- * For now, returns static data for Butwal in February as requested.
+ * Returns empty data with error flag - no mock/placeholder data
  */
 export const fetchMonthlySummary = async (month: string, location: string): Promise<MonthlyWeatherSummary> => {
-    // In a real app, this would fetch from an API or a database of climate normals
-    // Providing requested data for Butwal in February
-    if (month.toLowerCase() === 'february' || month.toLowerCase() === 'feb') {
-        return {
-            month: 'February',
-            location: 'Butwal, Nepal',
-            avgHigh: 24,
-            avgLow: 9,
-            avgRainfall: 24, // mm
-            rainyDays: 2,
-            avgHumidity: 67,
-            avgWindSpeed: 4.3,
-            sunshineHours: 7.1,
-            summary: "Mild and dry winter weather, transitioning towards spring. Clear or partly cloudy skies prevail about 85% of the time.",
-            travelTip: "Best time for outdoor activities. Pack light layers: t-shirts for warm afternoons and a light jacket for chilly mornings."
-        };
-    }
-    
-    // Default/Placeholder for other months
+    // Return empty data with error flag - no mock/placeholder data
     return {
         month: month,
         location: location,
-        avgHigh: 25,
-        avgLow: 15,
-        avgRainfall: 50,
-        rainyDays: 5,
-        avgHumidity: 60,
-        avgWindSpeed: 10,
-        sunshineHours: 6,
-        summary: "Weather data pending for this month.",
-        travelTip: "Check local forecasts before planning outdoor work."
+        avgHigh: 0,
+        avgLow: 0,
+        avgRainfall: 0,
+        rainyDays: 0,
+        avgHumidity: 0,
+        avgWindSpeed: 0,
+        sunshineHours: 0,
+        summary: `Weather data unavailable for ${month}. Please check your connection or try again later.`,
+        travelTip: "Unable to fetch weather data. Please try again later."
     };
 };
 
@@ -185,7 +163,8 @@ export interface DailyWeatherRecord {
 }
 
 /**
- * Fetches or simulates daily weather history for a specific month and year.
+ * Fetches daily weather history for a specific month and year using Open-Meteo API.
+ * No mock data - returns empty array on failure.
  */
 export const fetchDailyWeatherHistory = async (month: number, year: number, lat: number, lng: number): Promise<DailyWeatherRecord[]> => {
     try {
@@ -194,53 +173,56 @@ export const fetchDailyWeatherHistory = async (month: number, year: number, lat:
         const lastDay = new Date(year, month, 0).getDate();
         const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
         
-        // Using Open-Meteo Historical API (or forecast API if within last 2 weeks/next 1 week)
-        // For simplicity and to ensure we always have data, we use the forecast API with a wider range 
-        // if it's the current month, otherwise we'd use the archive API.
-        // Here we'll simulate for now to ensure reliability during demo.
+        // Determine if we need historical or forecast data
+        const now = new Date();
+        const isHistorical = year < now.getFullYear() || (year === now.getFullYear() && month < now.getMonth() + 1);
         
-        const records: DailyWeatherRecord[] = [];
-        const daysInMonth = new Date(year, month, 0).getDate();
+        // Use archive API for past months, forecast API for current/future
+        const apiType = isHistorical ? 'archive' : 'forecast';
+        const baseUrl = isHistorical 
+            ? 'https://archive-api.open-meteo.com/v1/archive'
+            : 'https://api.open-meteo.com/v1/forecast';
         
-        for (let i = 1; i <= daysInMonth; i++) {
-            const date = `${year}-${month.toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
-            const isWeekend = new Date(date).getDay() === 0 || new Date(date).getDay() === 6;
-            
-            // Generate deterministic but "random" looking weather based on the date
-            const seed = (year * 10000) + (month * 100) + i;
-            const pseudoRandom = (Math.sin(seed) + 1) / 2;
-            
-            const tempMax = 20 + Math.floor(pseudoRandom * 10);
-            const tempMin = 5 + Math.floor(pseudoRandom * 8);
-            const rainChance = pseudoRandom > 0.8 ? (pseudoRandom - 0.8) * 50 : 0;
-            const wind = 5 + Math.floor(pseudoRandom * 20);
-            
-            let condition = 'Sunny';
-            let icon = 'Sun';
-            
-            if (rainChance > 5) {
-                condition = 'Rainy';
-                icon = 'CloudRain';
-            } else if (pseudoRandom > 0.6) {
-                condition = 'Cloudy';
-                icon = 'Cloud';
-            }
-            
-            records.push({
+        const response = await fetch(
+            `${baseUrl}?latitude=${lat}&longitude=${lng}&start_date=${startDate}&end_date=${endDate}` +
+            `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,weather_code` +
+            `&timezone=auto`
+        );
+        
+        if (!response.ok) throw new Error('Weather history API failed');
+        
+        const data = await response.json();
+        const daily = data.daily;
+        
+        const interpretCode = (code: number): { condition: string; icon: string } => {
+            if (code === 0) return { condition: 'Sunny', icon: 'Sun' };
+            if (code <= 3) return { condition: 'Cloudy', icon: 'Cloud' };
+            if (code <= 48) return { condition: 'Foggy', icon: 'CloudFog' };
+            if (code <= 67) return { condition: 'Rainy', icon: 'CloudRain' };
+            if (code <= 77) return { condition: 'Snowy', icon: 'CloudSnow' };
+            if (code <= 82) return { condition: 'Rainy', icon: 'CloudRain' };
+            return { condition: 'Stormy', icon: 'CloudLightning' };
+        };
+        
+        const records: DailyWeatherRecord[] = daily.time.map((date: string, idx: number) => {
+            const status = interpretCode(daily.weather_code[idx]);
+            const windSpeed = daily.wind_speed_10m_max[idx] || 0;
+            return {
                 date,
-                tempMax,
-                tempMin,
-                condition,
-                icon,
-                rainfall: Number(rainChance.toFixed(1)),
-                windSpeed: wind,
-                workable: condition !== 'Rainy' && wind < 30
-            });
-        }
+                tempMax: Math.round(daily.temperature_2m_max[idx]),
+                tempMin: Math.round(daily.temperature_2m_min[idx]),
+                condition: status.condition,
+                icon: status.icon,
+                rainfall: daily.precipitation_sum[idx] || 0,
+                windSpeed,
+                workable: status.condition !== 'Rainy' && status.condition !== 'Snowy' && windSpeed < 30
+            };
+        });
         
         return records;
     } catch (error) {
         console.error("Failed to fetch weather history", error);
+        // Return empty array on failure - no mock data
         return [];
     }
 };

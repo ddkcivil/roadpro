@@ -104,7 +104,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       const buffer = Buffer.from(base64Content, 'base64');
       
       // Sanitize filename to be safe for Supabase Storage path
-      const safeName = name.replace(/[\/\\?*:\"<>|]/g, '_').replace(/\s+/g, '_'); // Replace disallowed chars and spaces with underscores
+      const safeName = name.replace(/[\/\?*:"<>|]/g, '_').replace(/\s+/g, '_'); // Replace disallowed chars and spaces with underscores
       
       // Construct file path in Supabase Storage
       // Example: 'files/projectId/folder/filename.ext' or 'files/filename.ext'
@@ -275,8 +275,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           
           if (storageError) {
             console.error(`Failed to delete files from storage:`, storageError);
-            // Decide if this should be a fatal error or if we proceed with DB deletion
-            // For now, log and proceed to delete metadata.
+            // Throw an error to prevent DB deletion if storage fails
+            throw new Error(`Failed to delete files from storage: ${storageError.message}`);
           }
         }
       }
@@ -301,4 +301,3 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 };
 
 export default withErrorHandler(withAuth(handler));
-

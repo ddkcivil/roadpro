@@ -77,9 +77,9 @@ class OCRService {
     } catch (error) {
       console.error('Real PDF extraction failed, falling back to basic analysis:', error);
       
-      // Fallback if PDF.js fails
+      // Return empty result with error flag instead of mock data
       return {
-        text: `Extraction Error: ${(error as Error).message}\n\nFilename: ${pdfFile.name}`,
+        text: '',
         confidence: 0,
         boundingBoxes: []
       };
@@ -87,36 +87,34 @@ class OCRService {
   }
 
   private async extractTextFromImageFile(imageFile: File): Promise<OCRResult> {
-    // Simulate image OCR processing - in a real implementation, we would use Tesseract.js
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const mockText = `Image Document Analysis Result:\n\n` +
-      `Filename: ${imageFile.name}\n` +
-      `BOQ Item: Sub-base Course - 200.00 SqM @ Rs. 180.00/SqM\n` +
-      `Measurement: 25.00m x 8.00m\n` +
-      `Contractor: XYZ Enterprises\n` +
-      `Date: 2023-07-22\n` +
-      `Signature: Ramesh Shrestha\n` +
-      `Witness: Manoj KC\n\n` +
-      `Additional Details: Work completed as per specification.\n` +
-      `Quality: Satisfactory\n` +
-      `Quantity: 200.00 SqM\n` +
-      `Rate: Rs. 180.00/SqM\n` +
-      `Amount: Rs. 36,000.00`;
-    
-    const confidence = Math.floor(Math.random() * 30) + 70; // Between 70-100%
-    
-    const boundingBoxes = [
-      { x: 30, y: 30, width: 150, height: 20, text: "XYZ Enterprises" },
-      { x: 30, y: 60, width: 200, height: 20, text: "Sub-base Course - 200.00 SqM @ Rs. 180.00/SqM" },
-      { x: 30, y: 90, width: 100, height: 20, text: "2023-07-22" },
-      { x: 30, y: 120, width: 120, height: 20, text: "Ramesh Shrestha" },
-      { x: 30, y: 150, width: 80, height: 20, text: "200.00 SqM" },
-      { x: 30, y: 180, width: 100, height: 20, text: "Rs. 180.00/SqM" },
-      { x: 30, y: 210, width: 100, height: 20, text: "Rs. 36,000.00" }
-    ];
-
-    return { text: mockText, confidence, boundingBoxes };
+    // Try real OCR processing with Tesseract.js - no mock data
+    try {
+      const Tesseract = await import('tesseract.js');
+      
+      const result = await Tesseract.recognize(imageFile, 'eng', {
+        logger: (m) => console.log('[OCR]', m.status, m.progress)
+      });
+      
+      return {
+        text: result.data.text,
+        confidence: result.data.confidence,
+        boundingBoxes: result.data.words?.map((word: any) => ({
+          x: word.bbox.x0,
+          y: word.bbox.y0,
+          width: word.bbox.x1 - word.bbox.x0,
+          height: word.bbox.y1 - word.bbox.y0,
+          text: word.text
+        })) || []
+      };
+    } catch (error) {
+      console.error('OCR processing failed:', error);
+      // Return empty result with error flag - no mock data
+      return {
+        text: '',
+        confidence: 0,
+        boundingBoxes: []
+      };
+    }
   }
 
   async extractStructuredData(text: string): Promise<any> {
@@ -203,7 +201,7 @@ class OCRService {
       structuredData.boqItems = boqMatches.map(match => ({
         quantity: parseFloat(match[1].replace(/,/g, '')),
         description: match[2].trim(),
-        unit: this.extractUnit(match[0])
+        unit: this.extractUnit(match[0]) as any
       }));
     }
   
@@ -269,7 +267,7 @@ class OCRService {
     const contractorPattern = /(?:Contractor|Supplier|Vendor)[:\s]*([A-Za-z\s&]+(?:Pvt Ltd|Ltd|Co|Group|Enterprise|Company))/gi;
     const contractorMatches = [...text.matchAll(contractorPattern)];
     if (contractorMatches.length > 0) {
-      structuredData.contractors = contractorMatches.map(match => match[1].trim());
+      structuredData.contractors = contractorMatches.map(match => match[1].trim())
     }
   
     // Extract invoice numbers
