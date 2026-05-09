@@ -1,69 +1,22 @@
-import { mongodb } from '../lib/mongodb';
-import { Collection } from 'mongodb';
 import '@testing-library/jest-dom';
 
-// Define test collections to cleanup
-const TEST_COLLECTIONS = [
-  'projects',
-  'users', 
-  'roads',
-  'alignments',
-  'structures',
-  'registrations',
-  'files',
-  'messages',
-  'audit'
-] as const;
-
-type TestCollection = typeof TEST_COLLECTIONS[number];
+// MongoDB is no longer required - project uses Supabase
+// Keeping stubs for backward compatibility with legacy tests
 
 /** 
- * MongoDB Test Setup 
- * - Uses test database: myroad_vite_test
- * - Clears test collections before all tests
- * - Call in beforeAll()
+ * MongoDB Test Setup (Deprecated)
+ * Now uses Supabase instead of MongoDB.
+ * This is kept for backward compatibility.
  */
 export class MongoDBTestSetup {
   static async setup() {
-    console.log('[MongoDB Test Setup] Ensuring connection to test DB...');
-    
-    try {
-      // Wait for connection to be ready
-      await mongodb.connect();
-      
-      const db = mongodb.db;
-      if (!db) {
-        throw new Error('Database instance is null after connection');
-      }
-      
-      console.log('[MongoDB Test Setup] Connected, cleaning collections...');
-      
-      for (const collName of TEST_COLLECTIONS) {
-        try {
-          const collection = db.collection(collName);
-          const result = await collection.deleteMany({});
-          console.log(`[MongoDB Test] Cleared ${collName}: ${result.deletedCount} docs`);
-        } catch (error) {
-          // Collection might not exist yet, which is fine
-          console.log(`[MongoDB Test] Note: Could not clear ${collName} (may not exist)`);
-        }
-      }
-      
-      console.log('[MongoDB Test Setup] ✅ Test DB ready');
-    } catch (error: any) {
-      console.error('[MongoDB Test Setup] ❌ Failed to initialize test DB:', error.message);
-      console.error('Make sure MongoDB is running: docker-compose up -d mongodb');
-      throw error;
-    }
+    // No-op - Supabase tests don't need MongoDB
+    console.log('[MongoDB Test Setup] Skipping (uses Supabase now)');
   }
   
   static async teardown() {
-    try {
-      await mongodb.close();
-      console.log('[MongoDB Test] Connection closed');
-    } catch (error) {
-      console.warn('[MongoDB Test] Teardown error:', error);
-    }
+    // No-op
+    console.log('[MongoDB Test] Teardown (uses Supabase now)');
   }
 }
 
@@ -76,9 +29,8 @@ afterAll(async () => {
   await MongoDBTestSetup.teardown();
 });
 
-// Per-file cleanup option
-export const clearTestCollection = async (collectionName: TestCollection) => {
-  const db = mongodb.db;
-  const collection = db.collection(collectionName);
-  await collection.deleteMany({});
+// Legacy stub - no longer used
+export const clearTestCollection = async (_collectionName: string) => {
+  // No-op - Supabase handles cleanup internally
+  console.log('[clearTestCollection] No-op (uses Supabase)');
 };

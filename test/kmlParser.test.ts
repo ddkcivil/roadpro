@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { parseKML } from '../utils/kmlParser';
-import { Road, Alignment, Structure, parseChainage } from '../models/roadTypes';
+import { Road, Alignment, Structure, parseChainage } from '../api/utils/roadTypes';
 
 // Helper to create a basic KML string
 const createBasicKml = (roadName: string): string => `

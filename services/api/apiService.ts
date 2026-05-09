@@ -111,7 +111,13 @@ export const apiService = {
         }
       }
       console.error('[Supabase] Failed to create project:', error);
-      throw new Error(error.message || 'Failed to create project.');
+      let errorMessage = 'Failed to create project.';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = String(error); // Fallback for non-Error types
+      }
+      throw new Error(errorMessage);
     }
 
     const createdProject = mapProjectFromDb(data?.[0]);
@@ -177,12 +183,11 @@ const cleanedProjectData = Object.fromEntries(
 
 // Project exists - perform normal update
     // CONFLICT DETECTION: Get current updated_at before update to track changes
-const { data: currentProject, error: _currentError } = await supabase
-      .from(PROJECTS_TABLE)
-      .select('updated_at')
-      .eq('id', id)
-      .maybeSingle();
-
+const { data: currentProject } = await supabase
+  .from(PROJECTS_TABLE)
+  .select('updated_at')
+  .eq('id', id)
+  .maybeSingle();
     const localUpdatedAt = projectData.updatedAt || mappedProject.updated_at;
     const remoteUpdatedAt = currentProject?.updated_at;
 
@@ -209,7 +214,13 @@ const { data: currentProject, error: _currentError } = await supabase
 
     if (error) {
       console.error(`[Supabase] Failed to update project with ID ${id}:`, error);
-      throw new Error(error.message || 'Failed to update project.');
+      let errorMessage = 'Failed to update project.';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = String(error); // Fallback for non-Error types
+      }
+      throw new Error(errorMessage);
     }
 
     // DEFENSIVE: Handle case where update succeeds but returns no data (RLS or other issues)
@@ -269,7 +280,7 @@ const { data: currentProject, error: _currentError } = await supabase
     let projectToDelete: Project | undefined;
     try {
       projectToDelete = await apiService.getProject(id);
-    } catch (fetchError) {
+    } catch (fetchError: unknown) { // Changed from any to unknown
       console.warn(`[Supabase] Could not fetch project ${id} before delete for logging. Continuing delete.`, fetchError);
     }
 
@@ -280,7 +291,13 @@ const { data: currentProject, error: _currentError } = await supabase
 
     if (error) {
       console.error(`[Supabase] Failed to delete project with ID ${id}:`, error);
-      throw new Error(error.message || 'Failed to delete project.');
+      let errorMessage = 'Failed to delete project.';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = String(error); // Fallback for non-Error types
+      }
+      throw new Error(errorMessage);
     }
 
     if (userId && userName) {
@@ -301,7 +318,13 @@ const { data: currentProject, error: _currentError } = await supabase
 
     if (error) {
       console.error(`[Supabase] Failed to fetch user with ID ${userId}:`, error);
-      throw new Error(error.message || 'Failed to fetch user.');
+      let errorMessage = 'Failed to fetch user.';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = String(error); // Fallback for non-Error types
+      }
+      throw new Error(errorMessage);
     }
     
     if (!data) return undefined;
@@ -326,18 +349,26 @@ const { data: currentProject, error: _currentError } = await supabase
 
     if (error) {
       console.error('[Supabase] Failed to fetch users:', error);
-      throw new Error(error.message || 'Failed to fetch users.');
+      let errorMessage = 'Failed to fetch users.';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = String(error); // Fallback for non-Error types
+      }
+      throw new Error(errorMessage);
     }
 
-    return data.map((user: any) => ({
-          id: user.id,
-          name: user.full_name || user.name || 'User',
-          email: user.email,
-          phone: user.phone || '',
-          role: user.role || UserRole.SITE_ENGINEER,
-          avatar: user.avatar_url,
-          lastSeen: user.last_seen || undefined,
-        }));
+    return data.map((user: any) => {
+          return {
+            id: user.id,
+            name: user.full_name || user.name || 'User',
+            email: user.email,
+            phone: user.phone || '',
+            role: user.role || UserRole.SITE_ENGINEER,
+            avatar: user.avatar_url,
+            lastSeen: user.last_seen || undefined,
+          } as User;
+        });
   },
 
   // Update staff location
@@ -358,7 +389,13 @@ const { data: currentProject, error: _currentError } = await supabase
 
     if (error) {
       console.error('[Supabase] Failed to update staff location:', error);
-      throw new Error(error.message || 'Failed to update staff location.');
+      let errorMessage = 'Failed to update staff location.';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = String(error); // Fallback for non-Error types
+      }
+      throw new Error(errorMessage);
     }
     return data;
   },
@@ -382,7 +419,13 @@ const { data: currentProject, error: _currentError } = await supabase
     if (fetchError) {
       console.error(`[Supabase] Failed to fetch file info for deletion (ID: ${fileId}):`, fetchError);
       // Log and re-throw to indicate failure
-      throw new Error(`Failed to fetch file metadata for ID ${fileId}: ${fetchError.message}`);
+      let errorMessage = `Failed to fetch file metadata for ID ${fileId}.`;
+      if (fetchError instanceof Error) {
+        errorMessage = fetchError.message;
+      } else {
+        errorMessage = String(fetchError); // Fallback for non-Error types
+      }
+      throw new Error(errorMessage);
     }
 
     if (!fileData || !fileData.storage_path) {
@@ -398,7 +441,13 @@ const { data: currentProject, error: _currentError } = await supabase
 
     if (storageError) {
       console.error(`[Supabase Storage] Failed to delete file ${fileData.storage_path} (ID: ${fileId}):`, storageError);
-      throw new Error(`Failed to delete file from storage for ID ${fileId}: ${storageError.message}`);
+      let errorMessage = `Failed to delete file from storage for ID ${fileId}.`;
+      if (storageError instanceof Error) {
+        errorMessage = storageError.message;
+      } else {
+        errorMessage = String(storageError); // Fallback for non-Error types
+      }
+      throw new Error(errorMessage);
     }
 
     console.log(`[Supabase Storage] Successfully deleted file: ${fileData.storage_path} (associated with file ID ${fileId})`);
@@ -416,7 +465,10 @@ const { data: currentProject, error: _currentError } = await supabase
     console.log('[API] Sending heartbeat...');
   },
 
-  // --- Forward to realApiService for Backend API operations ---
+  // The 'realApiService' is imported from './realApiService' but its types are not fully available or exported here.
+  // For functions returning 'any' or involving 'realApiService as any', 'any' is used as a placeholder.
+  // Specific types are used where available (e.g., User, Message).
+  // TODO: Improve typing for realApiService if type definitions become available.
 
   // Registration Management
   getPendingRegistrations: async (): Promise<any[]> => {
@@ -508,6 +560,7 @@ const { data: currentProject, error: _currentError } = await supabase
 
   // fetchApi for BOQ operations
     fetchApi: async (endpoint: string, options?: RequestInit, useCache = false, forceRefresh = false): Promise<any> => {
+      // Casting realApiService to 'any' because its types are not fully available.
       return (realApiService as any).fetchApi(endpoint, options, useCache, forceRefresh);
     },
 };

@@ -1,6 +1,6 @@
 
 import { useEffect, useMemo, startTransition, useCallback, useRef } from 'react';
-import { Project } from '../types';
+import { Project, User } from '../types';
 import { apiService } from '../services/api/apiService';
 import { DataCache, getCacheKey } from '../utils/data/cacheUtils';
 import { retryWithBackoff, DEFAULT_RETRY_OPTIONS } from '../utils/retryUtils';
@@ -45,7 +45,7 @@ type ProjectsAction =
 const projectsReducer = (state: ProjectsState, action: ProjectsAction): ProjectsState => {
   switch (action.type) {
     case 'HYDRATE':
-      const hydratedProjects = Array.isArray(action.payload.projects) ? action.payload.projects.map(p => prepareProjectWithMaterials(p)) : [];
+      const hydratedProjects = Array.isArray(action.payload.projects) ? action.payload.projects.map((p: Project) => prepareProjectWithMaterials(p)) : [];
       return {
         projects: hydratedProjects,
         selectedProjectId: action.payload?.selectedProjectId ?? state.selectedProjectId,
@@ -55,15 +55,16 @@ const projectsReducer = (state: ProjectsState, action: ProjectsAction): Projects
     case 'FETCH_START':
       return { ...state, isLoading: true, error: null };
     case 'FETCH_SUCCESS':
-      const fetchedProjects = (action.payload || []).map(p => prepareProjectWithMaterials(p));
+      const fetchedProjects = (action.payload || []).map((p: Project) => prepareProjectWithMaterials(p));
       return { ...state, isLoading: false, projects: fetchedProjects, error: null };
     case 'FETCH_ERROR':
       return { ...state, isLoading: false, error: action.payload };
     case 'SET_SELECTED_PROJECT':
       return { ...state, selectedProjectId: action.payload };
-    case 'UPDATE_PROJECTS':
-      const updatedProjects = (action.payload || []).map(p => prepareProjectWithMaterials(p));
+case 'UPDATE_PROJECTS': {
+      const updatedProjects = (action.payload || []).map((p: Project) => prepareProjectWithMaterials(p));
       return { ...state, projects: updatedProjects };
+    }
     default:
       return state;
   }
@@ -76,7 +77,7 @@ const INITIAL_STATE: ProjectsState = {
   error: null,
 };
 
-export const useProjects = (isAuthenticated: boolean, currentUser?: any): ProjectsReturn => {
+export const useProjects = (isAuthenticated: boolean, currentUser?: User): ProjectsReturn => {
   const [state, dispatch, isHydrated] = useAsyncPersistedReducer(
     projectsReducer, 
     INITIAL_STATE, 
@@ -167,10 +168,16 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
         dispatch({ type: 'FETCH_SUCCESS', payload: processedProjects });
       });
       DataCache.set(getCacheKey('projects'), processedProjects, { ttl: 10 * 60 * 1000 });
-    } catch (error: any) {
+    } catch (error: unknown) { // Changed from any to unknown
       console.error('Failed to fetch projects from Supabase:', error);
       startTransition(() => {
-        dispatch({ type: 'FETCH_ERROR', payload: error.message || 'Failed to fetch projects from Supabase.' });
+        let errorMessage = 'Failed to fetch projects from Supabase.';
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else {
+          errorMessage = String(error); // Fallback for non-Error types
+        }
+        dispatch({ type: 'FETCH_ERROR', payload: errorMessage });
       });
     }
   }, [dispatch]);
@@ -249,7 +256,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
       throw new Error("Project name and employer/client are required.");
     }
 
-    const sanitizedProjectData = sanitizationUtils.sanitizeObject(completeProjectData) as any;
+    const sanitizedProjectData = sanitizationUtils.sanitizeObject(completeProjectData) as Project;
 
     // DEFENSIVE: Final validation that ID survived sanitization
     if (!sanitizedProjectData.id) {
@@ -307,20 +314,26 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
         description: `${completeProjectData.name} has been synchronized with the cloud.`,
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) { // Changed from any to unknown
       console.error('[ERROR] Failed to save project to Supabase backend:', error);
       startTransition(() => {
         dispatch({ type: 'UPDATE_PROJECTS', payload: previousProjects });
       });
       
-      let errorMsg = error.message || 'Unknown server error';
-      if (error.message?.includes('Failed to fetch')) {
+      let errorMsg = 'Unknown server error';
+      if (error instanceof Error) {
+        errorMsg = error.message;
+      } else {
+        errorMsg = String(error); // Fallback for non-Error types
+      }
+
+      if (errorMsg.includes('Failed to fetch')) {
         errorMsg = 'Network error: Please check your internet connection';
-      } else if (error.message?.includes('ERR_INTERNET_DISCONNECTED')) {
+      } else if (errorMsg.includes('ERR_INTERNET_DISCONNECTED')) {
         errorMsg = 'No internet connection. Your changes are saved locally.';
-      } else if (error.status === 401 || error.status === 403) {
+      } else if (errorMsg.includes('401') || errorMsg.includes('403')) { // Basic check for status codes
         errorMsg = 'Permission denied. Please check your access rights.';
-      } else if (error.status >= 500) {
+      } else if (errorMsg.includes('500')) { // Basic check for status codes
         errorMsg = 'Server error. The service may be temporarily unavailable.';
       }
       
@@ -361,7 +374,15 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
           });
         }
         for (const fileId of fileIds) {
-          apiService.deleteFile(fileId).catch((err: any) => console.error(`Failed to cleanup file ${fileId}:`, err));
+          apiService.deleteFile(fileId).catch((err: unknown) => { // Changed from any to unknown
+            let errorMessage = `Failed to cleanup file ${fileId}.`;
+            if (err instanceof Error) {
+              errorMessage = err.message;
+            } else {
+              errorMessage = String(err); // Fallback for non-Error types
+            }
+            console.error(`Failed to cleanup file ${fileId}:`, errorMessage);
+          });
         }
       }
 
@@ -376,7 +397,7 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
       toast.success("Project Deleted", {
         description: "The project has been permanently removed from the database.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) { // Changed from any to unknown
       startTransition(() => {
         dispatch({ type: 'UPDATE_PROJECTS', payload: previousProjects });
       });
@@ -385,7 +406,12 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
       }
       
       console.error('[ERROR] Failed to delete project from Supabase backend:', error);
-      const errorMsg = error.message || 'Unknown server error';
+      let errorMsg = 'Unknown server error';
+      if (error instanceof Error) {
+        errorMsg = error.message;
+      } else {
+        errorMsg = String(error); // Fallback for non-Error types
+      }
       toast.error("Delete Failed", {
         description: `Rollback applied. Server responded with: ${errorMsg}`,
       });

@@ -1,4 +1,4 @@
-import { Road, Alignment, Structure, Chainage, parseChainage } from '../models/roadTypes';
+import { Road, Alignment, Structure, Chainage, parseChainage } from '../api/utils/roadTypes';
 import { v4 as uuidv4 } from 'uuid';
 
 export class RoadDataManager {
