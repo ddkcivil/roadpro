@@ -22,7 +22,37 @@ async function probe() {
   if (count === 0) {
       console.log('No projects found. Checking for general project...');
       const { data: general, error: genError } = await supabase.from('projects').select('*').eq('id', 'general');
-      console.log('General Project:', general, genError);
+      
+      if (genError) {
+          console.error('Error checking for general project:', genError);
+          // Proceed to create if there was an error fetching, assuming it doesn't exist or can't be fetched
+          console.log('Attempting to create general project...');
+          const { error: insertError } = await supabase.from('projects').insert([
+              { id: 'general', name: 'General Project', ownerId: 'system', created_at: new Date().toISOString(), updatedAt: new Date().toISOString() } // Assuming 'ownerId', 'created_at', 'updatedAt' are relevant fields
+          ]);
+          if (insertError) {
+              console.error('Failed to insert general project:', insertError);
+          } else {
+              console.log('General project created successfully.');
+          }
+          return;
+      }
+
+      if (!general || general.length === 0) {
+          console.log('General project not found. Creating it...');
+          // Assuming default fields like ownerId, created_at, and updatedAt are relevant for projects.
+          // Adjust these based on your actual project schema.
+          const { error: insertError } = await supabase.from('projects').insert([
+              { id: 'general', name: 'General Project', ownerId: 'system', created_at: new Date().toISOString(), updatedAt: new Date().toISOString() } 
+          ]);
+          if (insertError) {
+              console.error('Failed to insert general project:', insertError);
+          } else {
+              console.log('General project created successfully.');
+          }
+      } else {
+          console.log('General project already exists.');
+      }
       return;
   }
 
