@@ -47,12 +47,12 @@ type ProjectsAction =
 const projectsReducer = (state: ProjectsState, action: ProjectsAction): ProjectsState => {
   switch (action.type) {
     case 'HYDRATE':
-      const hydratedProjects = (action.payload.projects || []).map(p => prepareProjectWithMaterials(p));
-      return { 
-        ...state, 
-        ...action.payload, 
+      const hydratedProjects = Array.isArray(action.payload.projects) ? action.payload.projects.map(p => prepareProjectWithMaterials(p)) : [];
+      return {
         projects: hydratedProjects,
-        isLoading: false 
+        selectedProjectId: action.payload?.selectedProjectId ?? state.selectedProjectId,
+        isLoading: action.payload?.isLoading ?? state.isLoading,
+        error: action.payload?.error ?? state.error,
       };
     case 'FETCH_START':
       return { ...state, isLoading: true, error: null };
@@ -179,12 +179,17 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: any): Projec
 
   useEffect(() => {
     if (isAuthenticated && isHydrated) {
-      const cached = DataCache.get(getCacheKey('projects'));
+      const cached = DataCache.get<Project[]>(getCacheKey('projects'));
       if (cached) {
         // Set state from cache
-        startTransition(() => {
-          dispatch({ type: 'FETCH_SUCCESS', payload: cached });
-        });
+        if (Array.isArray(cached)) {
+          startTransition(() => {
+            dispatch({ type: 'FETCH_SUCCESS', payload: cached });
+          });
+        } else {
+          console.warn('Cached projects is not an array, fetching from API');
+          fetchProjects();
+        }
       } else {
         fetchProjects();
       }

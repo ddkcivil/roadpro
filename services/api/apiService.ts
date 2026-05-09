@@ -221,11 +221,27 @@ export const apiService = {
       }
       
       updatedProject = mapProjectFromDb(fetchedData);
-    } else if (!updatedProject) {
-      // No data returned and no rows affected
-      console.error(`[Supabase] Project update returned no data for ID ${id}`);
-      throw new Error(`Project not found or update failed for ID: ${id}`);
-    }
+     } else if (!updatedProject) {
+       // No data returned and no rows affected - check if project exists
+       const { data: fetchedData, error: fetchError } = await supabase
+         .from(PROJECTS_TABLE)
+         .select('*')
+         .eq('id', id)
+         .single();
+       
+       if (fetchError) {
+         console.error(`[Supabase] Failed to fetch project with ID ${id} after update returned no data:`, fetchError);
+         throw new Error(fetchError.message || 'Failed to fetch project.');
+       }
+       
+       if (!fetchedData) {
+         console.error(`[Supabase] Project update returned no data and project not found for ID ${id}`);
+         throw new Error(`Project not found or update failed for ID: ${id}`);
+       }
+       
+       console.warn(`[Supabase] Update returned no data for ID ${id}, but project exists. Using fetched data.`);
+       updatedProject = mapProjectFromDb(fetchedData);
+     }
     
     if (userId && userName) {
       await AuditService.logDataModification(userId, userName, 'UPDATE', 'project', updatedProject.id, updatedProject.name, previousProjectData, updatedProject);
