@@ -27,30 +27,47 @@ if (req.method === 'GET') {
       const searchField = req.query.field as string; // 'id', 'name', 'client', or undefined for all
       const limit = parseInt(req.query.limit as string) || 50;
 
-      if (id) {
-        // Fetch a single project by ID
+if (id) {
+        // Fetch a single project by ID - use maybeSingle to avoid throwing on no results
         const { data: project, error } = await supabaseAdmin
           .from('projects')
           .select('*')
           .eq('id', (id as string).trim())
-          .single();
+          .maybeSingle();
 
-        if (error) throw error;
+        // If there's an error, log it and return 500
+        if (error) {
+          console.error('[GET Project] Error fetching project:', error);
+          return res.status(500).json({ error: 'Failed to fetch project', details: error.message });
+        }
+        
+        // If project not found, return 404
         if (!project) return res.status(404).json({ error: 'Project not found' });
 
-      // Fetch associated documents and photos manually to avoid relationship cache issues
-      const [docsRes, photosRes] = await Promise.all([
-        supabaseAdmin.from('project_documents').select('*, document_versions(*)').eq('project_id', (id as string).trim()),
-        supabaseAdmin.from('project_site_photos').select('*').eq('project_id', (id as string).trim())
-      ]);
+        // Fetch associated documents and photos - wrap in try-catch to avoid failing the whole request
+        let docsData: any[] = [];
+        let photosData: any[] = [];
+        
+        try {
+          const [docsRes, photosRes] = await Promise.all([
+            supabaseAdmin.from('project_documents').select('*, document_versions(*)').eq('project_id', (id as string).trim()),
+            supabaseAdmin.from('project_site_photos').select('*').eq('project_id', (id as string).trim())
+          ]);
+          
+          docsData = docsRes.data || [];
+          photosData = photosRes.data || [];
+        } catch (joinError: any) {
+          console.warn('[GET Project] Warning: Could not fetch associated documents/photos:', joinError?.message);
+          // Continue without crashing - documents/photos are optional
+        }
 
-      const projectWithData = {
-        ...project,
-        project_documents: docsRes.data || [],
-        project_site_photos: photosRes.data || []
-      };
+        const projectWithData = {
+          ...project,
+          project_documents: docsData,
+          project_site_photos: photosData
+        };
 
-      return res.status(200).json(mapProjectFromDb(projectWithData));
+        return res.status(200).json(mapProjectFromDb(projectWithData));
       }
 
 // Handle search query

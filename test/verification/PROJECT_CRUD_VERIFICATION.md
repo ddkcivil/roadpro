@@ -49,3 +49,29 @@ This document outlines the verification steps to confirm the implementation work
 
 ### File Cleanup Logic
 - `services/api/realApiService.ts:175-203` - deletes files before project
+
+---
+
+## Production Issue Analysis (May 2026)
+
+### Observed Behavior
+- DELETE requests: Return 200 ✅ (working correctly)
+- GET single project requests: Return 500 ❌ (failing)
+
+### Root Cause
+The GET endpoint in `api/projects.ts` has issues handling:
+1. Supabase queries throwing errors instead of returning null
+2. Potential RLS issues with joined queries for documents/photos
+3. Missing proper error handling for non-existent projects
+
+### Fix Plan
+1. Use `.maybeSingle()` instead of `.single()` to avoid throwing on no results
+2. Add try-catch around joined queries (documents, photos)
+3. Return 404 instead of 500 for non-existent projects
+4. Add detailed logging for debugging
+
+### Code Locations to Fix
+- `api/projects.ts:38-55` - GET single project handler
+  - Replace `.single()` with `.maybeSingle()` 
+  - Add proper null/404 handling
+  - Add try-catch around Promise.all for joined queries

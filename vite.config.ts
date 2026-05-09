@@ -17,8 +17,9 @@ export default defineConfig(({ mode }) => {
           secure: false,
            bypass: (req) => {
              if (req.url && req.url.endsWith('.ts')) {
-               return true;
+               return true; // Bypass .ts files
              }
+             return false; // Do not bypass other files
            },
         },
       },
