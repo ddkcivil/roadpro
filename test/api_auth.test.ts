@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import handler from '../api/auth';
+import * as supabaseClient from '../api/utils/supabaseClient.js';
 
 // Mock Supabase client
 const mockSupabaseAuth = {
@@ -49,7 +50,7 @@ describe('api/auth handler', () => {
   });
 
   it('POST?action=login should return 503 if Supabase not configured', async () => {
-    vi.mocked(require('../api/utils/supabaseClient.js').isSupabaseConfigured).mockReturnValueOnce(false);
+    vi.mocked(supabaseClient.isSupabaseConfigured).mockReturnValueOnce(false);
     
     mockReq.method = 'POST';
     mockReq.query.action = 'login';

@@ -51,6 +51,9 @@ describe('Login Component', () => {
     const mockUser = { id: 'u1', name: 'Test User', full_name: 'Test User', email: 'test@example.com', role: UserRole.ADMIN };
     mockFetch.mockResolvedValueOnce({
       ok: true,
+      headers: {
+        get: vi.fn().mockReturnValue('application/json')
+      },
       json: async () => ({
         user: mockUser,
         token: 'mock-jwt-token'

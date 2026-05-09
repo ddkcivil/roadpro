@@ -116,22 +116,25 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: User): Proje
   const LOCATION_THROTTLE = 10000; // 10 seconds
 
   const updateLocation = useCallback(async (projectId: string, latitude: number, longitude: number) => {
+    if (!currentUser?.id) return;
+
     // 1. Optimistic Update (Immediate)
     startTransition(() => {
+      const userId = currentUser.id;
       dispatch({ 
         type: 'UPDATE_PROJECTS', 
         payload: projectsRef.current.map(p => p.id === projectId ? {
           ...p,
           staffLocations: [
-            ...(p.staffLocations || []).filter(l => l.userId !== currentUser?.id),
+            ...(p.staffLocations || []).filter(l => l.userId !== userId),
             {
-              id: `loc-${currentUser?.id}-${Date.now()}`,
-              userId: currentUser?.id,
-              userName: currentUser?.name || 'Staff',
-              role: currentUser?.role || 'Staff',
+              id: `loc-${userId}-${Date.now()}`,
+              userId: userId,
+              userName: currentUser.name || 'Staff',
+              role: currentUser.role || 'Staff',
               latitude,
               longitude,
-              status: 'Active',
+              status: 'Active' as const,
               timestamp: new Date().toISOString()
             }
           ]

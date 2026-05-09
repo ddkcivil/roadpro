@@ -46,7 +46,7 @@ export const apiService = {
     };
   },
 
-  // Fetch a single project by ID
+// Fetch a single project by ID
   getProject: async (id: string): Promise<Project | undefined> => {
     const { data, error } = await supabase
       .from(PROJECTS_TABLE)
@@ -61,6 +61,45 @@ export const apiService = {
 
     if (!data) return undefined;
     return mapProjectFromDb(data);
+  },
+
+// Search projects by query (supports searching by id, code, name, or client)
+  searchProjects: async (query: string, options?: { field?: 'id' | 'code' | 'name' | 'client', limit?: number }): Promise<{ data: Project[], count: number }> => {
+    const searchTerm = query.trim().toLowerCase();
+    const limit = options?.limit || 50;
+    const searchField = options?.field;
+
+    let queryBuilder = supabase.from(PROJECTS_TABLE).select('*');
+
+    // Apply field-specific or general search
+    if (searchField === 'id') {
+      // Search by ID (exact or partial match)
+      queryBuilder = queryBuilder.ilike('id', `%${searchTerm}%`);
+    } else if (searchField === 'code') {
+      // Search by project code (e.g., proj-xxxxx)
+      queryBuilder = queryBuilder.ilike('code', `%${searchTerm}%`);
+    } else if (searchField === 'name') {
+      // Search by project name
+      queryBuilder = queryBuilder.ilike('name', `%${searchTerm}%`);
+    } else if (searchField === 'client') {
+      // Search by client name
+      queryBuilder = queryBuilder.ilike('client', `%${searchTerm}%`);
+    } else {
+      // General search across id, code, name, and client fields
+      queryBuilder = queryBuilder.or(`id.ilike.%${searchTerm}%,code.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%,client.ilike.%${searchTerm}%`);
+    }
+
+    const { data, error } = await queryBuilder.limit(limit);
+
+    if (error) {
+      console.error(`[Supabase] Failed to search projects with query "${query}":`, error);
+      throw new Error(error.message || 'Failed to search projects.');
+    }
+
+    return {
+      data: (data || []).map(mapProjectFromDb),
+      count: data?.length || 0
+    };
   },
 
 // Create a new project

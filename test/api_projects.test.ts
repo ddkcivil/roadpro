@@ -42,8 +42,8 @@ const { mockSupabaseAdmin, mockPostgrestBuilder } = vi.hoisted(() => {
 });
 
 vi.mock('../api/utils/supabaseClient.js', () => ({
-  supabaseAdmin: mockSupabaseAdmin,
-  ensureSupabaseConfigured: vi.fn(),
+  getSupabaseAdmin: vi.fn(() => mockSupabaseAdmin),
+  isSupabaseConfigured: vi.fn(() => true),
 }));
 
 vi.mock('../api/utils/mappers.js', () => ({

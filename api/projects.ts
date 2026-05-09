@@ -20,8 +20,13 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     return res.status(503).json({ error: 'Database service not available' });
   }
 
-  if (req.method === 'GET') {
+if (req.method === 'GET') {
     try {
+      // Check for search query parameter
+      const searchQuery = req.query.search as string;
+      const searchField = req.query.field as string; // 'id', 'name', 'client', or undefined for all
+      const limit = parseInt(req.query.limit as string) || 50;
+
       if (id) {
         // Fetch a single project by ID
         const { data: project, error } = await supabaseAdmin
@@ -48,9 +53,42 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       return res.status(200).json(mapProjectFromDb(projectWithData));
       }
 
-      // Fetch paginated list of projects
+// Handle search query
+      if (searchQuery && searchQuery.trim()) {
+        const searchTerm = searchQuery.trim().toLowerCase();
+        let queryBuilder = supabaseAdmin.from('projects').select('*');
+
+        // Apply field-specific or general search
+        if (searchField === 'id') {
+          // Search by ID (exact or partial match on id field)
+          queryBuilder = queryBuilder.ilike('id', `%${searchTerm}%`);
+        } else if (searchField === 'code') {
+          // Search by project code (e.g., proj-xxxxx)
+          queryBuilder = queryBuilder.ilike('code', `%${searchTerm}%`);
+        } else if (searchField === 'name') {
+          // Search by project name
+          queryBuilder = queryBuilder.ilike('name', `%${searchTerm}%`);
+        } else if (searchField === 'client') {
+          // Search by client name
+          queryBuilder = queryBuilder.ilike('client', `%${searchTerm}%`);
+        } else {
+          // General search across id, code, name, and client fields using OR
+          queryBuilder = queryBuilder.or(`id.ilike.%${searchTerm}%,code.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%,client.ilike.%${searchTerm}%`);
+        }
+
+        const { data: projects, error: searchError } = await queryBuilder.limit(limit);
+
+        if (searchError) throw searchError;
+
+        return res.status(200).json({
+          data: (projects || []).map(mapProjectFromDb),
+          search: searchTerm,
+          count: projects?.length || 0
+        });
+      }
+
+      // Fetch paginated list of projects (default behavior)
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 50;
       const skip = (page - 1) * limit;
 
       // Fetch total count
@@ -82,7 +120,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       console.error('Failed to fetch projects:', error);
       return res.status(500).json({ error: 'Failed to fetch projects', details: error.message });
     }
-  } 
+  }
   
 if (req.method === 'POST') {
     const userRole = (req as any).user?.role;

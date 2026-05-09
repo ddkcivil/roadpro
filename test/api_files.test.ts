@@ -1,34 +1,38 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import handler from '../api/files';
-import { supabaseAdmin } from '../api/utils/supabaseClient.js';
+import * as supabaseClient from '../api/utils/supabaseClient.js';
 import { Buffer } from 'buffer'; // Needed for POST request body
 
 // Mock Supabase client and its methods
+const mockSupabaseAdmin = {
+  storage: {
+    from: vi.fn().mockReturnThis(), // Mocking from('files')
+    upload: vi.fn().mockResolvedValue({ data: { publicUrl: 'https://supabase.storage.url/files/test.txt' }, error: null }),
+    getPublicUrl: vi.fn().mockResolvedValue({ data: { publicUrl: 'https://supabase.storage.url/files/test.txt' }, error: null }),
+    remove: vi.fn().mockResolvedValue({ data: null, error: null }),
+    listBuckets: vi.fn().mockResolvedValue({ data: [{ name: 'project-files' }], error: null }),
+    createBucket: vi.fn().mockResolvedValue({ data: null, error: null }),
+  },
+  from: vi.fn().mockReturnThis(), // Mocking from('projects') or from('document_versions')
+  select: vi.fn().mockReturnThis(),
+  eq: vi.fn().mockReturnThis(),
+  or: vi.fn().mockReturnThis(),
+  order: vi.fn().mockReturnThis(),
+  limit: vi.fn().mockReturnThis(),
+  range: vi.fn().mockReturnThis(),
+  single: vi.fn().mockReturnThis(),
+  insert: vi.fn().mockResolvedValue({ data: [{ id: 'new-doc-id', versionId: 'new-ver-id' }], error: null }),
+  update: vi.fn().mockReturnThis(),
+  upsert: vi.fn().mockReturnThis(),
+  delete: vi.fn().mockReturnThis(),
+  // Mocking rpc for potential future use, although not directly used in files.ts GET/POST/DELETE
+  rpc: vi.fn().mockReturnThis(),
+  then: vi.fn()
+};
+
 vi.mock('../api/utils/supabaseClient.js', () => ({
-  supabaseAdmin: {
-    storage: {
-      from: vi.fn().mockReturnThis(), // Mocking from('files')
-      upload: vi.fn().mockResolvedValue({ data: { publicUrl: 'https://supabase.storage.url/files/test.txt' }, error: null }),
-      getPublicUrl: vi.fn().mockResolvedValue({ data: { publicUrl: 'https://supabase.storage.url/files/test.txt' }, error: null }),
-      remove: vi.fn().mockResolvedValue({ data: null, error: null }),
-      listBuckets: vi.fn().mockResolvedValue({ data: [{ name: 'project-files' }], error: null }),
-      createBucket: vi.fn().mockResolvedValue({ data: null, error: null }),
-    },
-    from: vi.fn().mockReturnThis(), // Mocking from('projects') or from('document_versions')
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    or: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    range: vi.fn().mockReturnThis(),
-    single: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockResolvedValue({ data: [{ id: 'new-doc-id', versionId: 'new-ver-id' }], error: null }),
-    update: vi.fn().mockReturnThis(),
-    upsert: vi.fn().mockReturnThis(),
-    delete: vi.fn().mockReturnThis(),
-    // Mocking rpc for potential future use, although not directly used in files.ts GET/POST/DELETE
-    rpc: vi.fn().mockReturnThis(),
-  }
+  getSupabaseAdmin: vi.fn(() => mockSupabaseAdmin),
+  isSupabaseConfigured: vi.fn(() => true)
 }));
 
 // Mock external utilities that might still be used
@@ -38,8 +42,6 @@ vi.mock('uuid', () => ({ v4: vi.fn(() => 'mock-uuid-123') })); // Mock uuidv4
 
 describe('api/files handler with Supabase', () => {
   let mockRes: any;
-  // Re-mock supabaseAdmin methods before each test to ensure isolation
-  let mockSupabaseAdmin: any;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -51,9 +53,6 @@ describe('api/files handler with Supabase', () => {
       send: vi.fn().mockReturnThis(),
       end: vi.fn().mockReturnThis()
     };
-
-    // Assign the mocked client to the local variable for use in tests
-    mockSupabaseAdmin = supabaseAdmin as any;
 
     // Default mock behaviors - use mockReturnThis() for all chainable methods
     mockSupabaseAdmin.from.mockReturnThis();
@@ -69,16 +68,9 @@ describe('api/files handler with Supabase', () => {
     mockSupabaseAdmin.delete.mockReturnThis(); // Chainable
     mockSupabaseAdmin.rpc.mockReturnThis();
 
-    // The final result-returning methods or those that terminate the chain should return the mock result
-    // But since the handler awaits the result of the entire chain, we can mock the behavior of 'awaiting' 
-    // by making the terminal methods in the test (or the entire mock) thenable.
-    // However, Vitest/Jest mockReturnThis() on the whole chain is often enough if the terminal method
-    // is mocked to return the final promise.
-    
     // For Supabase client, the chain usually ends with a promise (thenable).
-    // Let's make the mockAdmin itself a promise that resolves to { data, error }.
     const defaultResponse = { data: null, error: null };
-    mockSupabaseAdmin.then = vi.fn().mockImplementation((onSuccess: any) => Promise.resolve(defaultResponse).then(onSuccess));
+    mockSupabaseAdmin.then.mockImplementation((onSuccess: any) => Promise.resolve(defaultResponse).then(onSuccess));
 
     mockSupabaseAdmin.storage.from.mockReturnThis();
     mockSupabaseAdmin.storage.upload.mockResolvedValue({ data: { path: 'test.txt' }, error: null });
