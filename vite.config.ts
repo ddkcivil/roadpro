@@ -15,12 +15,12 @@ export default defineConfig(({ mode }) => {
           target: 'http://localhost:3001',
           changeOrigin: true,
           secure: false,
-          bypass: (req) => {
+          bypass: ((req: any) => {
             if (req.url && req.url.endsWith('.ts')) {
               return true;
             }
             return false;
-          },
+          }) as any,
         },
       },
       hmr: process.env.VERCEL ? false : {

@@ -118,9 +118,9 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
      const end = new Date(project.endDate);
      const now = new Date();
 
-     // Create monthly intervals
+// Create monthly intervals
      const months: Date[] = [];
-     let current = new Date(start.getFullYear(), start.getMonth(), 1);
+     const current = new Date(start.getFullYear(), start.getMonth(), 1);
      while (current <= end || (current.getMonth() <= end.getMonth() && current.getFullYear() <= end.getFullYear())) {
        months.push(new Date(current));
        current.setMonth(current.getMonth() + 1);
@@ -185,9 +185,9 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
      });
    }, [project?.schedule, project?.boq, project?.startDate, project?.endDate]);
 
-  const financialChartData = useMemo(() => {
+const financialChartData = useMemo(() => {
     if (project?.boq && project.boq.length > 0) {
-      const monthlyData: Record<string, { planned: number, earned: number }> = {};
+      const monthlyData: Record<string, { planned: number; earned: number }> = {};
       project.boq.forEach(item => {
         const month = new Date((item as any).startDate || Date.now()).toLocaleString('default', { month: 'short' });
         if (!monthlyData[month]) {
@@ -647,6 +647,7 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
 
 {/* Site Weather & Intelligence */}
           {isWidgetVisible('weather') && (
+            
             <WeatherWidget />
           )}
         </div>

@@ -5,8 +5,8 @@ import { withAuth } from './utils/auth.js';
 import { mapProjectFromDb, mapProjectToDb } from './utils/mappers.js';
 import { randomUUID } from 'crypto'; // Import randomUUID for generating unique IDs
 
-// Removed CSRFProtection as it might not be needed with Supabase auth, or needs re-evaluation.
-// Removed connectToDatabase as we use supabaseAdmin directly.
+// Added BUCKET_NAME for Supabase Storage access
+const BUCKET_NAME = process.env.SUP supabase_STORAGE_BUCKET || 'project-files';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { id } = req.query;
@@ -374,23 +374,71 @@ const projectData = { ...req.body };
     }
 
     try {
-      // --- Supabase Integration ---
-      const { error: deleteError } = await supabaseAdmin
+      const projectIdToDelete = (id as string).trim();
+
+      // --- File Cleanup ---
+      // Fetch associated documents
+      const { data: docs, error: docsError } = await supabaseAdmin
+        .from('project_documents')
+        .select('id') // Fetch document IDs associated with the project
+        .eq('projectId', projectIdToDelete);
+
+      if (docsError) {
+        console.error('Error fetching project documents for cleanup:', docsError);
+        // Log the error but continue with project deletion.
+      } else if (docs && docs.length > 0) {
+        const documentIds = docs.map((doc: any) => doc.id);
+        
+        // Fetch blob_urls for all versions of these documents
+        const { data: docVersions, error: docVersionsError } = await supabaseAdmin
+          .from('document_versions')
+          .select('blob_url')
+          .in('doc_id', documentIds);
+
+        if (docVersionsError) {
+          console.error('Error fetching document versions for cleanup:', docVersionsError);
+        } else if (docVersions && docVersions.length > 0) {
+          const filePathsToDelete = docVersions.map((version: any) => version.blob_url).filter((path: any) => path);
+          
+          if (filePathsToDelete.length > 0) {
+            // Delete from Supabase Storage
+            const { error: storageError } = await supabaseAdmin.storage
+              .from(BUCKET_NAME) // Use the defined BUCKET_NAME constant
+              .remove(filePathsToDelete);
+            
+            if (storageError) {
+              console.error(`Failed to delete files from storage during project deletion:`, storageError);
+              // Log the error but do not throw, as the project itself is being deleted.
+            }
+          }
+        }
+      }
+
+      // Clean up associated site photos
+      const { error: deletePhotosError } = await supabaseAdmin
+        .from('project_site_photos')
+        .delete()
+        .eq('project_id', projectIdToDelete);
+
+      if (deletePhotosError) {
+        console.error('Error deleting project site photos:', deletePhotosError);
+        // Log the error but do not throw.
+      }
+
+      // --- Project Deletion from 'projects' table ---
+      const { error: deleteProjectError } = await supabaseAdmin
         .from('projects')
         .delete()
-        .eq('id', (id as string).trim());
+        .eq('id', projectIdToDelete);
 
-      if (deleteError) throw deleteError;
+      if (deleteProjectError) throw deleteProjectError; // This will be caught by the outer catch block
 
-      // If deletion from Supabase is successful
-      // Audit log might need to be adjusted if it was tied to MongoDB
-      // For now, assuming it's abstract enough or handled elsewhere.
-      // If AuditService.logDataModification needs to be called here, it would be similar to saveProject/deleteProject
+      // If we are here, project table deletion was successful, and cleanup attempts were made (errors logged if any).
+      return res.status(200).json({ message: 'Project and associated files/photos deleted successfully.' });
 
-      return res.status(200).json({ message: 'Project deleted successfully.' });
     } catch (error: any) {
-      console.error('Failed to delete project:', error);
-      return res.status(500).json({ error: 'Failed to delete project', details: error.message });
+      console.error('Failed to delete project or its associated data:', error);
+      return res.status(500).json({ error: 'Failed to delete project or its associated data', details: error.message });
     }
   }
 
