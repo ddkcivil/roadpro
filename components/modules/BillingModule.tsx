@@ -360,13 +360,15 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
     const handleItemQtyChange = (boqId: string, newCurrentQty: number) => {
         const updatedItems = (ipcForm.items || []).map(item => {
             if (item.boqItemId === boqId) {
-                const uptoDateQty = item.previousQuantity + newCurrentQty;
+                const safePrevQty = item.previousQuantity ?? 0;
+                const safeRate = item.rate ?? 0;
+                const uptoDateQty = safePrevQty + newCurrentQty;
                 return {
                     ...item,
                     currentQuantity: newCurrentQty,
                     uptoDateQuantity: uptoDateQty,
-                    currentAmount: newCurrentQty * item.rate,
-                    uptoDateAmount: uptoDateQty * item.rate
+                    currentAmount: newCurrentQty * safeRate,
+                    uptoDateAmount: uptoDateQty * safeRate
                 };
             }
             return item;

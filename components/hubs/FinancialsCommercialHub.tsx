@@ -83,12 +83,20 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
         setIsBillModalOpen(true);
     };
     const handleEditBill = (bill: ContractBill | SubcontractorBill, type: 'contract' | 'subcontractor') => {
-        // Ensure the status is explicitly set to one of the allowed types if it's a generic string
-        const typedBill = {
+        // Ensure the status is explicitly set to one of the allowed types
+        const validStatuses: BillStatus[] = ['Draft', 'Submitted', 'Approved', 'Paid'];
+        const currentStatus = bill.status;
+
+        // Check if currentStatus is a valid BillStatus or a string that can be cast to it.
+        // If not, default to 'Draft'.
+        const safeStatus: BillStatus = (currentStatus && validStatuses.includes(currentStatus as BillStatus))
+            ? currentStatus as BillStatus
+            : 'Draft';
+
+        setEditingBill({
             ...bill,
-            status: (bill.status && ['Draft', 'Submitted', 'Approved', 'Paid'].includes(bill.status)) ? bill.status as BillStatus : 'Draft',
-        };
-        setEditingBill(typedBill);
+            status: safeStatus,
+        });
         setEditingBillType(type);
         setIsBillModalOpen(true);
     };

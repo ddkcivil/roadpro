@@ -25,20 +25,19 @@ export const useAvatarUpload = (options: UseAvatarUploadOptions = {}) => {
       setAvatarFile(file);
       const reader = new FileReader();
       reader.onloadend = async () => {
-        const base64 = reader.result as string;
-        if (compress) {
+        const base64 = reader.result as string; // Explicitly assert as string, but add check
+        if (typeof base64 === 'string' && compress) { // Add check for base64 being a string
           try {
             const compressed = await compressImage(base64, maxWidth, maxHeight, quality);
             setPreviewUrl(compressed);
           } catch (err) {
             console.error("Compression failed, using original", err);
-            setPreviewUrl(base64);
+            setPreviewUrl(base64); // Fallback to original base64
           }
         } else {
-          setPreviewUrl(base64);
+          setPreviewUrl(base64); // Use original if not compressing or if base64 is not a string
         }
-      };
-      reader.readAsDataURL(file);
+      };      reader.readAsDataURL(file);
     }
   };
 
