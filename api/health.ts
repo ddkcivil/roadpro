@@ -84,7 +84,6 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
         VITE_SUPABASE_ANON_KEY: !!hasViteSupabaseAnonKey,
         SUPABASE_SERVICE_ROLE_KEY: !!hasSupabaseServiceKey,
         allSupabaseReady: supabaseReady,
-        hasDeepSeek, 
         hasGemini
       }
     });

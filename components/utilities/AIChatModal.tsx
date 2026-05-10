@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Bot, Send, Paperclip, Zap, Video, Loader2, Sparkles, FileText, Settings2 } from 'lucide-react';
-import { chatWithGemini, ChatMessage, isAIServiceAvailable as isGeminiAvailable } from '../../services/ai/geminiService';
-import { chatWithHuggingFace, isHuggingFaceAvailable } from '../../services/ai/huggingFaceService';
+import { ChatMessage } from '../../services/ai/geminiService';
+import { getAIResponse, AIProvider } from '../../services/ai/universalAIService';
+import { isHuggingFaceAvailable } from '../../services/ai/huggingFaceService';
+import { isAIServiceAvailable as isGeminiAvailable } from '../../services/ai/geminiService';
 import { Project } from '../../types';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
@@ -9,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/comp
 import { Label } from '~/components/ui/label';
 import { Switch } from '~/components/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Info } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import {
   DropdownMenu,
@@ -30,9 +32,8 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFastMode, setIsFastMode] = useState(false);
-  const [aiProvider, setAIProvider] = useState<'gemini' | 'huggingface'>(
-    isHuggingFaceAvailable() ? 'huggingface' : 'gemini'
-  );
+  const [aiProvider, setAIProvider] = useState<AIProvider>('auto');
+  const [isFallbackActive, setIsFallbackActive] = useState(false);
 
   // File Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -140,7 +141,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
     if ((!userText && !attachment) || isLoading) return;
 
     // Convert blob URL to base64 for storage in message history
-    let attachmentData = attachment ? await new Promise<string>((resolve) => {
+    const attachmentData = attachment ? await new Promise<string>((resolve) => {
         const reader = new FileReader();
         reader.onloadend = () => {
             const base64String = reader.result as string;
@@ -189,32 +190,18 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
     let metadata: ChatMessage['metadata'] | undefined;
     
     try {
-        let response;
-        
-        if (aiProvider === 'huggingface') {
-            response = await chatWithHuggingFace(
-                userText || (attachment ? "Analyze this attachment." : ""), 
-                newHistory,
-                project,
-                attachment ? { mimeType: attachment.file.type, data: base64Data } : undefined,
-                isFastMode
-            );
-        } else {
-            response = await chatWithGemini(
-                userText || (attachment ? "Analyze this attachment." : ""), 
-                newHistory,
-                project,
-                attachment ? { mimeType: attachment.file.type, data: base64Data } : undefined,
-                isFastMode
-            );
-        }
+        const response = await getAIResponse(
+            userText || (attachment ? "Analyze this attachment." : ""), 
+            newHistory,
+            project,
+            attachment ? { mimeType: attachment.file.type, data: base64Data } : undefined,
+            aiProvider,
+            isFastMode
+        );
 
-        if (typeof response === 'string') {
-            responseText = response;
-        } else {
-            responseText = response.text;
-            metadata = response.metadata;
-        }
+        responseText = response.text;
+        metadata = response.metadata;
+        setIsFallbackActive(!!response.isFallback);
 
     } catch (err: any) {
         responseText = `Error: ${err.message || "Failed to get AI response"}`;
@@ -330,6 +317,10 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                   <DropdownMenuContent align="end" className="w-56 rounded-xl">
                       <DropdownMenuLabel>AI Intelligence Provider</DropdownMenuLabel>
                       <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setAIProvider('auto')} className="flex items-center justify-between">
+                          <span>Auto-Select (Recommended)</span>
+                          {aiProvider === 'auto' && <Zap size={14} className="text-primary fill-primary" />}
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setAIProvider('gemini')} className="flex items-center justify-between">
                           <span>Google Gemini (Multimodal)</span>
                           {aiProvider === 'gemini' && <Zap size={14} className="text-primary fill-primary" />}
@@ -371,7 +362,19 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                     <AlertDescription>
                         {aiProvider === 'huggingface' 
                             ? "Hugging Face API key is missing. Add VITE_HUGGINGFACE_API_KEY to your .env file."
-                            : "Gemini API key is missing. Add VITE_GEMINI_API_KEY to your .env file."}
+                            : aiProvider === 'gemini' 
+                                ? "Gemini API key is missing. Add VITE_GEMINI_API_KEY to your .env file."
+                                : "No AI providers configured. Please check your .env file."}
+                    </AlertDescription>
+                </Alert>
+            )}
+
+            {isFallbackActive && (
+                <Alert className="mb-2 bg-amber-50 border-amber-200 text-amber-800">
+                    <Info className="h-4 w-4 text-amber-600" />
+                    <AlertTitle className="text-amber-900">Service Fallback Active</AlertTitle>
+                    <AlertDescription className="text-amber-800 text-xs">
+                        Gemini is currently at capacity. We've automatically switched to Hugging Face to process your request.
                     </AlertDescription>
                 </Alert>
             )}

@@ -173,38 +173,33 @@ export const fetchDailyWeatherHistory = async (month: number, year: number, lat:
         const currentMonth = now.getMonth() + 1;
         const currentDay = now.getDate();
         
-        // Determine if we need historical or forecast data
+        // Determine if we need historical, current, or future data
         const isHistorical = year < currentYear || (year === currentYear && month < currentMonth);
+        const isCurrentMonth = year === currentYear && month === currentMonth;
         
-        // Calculate start date for the query
-        const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
-        
-        // Calculate end date - limit to today if requesting current/future month
-        let endDate: string;
-        if (year > currentYear || (year === currentYear && month > currentMonth)) {
-            // For future months, use forecast endpoint with a limit (e.g., 14 days ahead)
+        let url: string;
+        const dailyParams = `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,weather_code&timezone=auto`;
+
+        if (isHistorical) {
+            // Calculate start and end for past months
+            const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+            const lastDay = new Date(year, month, 0).getDate();
+            const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+            url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${startDate}&end_date=${endDate}${dailyParams}`;
+        } else if (isCurrentMonth) {
+            // For current month, use past_days to avoid the 2-day limit on start_date in forecast endpoint
+            const pastDays = currentDay - 1;
+            url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&past_days=${pastDays}&forecast_days=1${dailyParams}`;
+        } else {
+            // For future months - limited to 16 days from now
+            const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
             const maxForecastDate = new Date(now);
             maxForecastDate.setDate(maxForecastDate.getDate() + 14);
-            endDate = maxForecastDate.toISOString().split('T')[0];
-        } else if (year === currentYear && month === currentMonth) {
-            // For current month, limit to today
-            endDate = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${currentDay.toString().padStart(2, '0')}`;
-        } else {
-            // For past months, use full month
-            const lastDay = new Date(year, month, 0).getDate();
-            endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+            const endDate = maxForecastDate.toISOString().split('T')[0];
+            url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&start_date=${startDate}&end_date=${endDate}${dailyParams}`;
         }
         
-        // Use archive API for past months, forecast API for current/future
-        const baseUrl = isHistorical 
-            ? 'https://archive-api.open-meteo.com/v1/archive'
-            : 'https://api.open-meteo.com/v1/forecast';
-        
-        const response = await fetch(
-            `${baseUrl}?latitude=${lat}&longitude=${lng}&start_date=${startDate}&end_date=${endDate}` +
-            `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,weather_code` +
-            `&timezone=auto`
-        );
+        const response = await fetch(url);
         
         if (!response.ok) {
             console.error(`Weather history API failed with status ${response.status}`);

@@ -639,7 +639,6 @@ const ENGLISH_TRANSLATIONS: Translation = {
     luis: 'LUIS',
     rasa: 'Rasa',
     huggingface: 'Hugging Face',
-    openai: 'OpenAI',
     anthropic: 'Anthropic',
     googleai: 'Google AI',
     ibm: 'IBM Watson',

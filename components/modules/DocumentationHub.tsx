@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { Project, UserRole, SitePhoto, DailyReport } from '../../types';
-import { analyzeSitePhoto } from '../../services/ai/geminiService';
+import { analyzeSitePhotoUniversal } from '../../services/ai/universalAIService';
 
 import { 
     FileText, Camera, Trash2, 
@@ -128,7 +128,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
   const handlePhotoAnalysis = async (photo: SitePhoto) => {
     setIsAnalyzing(true);
     try {
-      const analysis = await analyzeSitePhoto(photo.url, photo.category || 'General');
+      const analysis = await analyzeSitePhotoUniversal(photo.url, photo.category || 'General');
       setPreviewPhoto({ ...photo, caption: `${photo.caption}\n\nAI Analysis: ${analysis}` });
     } catch (error) {
       console.error('Photo analysis failed:', error);

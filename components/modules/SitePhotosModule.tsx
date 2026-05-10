@@ -4,7 +4,7 @@ import {
     Calendar, MapPin, X, Wifi, WifiOff, Upload, History
 } from 'lucide-react';
 import { Project, SitePhoto, UserRole } from '../../types';
-import { analyzeSitePhoto } from '../../services/ai/geminiService';
+import { analyzeSitePhotoUniversal } from '../../services/ai/universalAIService';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
@@ -147,8 +147,8 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole 
         const analysisToast = toast.loading("AI Auditor analyzing site conditions...");
         
         try {
-            // Call Gemini AI for real image analysis
-            const analysis = await analyzeSitePhoto(photo.url, photo.category);
+            // Call Universal AI for real image analysis with fallback
+            const analysis = await analyzeSitePhotoUniversal(photo.url, photo.category);
             
             const updatedPhotos = project.sitePhotos?.map(p =>
                 p.id === photo.id ? { ...p, aiAnalysis: analysis, isAnalyzed: true } : p

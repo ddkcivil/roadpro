@@ -2,7 +2,8 @@ import { ChatMessage } from './geminiService';
 import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
 
 // Default model if none specified in environment
-const DEFAULT_MODEL = 'mistralai/Mistral-7B-Instruct-v0.2';
+const DEFAULT_TEXT_MODEL = 'mistralai/Mistral-7B-Instruct-v0.2';
+const DEFAULT_VISION_MODEL = 'llava-hf/llava-1.5-7b-hf'; // Good for vision tasks
 
 const getApiKey = () => {
   const apiKey = import.meta.env.VITE_HUGGINGFACE_API_KEY;
@@ -12,8 +13,11 @@ const getApiKey = () => {
   return trimmedApiKey;
 };
 
-const getModelId = () => {
-  return import.meta.env.VITE_HUGGINGFACE_MODEL_ID || DEFAULT_MODEL;
+const getModelId = (hasAttachment: boolean) => {
+  if (hasAttachment) {
+    return import.meta.env.VITE_HUGGINGFACE_VISION_MODEL_ID || DEFAULT_VISION_MODEL;
+  }
+  return import.meta.env.VITE_HUGGINGFACE_MODEL_ID || DEFAULT_TEXT_MODEL;
 };
 
 export const isHuggingFaceAvailable = (): boolean => {
@@ -31,57 +35,70 @@ export const chatWithHuggingFace = async (
   const apiKey = getApiKey();
   if (!apiKey) return { text: "Please configure your Hugging Face API Key in the environment settings." };
 
-  const modelId = getModelId();
+  const modelId = getModelId(!!attachment);
   const API_URL = `https://api-inference.huggingface.co/models/${encodeURIComponent(modelId)}`;
 
   try {
     const startTime = Date.now();
     const systemInstruction = `You are RoadMaster AI, a professional infrastructure project assistant for project: ${projectContext.name}. 
     Provide technical, precise, and actionable advice. 
-    Currency: ${getCurrencySymbol(projectContext.settings?.currency)}.
-    
-    If the user provides an attachment, note that currently I can only process text descriptions of attachments via the Hugging Face Inference API unless using a multimodal model.`;
+    Currency: ${getCurrencySymbol(projectContext.settings?.currency)}.`;
 
-    // Construct prompt for Mistral/Llama style instruct models
-    let prompt = `<s>[INST] ${systemInstruction} [/INST]</s>`;
-    
-    history.forEach(msg => {
-      if (msg.role === 'user') {
-        prompt += `<s>[INST] ${msg.text} [/INST]`;
-      } else {
-        prompt += ` ${msg.text} </s>`;
-      }
-    });
+    let payload: any;
 
-    // Add current message
-    let currentText = currentMessage;
-    if (attachment) {
-        currentText += `\n\n[Attachment Attached: ${attachment.mimeType}. Note: Hugging Face Inference API is currently processing text-based context.]`;
+    if (attachment && attachment.mimeType.startsWith('image/')) {
+        // For vision models, many expect a specific format or just the image + prompt
+        // Note: Different HF models might expect different payload formats. 
+        // LLaVA style models often use the 'inputs' with image and text
+        payload = {
+            inputs: {
+                image: attachment.data, // Should be base64
+                question: `${systemInstruction}\n\nUser Question: ${currentMessage}`
+            },
+            parameters: {
+                max_new_tokens: 1024,
+                temperature: 0.7
+            }
+        };
+    } else {
+        // Construct prompt for Mistral/Llama style instruct models
+        let prompt = `<s>[INST] ${systemInstruction} [/INST]</s>`;
+        
+        history.forEach(msg => {
+          if (msg.role === 'user') {
+            prompt += `<s>[INST] ${msg.text} [/INST]`;
+          } else {
+            prompt += ` ${msg.text} </s>`;
+          }
+        });
+
+        // Add current message
+        let currentText = currentMessage;
+        if (attachment) {
+            currentText += `\n\n[Attachment Attached: ${attachment.mimeType}. Note: Processing as text metadata.]`;
+        }
+        
+        prompt += `<s>[INST] ${currentText} [/INST]`;
+        
+        payload = {
+            inputs: prompt,
+            parameters: {
+              max_new_tokens: 1024,
+              return_full_text: false,
+              temperature: 0.7,
+              top_p: 0.95,
+              wait_for_model: true
+            }
+        };
     }
-    
-    prompt += `<s>[INST] ${currentText} [/INST]`;
 
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
-        'x-use-cache': 'false' // Helpful for avoiding stale responses or specific proxy issues
       },
-      body: JSON.stringify({
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: 1024,
-          return_full_text: false,
-          temperature: 0.7,
-          top_p: 0.95,
-          wait_for_model: true // Tell Hugging Face to wait if the model is still loading
-        },
-        options: {
-          wait_for_model: true, // Some models expect it in options
-          use_cache: false
-        }
-      })
+      body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
@@ -91,15 +108,18 @@ export const chatWithHuggingFace = async (
 
     const result = await response.json();
     const endTime = Date.now();
-    let text = "Received an unexpected response format from Hugging Face.";
+    let text = "";
 
-    // Result can be an array or an object depending on the model/API state
-    if (Array.isArray(result) && result[0]?.generated_text) {
-      text = result[0].generated_text.trim();
-    } else if (result.generated_text) {
-      text = result.generated_text.trim();
-    } else if (typeof result === 'string') {
-        text = result.trim();
+    // Result parsing depends on model type
+    if (Array.isArray(result)) {
+        text = result[0]?.generated_text || result[0]?.answer || JSON.stringify(result);
+    } else {
+        text = result.generated_text || result.answer || JSON.stringify(result);
+    }
+
+    // Clean up text (remove prompt if returned)
+    if (text.includes('[/INST]')) {
+        text = text.split('[/INST]').pop()?.trim() || text;
     }
 
     return {

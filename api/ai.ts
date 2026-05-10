@@ -8,8 +8,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
   const { provider, model, messages, temperature } = req.body;
 
-  // Additional providers can be added here (e.g., deepseek, gemini)
-  // For now, this endpoint was primarily used for OpenAI which has been removed.
+  // Additional providers can be added here (e.g., huggingface, gemini)
 
   return res.status(400).json({ error: 'Invalid or unsupported AI provider' });
 };

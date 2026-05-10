@@ -14,7 +14,9 @@ const getAIClient = () => {
 // Expanded fallback list with GA and latest aliases
 const MODELS = [
   'gemini-2.0-flash',
+  'gemini-2.0-flash-exp',
   'gemini-1.5-flash',
+  'gemini-1.5-flash-8b',
   'gemini-1.5-flash-latest',
   'gemini-1.5-pro',
   'gemini-1.5-pro-latest',
@@ -25,7 +27,7 @@ async function runWithFallback(task: (model: any, modelName: string) => Promise<
   const ai = getAIClient();
   if (!ai) throw new Error("AI Client not initialized. Please check VITE_GEMINI_API_KEY.");
   
-  let lastError = null;
+  let lastError: any = null;
   
   // Try each model
   for (const modelName of MODELS) {
@@ -37,16 +39,18 @@ async function runWithFallback(task: (model: any, modelName: string) => Promise<
       } catch (error: any) {
         lastError = error;
         const errMsg = error.message?.toLowerCase() || "";
+        const statusCode = error.status || error.code || 0;
         
         // If it's a 404 (not found) or 400 (unsupported for this version), try next combination
-        if (errMsg.includes('404') || errMsg.includes('not found') || errMsg.includes('400')) {
+        if (statusCode === 404 || statusCode === 400 || errMsg.includes('404') || errMsg.includes('not found') || errMsg.includes('400')) {
           console.warn(`Gemini Model ${modelName} on ${apiVer} unavailable, trying next...`);
           continue;
         }
         
-        // If it's a 429 (quota), we still try the next model because quotas are often model-specific
-        if (errMsg.includes('429') || errMsg.includes('quota')) {
-          console.warn(`Quota exceeded for ${modelName}, switching to fallback...`);
+        // If it's a 429 (quota) or 503 (service unavailable/capacity), we still try the next model 
+        // because quotas are often model-specific and some models might have more capacity
+        if (statusCode === 429 || statusCode === 503 || errMsg.includes('429') || errMsg.includes('quota') || errMsg.includes('503') || errMsg.includes('capacity')) {
+          console.warn(`Quota or Capacity exceeded for ${modelName}, switching to fallback...`);
           continue;
         }
         
@@ -57,7 +61,12 @@ async function runWithFallback(task: (model: any, modelName: string) => Promise<
   
   // If we reach here, all models failed
   console.error("All Gemini models failed:", lastError);
-  throw new Error("AI services are currently reaching their capacity limits. Please try again in a few minutes.");
+  
+  // Create a descriptive error object for the universal provider to handle
+  const finalError = new Error("AI services are currently reaching their capacity limits. Please try again in a few minutes.");
+  (finalError as any).isCapacityError = true;
+  (finalError as any).originalError = lastError;
+  throw finalError;
 }
 
 export const isAIServiceAvailable = (): boolean => {
