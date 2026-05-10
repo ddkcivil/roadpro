@@ -168,17 +168,34 @@ export interface DailyWeatherRecord {
  */
 export const fetchDailyWeatherHistory = async (month: number, year: number, lat: number, lng: number): Promise<DailyWeatherRecord[]> => {
     try {
-        // Calculate start and end date for the month
-        const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
-        const lastDay = new Date(year, month, 0).getDate();
-        const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        const currentDay = now.getDate();
         
         // Determine if we need historical or forecast data
-        const now = new Date();
-        const isHistorical = year < now.getFullYear() || (year === now.getFullYear() && month < now.getMonth() + 1);
+        const isHistorical = year < currentYear || (year === currentYear && month < currentMonth);
+        
+        // Calculate start date for the query
+        const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+        
+        // Calculate end date - limit to today if requesting current/future month
+        let endDate: string;
+        if (year > currentYear || (year === currentYear && month > currentMonth)) {
+            // For future months, use forecast endpoint with a limit (e.g., 14 days ahead)
+            const maxForecastDate = new Date(now);
+            maxForecastDate.setDate(maxForecastDate.getDate() + 14);
+            endDate = maxForecastDate.toISOString().split('T')[0];
+        } else if (year === currentYear && month === currentMonth) {
+            // For current month, limit to today
+            endDate = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${currentDay.toString().padStart(2, '0')}`;
+        } else {
+            // For past months, use full month
+            const lastDay = new Date(year, month, 0).getDate();
+            endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+        }
         
         // Use archive API for past months, forecast API for current/future
-        const apiType = isHistorical ? 'archive' : 'forecast';
         const baseUrl = isHistorical 
             ? 'https://archive-api.open-meteo.com/v1/archive'
             : 'https://api.open-meteo.com/v1/forecast';
@@ -189,7 +206,10 @@ export const fetchDailyWeatherHistory = async (month: number, year: number, lat:
             `&timezone=auto`
         );
         
-        if (!response.ok) throw new Error('Weather history API failed');
+        if (!response.ok) {
+            console.error(`Weather history API failed with status ${response.status}`);
+            return [];
+        }
         
         const data = await response.json();
         const daily = data.daily;

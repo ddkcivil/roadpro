@@ -21,9 +21,7 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
     const hasSupabaseAnonKey = !!supabaseAnonKey && !isPlaceholder(supabaseAnonKey);
     const hasViteSupabaseAnonKey = !!process.env.VITE_SUPABASE_ANON_KEY;
     const hasSupabaseServiceKey = !!supabaseServiceKey;
-    const hasDeepSeek = !!process.env.VITE_DEEPSEEK_API_KEY;
     const hasGemini = !!process.env.VITE_GEMINI_API_KEY;
-    const hasOpenAI = !!process.env.VITE_OPENAI_API_KEY;
     
     const supabaseReady = isSupabaseConfigured();
     
@@ -36,7 +34,7 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       SUPABASE_SERVICE_ROLE_KEY: !!hasSupabaseServiceKey,
       allSupabaseReady: supabaseReady
     });
-    console.log('AI env check:', { hasDeepSeek, hasGemini, hasOpenAI });
+    console.log('AI env check:', { hasGemini });
 
     let results: any = {};
     
@@ -87,8 +85,7 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
         SUPABASE_SERVICE_ROLE_KEY: !!hasSupabaseServiceKey,
         allSupabaseReady: supabaseReady,
         hasDeepSeek, 
-        hasGemini,
-        hasOpenAI
+        hasGemini
       }
     });
 

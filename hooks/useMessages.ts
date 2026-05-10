@@ -24,14 +24,17 @@ const fetchMessages = useCallback(async (isInitial = false) => {
       timestamp: new Date().toISOString()
     });
     
-    if (!isAuthenticated) {
+if (!isAuthenticated) {
       console.warn('[useMessages] ⚠ fetchMessages aborted: Not authenticated');
       return;
     }
-    if (!projectId || projectId === 'general') {
-      console.warn('[useMessages] ⚠ fetchMessages aborted: Invalid projectId:', projectId);
+    // Only skip with verbose logging for debugging purposes
+    // The actual fetch should proceed once we have a valid projectId
+    if (!projectId) {
+      // Silently skip - no valid project selected yet, this is expected during initial load
       return;
     }
+    // Note: Removed the 'general' check as 'general' is a valid receiverId for messages, not a projectId
     if (!currentUser) {
       console.warn('[useMessages] ⚠ fetchMessages aborted: No currentUser');
       return;

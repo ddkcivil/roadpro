@@ -420,34 +420,44 @@ const financialChartData = useMemo(() => {
                   <ToggleGroupItem value="scumulative" className="text-[10px] font-black tracking-widest rounded-xl h-9 px-5 data-[state=on]:bg-white dark:data-[state=on]:bg-slate-950 data-[state=on]:shadow-xl transition-all">CUMULATIVE</ToggleGroupItem>
                 </ToggleGroup>
               </CardHeader>
-              <CardContent className="h-[400px] pt-12 px-8 pb-8">
-                <ResponsiveContainer width="100%" height="100%">
-                  {activeChart === 'scumulative' ? (
-                    <LineChart data={sCurveData}>
-                      <defs>
-                        <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="12 12" stroke="currentColor" vertical={false} opacity={0.05} />
-                      <XAxis dataKey="name" stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} dy={15} />
-                      <YAxis stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${currency}${Math.round(v/1000)}k`} dx={-15} />
-                      <RechartsTooltip 
-                        itemStyle={{ fontSize: '12px', fontWeight: '900', color: '#fff' }}
-                      />
-                      <Line type="monotone" name="Planned" dataKey="Cumulative Planned" stroke="currentColor" strokeWidth={4} dot={false} strokeOpacity={0.1} />
-                      <Line type="monotone" name="Earned" dataKey="Cumulative Earned" stroke="hsl(var(--primary))" strokeWidth={6} dot={{ r: 0 }} activeDot={{ r: 8, strokeWidth: 0 }} />
-                    </LineChart>
+<CardContent className="h-[400px] pt-12 px-8 pb-8 min-h-[300px] min-w-0">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200}>
+                  {sCurveData.length > 0 ? (
+                    activeChart === 'scumulative' ? (
+                      <LineChart data={sCurveData}>
+                        <defs>
+                          <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="12 12" stroke="currentColor" vertical={false} opacity={0.05} />
+                        <XAxis dataKey="name" stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} dy={15} />
+                        <YAxis stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${currency}${Math.round(v/1000)}k`} dx={-15} />
+                        <RechartsTooltip 
+                          itemStyle={{ fontSize: '12px', fontWeight: '900', color: '#fff' }}
+                        />
+                        <Line type="monotone" name="Planned" dataKey="Cumulative Planned" stroke="currentColor" strokeWidth={4} dot={false} strokeOpacity={0.1} />
+                        <Line type="monotone" name="Earned" dataKey="Cumulative Earned" stroke="hsl(var(--primary))" strokeWidth={6} dot={{ r: 0 }} activeDot={{ r: 8, strokeWidth: 0 }} />
+                      </LineChart>
+                    ) : (
+                      <BarChart data={sCurveData}>
+                        <CartesianGrid strokeDasharray="12 12" stroke="currentColor" vertical={false} opacity={0.05} />
+                        <XAxis dataKey="name" stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} dy={15} />
+                        <YAxis stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${currency}${Math.round(v/1000)}k`} dx={-15} />
+                        <RechartsTooltip contentStyle={{ borderRadius: '24px', border: 'none', backgroundColor: 'rgba(15,23,42,0.9)', backdropFilter: 'blur(20px)' }} />
+                        <Bar dataKey="Monthly Planned" name="Planned" fill="currentColor" opacity={0.1} radius={[12, 12, 0, 0]} />
+                        <Bar dataKey="Monthly Earned" name="Actual" fill="hsl(var(--primary))" radius={[12, 12, 0, 0]} />
+                      </BarChart>
+                    )
                   ) : (
-                    <BarChart data={sCurveData}>
+                    <LineChart data={[{ name: 'N/A', 'Cumulative Planned': 0, 'Cumulative Earned': 0 }]}>
                       <CartesianGrid strokeDasharray="12 12" stroke="currentColor" vertical={false} opacity={0.05} />
                       <XAxis dataKey="name" stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} dy={15} />
-                      <YAxis stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${currency}${Math.round(v/1000)}k`} dx={-15} />
-                      <RechartsTooltip contentStyle={{ borderRadius: '24px', border: 'none', backgroundColor: 'rgba(15,23,42,0.9)', backdropFilter: 'blur(20px)' }} />
-                      <Bar dataKey="Monthly Planned" name="Planned" fill="currentColor" opacity={0.1} radius={[12, 12, 0, 0]} />
-                      <Bar dataKey="Monthly Earned" name="Actual" fill="hsl(var(--primary))" radius={[12, 12, 0, 0]} />
-                    </BarChart>
+                      <YAxis stroke="currentColor" opacity={0.3} fontSize={10} tickLine={false} axisLine={false} />
+                      <Line type="monotone" dataKey="Cumulative Planned" stroke="currentColor" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="Cumulative Earned" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                    </LineChart>
                   )}
                 </ResponsiveContainer>
               </CardContent>
@@ -567,8 +577,8 @@ const financialChartData = useMemo(() => {
                   Work Done Breakdown
                 </CardTitle>
               </CardHeader>
-              <CardContent className="h-[300px] flex flex-col items-center justify-center p-8">
-                <ResponsiveContainer width="100%" height="100%">
+<CardContent className="h-[300px] flex flex-col items-center justify-center p-8 min-w-0">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150}>
                   <PieChart>
                     <Pie
                       data={boqCategoryData}
