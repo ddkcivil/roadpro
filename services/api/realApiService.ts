@@ -48,6 +48,50 @@ class RealApiService {
     return configKey !== undefined ? CACHE_CONFIG[configKey] : DEFAULT_TTL;
   }
 
+/**
+   * Gets the authentication token from localStorage or cookie
+   * This implements a dual-source token strategy for robustness:
+   * 1. First checks localStorage 'roadmaster-token'
+   * 2. Falls back to 'roadmaster-access' cookie
+   * 3. If token found in cookie but not localStorage, syncs it to localStorage
+   * @returns The token string or null if not found
+   */
+  private getAuthToken(): string | null {
+    const authTokenKey = 'roadmaster-token';
+    
+    // 1. First check localStorage
+    let token = localStorage.getItem(authTokenKey);
+    
+    if (token) {
+      console.log(`[API] Token found in localStorage`);
+      return token;
+    }
+    
+    // 2. Fall back to cookie if not in localStorage
+    if (typeof document !== 'undefined' && document.cookie) {
+      const cookies = document.cookie.split(';').reduce((acc: Record<string, string>, cookie) => {
+        const [name, value] = cookie.trim().split('=');
+        if (name) acc[name] = value;
+        return acc;
+      }, {});
+      
+      const cookieToken = cookies['roadmaster-access'];
+      if (cookieToken) {
+        console.log(`[API] Token found in cookie, syncing to localStorage`);
+        // Sync cookie token to localStorage for future use
+        try {
+          localStorage.setItem(authTokenKey, cookieToken);
+          console.log(`[API] ✓ Token synced from cookie to localStorage`);
+        } catch (syncError) {
+          console.warn(`[API] Failed to sync token to localStorage:`, syncError);
+        }
+        return cookieToken;
+      }
+    }
+    
+    return null;
+  }
+
   /**
    * Internal fetch wrapper with retry logic and automatic token refresh via Supabase
    * @param endpoint - API endpoint path
@@ -56,7 +100,7 @@ class RealApiService {
    */
 private async fetchWithRetry<T>(endpoint: string, options?: RequestInit, retries = 3): Promise<T> {
     try {
-      const token = localStorage.getItem('roadmaster-token');
+      const token = this.getAuthToken();
       const authTokenKey = 'roadmaster-token';
       
       // Enhanced logging for auth debugging
