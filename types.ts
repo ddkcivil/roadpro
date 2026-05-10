@@ -1,4 +1,4 @@
-import { Road, Alignment, Structure, Point, Chainage, parseChainage, formatChainage } from './api/utils/roadTypes';
+import { Road, Alignment, Structure, Point, Chainage, parseChainage, formatChainage } from './utils/roadTypes';
 
 // Re-export road types for convenience
 export type { Road, Alignment, Structure, Point, Chainage };

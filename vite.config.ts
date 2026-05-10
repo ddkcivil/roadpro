@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
   return {
     server: {
       host: 'localhost',
-      logLevel: 'silent',
+      logLevel: 'info',
       port: 3000,
       strictPort: true,
       proxy: {
@@ -15,12 +15,6 @@ export default defineConfig(({ mode }) => {
           target: 'http://localhost:3001',
           changeOrigin: true,
           secure: false,
-          bypass: ((req: any) => {
-            if (req.url && req.url.endsWith('.ts')) {
-              return true;
-            }
-            return false;
-          }) as any,
         },
       },
       hmr: process.env.VERCEL ? false : {

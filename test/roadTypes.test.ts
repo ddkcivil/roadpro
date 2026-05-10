@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RoadDataManager } from '../services/roadManager.js';
-import { Road, Alignment, Structure, Chainage, parseChainage, formatChainage } from '../api/utils/roadTypes';
+import { Road, Alignment, Structure, Chainage, parseChainage, formatChainage } from '../utils/roadTypes';
 import { v4 as uuidv4 } from 'uuid';
 
 // Mocking uuidv4

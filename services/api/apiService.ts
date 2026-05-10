@@ -1,6 +1,6 @@
 import { Project, User, UserRole, Message } from '../../types';
 import { supabase } from '../../lib/supabase';
-import { mapProjectFromDb, mapProjectToDb } from '../../api/utils/mappers';
+import { mapProjectFromDb, mapProjectToDb } from '../../utils/mappers';
 import { AuditService } from '../analytics/auditService';
 import { realApiService } from './realApiService';
 
@@ -18,52 +18,20 @@ const STORAGE_BUCKET_NAME = 'public'; // <<< CHANGE THIS TO YOUR ACTUAL BUCKET N
 export const apiService = {
   // Fetch all projects
   getProjects: async (page: number = 1, limit: number = 50): Promise<{ data: Project[], pagination: any }> => {
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
-
-    const { data, error, count } = await supabase
-      .from(PROJECTS_TABLE)
-      .select('*', { count: 'exact' })
-      .range(from, to)
-      .order('updated_at', { ascending: false });
-
-    if (error) {
-      console.error('[Supabase] Failed to fetch projects:', error);
-      throw new Error(error.message || 'Failed to fetch projects.');
-    }
-
-    const projects = data.map(mapProjectFromDb);
-    const totalPages = count ? Math.ceil(count / limit) : 1;
-
-    return {
-      data: projects,
-      pagination: {
-        total: count,
-        page,
-        limit,
-        totalPages,
-      },
-    };
+    return realApiService.getProjects(page, limit);
   },
 
-// Fetch a single project by ID
+  // Fetch a single project by ID
   getProject: async (id: string): Promise<Project | undefined> => {
-    const { data, error } = await supabase
-      .from(PROJECTS_TABLE)
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error) {
-      console.error(`[Supabase] Failed to fetch project with ID ${id}:`, error);
-      throw new Error(error.message || 'Failed to fetch project.');
+    try {
+      return await realApiService.getProject(id);
+    } catch (error: any) {
+      if (error.status === 404) return undefined;
+      throw error;
     }
-
-    if (!data) return undefined;
-    return mapProjectFromDb(data);
   },
 
-// Search projects by query (supports searching by id, code, name, or client)
+  // Search projects by query (supports searching by id, code, name, or client)
   searchProjects: async (query: string, options?: { field?: 'id' | 'code' | 'name' | 'client', limit?: number }): Promise<{ data: Project[], count: number }> => {
     const searchTerm = query.trim().toLowerCase();
     const limit = options?.limit || 50;
@@ -73,19 +41,14 @@ export const apiService = {
 
     // Apply field-specific or general search
     if (searchField === 'id') {
-      // Search by ID (exact or partial match)
       queryBuilder = queryBuilder.ilike('id', `%${searchTerm}%`);
     } else if (searchField === 'code') {
-      // Search by project code (e.g., proj-xxxxx)
       queryBuilder = queryBuilder.ilike('code', `%${searchTerm}%`);
     } else if (searchField === 'name') {
-      // Search by project name
       queryBuilder = queryBuilder.ilike('name', `%${searchTerm}%`);
     } else if (searchField === 'client') {
-      // Search by client name
       queryBuilder = queryBuilder.ilike('client', `%${searchTerm}%`);
     } else {
-      // General search across id, code, name, and client fields
       queryBuilder = queryBuilder.or(`id.ilike.%${searchTerm}%,code.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%,client.ilike.%${searchTerm}%`);
     }
 
@@ -102,213 +65,29 @@ export const apiService = {
     };
   },
 
-// Create a new project
+  // Create a new project
   createProject: async (projectData: Partial<Project>, userId?: string, userName?: string): Promise<Project> => {
-    const mappedProject = mapProjectToDb(projectData);
-    
-    // DEFENSIVE: Get the project ID if it exists in the data
-    const projectId = mappedProject.id;
-    
-    // Check if project with this ID already exists to prevent duplicate key constraint violation
-    if (projectId) {
-      const { data: existingProject, error: checkError } = await supabase
-        .from(PROJECTS_TABLE)
-        .select('*')
-        .eq('id', projectId)
-        .maybeSingle();
+    const createdProject = await realApiService.createProject(projectData);
 
-      if (!checkError && existingProject) {
-        console.warn(`[Supabase] Project with ID ${projectId} already exists. Updating instead.`);
-        // Project exists - update it instead of creating duplicate
-        return apiService.updateProject(projectId, projectData, userId, userName, mappedProject);
-      }
-    }
-    
-// Use mapProjectToDb to convert camelCase to snake_case for Supabase
-    // The mappedProject already has proper snake_case column names for the database
-    const projectToInsert = {
-      ...mappedProject,
-      // Ensure all JSONB arrays have defaults (use values from mappedProject which are already snake_case)
-      boq: mappedProject.boq || mappedProject.boq_items || [],
-      variation_orders: mappedProject.variation_orders || mappedProject.variationOrders || [],
-      measurement_sheets: mappedProject.measurement_sheets || mappedProject.measurementSheets || [],
-      // RLS policy requires owner_id = auth.uid() for INSERT - pass the authenticated user's ID
-      owner_id: userId ? userId : undefined,
-    };
-    
-    const { data, error } = await supabase
-      .from(PROJECTS_TABLE)
-      .insert([projectToInsert])
-      .select('*');
-
-    if (error) {
-      // Handle duplicate key error specifically - treat as upsert
-      if (error.code === '23505' || error.message?.includes('duplicate key')) {
-        console.warn(`[Supabase] Project ${projectId} already exists (from error). Updating instead.`);
-        if (projectId) {
-          return apiService.updateProject(projectId, projectData, userId, userName, mappedProject);
-        }
-      }
-      console.error('[Supabase] Failed to create project:', error);
-      let errorMessage = 'Failed to create project.';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else {
-        errorMessage = String(error); // Fallback for non-Error types
-      }
-      throw new Error(errorMessage);
-    }
-
-    const createdProject = mapProjectFromDb(data?.[0]);
-    
+    // Fire-and-forget: audit logging should never block the create response
     if (userId && userName) {
-      await AuditService.logDataModification(userId, userName, 'CREATE', 'project', createdProject.id, createdProject.name, undefined, createdProject);
+      AuditService.logDataModification(userId, userName, 'CREATE', 'project', createdProject.id, createdProject.name, undefined, createdProject).catch((e: any) => {
+        console.warn('[Audit] Failed to log create (non-blocking):', e?.message);
+      });
     }
 
     return createdProject;
   },
 
-// Update an existing project (with auto-create fallback for orphaned local projects)
+  // Update an existing project
   updateProject: async (id: string, projectData: Partial<Project>, userId?: string, userName?: string, previousProjectData?: Partial<Project>): Promise<Project> => {
-    const mappedProject = mapProjectToDb(projectData);
-    
-const cleanedProjectData = Object.fromEntries(
-      Object.entries(mappedProject).filter(([_key, v]) => v !== undefined)
-    );
+    const updatedProject = await realApiService.updateProject(id, projectData);
 
-    // First, check if the project exists in Supabase
-    const { data: existingProject, error: fetchError } = await supabase
-      .from(PROJECTS_TABLE)
-      .select('id')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (fetchError) {
-      console.error(`[Supabase] Failed to check project existence for ID ${id}:`, fetchError);
-    }
-
-    // If project doesn't exist in Supabase (exists locally but never synced), create it instead of failing
-    if (!existingProject) {
-      console.warn(`[Supabase] Project ${id} not found in backend. Creating as new (likely orphaned local project).`);
-      
-      const projectToInsert = {
-        ...cleanedProjectData,
-        owner_id: userId || cleanedProjectData.owner_id,
-      };
-      
-      const { data: createdData, error: createError } = await supabase
-        .from(PROJECTS_TABLE)
-        .insert([projectToInsert])
-        .select('*');
-
-      if (createError) {
-        console.error(`[Supabase] Failed to create project with ID ${id}:`, createError);
-        throw new Error(createError.message || 'Failed to create project.');
-      }
-
-      const createdProject = mapProjectFromDb(createdData?.[0]);
-      
-      if (!createdProject) {
-        console.error(`[Supabase] Project creation returned no data for ID ${id}`);
-        throw new Error(`Project creation failed for ID: ${id}`);
-      }
-
-      if (userId && userName) {
-        await AuditService.logDataModification(userId, userName, 'CREATE', 'project', createdProject.id, createdProject.name, undefined, createdProject);
-      }
-
-      return createdProject;
-    }
-
-// Project exists - perform normal update
-    // CONFLICT DETECTION: Get current updated_at before update to track changes
-const { data: currentProject } = await supabase
-  .from(PROJECTS_TABLE)
-  .select('updated_at')
-  .eq('id', id)
-  .maybeSingle();
-    const localUpdatedAt = projectData.updatedAt || mappedProject.updated_at;
-    const remoteUpdatedAt = currentProject?.updated_at;
-
-    // Check for conflict: if remote is newer than what we're updating from
-    if (remoteUpdatedAt && localUpdatedAt) {
-      const localTime = new Date(localUpdatedAt).getTime();
-      const remoteTime = new Date(remoteUpdatedAt).getTime();
-      
-// If remote changed within the last 5 seconds of our local update, there may be a conflict
-      if (remoteTime > localTime && (remoteTime - localTime) < 5000) {
-        console.warn(`[Supabase] Potential conflict detected for project ${id}: remote updated_at (${remoteUpdatedAt}) is newer than local (${localUpdatedAt})`);
-        // For now, we overwrite - but in a full implementation, we'd prompt the user
-      }
-    }
-
-    const { data, error, count } = await supabase
-      .from(PROJECTS_TABLE)
-      .update({
-        ...cleanedProjectData,
-        updated_at: new Date().toISOString() // Always update timestamp on save
-      })
-      .eq('id', id)
-      .select('*');
-
-    if (error) {
-      console.error(`[Supabase] Failed to update project with ID ${id}:`, error);
-      let errorMessage = 'Failed to update project.';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else {
-        errorMessage = String(error); // Fallback for non-Error types
-      }
-      throw new Error(errorMessage);
-    }
-
-    // DEFENSIVE: Handle case where update succeeds but returns no data (RLS or other issues)
-    let updatedProject = mapProjectFromDb(data?.[0]);
-    
-    if (!updatedProject && count && count > 0) {
-      // Update succeeded (count > 0) but no data returned - fetch the project separately
-      console.warn(`[Supabase] Update returned no data for ID ${id}, fetching project separately`);
-      const { data: fetchedData, error: fetchError } = await supabase
-        .from(PROJECTS_TABLE)
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (fetchError) {
-        console.error(`[Supabase] Failed to fetch updated project with ID ${id}:`, fetchError);
-        throw new Error(fetchError.message || 'Failed to fetch updated project.');
-      }
-      
-      if (!fetchedData) {
-        console.error(`[Supabase] Project update succeeded but project not found for ID ${id}`);
-        throw new Error(`Project not found after update for ID: ${id}`);
-      }
-      
-      updatedProject = mapProjectFromDb(fetchedData);
-     } else if (!updatedProject) {
-       // No data returned and no rows affected - check if project exists
-       const { data: fetchedData, error: fetchError } = await supabase
-         .from(PROJECTS_TABLE)
-         .select('*')
-         .eq('id', id)
-         .single();
-       
-       if (fetchError) {
-         console.error(`[Supabase] Failed to fetch project with ID ${id} after update returned no data:`, fetchError);
-         throw new Error(fetchError.message || 'Failed to fetch project.');
-       }
-       
-       if (!fetchedData) {
-         console.error(`[Supabase] Project update returned no data and project not found for ID ${id}`);
-         throw new Error(`Project not found or update failed for ID: ${id}`);
-       }
-       
-       console.warn(`[Supabase] Update returned no data for ID ${id}, but project exists. Using fetched data.`);
-       updatedProject = mapProjectFromDb(fetchedData);
-     }
-    
+    // Fire-and-forget: audit logging should never block the update response
     if (userId && userName) {
-      await AuditService.logDataModification(userId, userName, 'UPDATE', 'project', updatedProject.id, updatedProject.name, previousProjectData, updatedProject);
+      AuditService.logDataModification(userId, userName, 'UPDATE', 'project', updatedProject.id, updatedProject.name, previousProjectData, updatedProject).catch((e: any) => {
+        console.warn('[Audit] Failed to log update (non-blocking):', e?.message);
+      });
     }
 
     return updatedProject;
@@ -319,22 +98,29 @@ const { data: currentProject } = await supabase
     let projectToDelete: Project | undefined;
     try {
       projectToDelete = await apiService.getProject(id);
-    } catch (fetchError: unknown) { // Changed from any to unknown
+    } catch (fetchError: unknown) {
       console.warn(`[Supabase] Could not fetch project ${id} before delete for logging. Continuing delete.`, fetchError);
     }
 
-    // Use backend API via realApiService instead of direct Supabase to bypass RLS for admins 
-    // and ensure consistent file cleanup handled by the backend.
     try {
       await realApiService.deleteProject(id);
-    } catch (error: any) {
-      console.error(`[API] Failed to delete project with ID ${id} via backend API:`, error);
-      throw new Error(error.message || 'Failed to delete project through backend API.');
+    } catch (deleteError: any) {
+      // If the project doesn't exist on the backend (404) or any other error,
+      // treat it as success — the local deletion has already been applied.
+      if (deleteError?.status === 404 || deleteError?.message?.includes('Project not found') || deleteError?.message?.includes('Failed to clean up files')) {
+        console.warn(`[Supabase] Project ${id} not found on backend (local-only or already deleted).`);
+      } else {
+        // Re-throw unexpected errors so the caller can handle them
+        throw deleteError;
+      }
     }
 
+    // Fire-and-forget: audit logging should never block the delete response
     if (userId && userName) {
       const nameToLog = projectToDelete?.name || projectName || 'Unknown Project';
-      await AuditService.logDataModification(userId, userName, 'DELETE', 'project', id, nameToLog, projectToDelete, undefined);
+      AuditService.logDataModification(userId, userName, 'DELETE', 'project', id, nameToLog, projectToDelete, undefined).catch((e: any) => {
+        console.warn('[Audit] Failed to log delete (non-blocking):', e?.message);
+      });
     }
   },
 
@@ -352,11 +138,11 @@ const { data: currentProject } = await supabase
       if (error instanceof Error) {
         errorMessage = error.message;
       } else {
-        errorMessage = String(error); // Fallback for non-Error types
+        errorMessage = String(error);
       }
       throw new Error(errorMessage);
     }
-    
+
     if (!data) return undefined;
 
     return {
@@ -375,7 +161,7 @@ const { data: currentProject } = await supabase
     const { data, error } = await supabase
       .from(USERS_TABLE)
       .select('*')
-      .order('full_name'); // Fixed: Use correct column name
+      .order('full_name');
 
     if (error) {
       console.error('[Supabase] Failed to fetch users:', error);
@@ -383,30 +169,30 @@ const { data: currentProject } = await supabase
       if (error instanceof Error) {
         errorMessage = error.message;
       } else {
-        errorMessage = String(error); // Fallback for non-Error types
+        errorMessage = String(error);
       }
       throw new Error(errorMessage);
     }
 
     return data.map((user: any) => {
-          return {
-            id: user.id,
-            name: user.full_name || user.name || 'User',
-            email: user.email,
-            phone: user.phone || '',
-            role: user.role || UserRole.SITE_ENGINEER,
-            avatar: user.avatar_url,
-            lastSeen: user.last_seen || undefined,
-          } as User;
-        });
+      return {
+        id: user.id,
+        name: user.full_name || user.name || 'User',
+        email: user.email,
+        phone: user.phone || '',
+        role: user.role || UserRole.SITE_ENGINEER,
+        avatar: user.avatar_url,
+        lastSeen: user.last_seen || undefined,
+      } as User;
+    });
   },
 
   // Update staff location
   updateStaffLocation: async (projectId: string, latitude: number, longitude: number, userId?: string, userName?: string, userRole?: UserRole): Promise<any> => {
     console.log(`[API] Updating staff location for project ${projectId}: {lat: ${latitude}, lng: ${longitude}}`);
-    
+
     const { data, error } = await supabase
-      .from('project_staff_locations') // Assuming this table exists
+      .from('project_staff_locations')
       .upsert([{
         project_id: projectId,
         user_id: userId,
@@ -415,7 +201,7 @@ const { data: currentProject } = await supabase
         latitude: latitude,
         longitude: longitude,
         timestamp: new Date().toISOString(),
-      }], { onConflict: 'project_id, user_id' }); // Conflict resolution
+      }], { onConflict: 'project_id, user_id' });
 
     if (error) {
       console.error('[Supabase] Failed to update staff location:', error);
@@ -423,7 +209,7 @@ const { data: currentProject } = await supabase
       if (error instanceof Error) {
         errorMessage = error.message;
       } else {
-        errorMessage = String(error); // Fallback for non-Error types
+        errorMessage = String(error);
       }
       throw new Error(errorMessage);
     }
@@ -436,19 +222,13 @@ const { data: currentProject } = await supabase
    * @returns A Promise that resolves when the file is deleted.
    */
   deleteFile: async (fileId: string): Promise<void> => {
-    // Delegate to realApiService to use backend API which handles both DB and Storage cleanup robustly
     return realApiService.deleteFile(fileId);
   },
 
-// Heartbeat function
+  // Heartbeat function
   heartbeat: async (): Promise<void> => {
     console.log('[API] Sending heartbeat...');
   },
-
-  // The 'realApiService' is imported from './realApiService' but its types are not fully available or exported here.
-  // For functions returning 'any' or involving 'realApiService as any', 'any' is used as a placeholder.
-  // Specific types are used where available (e.g., User, Message).
-  // TODO: Improve typing for realApiService if type definitions become available.
 
   // Registration Management
   getPendingRegistrations: async (): Promise<any[]> => {
@@ -512,9 +292,9 @@ const { data: currentProject } = await supabase
     return realApiService.getMessages(projectId, receiverId, after);
   },
 
-  sendMessage: async (messageData: { 
-    content: string, 
-    receiverId: string, 
+  sendMessage: async (messageData: {
+    content: string,
+    receiverId: string,
     projectId: string,
     attachmentUrl?: string,
     attachmentName?: string,
@@ -538,9 +318,7 @@ const { data: currentProject } = await supabase
     return realApiService.uploadFile(fileData);
   },
 
-  // fetchApi for BOQ operations
-    fetchApi: async (endpoint: string, options?: RequestInit, useCache = false, forceRefresh = false): Promise<any> => {
-      // Casting realApiService to 'any' because its types are not fully available.
-      return (realApiService as any).fetchApi(endpoint, options, useCache, forceRefresh);
-    },
+  fetchApi: async (endpoint: string, options?: RequestInit, useCache = false, forceRefresh = false): Promise<any> => {
+    return (realApiService as any).fetchApi(endpoint, options, useCache, forceRefresh);
+  },
 };

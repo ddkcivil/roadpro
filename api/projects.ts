@@ -92,10 +92,10 @@ if (id) {
           .eq('id', (id as string).trim())
           .maybeSingle();
 
-        // If there's an error, log it and return 500
+        // If there's an error, log it and treat as "not found" (common with non-UUID IDs)
         if (error) {
-          console.error('[GET Project] Error fetching project:', error);
-          return res.status(500).json({ error: 'Failed to fetch project', details: error.message });
+          console.warn('[GET Project] Error fetching project (treating as not found):', error);
+          return res.status(404).json({ error: 'Project not found', details: error.message });
         }
         
         // If project not found, return 404

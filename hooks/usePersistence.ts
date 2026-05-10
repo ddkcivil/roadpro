@@ -55,11 +55,14 @@ export function useAsyncPersistedReducer<S, A>(
 ): [S, (action: A) => void, boolean] {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [isHydrated, setIsHydrated] = useState(false);
+  const hasHydratedRef = useRef(false);
 
   // Load state from IndexedDB on mount
   useEffect(() => {
     let isMounted = true;
     async function hydrate() {
+      // Prevent re-hydration if already completed
+      if (hasHydratedRef.current) return;
       try {
         const saved = await offlineStorage.getItem<S>(storageKey);
         if (saved && isMounted) {
@@ -72,7 +75,10 @@ export function useAsyncPersistedReducer<S, A>(
       } catch (error) {
         console.error(`Failed to hydrate state for key "${storageKey}":`, error);
       } finally {
-        if (isMounted) setIsHydrated(true);
+        if (isMounted) {
+          hasHydratedRef.current = true;
+          setIsHydrated(true);
+        }
       }
     }
     hydrate();

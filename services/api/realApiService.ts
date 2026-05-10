@@ -314,37 +314,54 @@ private async fetchWithRetry<T>(endpoint: string, options?: RequestInit, retries
   }
 
   async deleteProject(id: string): Promise<void> {
+    // Attempt to fetch the project for file cleanup, but gracefully handle
+    // projects that only exist locally (never synced) or were already deleted.
     try {
       const project = await this.getProject(id);
       const fileIds: string[] = [];
-      if (project?.documents) { // Use optional chaining for safety
+      if (project?.documents) {
         project.documents.forEach((doc: any) => {
           if (doc.fileId) fileIds.push(doc.fileId);
         });
       }
-      if (project?.sitePhotos) { // Use optional chaining for safety
+      if (project?.sitePhotos) {
         project.sitePhotos.forEach((photo: any) => {
           if (photo.fileId) fileIds.push(photo.fileId);
         });
       }
       
-      // Attempt to delete files. Errors will propagate if not caught here.
+      // Attempt to delete associated files
       for (const fileId of fileIds) {
-        await this.deleteFile(fileId); // Errors from deleteFile will now propagate to the outer catch block
+        try {
+          await this.deleteFile(fileId);
+        } catch (fileErr: any) {
+          console.warn(`[API] Failed to delete file ${fileId} during project deletion:`, fileErr?.message);
+          // Non-blocking: continue deleting other files
+        }
       }
-    } catch (error: any) { // Catch errors from getProject or deleteFile
-      console.error('[API] Error during file cleanup for project deletion:', error);
-      // If file cleanup fails, re-throw to prevent project deletion
-      throw new Error(`Failed to clean up files for project deletion: ${error.message}`);
+    } catch (error: any) {
+      // Project not found on backend (404) is expected for local-only projects.
+      // Log a warning but do NOT block the deletion.
+      if (error?.status === 404 || error?.message?.includes('Project not found')) {
+        console.warn(`[API] Project ${id} not found on backend (may be local-only). Proceeding with deletion.`);
+      } else {
+        console.warn(`[API] Non-critical error during project file cleanup for ${id}:`, error?.message);
+      }
     }
 
-    // Proceed to delete the project only if file cleanup was successful
+    // Proceed to delete the project from backend regardless of cleanup results.
     try {
       return await this.fetchWithRetry<void>(`/projects?id=${id}`, {
         method: 'DELETE',
       }, 0);
-    } catch (error: any) { // Catch errors from project deletion
-      console.error(`[API] Failed to delete project with ID ${id} after file cleanup:`, error);
+    } catch (error: any) {
+      // If backend returns 404, the project was already deleted or never existed.
+      // This is not an error — the desired state (project deleted) is already achieved.
+      if (error?.status === 404 || error?.message?.includes('Project not found')) {
+        console.log(`[API] Project ${id} was already deleted or never existed on backend.`);
+        return;
+      }
+      console.error(`[API] Failed to delete project with ID ${id}:`, error);
       throw new Error(`Failed to delete project: ${error.message}`);
     }
   }

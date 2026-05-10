@@ -12,11 +12,12 @@ if (!rootElement) {
 // Create root with error boundary
 const root = ReactDOM.createRoot(rootElement);
 root.render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </React.StrictMode>
+  // NOTE: StrictMode intentionally double-invokes effects/state in dev, which causes
+  // cascading re-renders with async hydration (useAsyncPersistedReducer, useProjects,
+  // useMessages). Production builds strip StrictMode automatically.
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
 );
 
 console.log('App entry point: React root rendered.');

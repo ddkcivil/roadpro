@@ -353,19 +353,19 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: User): Proje
     const projectToDelete = projectsRef.current.find(p => p.id === projectId);
     const wasSelected = state.selectedProjectId === projectId;
     
+    // Optimistic update: remove from local state immediately
+    const updatedProjects = previousProjects.filter(p => p.id !== projectId);
+    startTransition(() => {
+      dispatch({ type: 'UPDATE_PROJECTS', payload: updatedProjects });
+    });
+    
+    if (wasSelected) {
+      setSelectedProjectId(null);
+    }
+
     try {
-      const updatedProjects = previousProjects.filter(p => p.id !== projectId);
-      startTransition(() => {
-        dispatch({ type: 'UPDATE_PROJECTS', payload: updatedProjects });
-      });
-      
-      if (wasSelected) {
-        setSelectedProjectId(null);
-      }
-
-// Pass currentUser details and project name for audit logging
+      // Pass currentUser details and project name for audit logging
       await apiService.deleteProject(projectId, currentUser?.id, currentUser?.name, projectToDelete?.name);
-
 
       // CACHE INVALIDATION: Clear cache after delete to ensure consistency
       DataCache.delete(getCacheKey('projects'));
@@ -375,7 +375,21 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: User): Proje
       toast.success("Project Deleted", {
         description: "The project has been permanently removed from the database.",
       });
-    } catch (error: unknown) { // Changed from any to unknown
+    } catch (error: unknown) {
+      // If backend reports "not found" or "cleanup failed", the project was already
+      // removed from local state — treat as success since it no longer exists.
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (errorMsg.includes('Project not found') || errorMsg.includes('Failed to clean up files') || errorMsg.includes('404')) {
+        console.warn(`[useProjects] Project ${projectId} not found on backend — local deletion already applied.`);
+        DataCache.delete(getCacheKey('projects'));
+        debouncedCacheSync(updatedProjects);
+        toast.success("Project Deleted", {
+          description: "The project has been removed locally.",
+        });
+        return;
+      }
+      
+      // Rollback for unexpected errors
       startTransition(() => {
         dispatch({ type: 'UPDATE_PROJECTS', payload: previousProjects });
       });
@@ -384,12 +398,6 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: User): Proje
       }
       
       console.error('[ERROR] Failed to delete project from Supabase backend:', error);
-      let errorMsg = 'Unknown server error';
-      if (error instanceof Error) {
-        errorMsg = error.message;
-      } else {
-        errorMsg = String(error); // Fallback for non-Error types
-      }
       toast.error("Delete Failed", {
         description: `Rollback applied. Server responded with: ${errorMsg}`,
       });
