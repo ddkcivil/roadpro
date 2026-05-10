@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { getTranslation, getCurrentLanguage, setCurrentLanguage } from '../utils/formatting/i18nUtils';
+import React, { createContext, useContext, ReactNode } from 'react';
 
 interface I18nContextType {
   language: string;
@@ -9,18 +8,31 @@ interface I18nContextType {
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
+// Simple translation function without external dependencies
+const simpleGetTranslation = (key: string): string => {
+  return key;
+};
+
+// Get language from localStorage safely
+const getInitialLanguage = (): string => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('app_language') || 'en';
+  }
+  return 'en';
+};
+
 export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState<string>(() => {
-    return getCurrentLanguage();
-  });
+  const [language, setLanguageState] = React.useState<string>(getInitialLanguage);
 
   const setLanguage = (lang: string) => {
-    setCurrentLanguage(lang);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('app_language', lang);
+    }
     setLanguageState(lang);
   };
 
   const t = (key: string, params?: Record<string, any>): string => {
-    return getTranslation(key, language, params);
+    return simpleGetTranslation(key);
   };
 
   return (

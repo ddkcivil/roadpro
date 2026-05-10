@@ -16,7 +16,7 @@ import type {
   Polygon as TurfPolygon,
   Position
 } from 'geojson';
-import { v4 as uuidv4 } from 'uuid';
+import { generateUniqueId } from './uuidUtils.js';
 import { Road, Alignment, Structure, ChainagePoint, Point as ProjectPoint, formatChainage } from './roadTypes';
 
 // Helper to convert Leaflet-like LatLngExpression ([lat, lng]) to Turf's [lng, lat]
@@ -93,7 +93,7 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
 
   let mainRoadLine: Feature<LineString> | null = null;
   const road: Road = {
-    id: uuidv4(),
+    id: generateUniqueId(),
     name: roadName,
     geometry: [], 
     chainageOffset: 0, 
@@ -220,7 +220,7 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
       const progress = isCompleted ? 100 : Math.floor(Math.random() * 40);
 
       road.alignments.push({
-        id: uuidv4(),
+        id: generateUniqueId(),
         roadId: road.id || '',
         name: alignmentName,
         type: alignmentType,
@@ -270,7 +270,7 @@ export async function parseKML(kmlText: string, roadName: string): Promise<Road>
         const isCompleted = Math.random() > 0.7;
 
         road.structures.push({
-          id: uuidv4(),
+          id: generateUniqueId(),
           roadId: road.id || '',
           name: structureName,
           type: structureType,

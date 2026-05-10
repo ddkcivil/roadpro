@@ -13,21 +13,21 @@ const mockSupabaseAdmin = {
     listBuckets: vi.fn().mockResolvedValue({ data: [{ name: 'project-files' }], error: null }),
     createBucket: vi.fn().mockResolvedValue({ data: null, error: null }),
   },
-  from: vi.fn().mockReturnThis(), // Mocking from('projects') or from('document_versions')
-  select: vi.fn().mockReturnThis(),
-  eq: vi.fn().mockReturnThis(),
-  or: vi.fn().mockReturnThis(),
-  order: vi.fn().mockReturnThis(),
-  limit: vi.fn().mockReturnThis(),
-  range: vi.fn().mockReturnThis(),
-  single: vi.fn().mockReturnThis(),
-  insert: vi.fn().mockResolvedValue({ data: [{ id: 'new-doc-id', versionId: 'new-ver-id' }], error: null }),
-  update: vi.fn().mockReturnThis(),
-  upsert: vi.fn().mockReturnThis(),
-  delete: vi.fn().mockReturnThis(),
+  from: vi.fn(), // Will be mocked in beforeEach
+  select: vi.fn(), // Will be mocked in beforeEach
+  eq: vi.fn(), // Will be mocked in beforeEach
+  or: vi.fn(), // Will be mocked in beforeEach
+  order: vi.fn(), // Will be mocked in beforeEach
+  limit: vi.fn(), // Will be mocked in beforeEach
+  range: vi.fn(), // Will be mocked in beforeEach
+  single: vi.fn(), // Will be mocked in beforeEach
+  insert: vi.fn(), // Will be mocked in beforeEach
+  update: vi.fn(), // Will be mocked in beforeEach
+  upsert: vi.fn(), // Will be mocked in beforeEach
+  delete: vi.fn(), // Will be mocked in beforeEach
   // Mocking rpc for potential future use, although not directly used in files.ts GET/POST/DELETE
-  rpc: vi.fn().mockReturnThis(),
-  then: vi.fn()
+  rpc: vi.fn(), // Will be mocked in beforeEach
+  then: vi.fn() // This is for promise resolution
 };
 
 vi.mock('../api/utils/supabaseClient.js', () => ({
@@ -37,11 +37,18 @@ vi.mock('../api/utils/supabaseClient.js', () => ({
 
 // Mock external utilities that might still be used
 vi.mock('../api/utils/auth.js', () => ({ withAuth: (h: any) => h }));
-vi.mock('../api/utils/errorHandler.js', () => ({ withErrorHandler: (h: any) => h }));
+viD.mock('../api/utils/errorHandler.js', () => ({ withErrorHandler: (h: any) => h }));
 vi.mock('uuid', () => ({ v4: vi.fn(() => 'mock-uuid-123') })); // Mock uuidv4
 
 describe('api/files handler with Supabase', () => {
   let mockRes: any;
+  let mockDocData: any; // Declare mockDocData here to be accessible in beforeEach and tests
+  
+  // Mock promises for different operations
+  let mockSelectPromise: vi.Mock;
+  let mockDeleteVersionsPromise: vi.Mock;
+  let mockDeleteProjectsPromise: vi.Mock;
+  let mockInsertUpdateUpsertPromise: vi.Mock;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -54,27 +61,63 @@ describe('api/files handler with Supabase', () => {
       end: vi.fn().mockReturnThis()
     };
 
-    // Default mock behaviors - use mockReturnThis() for all chainable methods
-    mockSupabaseAdmin.from.mockReturnThis();
-    mockSupabaseAdmin.select.mockReturnThis();
-    mockSupabaseAdmin.eq.mockReturnThis();
-    mockSupabaseAdmin.or.mockReturnThis();
-    mockSupabaseAdmin.order.mockReturnThis();
-    mockSupabaseAdmin.limit.mockReturnThis();
-    mockSupabaseAdmin.range.mockReturnThis();
-    mockSupabaseAdmin.single.mockReturnThis();
-    mockSupabaseAdmin.insert.mockReturnThis(); // Chainable
-    mockSupabaseAdmin.update.mockReturnThis(); // Chainable
-    mockSupabaseAdmin.delete.mockReturnThis(); // Chainable
-    mockSupabaseAdmin.rpc.mockReturnThis();
+    // Mock data for the select call
+    mockDocData = [{ blob_url: 'files/project-123/test.txt', doc_id: 'doc-123', id: 'ver-123', version_num: 1 }];
 
-    // For Supabase client, the chain usually ends with a promise (thenable).
-    const defaultResponse = { data: null, error: null };
-    mockSupabaseAdmin.then.mockImplementation((onSuccess: any) => Promise.resolve(defaultResponse).then(onSuccess));
+    // Mock promises for each operation
+    mockSelectPromise = vi.fn().mockResolvedValue({ data: mockDocData, error: null });
+    mockDeleteVersionsPromise = vi.fn().mockResolvedValue({ data: null, error: null });
+    mockDeleteProjectsPromise = vi.fn().mockResolvedValue({ data: null, error: null });
+    mockInsertUpdateUpsertPromise = vi.fn().mockResolvedValue({ data: null, error: null });
 
+    // Mock the .from() method to return chainable objects that directly return promises
+    mockSupabaseAdmin.from.mockImplementation((tableName: string) => {
+      // Common chainable methods that return 'this' for chaining
+      const chainableMethods = {
+        eq: vi.fn().mockReturnThis(),
+        or: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        range: vi.fn().mockReturnThis(),
+        single: vi.fn().mockReturnThis(),
+        rpc: vi.fn().mockReturnThis(),
+      };
+
+      if (tableName === 'document_versions') {
+        return {
+          ...chainableMethods,
+          select: vi.fn().mockReturnValue(mockSelectPromise), // select directly returns the promise
+          delete: vi.fn().mockReturnValue(mockDeleteVersionsPromise), // delete directly returns the promise
+          insert: vi.fn().mockReturnValue(mockInsertUpdateUpsertPromise),
+          update: vi.fn().mockReturnValue(mockInsertUpdateUpsertPromise),
+          upsert: vi.fn().mockReturnValue(mockInsertUpdateUpsertPromise),
+        };
+      } else if (tableName === 'project_documents') {
+        return {
+          ...chainableMethods,
+          select: vi.fn().mockReturnValue(mockSelectPromise), // Reuse select promise
+          delete: vi.fn().mockReturnValue(mockDeleteProjectsPromise), // delete directly returns the promise
+          insert: vi.fn().mockReturnValue(mockInsertUpdateUpsertPromise),
+          update: vi.fn().mockReturnValue(mockInsertUpdateUpsertPromise),
+          upsert: vi.fn().mockReturnValue(mockInsertUpdateUpsertPromise),
+        };
+      } else {
+        // Default mock for other tables
+        return {
+          ...chainableMethods,
+          select: vi.fn().mockReturnValue(mockSelectPromise),
+          delete: vi.fn().mockReturnValue(mockDeleteVersionsPromise),
+          insert: vi.fn().mockReturnValue(mockInsertUpdateUpsertPromise),
+          update: vi.fn().mockReturnValue(mockInsertUpdateUpsertPromise),
+          upsert: vi.fn().mockReturnValue(mockInsertUpdateUpsertPromise),
+        };
+      }
+    });
+
+    // Mock storage operations
     mockSupabaseAdmin.storage.from.mockReturnThis();
     mockSupabaseAdmin.storage.upload.mockResolvedValue({ data: { path: 'test.txt' }, error: null });
-    mockSupabaseAdmin.storage.getPublicUrl.mockReturnValue({ data: { publicUrl: 'https://supabase.storage.url/files/test.txt' } });
+    mockSupabaseAdmin.storage.getPublicUrl.mockResolvedValue({ data: { publicUrl: 'https://supabase.storage.url/files/test.txt' }, error: null });
     mockSupabaseAdmin.storage.remove.mockResolvedValue({ data: null, error: null });
   });
 
@@ -84,19 +127,18 @@ describe('api/files handler with Supabase', () => {
       query: { id: 'doc-123' } // Simulating a doc ID that resolves to a file path
     };
 
-    // Mocking Supabase to return metadata for document_versions
-    const mockDocData = [{ blob_url: 'files/project-123/test.txt', doc_id: 'doc-123', id: 'ver-123', version_num: 1 }];
-    mockSupabaseAdmin.then.mockImplementation((onSuccess: any) => Promise.resolve({ data: mockDocData, error: null }).then(onSuccess));
-
+    // Handler uses await on the result of select().or().order()
+    // The mockSelectPromise is used here.
+    
     await handler(mockReq as any, mockRes as any);
     expect(mockSupabaseAdmin.from).toHaveBeenCalledWith('document_versions');
-    expect(mockSupabaseAdmin.select).toHaveBeenCalledWith('blob_url, doc_id, id, version_num');
-    expect(mockSupabaseAdmin.or).toHaveBeenCalledWith(`doc_id.eq.doc-123,id.eq.doc-123`);
-    expect(mockSupabaseAdmin.order).toHaveBeenCalledWith('version_num', { ascending: false });
+    expect(mockSupabaseAdmin.from('document_versions').select).toHaveBeenCalledWith('blob_url, doc_id, id, version_num');
+    expect(mockSupabaseAdmin.from('document_versions').or).toHaveBeenCalledWith(`doc_id.eq.doc-123,id.eq.doc-123`);
+    expect(mockSupabaseAdmin.from('document_versions').order).toHaveBeenCalledWith('version_num', { ascending: false });
     // expect(mockSupabaseAdmin.single).not.toHaveBeenCalled(); // Handler doesn't call single() on GET document_versions
 
     expect(mockSupabaseAdmin.storage.from).toHaveBeenCalledWith('project-files'); // Bucket name is project-files
-    expect(mockSupabaseAdmin.storage.getPublicUrl).toHaveBeenCalledWith('files/project-123/test.txt'); 
+    expect(mockSupabaseAdmin.storage.getPublicUrl).toHaveBeenCalledWith('files/project-123/test.txt');
     expect(mockRes.redirect).toHaveBeenCalledWith('https://supabase.storage.url/files/test.txt');
   });
 
@@ -113,18 +155,17 @@ describe('api/files handler with Supabase', () => {
       }
     };
 
-    // Mocking successful DB inserts
-    mockSupabaseAdmin.then.mockImplementation((onSuccess: any) => Promise.resolve({ data: [{ id: 'doc-mock-uuid-123' }], error: null }).then(onSuccess));
+    // Mocking successful DB inserts - mockInsertUpdateUpsertPromise is used.
 
     await handler(mockReq as any, mockRes as any);
     expect(mockSupabaseAdmin.storage.from).toHaveBeenCalledWith('project-files');
     expect(mockSupabaseAdmin.storage.upload).toHaveBeenCalled();
-    
+
     // Verify Supabase DB insertion for project_documents and document_versions
     expect(mockSupabaseAdmin.from).toHaveBeenCalledWith('project_documents');
-    expect(mockSupabaseAdmin.insert).toHaveBeenCalled(); // Check specific arguments if needed
+    expect(mockSupabaseAdmin.from('project_documents').insert).toHaveBeenCalled();
     expect(mockSupabaseAdmin.from).toHaveBeenCalledWith('document_versions');
-    expect(mockSupabaseAdmin.insert).toHaveBeenCalled(); // Check specific arguments if needed
+    expect(mockSupabaseAdmin.from('document_versions').insert).toHaveBeenCalled();
 
     expect(mockRes.status).toHaveBeenCalledWith(201);
     expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
@@ -151,9 +192,9 @@ describe('api/files handler with Supabase', () => {
 
     expect(mockSupabaseAdmin.storage.upload).toHaveBeenCalled();
     expect(mockSupabaseAdmin.from).toHaveBeenCalledWith('project_documents');
-    expect(mockSupabaseAdmin.update).toHaveBeenCalled(); // Should call update on project_documents
+    expect(mockSupabaseAdmin.from('project_documents').update).toHaveBeenCalled(); // Should call update on project_documents
     expect(mockSupabaseAdmin.from).toHaveBeenCalledWith('document_versions');
-    expect(mockSupabaseAdmin.insert).toHaveBeenCalled(); // Should call insert for the new version
+    expect(mockSupabaseAdmin.from('document_versions').insert).toHaveBeenCalled(); // Should call insert for the new version
     expect(mockRes.status).toHaveBeenCalledWith(201);
   });
 
@@ -165,27 +206,31 @@ describe('api/files handler with Supabase', () => {
     };
 
     // Mocking Supabase to return metadata for document_versions
-    const mockDocData = [{ blob_url: 'files/project-123/test.txt', doc_id: 'doc-to-delete', id: 'ver-123', version_num: 1 }];
-    mockSupabaseAdmin.then.mockImplementation((onSuccess: any) => Promise.resolve({ data: mockDocData, error: null }).then(onSuccess));
-
+    // mockDocData is used here
+    // Handler uses await on select().or().order()
+    
     await handler(mockReq as any, mockRes as any);
 
     // Verify Supabase Storage removal call
     expect(mockSupabaseAdmin.storage.from).toHaveBeenCalledWith('project-files');
-    expect(mockSupabaseAdmin.storage.remove).toHaveBeenCalled(); 
+    expect(mockSupabaseAdmin.storage.remove).toHaveBeenCalled();
 
     // Verify Supabase DB delete calls
-    expect(mockSupabaseAdmin.from).toHaveBeenCalledWith('document_versions'); // Should delete versions first if no cascade
-    expect(mockSupabaseAdmin.delete).toHaveBeenCalled(); 
-    expect(mockSupabaseAdmin.from).toHaveBeenCalledWith('project_documents'); // Then delete main document
-    expect(mockSupabaseAdmin.delete).toHaveBeenCalled(); 
+    expect(mockSupabaseAdmin.from).toHaveBeenCalledWith('document_versions');
+    expect(mockSupabaseAdmin.from('document_versions').delete).toHaveBeenCalled(); // Check delete was called
+    expect(mockSupabaseAdmin.from('document_versions').eq).toHaveBeenCalledWith('id', expect.any(String)); // Check eq was called
     
+    expect(mockSupabaseAdmin.from).toHaveBeenCalledWith('project_documents');
+    expect(mockSupabaseAdmin.from('project_documents').delete).toHaveBeenCalled(); // Check delete was called
+    expect(mockSupabaseAdmin.from('project_documents').eq).toHaveBeenCalledWith('id', expect.any(String)); // Check eq was called
+
     expect(mockRes.status).toHaveBeenCalledWith(204);
   });
 
   it('GET should return 404 if file not found in DB', async () => {
     // Mocking Supabase to return no data for document_versions
-    mockSupabaseAdmin.then.mockImplementation((onSuccess: any) => Promise.resolve({ data: [], error: null }).then(onSuccess));
+    // This is handled by overriding the mockSelectPromise
+    mockSelectPromise.mockResolvedValue({ data: [], error: null });
     
     const mockReq = {
       method: 'GET',
@@ -199,12 +244,12 @@ describe('api/files handler with Supabase', () => {
 
   it('GET should return 500 if Supabase storage URL retrieval fails', async () => {
     // Mocking Supabase to return metadata for document_versions
-    const mockDocData = [{ blob_url: 'files/test.txt', doc_id: 'doc-123', id: 'ver-123', version_num: 1 }];
-    mockSupabaseAdmin.then.mockImplementation((onSuccess: any) => Promise.resolve({ data: mockDocData, error: null }).then(onSuccess));
-
-    // Mocking getPublicUrl to fail
-    mockSupabaseAdmin.storage.getPublicUrl.mockReturnValue({ data: { publicUrl: null }, error: new Error('Storage error') });
+    // mockDocData is used here
+    // The select promise is handled by mockSelectPromise
     
+    // Mocking getPublicUrl to fail
+    mockSupabaseAdmin.storage.getPublicUrl.mockResolvedValue({ data: { publicUrl: null }, error: new Error('Storage error') });
+
     const mockReq = {
       method: 'GET',
       query: { id: 'doc-id-with-storage-error' }
@@ -229,12 +274,14 @@ describe('api/files handler with Supabase', () => {
 
   it('DELETE should handle storage removal errors gracefully but still delete metadata', async () => {
     // Mocking Supabase to return metadata for document_versions
-    const mockDocData = [{ blob_url: 'files/test.txt', doc_id: 'doc-123', id: 'ver-123', version_num: 1 }];
-    mockSupabaseAdmin.then.mockImplementation((onSuccess: any) => Promise.resolve({ data: mockDocData, error: null }).then(onSuccess));
+    // mockDocData is used here
+    // mockSelectPromise is used for the initial select
+    mockSupabaseAdmin.from('document_versions').select().then.mockResolvedValue({ data: mockDocData, error: null });
+
 
     // Mock storage.remove to fail but DB delete to succeed
     mockSupabaseAdmin.storage.remove.mockResolvedValue({ data: null, error: new Error('Storage error') });
-    
+
     const mockReq = {
       method: 'DELETE',
       query: { id: 'doc-id-with-storage-error' },
@@ -245,9 +292,15 @@ describe('api/files handler with Supabase', () => {
 
     // Storage removal fails, but DB delete should still proceed
     expect(mockSupabaseAdmin.storage.remove).toHaveBeenCalled();
+    // Check if delete operations were attempted on both tables
     expect(mockSupabaseAdmin.from).toHaveBeenCalledWith('document_versions');
-    expect(mockSupabaseAdmin.delete).toHaveBeenCalled(); // Should attempt DB delete
+    expect(mockSupabaseAdmin.from('document_versions').delete).toHaveBeenCalled();
+    expect(mockSupabaseAdmin.from('document_versions').eq).toHaveBeenCalledWith('id', expect.any(String));
+
+    expect(mockSupabaseAdmin.from).toHaveBeenCalledWith('project_documents');
+    expect(mockSupabaseAdmin.from('project_documents').delete).toHaveBeenCalled();
+    expect(mockSupabaseAdmin.from('project_documents').eq).toHaveBeenCalledWith('id', expect.any(String));
+    
     expect(mockRes.status).toHaveBeenCalledWith(204); // Success in deleting metadata
   });
 });
-

@@ -18,7 +18,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(cors());
 app.use(express.json({
-  limit: '10mb',
+  limit: '25mb', // Increased to handle larger image uploads with base64 data
   // Add custom error handler for JSON parsing errors
   onError: (err, req, res, next) => {
     if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {

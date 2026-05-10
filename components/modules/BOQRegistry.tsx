@@ -86,8 +86,13 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
 
   const handleSaveEdit = () => {
     if (editingItem && project) {
+      const quantity = editingItem.quantity || 0;
+      const rate = editingItem.rate || 0;
       const updatedBoq = (project.boq || []).map(item =>
-        item.id === editingItem.id ? editingItem : item
+        item.id === editingItem.id ? { 
+          ...editingItem,
+          amount: quantity * rate 
+        } : item
       );
       startTransition(() => {
         onProjectUpdate({ ...project, boq: updatedBoq });
@@ -228,55 +233,30 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
       <Card>
         <CardContent className="p-0">
           <Table>
-            <TableHeader>
+<TableHeader>
               <TableRow className="bg-muted">
-                <TableHead className="font-bold">Item No</TableHead>
-                <TableHead className="font-bold">Description</TableHead>
-                <TableHead className="font-bold">Unit</TableHead>
-                <TableHead className="text-right font-bold">Quantity</TableHead>
-                <TableHead className="text-right font-bold">Rate ({currencySymbol})</TableHead>
-                <TableHead className="text-right font-bold">Amount ({currencySymbol})</TableHead>
-                <TableHead className="font-bold">Progress</TableHead>
-                <TableHead className="text-right font-bold">Completed</TableHead>                <TableHead className="text-right font-bold">Variation</TableHead>
-                <TableHead className="text-center font-bold">Actions</TableHead>
+                <TableHead className="font-bold">Item No</TableHead><TableHead className="font-bold">Description</TableHead><TableHead className="font-bold">Unit</TableHead><TableHead className="text-right font-bold">Quantity</TableHead><TableHead className="text-right font-bold">Rate ({currencySymbol})</TableHead><TableHead className="text-right font-bold">Amount ({currencySymbol})</TableHead><TableHead className="font-bold">Progress</TableHead><TableHead className="text-right font-bold">Completed</TableHead><TableHead className="text-right font-bold">Variation</TableHead><TableHead className="text-center font-bold">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedBoq.length > 0 ? (
                 paginatedBoq.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>{item.itemNo}</TableCell>
-                    <TableCell>{item.description}</TableCell>
-                    <TableCell>{item.unit}</TableCell>
-                    <TableCell className="text-right">{(item.quantity || 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right">{(item.rate || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                    <TableCell className="text-right">{((item.quantity || 0) * (item.rate || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                    {/* New Progress Cell */}
-                    <TableCell className="text-center"> {/* Centered for progress bar */}
-                      {(() => {
+                  <TableRow key={item.id}><TableCell>{item.itemNo}</TableCell><TableCell>{item.description}</TableCell><TableCell>{item.unit}</TableCell><TableCell className="text-right">{(item.quantity || 0).toLocaleString()}</TableCell><TableCell className="text-right">{(item.rate || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell><TableCell className="text-right">{((item.quantity || 0) * (item.rate || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell><TableCell className="text-center">{/* Centered for progress bar */}{(() => {
                         const totalQuantity = (item.quantity || 0) + (item.variationQuantity || 0);
                         const progress = totalQuantity > 0 ? (item.completedQuantity || 0) / totalQuantity * 100 : 0;
                         const clampedProgress = Math.min(progress, 100);
 
-                        return (
-                          <div className="w-full">
-                            <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-                              <div 
-                                className="bg-primary h-2.5 rounded-full transition-all duration-500" 
-                                style={{ width: `${clampedProgress}%` }}
-                                title={`${clampedProgress.toFixed(1)}%`}
-                              ></div>
-                            </div>
-                            <span className="text-xs text-muted-foreground">{clampedProgress.toFixed(1)}%</span>
-                          </div>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell className="text-right">{item.completedQuantity?.toLocaleString() || '0'}</TableCell>
-                    <TableCell className="text-right">{item.variationQuantity?.toLocaleString() || '0'}</TableCell>
-                    <TableCell className="text-center">
-                      <TooltipProvider>
-                        {canEdit && (
+                        return (<div className="w-full">
+                                  <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                                    <div 
+                                      className="bg-primary h-2.5 rounded-full transition-all duration-500" 
+                                      style={{ width: `${clampedProgress}%` }}
+                                      title={`${clampedProgress.toFixed(1)}%`}
+                                    ></div>
+                                  </div>
+                                  <span className="text-xs text-muted-foreground">{clampedProgress.toFixed(1)}%</span>
+                                </div>);
+                      })()}</TableCell><TableCell className="text-right">{item.completedQuantity?.toLocaleString() || '0'}</TableCell><TableCell className="text-right">{item.variationQuantity?.toLocaleString() || '0'}</TableCell><TableCell className="text-center"><TooltipProvider>{canEdit && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button 
@@ -291,8 +271,7 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
                             </TooltipTrigger>
                             <TooltipContent>Certify 100% Completion</TooltipContent>
                           </Tooltip>
-                        )}
-                        {canEdit && (
+                        )}{canEdit && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button variant="ghost" size="icon" onClick={() => handleEditClick(item)}>
@@ -301,8 +280,7 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
                             </TooltipTrigger>
                             <TooltipContent>Edit Item</TooltipContent>
                           </Tooltip>
-                        )}
-                        {canDelete && (
+                        )}{canDelete && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(item.id)}>
@@ -311,10 +289,7 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
                             </TooltipTrigger>
                             <TooltipContent>Delete Item</TooltipContent>
                           </Tooltip>
-                        )}
-                      </TooltipProvider>
-                    </TableCell>
-                  </TableRow>
+                        )}</TooltipProvider></TableCell></TableRow>
                 ))
               ) : (
                 <TableRow>

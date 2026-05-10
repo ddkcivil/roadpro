@@ -1,8 +1,8 @@
 // utils/uuidUtils.ts
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 
 export function generateUniqueId(): string {
-  return uuidv4();
+  return randomUUID();
 }
 export function isUuid(val: string | null | undefined): boolean {
   if (!val) return false;

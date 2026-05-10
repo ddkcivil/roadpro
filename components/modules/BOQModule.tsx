@@ -62,6 +62,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
     // Auto-MB Logic
     const uncertifiedLogs = useMemo(() => {
         const logs: any[] = [];
+        if (!project) return logs;
         (project.structures || []).forEach(structure => {
             structure.components.forEach(comp => {
                 if (comp.boqItemId) {
@@ -84,7 +85,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
             });
         });
         return logs;
-    }, [project.structures, project.measurementSheets]);
+    }, [project?.structures, project?.measurementSheets]);
 
     const handleCreateAutoMB = () => {
         if (selectedLogs.length === 0) return;
@@ -152,6 +153,15 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
         reason: ''
     });
 
+    // Financial summary hook moved ABOVE the early return to follow Rules of Hooks
+    const financialSummary = useMemo(() => {
+        const boq = project?.boq || [];
+        const original = boq.reduce((acc, item) => acc + item.amount, 0);
+        const completed = boq.reduce((acc, item) => acc + ((item.completedQuantity || 0) * item.rate), 0);
+        const percent = original > 0 ? (completed / original) * 100 : 0;
+        return { original, completed, percent };
+    }, [project?.boq]);
+
     if (!project) {
         return (
             <div className="p-8 text-center">
@@ -173,6 +183,42 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
         }
     };
     
+// Helper function to find value from row with multiple column name variations
+    const getRowValue = (row: any, ...columnNames: string[]): any => {
+        const rowKeys = Object.keys(row);
+        const normalizedTargets = columnNames.map(n => n.toLowerCase().trim());
+
+        for (const key of rowKeys) {
+            const normalizedKey = key.toLowerCase().trim();
+            if (normalizedTargets.includes(normalizedKey)) {
+                const val = row[key];
+                if (val !== undefined && val !== null && val !== '') {
+                    return val;
+                }
+            }
+        }
+        return undefined;
+    };
+
+    // Helper to safely parse quantity/rate from various formats
+    const parseNumericValue = (value: any): number => {
+        if (value === undefined || value === null || value === '') return 0;
+        if (typeof value === 'number') return isNaN(value) ? 0 : value;
+        if (typeof value === 'string') {
+            let cleaned = value.trim();
+            // Handle accounting negative format: (100.00) -> -100.00
+            if (cleaned.startsWith('(') && cleaned.endsWith(')')) {
+                cleaned = '-' + cleaned.substring(1, cleaned.length - 1);
+            }
+            // Remove any currency symbols, thousands separators (commas), and spaces
+            // We keep digits, decimal points, and minus signs
+            cleaned = cleaned.replace(/[^\d.-]/g, '');
+            const parsed = parseFloat(cleaned);
+            return isNaN(parsed) ? 0 : parsed;
+        }
+        return 0;
+    };
+
     const handleImportSubmit = () => {
         if (!importFile) return;
 
@@ -187,39 +233,113 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
             const workbook = XLSX.read(data, { type: 'array' });
             const worksheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[worksheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+            
+            // 1. Detect the actual header row by searching for keywords in the first few rows
+            const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+            let headerRowIndex = 0;
+            const headerKeywords = ['description', 'item', 'qty', 'quantity', 'rate', 'unit', 'particulars'];
+            
+            // Scan the first 20 rows to find a row that looks like a header
+            for (let i = 0; i < Math.min(rawRows.length, 20); i++) {
+                const row = rawRows[i];
+                if (!row || !Array.isArray(row)) continue;
                 
-            const importedBoqItems: BOQItem[] = jsonData.map((row: any, index) => {
-                const itemNo = row['Item No'] || row['ItemNo'] || row['item_no'] || row['itemNo'] || `ITEM-${index + 1}`;
-                const description = row['Description'] || row['description'] || row['Work Description'] || `Item ${index + 1}`;
-                const unit = row['Unit'] || row['unit'] || row['Units'] || 'unit';
-                const quantity = parseFloat(row['Contract Qty'] || row['Quantity'] || row['quantity'] || row['Qty'] || 0);
-                const rate = parseFloat(row['Rate'] || row['rate'] || row['Unit Rate'] || 0);
+                const matchCount = row.filter(cell => 
+                    cell && typeof cell === 'string' && 
+                    headerKeywords.some(keyword => cell.toLowerCase().trim().includes(keyword))
+                ).length;
+                
+                // If we find a row where at least 3 cells match our keywords, use it as the header
+                if (matchCount >= 3) {
+                    headerRowIndex = i;
+                    break;
+                }
+            }
+
+            // 2. Re-parse the sheet starting from the detected header row
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { range: headerRowIndex });
+            
+            if (!jsonData || jsonData.length === 0) {
+                toast.error("Import Failed", { description: "No data found in the file." });
+                return;
+            }
+                
+            const importedBoqItems: BOQItem[] = [];
+            const failedRows: number[] = [];
+            
+            // Get all column headers from first row to help debug
+            const firstRow = jsonData[0] as any;
+            const availableColumns = Object.keys(firstRow);
+            console.log('Available columns in import file:', availableColumns);
+            
+            jsonData.forEach((row: any, index) => {
+                // Try multiple column name variations for each field
+                const itemNo = getRowValue(row, 'Item No', 'ItemNo', 'item_no', 'ITEM NO', 'Item Number', 'No.');
+                const description = getRowValue(row, 'Description', 'description', 'Work Description', 'Item Description', 'DESC', 'Particulars');
+                const unit = getRowValue(row, 'Unit', 'unit', 'Units', 'UNIT', 'UOM');
+                
+                // Extended quantity column variations
+                const quantityRaw = getRowValue(row, 'Contract Qty', 'Contract Quantity', 'Quantity', 'quantity', 'Qty', 'QTY', 'Ordered Qty', 'Bill Qty', 'BOQ Qty', 'Original Qty');
+                const quantity = parseNumericValue(quantityRaw);
+                
+                // Extended rate column variations
+                const rateRaw = getRowValue(row, 'Rate', 'rate', 'Unit Rate', 'UNIT RATE', 'Basic Rate', 'Unit Price', 'Price', 'Contract Rate', 'Rate per Unit', 'uRate');
+                const rate = parseNumericValue(rateRaw);
+                
+                const location = getRowValue(row, 'Location', 'location', 'Chainage', 'CHA');
+                const category = getRowValue(row, 'Category', 'category', 'Work Category', 'Section', 'Type');
+                
+                // Validate that we got meaningful data
+                if (!description || (quantity === 0 && rate === 0)) {
+                    failedRows.push(index + 1);
+                    console.warn(`Row ${index + 1} skipped:`, { description, quantity, rate, unit });
+                    return; // Skip this row
+                }
+                
                 const amount = quantity * rate;
-                const location = row['Location'] || row['location'] || 'N/A';
-                const category = row['Category'] || row['category'] || row['Work Category'] || 'General';
                     
-                return {
+                importedBoqItems.push({
                     id: `boq-${Date.now()}-${index}`,
-                    itemNo: String(itemNo),
-                    description: String(description),
-                    unit: String(unit),
-                    quantity: isNaN(quantity) ? 0 : quantity,
-                    rate: isNaN(rate) ? 0 : rate,
-                    amount: isNaN(amount) ? 0 : amount,
-                    location: String(location),
-                    category: String(category),
+                    itemNo: String(itemNo || `ITEM-${index + 1}`),
+                    description: String(description || `Item ${index + 1}`),
+                    unit: String(unit || 'unit'),
+                    quantity,
+                    rate,
+                    amount,
+                    location: String(location || 'N/A'),
+                    category: String(category || 'General'),
                     completedQuantity: 0,
                     variationQuantity: 0
-                };
+                });
             });
+    
+            // Check results and update
+            if (importedBoqItems.length === 0) {
+                toast.error("Import Failed", { 
+                    description: `No valid BOQ items found. Available columns: ${availableColumns.join(', ')}. Please check your file format.`
+                });
+                return;
+            }
     
             onProjectUpdate({ ...project, boq: importedBoqItems });
                 
             setImportFile(null);
             setIsImportModalOpen(false);
-            toast.success("Import Successful", { description: `Imported ${importedBoqItems.length} items.` });
+            
+            // Show appropriate toast based on results
+            if (failedRows.length > 0) {
+                toast.success("Import Completed", { 
+                    description: `Imported ${importedBoqItems.length} items. ${failedRows.length} rows skipped (missing quantity/rate or description).`
+                });
+            } else {
+                toast.success("Import Successful", { description: `Imported ${importedBoqItems.length} items.` });
+            }
         };
+        
+        reader.onerror = () => {
+            toast.error("Import Failed", { description: "Error reading file. Please try again." });
+        };
+        
         reader.readAsArrayBuffer(importFile);
     };
 
@@ -310,9 +430,9 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
 
         if (window.confirm(`Are you sure you want to certify MB record ${sheet.sheetNumber}? This will update BOQ completed quantities.`)) {
             // 1. Update the MB sheet status
-            const updatedSheets = project.measurementSheets.map(s => 
-                s.id === sheet.id ? { ...s, status: 'Approved' as any } : s // Changed logic here to fix type error vs status
-            );
+             const updatedSheets = project.measurementSheets.map(s => 
+                 s.id === sheet.id ? { ...s, status: 'Certified' as any } : s
+             );
 
             // 2. Update BOQ items based on entries in this sheet
             const updatedBoq = [...project.boq];
@@ -338,14 +458,6 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
             toast.success(`MB Record ${sheet.sheetNumber} certified and BOQ updated.`);
         }
     };
-
-    const financialSummary = useMemo(() => {
-        const boq = project.boq || [];
-        const original = boq.reduce((acc, item) => acc + item.amount, 0);
-        const completed = boq.reduce((acc, item) => acc + ((item.completedQuantity || 0) * item.rate), 0);
-        const percent = original > 0 ? (completed / original) * 100 : 0;
-        return { original, completed, percent };
-    }, [project.boq]);
 
     return (
         <div className="animate-in fade-in duration-500 p-4">

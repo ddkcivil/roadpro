@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect } from 'react';
 import { toast } from 'sonner';
 
 // Define notification types
@@ -55,7 +55,7 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Load notifications from localStorage
-  const [notifications, setNotifications] = useState<Notification[]>(() => {
+  const [notifications, setNotifications] = React.useState<Notification[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(NOTIFICATION_STORAGE_KEY);
       return saved ? JSON.parse(saved).map((n: any) => ({
@@ -67,7 +67,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   });
 
   // Load preferences from localStorage
-  const [preferences, setPreferences] = useState<NotificationPreferences>(() => {
+  const [preferences, setPreferences] = React.useState<NotificationPreferences>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(PREFERENCES_STORAGE_KEY);
       return saved ? JSON.parse(saved) : {

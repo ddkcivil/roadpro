@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Bot, Send, Paperclip, Zap, Video, Loader2, Sparkles, FileText, Settings2 } from 'lucide-react';
 import { ChatMessage } from '../../services/ai/geminiService';
 import { getAIResponse, AIProvider } from '../../services/ai/universalAIService';
-import { isHuggingFaceAvailable } from '../../services/ai/huggingFaceService';
 import { isAIServiceAvailable as isGeminiAvailable } from '../../services/ai/geminiService';
+import { ocrService } from '../../services/ai/ocrService';
 import { Project } from '../../types';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
@@ -136,7 +136,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const sendMessage = async (textOverride?: string) => {
+const sendMessage = async (textOverride?: string) => {
     const userText = textOverride || input.trim();
     if ((!userText && !attachment) || isLoading) return;
 
@@ -151,10 +151,33 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
         reader.readAsDataURL(attachment.file);
     }) : undefined;
 
+    // Preprocess PDF attachments with OCR before sending to AI
+    let processedText = userText;
+    let ocrExtractedData = null;
+    
+    if (attachment && attachment.type === 'pdf') {
+      try {
+        // Initialize OCR service
+        await ocrService.initialize();
+        
+        // Process the PDF document
+        const ocrResult = await ocrService.processDocument(attachment.file);
+        ocrExtractedData = ocrResult;
+        
+        // Add extracted text to the user's message for better AI understanding
+        if (ocrResult.rawText && ocrResult.rawText.length > 0) {
+          processedText = `${userText}\n\n--- OCR Extracted Text ---\n${ocrResult.rawText}\n\n--- Extracted Data ---\n${JSON.stringify(ocrResult.structuredData, null, 2)}`;
+        }
+      } catch (ocrError) {
+        console.error("OCR processing error:", ocrError);
+        // Continue with original text if OCR fails
+      }
+    }
+
     // 1. Prepare User Message for UI
     const newUserMsg: ChatMessage = {
       role: 'user',
-      text: userText,
+      text: processedText,
       attachment: attachment ? {
           mimeType: attachment.file.type,
           data: attachmentData as string, // Use base64 data for storage
@@ -167,9 +190,9 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
     setInput('');
     setIsLoading(true);
 
-    // 2. Prepare Data for API
+    // 2. Prepare Data for API - For PDFs, we don't send base64 (OCR handles the extraction)
     let base64Data = '';
-    if (attachment) {
+    if (attachment && attachment.type !== 'pdf') {
         try {
             base64Data = await new Promise<string>((resolve) => {
                 const reader = new FileReader();
@@ -191,10 +214,10 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
     
     try {
         const response = await getAIResponse(
-            userText || (attachment ? "Analyze this attachment." : ""), 
+            processedText || (attachment ? "Analyze this attachment." : ""), 
             newHistory,
             project,
-            attachment ? { mimeType: attachment.file.type, data: base64Data } : undefined,
+            attachment && attachment.type !== 'pdf' ? { mimeType: attachment.file.type, data: base64Data } : undefined,
             aiProvider,
             isFastMode
         );
@@ -266,8 +289,7 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
       );
   };
 
-  const isServiceAvailable = 
-    (aiProvider === 'huggingface' ? isHuggingFaceAvailable() : isGeminiAvailable());
+const isServiceAvailable = isGeminiAvailable();
 
   return (
     <div
@@ -291,10 +313,10 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
             </div>
             <div>
                 <h6 className="font-bold leading-tight">RoadMaster AI</h6>
-                <div className="text-[10px] text-white/70 flex items-center gap-2">
-                    {aiProvider === 'huggingface' ? 'Hugging Face' : 'Gemini 3.0 Pro'}
+<div className="text-[10px] text-white/70 flex items-center gap-2">
+                    Gemini 2.0 Flash
                     <Badge variant="outline" className="text-[8px] h-3 px-1 border-white/20 text-white/60">
-                        {isFastMode ? 'High Speed' : 'High Performance'}
+                        {isFastMode ? 'Fast' : 'Standard'}
                     </Badge>
                 </div>
             </div>
@@ -314,20 +336,16 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                           <TooltipContent>AI Provider Settings</TooltipContent>
                       </Tooltip>
                   </TooltipProvider>
-                  <DropdownMenuContent align="end" className="w-56 rounded-xl">
-                      <DropdownMenuLabel>AI Intelligence Provider</DropdownMenuLabel>
+<DropdownMenuContent align="end" className="w-56 rounded-xl">
+                      <DropdownMenuLabel>AI Settings</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => setAIProvider('auto')} className="flex items-center justify-between">
                           <span>Auto-Select (Recommended)</span>
                           {aiProvider === 'auto' && <Zap size={14} className="text-primary fill-primary" />}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setAIProvider('gemini')} className="flex items-center justify-between">
-                          <span>Google Gemini (Multimodal)</span>
+                          <span>Gemini 2.0 Flash</span>
                           {aiProvider === 'gemini' && <Zap size={14} className="text-primary fill-primary" />}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setAIProvider('huggingface')} className="flex items-center justify-between">
-                          <span>Hugging Face (Open Models)</span>
-                          {aiProvider === 'huggingface' && <Zap size={14} className="text-primary fill-primary" />}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <div className="px-2 py-1.5 flex items-center justify-between">
@@ -359,25 +377,13 @@ const AIChatModal: React.FC<Props> = ({ project, onClose }) => {
                 <Alert variant="destructive" className="mb-2">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>AI Provider Connection Required</AlertTitle>
-                    <AlertDescription>
-                        {aiProvider === 'huggingface' 
-                            ? "Hugging Face API key is missing. Add VITE_HUGGINGFACE_API_KEY to your .env file."
-                            : aiProvider === 'gemini' 
-                                ? "Gemini API key is missing. Add VITE_GEMINI_API_KEY to your .env file."
-                                : "No AI providers configured. Please check your .env file."}
+<AlertDescription>
+                        No AI providers configured. Please check your .env file.
                     </AlertDescription>
                 </Alert>
             )}
 
-            {isFallbackActive && (
-                <Alert className="mb-2 bg-amber-50 border-amber-200 text-amber-800">
-                    <Info className="h-4 w-4 text-amber-600" />
-                    <AlertTitle className="text-amber-900">Service Fallback Active</AlertTitle>
-                    <AlertDescription className="text-amber-800 text-xs">
-                        Gemini is currently at capacity. We've automatically switched to Hugging Face to process your request.
-                    </AlertDescription>
-                </Alert>
-            )}
+
             {messages.map((msg, idx) => (
                 <div key={idx} className={cn("flex", msg.role === 'user' ? "justify-end" : "justify-start")}>
                     <div className={cn("flex max-w-[85%] gap-3", msg.role === 'user' ? "flex-row-reverse" : "flex-row")}>

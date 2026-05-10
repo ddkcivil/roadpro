@@ -5,7 +5,7 @@ import { getSupabaseAdmin, isSupabaseConfigured } from './utils/supabaseClient.j
 import { withErrorHandler } from './utils/errorHandler.js';
 import { withAuth } from './utils/auth.js';
 import { mapProjectDocumentToDb, mapDocumentVersionFromDb } from './utils/mappers.js';
-import { v4 as uuidv4 } from 'uuid'; // For generating IDs
+import { generateUniqueId } from './utils/uuidUtils.js';
 import { Buffer } from 'buffer'; // For Buffer operations
 
 const DEFAULT_BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || 'project-files';
@@ -205,7 +205,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       // Handle Site Photos separately
       if (folder === 'site-photos') {
-        const photoId = docId || `photo-${uuidv4()}`;
+        const photoId = docId || `photo-${generateUniqueId()}`;
         const { error: photoError } = await supabaseAdmin
           .from('project_site_photos')
           .insert({
@@ -229,8 +229,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         });
       }
 
-      const finalDocId = docId || `doc-${uuidv4()}`;
-      const versionId = `ver-${uuidv4()}`;
+      const finalDocId = docId || `doc-${generateUniqueId()}`;
+      const versionId = `ver-${generateUniqueId()}`;
 
       if (!docId) {
         // Create new document entry in Supabase DB

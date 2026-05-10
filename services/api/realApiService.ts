@@ -117,14 +117,15 @@ private async fetchWithRetry<T>(endpoint: string, options?: RequestInit, retries
         ...options?.headers as Record<string, string>,
       };
 
-      // Add Authorization for all API endpoints if token is available, unless it's a known public endpoint
+// Add Authorization for all API endpoints if token is available, unless it's a known public endpoint
       const publicEndpoints = ['/health', '/audit'];
       if (token && !publicEndpoints.some(p => endpoint.startsWith(p))) {
         headers['Authorization'] = `Bearer ${token}`;
-        console.log(`[API] ✓ Token added for ${endpoint}, length: ${token.length}`);
+        console.debug(`[API] ✓ Token added for ${endpoint}, length: ${token.length}`);
       } else if (token) {
-        console.log(`[API] Skipping token for public endpoint: ${endpoint}`); 
-      } else {
+        console.debug(`[API] Skipping token for public endpoint: ${endpoint}`); 
+      } else if (!publicEndpoints.some(p => endpoint.startsWith(p))) {
+        // Only warn for non-public endpoints
         console.warn(`[API] ⚠ No token found in localStorage key "${authTokenKey}" for ${endpoint}`);
       }
       const response = await fetch(`/api${endpoint}`, {

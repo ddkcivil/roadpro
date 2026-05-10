@@ -11,16 +11,9 @@ const getAIClient = () => {
   return new GoogleGenerativeAI(trimmedApiKey);
 };
 
-// Expanded fallback list with GA and latest aliases
+// Using only the fast/low model - gemini-2.0-flash
 const MODELS = [
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-exp',
-  'gemini-1.5-flash',
-  'gemini-1.5-flash-8b',
-  'gemini-1.5-flash-latest',
-  'gemini-1.5-pro',
-  'gemini-1.5-pro-latest',
-  'gemini-pro'
+  'gemini-2.0-flash'
 ];
 
 async function runWithFallback(task: (model: any, modelName: string) => Promise<any>): Promise<any> {

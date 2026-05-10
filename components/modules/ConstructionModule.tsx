@@ -175,8 +175,8 @@ const StructuralAnalytics: React.FC<{ structures: StructureAsset[] }> = ({ struc
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-black text-muted-foreground uppercase tracking-widest">Type Distribution</CardTitle>
         </CardHeader>
-        <CardContent className="h-[180px]">
-          <ResponsiveContainer width="100%" height="100%">
+<CardContent className="h-[180px]">
+          <ResponsiveContainer width="100%" height="100%" minHeight={150}>
             <PieChart>
               <Pie
                 data={typeDistribution}
@@ -201,8 +201,8 @@ const StructuralAnalytics: React.FC<{ structures: StructureAsset[] }> = ({ struc
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-black text-muted-foreground uppercase tracking-widest">Top Asset Progress (%)</CardTitle>
         </CardHeader>
-        <CardContent className="h-[180px]">
-          <ResponsiveContainer width="100%" height="100%">
+<CardContent className="h-[180px]">
+          <ResponsiveContainer width="100%" height="100%" minHeight={150}>
             <BarChart data={progressData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
               <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
@@ -592,21 +592,21 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                       </Button>
                                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
                                           <div className="grid gap-1.5">
-                                              <Label className="text-[9px] font-black uppercase tracking-widest opacity-60">Component Name</Label>
-                                              <Input value={comp.name || ''} onChange={e => handleUpdateComponent(idx, 'name', e.target.value)} className="h-8 text-xs rounded-lg" />
+<Label htmlFor={`comp-name-${idx}`} className="text-[9px] font-black uppercase tracking-widest opacity-60">Component Name</Label>
+                                              <Input id={`comp-name-${idx}`} value={comp.name || ''} onChange={e => handleUpdateComponent(idx, 'name', e.target.value)} className="h-8 text-xs rounded-lg" />
                                           </div>
                                           <div className="grid gap-1.5">
-                                              <Label className="text-[9px] font-black uppercase tracking-widest opacity-60">Unit</Label>
-                                              <Input value={comp.unit || ''} onChange={e => handleUpdateComponent(idx, 'unit', e.target.value)} className="h-8 text-xs rounded-lg" />
+                                              <Label htmlFor={`comp-unit-${idx}`} className="text-[9px] font-black uppercase tracking-widest opacity-60">Unit</Label>
+                                              <Input id={`comp-unit-${idx}`} value={comp.unit || ''} onChange={e => handleUpdateComponent(idx, 'unit', e.target.value)} className="h-8 text-xs rounded-lg" />
                                           </div>
                                           <div className="grid gap-1.5">
-                                              <Label className="text-[9px] font-black uppercase tracking-widest opacity-60">Planned Qty</Label>
-                                              <Input type="number" value={comp.totalQuantity || 0} onChange={e => handleUpdateComponent(idx, 'totalQuantity', Number(e.target.value))} className="h-8 text-xs rounded-lg" />
+                                              <Label htmlFor={`comp-qty-${idx}`} className="text-[9px] font-black uppercase tracking-widest opacity-60">Planned Qty</Label>
+                                              <Input id={`comp-qty-${idx}`} type="number" value={comp.totalQuantity || 0} onChange={e => handleUpdateComponent(idx, 'totalQuantity', Number(e.target.value))} className="h-8 text-xs rounded-lg" />
                                           </div>
                                           <div className="grid gap-1.5">
-                                              <Label className="text-[9px] font-black uppercase tracking-widest opacity-60">Subcontractor</Label>
+<Label htmlFor={`comp-subcontractor-${idx}`} className="text-[9px] font-black uppercase tracking-widest opacity-60">Subcontractor</Label>
                                               <Select value={comp.subcontractorId || 'none'} onValueChange={(value: string) => handleUpdateComponent(idx, 'subcontractorId', value === 'none' ? '' : value)}>
-                                                  <SelectTrigger className="h-8 text-[10px] rounded-lg">
+                                                  <SelectTrigger id={`comp-subcontractor-${idx}`} className="h-8 text-[10px] rounded-lg">
                                                       <SelectValue placeholder="Assigned..." />
                                                   </SelectTrigger>
                                                   <SelectContent>
@@ -671,16 +671,19 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                 Approved Structural Drawings
                             </CardTitle>
                             <div className="relative">
-                                <Button size="sm" className="rounded-xl text-[10px] font-black uppercase" disabled={uploadingDrawing}>
+<Button size="sm" className="rounded-xl text-[10px] font-black uppercase" disabled={uploadingDrawing}>
                                     {uploadingDrawing ? 'Uploading...' : <><Plus size={12} className="mr-1" /> Attach Drawing</>}
                                 </Button>
                                 <input 
                                     type="file" 
+                                    id="drawing-upload"
                                     className="absolute inset-0 opacity-0 cursor-pointer" 
                                     onChange={handleUploadDrawing}
                                     accept=".pdf,.dwg,.jpg,.jpeg,.png"
                                     disabled={uploadingDrawing}
+                                    aria-label="Upload drawing file"
                                 />
+                                <Label htmlFor="drawing-upload" className="sr-only">Upload Drawing</Label>
                             </div>
                         </CardHeader>
                         <CardContent className="p-0">
@@ -951,8 +954,8 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
               <div className="grid gap-6 p-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
-                      <Label className="text-[10px] font-black uppercase tracking-widest opacity-60">Quantity ({currentLogComponent?.unit})</Label>
-                      <Input type="number" value={logForm.quantity} onChange={e => setLogForm({...logForm, quantity: Number(e.target.value)})} className="rounded-xl h-12 text-lg font-black italic border-2" />
+<Label htmlFor="log-quantity" className="text-[10px] font-black uppercase tracking-widest opacity-60">Quantity ({currentLogComponent?.unit})</Label>
+                      <Input id="log-quantity" type="number" value={logForm.quantity} onChange={e => setLogForm({...logForm, quantity: Number(e.target.value)})} className="rounded-xl h-12 text-lg font-black italic border-2" />
                     </div>
                     <div className="grid gap-2">
                       <Label className="text-[10px] font-black uppercase tracking-widest opacity-60">Reporting Date</Label>

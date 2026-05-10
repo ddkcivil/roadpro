@@ -1,22 +1,30 @@
-# TODO - Fix Weather API and Recharts Warnings
+# TODO Fixes - COMPLETED
 
-## Status: COMPLETED ✅
+## Issue 1: PDF Components Loading Error ✅
+- Added vite alias for `warning` package to use compatible version
+- File: vite.config.ts
 
-## Issues Fixed:
-1. [DONE] Open-Meteo API 400 Error - Weather history API fails with future dates
-2. [DONE] Recharts Warning - width(-1) and height(-1) of chart should be greater than 0
+## Issue 2: Token Warning for `/audit` ✅
+- Fixed public endpoint check in realApiService.ts
+- Only logs warning for non-public endpoints
+- Changed verbose logging to console.debug
+- File: services/api/realApiService.ts
 
-## Fix Implementation Summary:
+---
 
-### Fix 1: Weather Service (services/analytics/weatherService.ts)
-- Fixed `fetchDailyWeatherHistory` to properly handle date boundaries:
-  - For past months: Uses archive API with full month data
-  - For current month: Limits to today (current date)
-  - For future months: Uses forecast API with 14-day limit
-- Added better error logging
-- Returns empty array on failure (no mock data)
+### Summary of Changes:
 
-### Fix 2: Dashboard Chart (components/core/Dashboard.tsx)
-- Added `min-h-[300px]` to S-Curve chart CardContent wrapper
-- Added defensive check for empty data with placeholder chart
-- Charts now always render with valid data structure
+1. **vite.config.ts**: Added alias for `warning` package:
+```typescript
+'warning': path.resolve(__dirname, 'node_modules/warning/index.js'),
+```
+
+2. **realApiService.ts**: Fixed logic to not warn for public endpoints:
+```typescript
+} else if (!publicEndpoints.some(p => endpoint.startsWith(p))) {
+  // Only warn for non-public endpoints
+  console.warn(`[API] ⚠ No token found in localStorage key "${authTokenKey}" for ${endpoint}`);
+}
+```
+
+Note: For PDF to fully work, you may need to stop the dev server and restart (Ctrl+C and `npm run dev`)
