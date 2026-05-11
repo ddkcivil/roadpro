@@ -191,8 +191,8 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
         const pdfModule = await import('react-pdf');
         const pdfjs = pdfModule.pdfjs;
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          const version = pdfjs.version || '4.4.168';
-          pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.mjs`;
+          // Use the local worker file from the public folder instead of CDN
+          pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
         }
         setPdfComponents({
           Document: pdfModule.Document,

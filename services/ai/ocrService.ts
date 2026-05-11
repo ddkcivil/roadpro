@@ -45,9 +45,9 @@ class OCRService {
       // Load PDF.js dynamically to avoid issues with SSR or initialization order
       const pdfjsLib = await import('pdfjs-dist');
       
-      // Use the worker from the CDN that matches the exact version of the library
-      // this prevents version mismatch errors like "Rf 2"
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+      // Use the local worker file from the public folder instead of CDN
+      // This prevents network failures and version mismatch errors
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
 
       const arrayBuffer = await pdfFile.arrayBuffer();
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
