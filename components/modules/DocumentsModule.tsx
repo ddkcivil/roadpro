@@ -217,6 +217,47 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
     return doc.fileUrl || '';
   };
 
+  // Pre-fetch the PDF file as a blob with auth headers to pass to react-pdf
+  const [previewPdfBlob, setPreviewPdfBlob] = useState<string | null>(null);
+  const [previewPdfLoading, setPreviewPdfLoading] = useState(false);
+
+  useEffect(() => {
+    let currentBlobUrl: string | null = null;
+    
+    if (!previewDoc) {
+      setPreviewPdfBlob(null);
+      return;
+    }
+    const isPdf = previewDoc.type === 'PDF' || (previewDoc.fileUrl && previewDoc.fileUrl.toLowerCase().endsWith('.pdf'));
+    if (!isPdf) return;
+
+    const loadPdfWithAuth = async () => {
+      setPreviewPdfLoading(true);
+      try {
+        const token = localStorage.getItem('roadmaster-token');
+        const response = await fetch(getFileUrl(previewDoc), {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+          credentials: 'include',
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        currentBlobUrl = blobUrl;
+        setPreviewPdfBlob(blobUrl);
+      } catch (error) {
+        console.error('Failed to fetch PDF with auth:', error);
+        setPreviewPdfBlob(null);
+      } finally {
+        setPreviewPdfLoading(false);
+      }
+    };
+    loadPdfWithAuth();
+
+    return () => {
+      if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+    };
+  }, [previewDoc?.id, previewDoc?.fileUrl, previewDoc?.type]);
+
   const filteredDocuments = useMemo(() => {
     return (project.documents || []).filter(doc => {
       const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -876,9 +917,14 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
                   <div className="w-full h-full flex flex-col">
                     {(previewDoc.type?.toLowerCase().includes('pdf') || previewDoc.fileUrl?.toLowerCase().endsWith('.pdf')) ? (
                       <div className="flex-1 flex items-center justify-center">
-                        {Document ? (
+                        {previewPdfLoading ? (
+                          <div className="text-center p-4 text-muted-foreground">
+                            <Loader2 className="animate-spin mx-auto mb-2" />
+                            <p>Loading PDF with authentication...</p>
+                          </div>
+                        ) : Document && previewPdfBlob ? (
                           <Document
-                            file={getFileUrl(previewDoc)}
+                            file={previewPdfBlob}
                             loading={<div className="text-center text-muted-foreground">Loading PDF...</div>}
                             error={
                               <div className="flex flex-col items-center justify-center p-4 text-destructive">

@@ -19,12 +19,13 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Badge } from '~/components/ui/badge';
 import { compressImage } from '../../utils/data/imageUtils';
-import { UserPlus, Mail, Shield, X, Edit3, Trash2, Upload } from 'lucide-react';
+import { UserPlus, Users, Mail, Shield, X, Edit3, Trash2, Upload } from 'lucide-react';
 
 import { useAvatarUpload } from '~/hooks/useAvatarUpload';
 
 const UserManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [pendingUsers, setPendingUsers] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,6 +49,7 @@ const UserManagement: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
+      setError(null);
       try {
         const [usersData, pendingData] = await Promise.all([
           apiService.getUsers(),
@@ -55,8 +57,16 @@ const UserManagement: React.FC = () => {
         ]);
         setUsers(usersData);
         setPendingUsers(pendingData);
-      } catch (error) {
-        console.error('Error loading data:', error);
+      } catch (error: any) {
+        console.error('Error loading user data:', error);
+        const msg = error?.message || error?.error || 'Failed to load user data';
+        if (msg.includes('401') || msg.includes('Unauthorized') || error?.status === 401) {
+          setError('Authentication failed. Your session may have expired. Please try logging in again.');
+        } else if (msg.includes('Network error') || msg.includes('Failed to fetch')) {
+          setError('Cannot reach the server. Please check your internet connection.');
+        } else {
+          setError(`Failed to load users: ${msg}`);
+        }
       } finally {
         setLoading(false);
       }
@@ -194,7 +204,7 @@ const UserManagement: React.FC = () => {
         </div>
       )}
 
-      {!loading && (
+      {!loading && !error && (
         <>
           <div className="flex justify-between mb-4 items-center">
             <div>
@@ -288,39 +298,51 @@ const UserManagement: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map(user => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Avatar>
-                            <AvatarImage src={user.avatar} />
-                            <AvatarFallback>{user?.name ? user.name.charAt(0) : 'U'}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-semibold">{user.name ?? 'Unknown'}</p>
-                            <Badge className={getUserRoleColor(user.role)}>{user.role}</Badge>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          <span>{user.email}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{user.phone || '-'}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm" onClick={() => openEditModal(user)}>
-                            <Edit3 className="mr-1 h-4 w-4" /> Edit
-                          </Button>
-                          <Button variant="destructive" size="sm" onClick={() => removeUser(user.id)}>
-                            <Trash2 className="mr-1 h-4 w-4" /> Delete
-                          </Button>
+                  {users.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-32 text-center">
+                        <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                          <Users className="h-8 w-8" />
+                          <p className="text-sm font-medium">No users found</p>
+                          <p className="text-xs">Click "Add User" to create the first user.</p>
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    users.map(user => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Avatar>
+                              <AvatarImage src={user.avatar} />
+                              <AvatarFallback>{user?.name ? user.name.charAt(0) : 'U'}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-semibold">{user.name ?? 'Unknown'}</p>
+                              <Badge className={getUserRoleColor(user.role)}>{user.role}</Badge>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            <span>{user.email}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{user.phone || '-'}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="outline" size="sm" onClick={() => openEditModal(user)}>
+                              <Edit3 className="mr-1 h-4 w-4" /> Edit
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={() => removeUser(user.id)}>
+                              <Trash2 className="mr-1 h-4 w-4" /> Delete
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -458,6 +480,29 @@ const UserManagement: React.FC = () => {
             </DialogContent>
           </Dialog>
         </>
+      )}
+
+      {!loading && error && (
+        <div className="p-8 max-w-2xl mx-auto">
+          <Card className="border-destructive">
+            <CardHeader className="bg-destructive/10 border-b border-destructive/20">
+              <CardTitle className="text-xl font-bold text-destructive flex items-center gap-2">
+                <span className="text-2xl">&#9888;</span> Data Load Error
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <p className="text-muted-foreground mb-4">{error}</p>
+              <div className="flex gap-3">
+                <Button variant="default" onClick={() => { setLoading(true); setError(null); }}>
+                  Retry
+                </Button>
+                <Button variant="outline" onClick={() => setError(null)}>
+                  Dismiss
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );

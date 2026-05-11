@@ -1,18 +1,6 @@
 import { Project, User, UserRole, Message } from '../../types';
-import { supabase } from '../../lib/supabase';
-import { mapProjectFromDb, mapProjectToDb } from '../../utils/mappers';
 import { AuditService } from '../analytics/auditService';
 import { realApiService } from './realApiService';
-
-// Constants for Supabase tables
-const PROJECTS_TABLE = 'projects';
-const USERS_TABLE = 'profiles'; // Fixed: Use 'profiles' table (matches Supabase schema)
-const FILES_TABLE = 'files';
-
-// Configuration for Supabase Storage bucket name
-// **IMPORTANT**: Replace 'your-bucket-name' with the actual name of your Supabase storage bucket.
-// This might be 'public', or a specific bucket configured for project files.
-const STORAGE_BUCKET_NAME = 'public'; // <<< CHANGE THIS TO YOUR ACTUAL BUCKET NAME
 
 // --- Project Operations ---
 export const apiService = {
@@ -37,32 +25,10 @@ export const apiService = {
     const limit = options?.limit || 50;
     const searchField = options?.field;
 
-    let queryBuilder = supabase.from(PROJECTS_TABLE).select('*');
-
-    // Apply field-specific or general search
-    if (searchField === 'id') {
-      queryBuilder = queryBuilder.ilike('id', `%${searchTerm}%`);
-    } else if (searchField === 'code') {
-      queryBuilder = queryBuilder.ilike('code', `%${searchTerm}%`);
-    } else if (searchField === 'name') {
-      queryBuilder = queryBuilder.ilike('name', `%${searchTerm}%`);
-    } else if (searchField === 'client') {
-      queryBuilder = queryBuilder.ilike('client', `%${searchTerm}%`);
-    } else {
-      queryBuilder = queryBuilder.or(`id.ilike.%${searchTerm}%,code.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%,client.ilike.%${searchTerm}%`);
-    }
-
-    const { data, error } = await queryBuilder.limit(limit);
-
-    if (error) {
-      console.error(`[Supabase] Failed to search projects with query "${query}":`, error);
-      throw new Error(error.message || 'Failed to search projects.');
-    }
-
-    return {
-      data: (data || []).map(mapProjectFromDb),
-      count: data?.length || 0
-    };
+    const queryParams = new URLSearchParams({ search: searchTerm, limit: limit.toString() });
+    if (searchField) queryParams.append('field', searchField);
+    
+    return apiService.fetchApi(`/projects?${queryParams.toString()}`, { method: 'GET' }, true);
   },
 
   // Create a new project
@@ -126,94 +92,23 @@ export const apiService = {
 
   // Fetch user by ID
   getUser: async (userId: string): Promise<User | undefined> => {
-    const { data, error } = await supabase
-      .from(USERS_TABLE)
-      .select('*')
-      .eq('id', userId)
-      .single();
-
-    if (error) {
-      console.error(`[Supabase] Failed to fetch user with ID ${userId}:`, error);
-      let errorMessage = 'Failed to fetch user.';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else {
-        errorMessage = String(error);
-      }
-      throw new Error(errorMessage);
+    try {
+      const data = await apiService.fetchApi(`/users?id=${userId}`, { method: 'GET' }, true) as User;
+      return data;
+    } catch (error: any) {
+      if (error.status === 404) return undefined;
+      throw error;
     }
-
-    if (!data) return undefined;
-
-    return {
-      id: data.id,
-      name: data.full_name || data.name || 'User',
-      email: data.email,
-      phone: data.phone || '',
-      role: data.role || UserRole.SITE_ENGINEER,
-      avatar: data.avatar_url,
-      lastSeen: data.last_seen || undefined,
-    };
   },
 
   // Fetch all users
   getUsers: async (): Promise<User[]> => {
-    const { data, error } = await supabase
-      .from(USERS_TABLE)
-      .select('*')
-      .order('full_name');
-
-    if (error) {
-      console.error('[Supabase] Failed to fetch users:', error);
-      let errorMessage = 'Failed to fetch users.';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else {
-        errorMessage = String(error);
-      }
-      throw new Error(errorMessage);
-    }
-
-    return data.map((user: any) => {
-      return {
-        id: user.id,
-        name: user.full_name || user.name || 'User',
-        email: user.email,
-        phone: user.phone || '',
-        role: user.role || UserRole.SITE_ENGINEER,
-        avatar: user.avatar_url,
-        lastSeen: user.last_seen || undefined,
-      } as User;
-    });
+    return realApiService.getUsers();
   },
 
   // Update staff location
   updateStaffLocation: async (projectId: string, latitude: number, longitude: number, userId?: string, userName?: string, userRole?: UserRole): Promise<any> => {
-    console.log(`[API] Updating staff location for project ${projectId}: {lat: ${latitude}, lng: ${longitude}}`);
-
-    const { data, error } = await supabase
-      .from('project_staff_locations')
-      .upsert([{
-        project_id: projectId,
-        user_id: userId,
-        user_name: userName,
-        role: userRole,
-        latitude: latitude,
-        longitude: longitude,
-        timestamp: new Date().toISOString(),
-      }], { onConflict: 'project_id, user_id' });
-
-    if (error) {
-      console.error('[Supabase] Failed to update staff location:', error);
-      let errorMessage = 'Failed to update staff location.';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else {
-        errorMessage = String(error);
-      }
-      throw new Error(errorMessage);
-    }
-    return data;
+    return realApiService.updateStaffLocation(projectId, latitude, longitude);
   },
 
   /**
