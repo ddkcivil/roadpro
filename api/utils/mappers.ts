@@ -131,7 +131,7 @@ export function mapProjectFromDb(dbProj: any): any {
     tags: d.tags || [],
     subject: d.subject,
     refNo: d.ref_no || d.refNo,
-    size: d.size,
+    size: d.size ? `${(parseInt(d.size) / 1024 / 1024).toFixed(2)} MB` : '0 MB',
     type: d.type,
     status: d.status,
     metadata: d.metadata,
