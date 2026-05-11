@@ -15,12 +15,12 @@ console.log('[Auth API] Server started. Env check:', {
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   // ALWAYS set JSON header first
-  res.setHeader('Content-Type', 'application/json');
+res.setHeader('Content-Type', 'application/json');
 
-  try {
-    const { action } = req.query;
+    try {
+      const { action } = req.query;
 
-    if (req.method === 'POST') {
+      if (req.method === 'POST') {
       // --- LOGIN ---
       if (action === 'login') {
         const { email, password } = req.body;
@@ -35,54 +35,84 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         console.log('[Auth API] Supabase configured:', supabaseConfigured);
 
         if (!supabaseConfigured) {
+          console.error('[Auth API] Supabase not configured - returning 503');
           return res.status(503).json({ error: 'Authentication service not configured' });
         }
 
+        let supabase = null;
         try {
           console.log('[Auth API] Getting Supabase client...');
-          const supabase = getSupabasePublic();
+          supabase = getSupabasePublic();
           console.log('[Auth API] Got Supabase client:', !!supabase);
           
-          if (supabase) {
-            console.log('[Auth API] Calling Supabase signInWithPassword');
-            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-              email,
-              password,
-            });
-
-            console.log('[Auth API] Supabase response:', { hasData: !!authData?.session, error: authError?.message });
-
-            if (!authError && authData?.session) {
-              console.log('[Auth API] Supabase login successful');
-              const userId = authData.user.id;
-              const { data: profile, error: profError } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', userId)
-                .single();
-
-              if (profError) console.warn('[Auth API] Supabase profile fetch error:', profError.message);
-
-              res.setHeader('Set-Cookie', `roadmaster-access=${authData.session.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
-
-              const safeUser = mapUserFromDb({
-                id: userId,
-                email: authData.user.email,
-                ...profile
-              });
-
-              return res.status(200).json({
-                user: safeUser,
-                token: authData.session.access_token
-              });
-            } else {
-              console.log('[Auth API] Supabase auth error:', authError?.message);
-              return res.status(401).json({ error: 'Invalid email or password' });
-            }
+          if (!supabase) {
+            console.error('[Auth API] Supabase client is null');
+            return res.status(503).json({ error: 'Authentication service not configured. Please contact administrator.' });
           }
+          
+          console.log('[Auth API] Calling Supabase signInWithPassword');
+          const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          console.log('[Auth API] Supabase response:', { hasData: !!authData?.session, error: authError?.message });
+
+          if (authError) {
+            console.log('[Auth API] Supabase auth error:', authError.message);
+            return res.status(401).json({ error: 'Invalid email or password' });
+          }
+
+          if (!authData?.session) {
+            console.log('[Auth API] No session returned');
+            return res.status(401).json({ error: 'Invalid email or password' });
+          }
+
+          console.log('[Auth API] Supabase login successful');
+          const userId = authData.user.id;
+          
+          // Profile fetch with timeout and better error handling
+          let profile = null;
+          try {
+            const profilePromise = supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', userId)
+              .single();
+            
+            // Add a timeout for profile fetch
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
+            );
+            
+            const result = await Promise.race([profilePromise, timeoutPromise]) as any;
+            profile = result.data;
+            if (result.error) console.warn('[Auth API] Supabase profile fetch error:', result.error.message);
+          } catch (profErr: any) {
+            console.warn('[Auth API] Profile fetch error:', profErr.message);
+            // Continue without profile - it's not critical
+          }
+
+          // Set auth cookie
+          res.setHeader('Set-Cookie', `roadmaster-access=${authData.session.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
+
+          const safeUser = mapUserFromDb({
+            id: userId,
+            email: authData.user.email,
+            ...profile
+          });
+
+          return res.status(200).json({
+            user: safeUser,
+            token: authData.session.access_token
+          });
         } catch (supEx: any) {
-          console.error('[Auth API] Supabase auth exception:', supEx.message, supEx.stack);
-          return res.status(500).json({ error: 'Authentication temporarily unavailable' });
+          console.error('[Auth API] Supabase auth exception:', supEx.message);
+          // Check for network/DNS issues
+          if (supEx.message.includes('fetch failed') || supEx.cause?.code === 'ENOTFOUND') {
+            return res.status(503).json({ error: 'Unable to connect to authentication service. Please check your internet connection.' });
+          }
+          return res.status(503).json({ error: 'Authentication temporarily unavailable. Please try again later.' });
         }
        } // end login
 

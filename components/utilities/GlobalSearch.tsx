@@ -11,7 +11,7 @@ import {
   History,
   Trash2
 } from 'lucide-react';
-import { Dialog, DialogContent } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Badge } from '~/components/ui/badge';
 import { ScrollArea } from '~/components/ui/scroll-area';
@@ -221,6 +221,8 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="p-0 gap-0 max-w-2xl border-none shadow-2xl bg-white dark:bg-slate-900 overflow-hidden">
+        <DialogTitle className="sr-only">Global Search</DialogTitle>
+        <DialogDescription className="sr-only">Search for projects, structures, RFIs, vehicles, and documents across the platform.</DialogDescription>
         <div className="flex items-center border-b px-4 bg-slate-50/50 dark:bg-slate-800/50">
           <Search className="h-5 w-5 text-muted-foreground shrink-0" />
           <Input

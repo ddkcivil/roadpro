@@ -7,7 +7,7 @@ import { Project, UserRole, AppSettings, VariationOrder, VariationItem, WorkCate
 import { formatCurrency } from '../../utils/formatting/exportUtils';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
@@ -414,6 +414,7 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                             <Calculator className="mr-2 h-6 w-6 text-primary"/>
                             Draft Variation Order Worksheet
                         </DialogTitle>
+                        <DialogDescription>Worksheet for calculating and staging contract variation items for review.</DialogDescription>
                     </DialogHeader>
                     <div className="flex-1 overflow-y-auto p-6 bg-muted/40">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

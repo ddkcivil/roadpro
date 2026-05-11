@@ -1,6 +1,8 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { Project, UserRole, SitePhoto, DailyReport } from '../../types';
 import { analyzeSitePhotoUniversal } from '../../services/ai/universalAIService';
+import { realApiService } from '../../services/api/realApiService';
+import { toast } from 'sonner';
 
 import { 
     FileText, Camera, Trash2, 
@@ -49,11 +51,13 @@ interface Props {
   userRole: UserRole;
   onProjectUpdate: (project: Project) => void;
   onNavigate?: (tab: string) => void;
+  isLoading?: boolean;
+  onRefresh?: () => Promise<void>;
 }
 
 const PHOTO_CATEGORIES = ['General', 'Earthwork', 'Structures', 'Pavement', 'Safety'];
 
-const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate, onNavigate }) => {
+const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate, onNavigate, isLoading, onRefresh }) => {
   const [activeTab, setActiveTab] = useState("documents");
 
   if (!project) {
@@ -100,29 +104,56 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
+    const uploadToast = toast.loading(`Uploading ${files.length} photo(s) to site archive...`);
     const { fileToCompressedBase64 } = await import('../../utils/data/imageUtils');
-    let currentPhotos = [...(project.sitePhotos || [])];
+    let newPhotosList: SitePhoto[] = [];
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const base64 = await fileToCompressedBase64(file);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const base64 = await fileToCompressedBase64(file);
+        
+        // Use the centralized file upload service
+        const uploadResult = await realApiService.uploadFile({
+          name: file.name,
+          contentType: file.type,
+          base64Data: base64,
+          projectId: project.id,
+          folder: 'site-photos',
+          metadata: {
+            caption: file.name,
+            location: { lat: null, lng: null }
+          }
+        });
+
+        const newPhoto: SitePhoto = {
+          id: uploadResult.id,
+          url: uploadResult.url,
+          caption: file.name,
+          date: new Date().toISOString(),
+          location: 'Site Location',
+          category: 'General',
+          uploadedBy: userRole,
+          isAnalyzed: false
+        };
+        
+        newPhotosList.push(newPhoto);
+      }
       
-      const newPhoto: SitePhoto = {
-        id: `photo-${Date.now()}-${i}`,
-        url: base64,
-        caption: file.name,
-        date: new Date().toISOString(),
-        location: 'Site Location',
-        category: 'General',
-        uploadedBy: userRole,
-        isAnalyzed: false
-      };
+      onProjectUpdate({ 
+        ...project, 
+        sitePhotos: [...(project.sitePhotos || []), ...newPhotosList] 
+      });
       
-      currentPhotos.push(newPhoto);
+      toast.dismiss(uploadToast);
+      toast.success(`Successfully uploaded ${newPhotosList.length} photo(s)`);
+    } catch (error) {
+      toast.dismiss(uploadToast);
+      toast.error("Photo Upload Failed", { description: (error as Error).message });
+      console.error('Photo upload error:', error);
+    } finally {
+      if (photoInputRef.current) photoInputRef.current.value = '';
     }
-    
-    onProjectUpdate({ ...project, sitePhotos: currentPhotos });
-    if (photoInputRef.current) photoInputRef.current.value = '';
   };
 
   const handlePhotoAnalysis = async (photo: SitePhoto) => {
@@ -186,7 +217,7 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-4 h-12">
             <TabsTrigger value="documents">
-              <Folder className="mr-2 h-4 w-4" /> Documents ({documents.length})
+                <Folder className="mr-2 h-4 w-4" /> Documents ({project.documents?.length ?? 0})
             </TabsTrigger>
             <TabsTrigger value="site-photos">
               <ImageIcon className="mr-2 h-4 w-4" /> Site Photos ({photos.length})
@@ -204,6 +235,8 @@ const DocumentationHub: React.FC<Props> = ({ project, userRole, onProjectUpdate,
               project={project} 
               userRole={userRole} 
               onProjectUpdate={onProjectUpdate} 
+              isLoading={isLoading}
+              onRefresh={onRefresh}
             />
           </TabsContent>
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'roadmaster-v1';
+const CACHE_NAME = 'roadmaster-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json',
@@ -85,10 +85,20 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Bypass service worker for Vite HMR requests
+  // Bypass service worker for Vite HMR and development requests
   if (url.pathname.includes('@vite') ||
+    url.pathname.includes('.vite') ||
+    url.pathname.includes('node_modules') ||
     url.pathname.includes('__vite_ping') ||
     url.protocol === 'ws:') {
+    
+    // Proactively clear these from cache if they were accidentally stored 
+    // This prevents the "Invalid hook call" error from poisoned development chunks
+    event.waitUntil(
+      caches.open(CACHE_NAME).then(cache => {
+        cache.delete(request);
+      })
+    );
     return;
   }
 

@@ -117,7 +117,8 @@ const App: React.FC = () => {
     refreshCurrentProject,
     updateLocation,
     deleteProject,
-    isHydrated // Added isHydrated
+    isHydrated,
+    isRefreshingDetail
   } = useProjects(isAuthenticated && (systemReady || !isInitialLoading), currentUser);
 
 const {
@@ -284,7 +285,7 @@ const {
           logout={logout}
           projects={projects || []}
           setSelectedProjectId={(id) => startTransition(() => setSelectedProjectId(id))}
-          deleteProject={(id) => startTransition(() => deleteProject(id))}
+          deleteProject={(id) => startTransition(() => { deleteProject(id); })}
           onOpenProjectModal={(p) => { setEditProject(p); setIsProjectModalOpen(true); }}
           isLoadingProjects={isLoadingProjects}
           apiError={apiError}
@@ -415,6 +416,8 @@ const {
                             onProjectUpdate={handleSaveProject as any} 
                             userRole={userRole} 
                             onNavigate={handleTabChange}
+                            isLoading={isRefreshingDetail}
+                            onRefresh={refreshCurrentProject}
                           />
                         )}
                         {activeTab === 'settings' && userRole === UserRole.ADMIN && (
@@ -434,23 +437,27 @@ const {
           </main>
         </div>
 
-        {isAIModalOpen && currentProject && (
-          <AIChatModal project={currentProject} onClose={() => startTransition(() => setIsAIModalOpen(false))} />
-        )}
-        
-        <ProjectModal 
-          open={isProjectModalOpen} 
-          onClose={() => startTransition(() => setIsProjectModalOpen(false))} 
-          onSave={async (p: Partial<Project>) => { await handleSaveProject(p); startTransition(() => setIsProjectModalOpen(false)); }}
-          project={editProject}
-        />
-        
-        <GlobalSearch 
-          projects={projects}
-          currentProject={currentProject}
-          onSelectProject={(id) => setSelectedProjectId(id)}
-          onNavigate={handleTabChange}
-        />
+        <Suspense fallback={<></>}>
+          {isAIModalOpen && currentProject && (
+            <AIChatModal project={currentProject} onClose={() => startTransition(() => setIsAIModalOpen(false))} />
+          )}
+
+          {isProjectModalOpen && (
+            <ProjectModal 
+              open={isProjectModalOpen} 
+              onClose={() => startTransition(() => setIsProjectModalOpen(false))} 
+              onSave={async (p: Partial<Project>) => { await handleSaveProject(p); startTransition(() => setIsProjectModalOpen(false)); }}
+              project={editProject}
+            />
+          )}
+
+          <GlobalSearch 
+            projects={projects}
+            currentProject={currentProject}
+            onSelectProject={(id) => setSelectedProjectId(id)}
+            onNavigate={handleTabChange}
+          />
+        </Suspense>
 
         {/* Floating Info Buttons */}
         <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-50">

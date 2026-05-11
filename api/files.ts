@@ -148,7 +148,31 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 // Get the appropriate bucket for this project
       const bucketName = await getProjectBucket(supabaseAdmin, projectId);
       
-      // Ensure the project-specific bucket exists before uploading
+            // Ensure the project-specific bucket exists before uploading
+      const finalDocId = docId || `doc-${generateUniqueId()}`;
+      const versionId = `ver-${generateUniqueId()}`;
+
+      // 1. Check for duplicates in DB if it's a new document
+      if (!docId && projectId) {
+        const { data: existing } = await supabaseAdmin
+          .from('project_documents')
+          .select('id, name, size')
+          .eq('project_id', projectId)
+          .eq('name', name)
+          .maybeSingle();
+
+        if (existing) {
+          // If the size is also very similar, it's likely a duplicate
+          const existingSizeBytes = parseInt(existing.size) || 0;
+          if (Math.abs(existingSizeBytes - buffer.length) < 1024) { // within 1KB
+            return res.status(409).json({ 
+              error: 'Duplicate document found', 
+              id: existing.id,
+              message: 'A document with this name and similar size already exists in this project.'
+            });
+          }
+        }
+      }
       const { data: bucketList } = await supabaseAdmin.storage.listBuckets();
       const projBucketExists = bucketList?.some((b: any) => b.name === bucketName);
       if (!projBucketExists && bucketName === DEFAULT_BUCKET_NAME) {
@@ -181,10 +205,10 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       }
 
       // Construct file path in Supabase Storage
-      // Example: 'files/projectId/folder/filename.ext' or 'files/filename.ext'
+      // Include versionId to ensure uniqueness and prevent overwrites
       const storagePath = folder
-        ? `${folder}/${safeName}`
-        : `${projectId ? `${projectId}/` : ''}${safeName}`;
+        ? `${folder}/${versionId}_${safeName}`
+        : `${projectId ? `${projectId}/` : ''}${versionId}_${safeName}`;
 
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
@@ -229,8 +253,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         });
       }
 
-      const finalDocId = docId || `doc-${generateUniqueId()}`;
-      const versionId = `ver-${generateUniqueId()}`;
+      // (ID generation moved up)
 
       if (!docId) {
         // Create new document entry in Supabase DB
@@ -264,13 +287,13 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       }
 
       // Get current version count to determine next version number
-      const { data: versionCountData, error: versionCountError } = await supabaseAdmin
+      const { count, error: versionCountError } = await supabaseAdmin
         .from('document_versions')
-        .select('count', { count: 'exact' })
+        .select('*', { count: 'exact', head: true })
         .eq('doc_id', finalDocId);
       
       if (versionCountError) throw versionCountError;
-      const nextVersionNum = (versionCountData?.[0]?.count || 0) + 1;
+      const nextVersionNum = (count || 0) + 1;
 
       // Create new version entry in Supabase DB
       const { error: insertVersionError } = await supabaseAdmin
@@ -355,6 +378,64 @@ if (filePathsToDelete.length > 0) {
     } catch (error: any) {
       console.error('Failed to delete file:', error);
       return res.status(500).json({ error: 'Failed to delete file', details: error.message });
+    }
+  }
+
+  if (req.method === 'PATCH') {
+    const userRole = (req as any).user?.role;
+    const r = userRole?.toUpperCase();
+    const isAuthorized = r === 'ADMIN' || r === 'PROJECT MANAGER' || r === 'MANAGER' || r === 'PROJECT_MANAGER' || r === 'PLANNING_ENGINEER';
+    
+    if (!isAuthorized) {
+      return res.status(403).json({ error: 'Permission denied for metadata update' });
+    }
+
+    if (!id || typeof id !== 'string') {
+      return res.status(400).json({ error: 'File ID is required' });
+    }
+
+    try {
+      const { 
+        name, 
+        folder, 
+        tags, 
+        subject, 
+        refNo, 
+        metadata,
+        status,
+        letterDate,
+        correspondenceType
+      } = req.body;
+
+      const updateData: any = {};
+      if (name !== undefined) updateData.name = name;
+      if (folder !== undefined) updateData.folder = folder;
+      if (tags !== undefined) updateData.tags = tags;
+      if (subject !== undefined) updateData.subject = subject;
+      if (refNo !== undefined) updateData.ref_no = refNo;
+      if (status !== undefined) updateData.status = status;
+      if (letterDate !== undefined) updateData.letter_date = letterDate;
+      if (correspondenceType !== undefined) updateData.correspondence_type = correspondenceType;
+      
+      if (metadata !== undefined) {
+        updateData.metadata = typeof metadata === 'string' ? metadata : JSON.stringify(metadata);
+      }
+
+      updateData.updated_at = new Date().toISOString();
+
+      const { data, error } = await supabaseAdmin
+        .from('project_documents')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return res.status(200).json(data);
+    } catch (error: any) {
+      console.error('Failed to update file metadata:', error);
+      return res.status(500).json({ error: 'Failed to update file metadata', details: error.message });
     }
   }
 

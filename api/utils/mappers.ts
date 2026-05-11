@@ -136,6 +136,8 @@ export function mapProjectFromDb(dbProj: any): any {
     status: d.status,
     metadata: d.metadata,
     currentVersion: d.current_version || d.currentVersion || 1,
+    letterDate: d.letter_date || d.letterDate,
+    correspondenceType: d.correspondence_type || d.correspondenceType,
     fileUrl: `/api/files?id=${d.id}`,
     versions: (d.document_versions || d.versions || []).map((v: any) => ({
       id: v.id,
@@ -259,20 +261,31 @@ export function mapDocumentVersionFromDb(doc: any): any {
 
 export function mapProjectDocumentToDb(doc: any): any {
   if (!doc) return null;
-  return {
-    id: doc.id,
-    project_id: doc.projectId || doc.project_id,
-    name: doc.name,
-    folder: doc.folder,
-    tags: doc.tags || [],
-    subject: doc.subject,
-    ref_no: doc.refNo || doc.ref_no,
-    size: doc.size,
-    type: doc.type,
-    status: doc.status || 'Active',
-    metadata: typeof doc.metadata === 'string' ? doc.metadata : JSON.stringify(doc.metadata || {}),
-    updated_at: doc.updatedAt || doc.updated_at || new Date().toISOString()
-  };
+  const out: any = {};
+  
+  if (doc.id !== undefined) out.id = doc.id;
+  if (doc.projectId !== undefined || doc.project_id !== undefined) 
+    out.project_id = doc.projectId || doc.project_id;
+  if (doc.name !== undefined) out.name = doc.name;
+  if (doc.folder !== undefined) out.folder = doc.folder;
+  if (doc.tags !== undefined) out.tags = doc.tags;
+  if (doc.subject !== undefined) out.subject = doc.subject;
+  if (doc.refNo !== undefined || doc.ref_no !== undefined) 
+    out.ref_no = doc.refNo || doc.ref_no;
+  if (doc.size !== undefined) out.size = doc.size;
+  if (doc.type !== undefined) out.type = doc.type;
+  if (doc.status !== undefined) out.status = doc.status;
+  if (doc.letterDate !== undefined || doc.letter_date !== undefined)
+    out.letter_date = doc.letterDate || doc.letter_date;
+  if (doc.correspondenceType !== undefined || doc.correspondence_type !== undefined)
+    out.correspondence_type = doc.correspondenceType || doc.correspondence_type;
+  
+  if (doc.metadata !== undefined) {
+    out.metadata = typeof doc.metadata === 'string' ? doc.metadata : JSON.stringify(doc.metadata);
+  }
+  
+  out.updated_at = doc.updatedAt || doc.updated_at || new Date().toISOString();
+  return out;
 }
 
 /**

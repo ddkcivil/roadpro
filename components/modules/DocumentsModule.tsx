@@ -4,11 +4,12 @@ import {
     Sparkles, FileText, Loader2, 
     UploadCloud, Plus, Search, Folder, MoreVertical, Trash2, 
     ExternalLink, Image as ImageIcon, CheckCircle,
-    X, ArrowDownLeft
+    X, ArrowDownLeft, Pencil
 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardHeader } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
+import { Label } from '~/components/ui/label';
 import {
   Table,
   TableBody,
@@ -47,15 +48,22 @@ interface Props {
   project: Project;
   userRole: UserRole;
   onProjectUpdate: (project: Project) => void;
+  isLoading?: boolean;
+  onRefresh?: () => Promise<void>;
 }
 
 const FOLDERS = ['General', 'Contracts', 'Drawings', 'Reports', 'Correspondence', 'Financials', 'Sub-Docs'];
 
-const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
+const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, isLoading, onRefresh }) => {
   const subcontractors = project.agencies?.filter(a => a.type === 'subcontractor') || [];
   
   const [activeFolder, setActiveFolder] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Debug documents prop
+  useEffect(() => {
+    console.log(`[DocumentsModule] Project "${project.name}" has ${project.documents?.length || 0} documents.`);
+  }, [project.id, project.documents]);
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [uploadMode, setUploadMode] = useState<'SIMPLE' | 'SCAN'>('SIMPLE');
@@ -81,6 +89,9 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
   });
   const [previewDoc, setPreviewDoc] = useState<ProjectDocument | null>(null);
   const [newTagInput, setNewTagInput] = useState('');
+  
+  const [editingDoc, setEditingDoc] = useState<ProjectDocument | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<ProjectDocument>>({});
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -180,7 +191,8 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
         const pdfModule = await import('react-pdf');
         const pdfjs = pdfModule.pdfjs;
         if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          pdfjs.GlobalWorkerOptions.workerSrc = 'pdfjs-worker/pdf.worker.min.mjs';
+          const version = pdfjs.version || '4.4.168';
+          pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.mjs`;
         }
         setPdfComponents({
           Document: pdfModule.Document,
@@ -343,9 +355,15 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
           if (newDocs.length > 0) {
               toast.success(`Successfully uploaded ${newDocs.length} document(s).`);
           }
-      } catch (error) {
+      } catch (error: any) {
           toast.dismiss(uploadToast);
-          toast.error("Upload Failed", { description: (error as Error).message });
+          if (error.status === 409) {
+              toast.error("Duplicate Document", { 
+                  description: error.response?.data?.message || "This document already exists in this project." 
+              });
+          } else {
+              toast.error("Upload Failed", { description: error.message || "An unexpected error occurred." });
+          }
           console.error(error);
       }
       
@@ -372,19 +390,78 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
     document.body.removeChild(link);
   };
   
-  const handleDeleteDoc = (id: string) => {
+  const handleDeleteDoc = async (id: string) => {
       if (!canDelete) {
-          alert('Only Admin and Project Manager can delete documents');
+          toast.error('Permission Denied', { description: 'Only Admin and Project Manager can delete documents' });
           return;
       }
       
-      if (confirm("Permanently delete this document?")) {
-          onProjectUpdate({ ...project, documents: (project.documents || []).filter(d => d.id !== id) });
-          
-          if (previewDoc?.id === id) {
-              setPreviewDoc(null);
+      if (confirm("Permanently delete this document from the project archive and cloud storage?")) {
+          const deleteToast = toast.loading("Deleting document...");
+          try {
+              const { realApiService } = await import('../../services/api/realApiService');
+              await realApiService.deleteFile(id);
+              
+              onProjectUpdate({ ...project, documents: (project.documents || []).filter(d => d.id !== id) });
+              
+              if (previewDoc?.id === id) {
+                  setPreviewDoc(null);
+              }
+              toast.dismiss(deleteToast);
+              toast.success("Document deleted successfully");
+          } catch (error: any) {
+              toast.dismiss(deleteToast);
+              toast.error("Delete Failed", { description: error.message || "An unexpected error occurred." });
+              console.error(error);
           }
       }
+  };
+
+  const handleOpenEdit = (doc: ProjectDocument) => {
+    setEditingDoc(doc);
+    setEditFormData({
+      name: doc.name,
+      subject: doc.subject,
+      refNo: doc.refNo,
+      folder: doc.folder,
+      letterDate: doc.letterDate,
+      correspondenceType: doc.correspondenceType
+    });
+  };
+
+  const handleUpdateMetadata = async () => {
+    if (!editingDoc) return;
+    
+    const updateToast = toast.loading("Updating document details...");
+    try {
+      const { realApiService } = await import('../../services/api/realApiService');
+      await realApiService.updateFileMetadata(editingDoc.id, {
+        name: editFormData.name,
+        subject: editFormData.subject,
+        refNo: editFormData.refNo,
+        folder: editFormData.folder,
+        letterDate: editFormData.letterDate,
+        correspondenceType: editFormData.correspondenceType
+      });
+      
+      const updatedDocs = (project.documents || []).map(doc => 
+        doc.id === editingDoc.id ? { ...doc, ...editFormData } : doc
+      );
+      
+      onProjectUpdate({ ...project, documents: updatedDocs });
+      
+      if (previewDoc?.id === editingDoc.id) {
+        setPreviewDoc(prev => prev ? { ...prev, ...editFormData } : null);
+      }
+      
+      setEditingDoc(null);
+      toast.dismiss(updateToast);
+      toast.success("Document updated successfully");
+    } catch (error: any) {
+      toast.dismiss(updateToast);
+      toast.error("Update Failed", { description: error.message || "An unexpected error occurred." });
+      console.error(error);
+    }
   };
   
   const handleUploadNewVersion = async (docId: string, file: File) => {
@@ -540,15 +617,28 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
           <div className="text-sm text-muted-foreground flex items-center gap-1">
             <Folder className="h-4 w-4" /> <span>Project Storage</span> <span className="mx-1">/</span> <span className="font-semibold text-foreground">{activeFolder}</span>
           </div>
-          <div className="relative w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search files..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              aria-label="Search files"
-            />
+          <div className="flex items-center gap-2">
+            <div className="relative w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search files..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                aria-label="Search files"
+              />
+            </div>
+            {onRefresh && (
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={() => onRefresh()} 
+                disabled={isLoading}
+                title="Reload documents"
+              >
+                <Loader2 className={cn("h-4 w-4", isLoading && "animate-spin")} />
+              </Button>
+            )}
           </div>
         </div>
 
@@ -566,7 +656,14 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDocuments.length > 0 ? filteredDocuments.map(doc => (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-60 text-center">
+                      <Loader2 className="mx-auto h-8 w-8 text-primary animate-spin mb-2" />
+                      <p className="text-muted-foreground">Synchronizing documents...</p>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredDocuments.length > 0 ? filteredDocuments.map(doc => (
                   <TableRow key={doc.id} className="cursor-pointer" onClick={() => setPreviewDoc(doc)}>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -603,6 +700,9 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenEdit(doc); }}>
+                            <Pencil className="mr-2 h-4 w-4" /> Edit Details
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDownloadDocument(doc); }}>
                             <ArrowDownLeft className="mr-2 h-4 w-4" /> Download
                           </DropdownMenuItem>
@@ -614,10 +714,17 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
                     </TableCell>
                   </TableRow>
                 )) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-60 text-center text-muted-foreground">
-                      <UploadCloud className="mx-auto h-12 w-12 text-slate-300 mb-2" />
-                      No files in this folder.
+                                    <TableRow>
+                    <TableCell colSpan={6} className="h-60 text-center">
+                      <FileText className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
+                      <p className="text-xl font-semibold mb-1">No documents found</p>
+                      <p className="text-muted-foreground mb-4">Upload a document to get started or try reloading.</p>
+                      {onRefresh && (
+                        <Button variant="outline" onClick={() => onRefresh()} disabled={isLoading}>
+                          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                          Try Reloading
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 )}
@@ -741,6 +848,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
       <Dialog open={!!previewDoc} onOpenChange={() => setPreviewDoc(null)}>
         {previewDoc && (
           <DialogContent className="max-w-[calc(100vw-6rem)] h-[calc(100vh-6rem)] flex flex-col p-0">
+            <DialogDescription className="sr-only">Viewing document: {previewDoc.name}</DialogDescription>
             <DialogHeader className="flex flex-row items-center justify-between px-6 py-4 border-b">
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
@@ -939,6 +1047,86 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }
             </div>
           </DialogContent>
         )}
+      </Dialog>
+      
+      <Dialog open={!!editingDoc} onOpenChange={() => setEditingDoc(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Document Details</DialogTitle>
+            <DialogDescription>Update metadata for this document.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">Filename</Label>
+              <Input
+                id="edit-name"
+                value={editFormData.name || ''}
+                onChange={e => setEditFormData({ ...editFormData, name: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-folder">Folder</Label>
+              <Select
+                value={editFormData.folder || 'General'}
+                onValueChange={value => setEditFormData({ ...editFormData, folder: value })}
+              >
+                <SelectTrigger id="edit-folder">
+                  <SelectValue placeholder="Select folder" />
+                </SelectTrigger>
+                <SelectContent>
+                  {FOLDERS.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-subject">Subject</Label>
+              <Input
+                id="edit-subject"
+                value={editFormData.subject || ''}
+                onChange={e => setEditFormData({ ...editFormData, subject: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-ref">Reference No</Label>
+              <Input
+                id="edit-ref"
+                value={editFormData.refNo || ''}
+                onChange={e => setEditFormData({ ...editFormData, refNo: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-date">Letter Date</Label>
+                <Input
+                  id="edit-date"
+                  type="date"
+                  value={editFormData.letterDate || ''}
+                  onChange={e => setEditFormData({ ...editFormData, letterDate: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-type">Type</Label>
+                <Select
+                  value={editFormData.correspondenceType || 'none'}
+                  onValueChange={value => setEditFormData({ ...editFormData, correspondenceType: value === 'none' ? undefined : (value as any) })}
+                >
+                  <SelectTrigger id="edit-type">
+                    <SelectValue placeholder="Correspondence Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Not Specified</SelectItem>
+                    <SelectItem value="incoming">Incoming</SelectItem>
+                    <SelectItem value="outgoing">Outgoing</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingDoc(null)}>Cancel</Button>
+            <Button onClick={handleUpdateMetadata}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </div>
   );

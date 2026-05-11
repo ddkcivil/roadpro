@@ -333,8 +333,8 @@ private async fetchWithRetry<T>(endpoint: string, options?: RequestInit, retries
     return this.fetchApi<{ data: Project[], pagination: any }>(`/projects?page=${page}&limit=${limit}`, { method: 'GET' }, true);
   }
 
-  async getProject(id: string): Promise<Project> {
-    return this.fetchApi<Project>(`/projects?id=${id}`, { method: 'GET' }, true);
+  async getProject(id: string, forceRefresh = false): Promise<Project> {
+    return this.fetchApi<Project>(`/projects?id=${id}`, { method: 'GET' }, true, forceRefresh);
   }
 
   async createProject(projectData: Partial<Project>): Promise<Project> {
@@ -575,6 +575,23 @@ private async fetchWithRetry<T>(endpoint: string, options?: RequestInit, retries
   async deleteFile(fileId: string): Promise<void> {
     return this.fetchApi<void>(`/files?id=${fileId}`, {
       method: 'DELETE',
+    });
+  }
+
+  async updateFileMetadata(fileId: string, patchData: {
+    name?: string;
+    folder?: string;
+    tags?: string[];
+    subject?: string;
+    refNo?: string;
+    status?: string;
+    letterDate?: string;
+    correspondenceType?: string;
+    metadata?: any;
+  }): Promise<any> {
+    return this.fetchApi<any>(`/files?id=${fileId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patchData),
     });
   }
 

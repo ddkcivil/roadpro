@@ -47,7 +47,7 @@ class OCRService {
       
       // Use the worker from the CDN that matches the exact version of the library
       // this prevents version mismatch errors like "Rf 2"
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdfjs-worker/pdf.worker.min.mjs';
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
       const arrayBuffer = await pdfFile.arrayBuffer();
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });

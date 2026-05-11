@@ -140,7 +140,10 @@ export const LocalStorageUtils = {
   },
 
   setMessages(messages: Message[]): boolean {
-    return safeSet(LOCAL_STORAGE_KEYS.MESSAGES, messages);
+    // Keep only the last 50 messages in localStorage to save space
+    // The rest are stored in IndexedDB via safeSet's large-item logic
+    const trimmed = messages.slice(-50);
+    return safeSet(LOCAL_STORAGE_KEYS.MESSAGES, trimmed);
   },
 
   // Settings
@@ -282,11 +285,19 @@ export const LocalStorageUtils = {
     });
 
     // 2. Clear anything else that is not essential
-    // We keep basic app settings but clear others
+    // Essential keys that MUST be preserved to keep the app functional
+    const essentialKeys = [
+      LOCAL_STORAGE_KEYS.SETTINGS,
+      'roadmaster-token',
+      'roadmaster-user',
+      'app_language',
+      'roadmaster-active-tab'
+    ];
+
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key !== LOCAL_STORAGE_KEYS.SETTINGS && !key.startsWith('sb-')) { 
-        // We preserve Supabase keys (sb-*)
+      if (key && !essentialKeys.includes(key) && !key.startsWith('sb-')) { 
+        // We preserve essential keys and Supabase keys (sb-*)
         localStorage.removeItem(key);
         i--;
       }

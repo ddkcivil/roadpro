@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useTransition } from 'react';
+import React, { useState, useMemo, useTransition, useEffect } from 'react';
 import { 
     Plus, ArrowLeft, HardHat, History, CheckCircle2,
     MapPin, X, Save, Microscope, Edit2, Trash2, Package,
@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "~/components/ui/tabs";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Badge } from '~/components/ui/badge';
 import { Progress } from '~/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
@@ -114,6 +114,11 @@ const WorkLogTimeline: React.FC<{ structure: StructureAsset }> = ({ structure })
 };
 
 const StructuralAnalytics: React.FC<{ structures: StructureAsset[] }> = ({ structures }) => {
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
   const typeDistribution = useMemo(() => {
     const counts: Record<string, number> = {};
     structures.forEach(s => {
@@ -176,7 +181,8 @@ const StructuralAnalytics: React.FC<{ structures: StructureAsset[] }> = ({ struc
           <CardTitle className="text-sm font-black text-muted-foreground uppercase tracking-widest">Type Distribution</CardTitle>
         </CardHeader>
 <CardContent className="h-[180px]">
-          <ResponsiveContainer width="100%" height="100%" minHeight={150}>
+          {hasMounted && (
+          <ResponsiveContainer width="100%" height="100%" minHeight={150} debounce={100}>
             <PieChart>
               <Pie
                 data={typeDistribution}
@@ -194,6 +200,7 @@ const StructuralAnalytics: React.FC<{ structures: StructureAsset[] }> = ({ struc
               <RechartsTooltip />
             </PieChart>
           </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
 
@@ -202,7 +209,8 @@ const StructuralAnalytics: React.FC<{ structures: StructureAsset[] }> = ({ struc
           <CardTitle className="text-sm font-black text-muted-foreground uppercase tracking-widest">Top Asset Progress (%)</CardTitle>
         </CardHeader>
 <CardContent className="h-[180px]">
-          <ResponsiveContainer width="100%" height="100%" minHeight={150}>
+          {hasMounted && (
+          <ResponsiveContainer width="100%" height="100%" minHeight={150} debounce={100}>
             <BarChart data={progressData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
               <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
@@ -211,6 +219,7 @@ const StructuralAnalytics: React.FC<{ structures: StructureAsset[] }> = ({ struc
               <Bar dataKey="progress" fill="#4f46e5" radius={[4, 4, 0, 0]} barSize={20} />
             </BarChart>
           </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -948,7 +957,7 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                   <div className="bg-primary/10 p-2 rounded-2xl"><HardHat className="text-primary" /></div>
                   Log Execution
                 </DialogTitle>
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-2">{currentLogComponent?.name}</p>
+                <DialogDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-2">{currentLogComponent?.name}</DialogDescription>
               </DialogHeader>
               
               <div className="grid gap-6 p-6">
@@ -1036,6 +1045,7 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
           <DialogContent className="max-w-2xl rounded-3xl border-none shadow-2xl">
               <DialogHeader className="p-6 border-b border-border/50">
                 <DialogTitle className="text-xl font-black tracking-tight italic uppercase">Audit Log: {selectedStructure?.name}</DialogTitle>
+                <DialogDescription>Review complete execution history for this structure.</DialogDescription>
               </DialogHeader>
               <div className="max-h-[60vh] overflow-auto">
                 <Table>
@@ -1061,6 +1071,7 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
           <DialogContent className="max-w-xl rounded-3xl border-none shadow-2xl">
               <DialogHeader className="p-6 border-b">
                 <DialogTitle className="text-xl font-black tracking-tight italic uppercase">Structure Templates</DialogTitle>
+                <DialogDescription>Select a template to deploy for new project assets.</DialogDescription>
               </DialogHeader>
               <div className="max-h-[50vh] overflow-auto">
                 <Table>
@@ -1082,7 +1093,10 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
 
       <Dialog open={isTemplateModalOpen} onOpenChange={setIsTemplateModalOpen}>
         <DialogContent className="sm:max-w-md rounded-3xl">
-          <DialogHeader><DialogTitle className="font-black italic uppercase">Save Template</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="font-black italic uppercase">Save Template</DialogTitle>
+            <DialogDescription>Save this structure configuration as a template for future use.</DialogDescription>
+          </DialogHeader>
           <div className="grid gap-4 py-4">
             <Label className="text-[10px] font-black uppercase">Template Name</Label>
             <Input value={templateName} onChange={e => setTemplateName(e.target.value)} placeholder="e.g. Standard 2-Lane Culvert" className="rounded-xl h-12" />

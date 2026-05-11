@@ -3,7 +3,7 @@ import { Project, UserRole, LinearWorkLog } from '../../types';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
@@ -93,6 +93,7 @@ const PavementModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Log Daily Progress</DialogTitle>
+                    <DialogDescription>Record the linear work execution for today.</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">

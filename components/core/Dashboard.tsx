@@ -38,6 +38,11 @@ interface Props {
 const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSettings }) => {
   const [showWidgetSettings, setShowWidgetSettings] = useState(false);
   const [activeChart, setActiveChart] = useState<'periodic' | 'scumulative'>('scumulative');
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const remainingDays = useMemo(() => {
     if (!project?.endDate) return null;
@@ -421,7 +426,8 @@ const financialChartData = useMemo(() => {
                 </ToggleGroup>
               </CardHeader>
 <CardContent className="h-[400px] pt-12 px-8 pb-8 min-h-[300px] min-w-0">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200}>
+                {hasMounted && (
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200} debounce={100}>
                   {sCurveData.length > 0 ? (
                     activeChart === 'scumulative' ? (
                       <LineChart data={sCurveData}>
@@ -460,6 +466,7 @@ const financialChartData = useMemo(() => {
                     </LineChart>
                   )}
                 </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
           )}
@@ -578,7 +585,8 @@ const financialChartData = useMemo(() => {
                 </CardTitle>
               </CardHeader>
 <CardContent className="h-[300px] flex flex-col items-center justify-center p-8 min-w-0">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150}>
+                {hasMounted && (
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={150} debounce={100}>
                   <PieChart>
                     <Pie
                       data={boqCategoryData}
@@ -597,6 +605,7 @@ const financialChartData = useMemo(() => {
                     <RechartsTooltip contentStyle={{ borderRadius: '20px', border: 'none', backgroundColor: '#0f172a', color: '#fff' }} />
                   </PieChart>
                 </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
           )}

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 interface I18nContextType {
   language: string;
@@ -22,7 +22,7 @@ const getInitialLanguage = (): string => {
 };
 
 export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = React.useState<string>(getInitialLanguage);
+  const [language, setLanguageState] = useState<string>(getInitialLanguage());
 
   const setLanguage = (lang: string) => {
     if (typeof window !== 'undefined') {

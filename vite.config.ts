@@ -44,30 +44,23 @@ export default defineConfig(({ mode }) => {
         'warning': path.resolve(__dirname, 'node_modules/warning/warning.js'),
       }
     },
+    // Ensure React and React-DOM are pre-bundled correctly
     optimizeDeps: {
       exclude: ['sql.js', 'react-pdf', 'pdfjs-dist', 'tesseract.js'],
-      include: ['react', 'react-dom', 'recharts'],
+      include: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime', 'scheduler'],
     },
     build: {
+      // Ensure React is bundled as a shared vendor chunk
       rollupOptions: {
         output: {
           manualChunks: (id) => {
             if (id.includes('node_modules/react') || id.includes('node_modules/scheduler')) {
-              return 'vendor-react';
+              return 'react-vendor';
             }
-            if (id.includes('node_modules/recharts')) {
-              return 'vendor-charts';
+            if (id.includes('node_modules')) {
+              return 'vendor';
             }
-            if (id.includes('node_modules/jspdf') || id.includes('node_modules/html2canvas')) {
-              return 'vendor-pdf';
-            }
-            if (id.includes('node_modules/lucide-react') || id.includes('node_modules/framer-motion') || id.includes('node_modules/@tanstack')) {
-              return 'vendor-ui';
-            }
-            if (id.includes('node_modules/@supabase')) {
-              return 'vendor-supabase';
-            }
-          },
+          }
         },
       },
       chunkSizeWarningLimit: 1000,

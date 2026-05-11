@@ -22,9 +22,9 @@ export const apiService = {
   },
 
   // Fetch a single project by ID
-  getProject: async (id: string): Promise<Project | undefined> => {
+  getProject: async (id: string, forceRefresh = false): Promise<Project | undefined> => {
     try {
-      return await realApiService.getProject(id);
+      return await realApiService.getProject(id, forceRefresh);
     } catch (error: any) {
       if (error.status === 404) return undefined;
       throw error;

@@ -4,7 +4,7 @@ import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Avatar } from '~/components/ui/avatar';
 import { Badge } from '~/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
@@ -788,6 +788,7 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, settin
       {/* Add/Edit Subcontractor Modal */}
       <Dialog open={isSubcontractorModalOpen || isEditModalOpen} onOpenChange={() => { setIsSubcontractorModalOpen(false); setIsEditModalOpen(false); }} >
         <DialogContent className="sm:max-w-[375px]">
+          <DialogDescription className="sr-only">Contractor registration form</DialogDescription>
           <DialogHeader>
             <DialogTitle className="font-bold flex items-center gap-1.5">
               <Briefcase className="text-primary" /> {isEditModalOpen ? 'Edit Contractor' : 'Add New Contractor'}
@@ -918,6 +919,7 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, settin
       {/* Payment Modal */}
       <Dialog open={isPaymentModalOpen} onOpenChange={() => setIsPaymentModalOpen(false)} >
         <DialogContent className="sm:max-w-[375px]">
+          <DialogDescription className="sr-only">Record a new payment transaction</DialogDescription>
           <DialogHeader>
             <DialogTitle className="font-bold flex items-center gap-1">
               <DollarSign size={20} className="text-primary" /> Record Payment
@@ -1001,6 +1003,7 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, settin
       {/* Add Rate Modal */}
       <Dialog open={isRatesModalOpen} onOpenChange={() => setIsRatesModalOpen(false)}>
         <DialogContent className="sm:max-w-[425px]">
+          <DialogDescription className="sr-only">Manage item rates for subcontractors</DialogDescription>
           <DialogHeader>
             <DialogTitle className="font-bold flex items-center gap-1.5">
               <Calculator className="text-primary" /> Add Item Rate

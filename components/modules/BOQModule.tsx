@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 
 import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Checkbox } from '~/components/ui/checkbox';
@@ -637,6 +637,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                 <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2"><FileSpreadsheet className="text-primary" /> {newMB.id ? 'Edit Measurement Record' : 'New Measurement Record'}</DialogTitle>
+                        <DialogDescription>Enter or update the measurement details for contractual certification.</DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-2 gap-4">
@@ -688,7 +689,10 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
 
             <Dialog open={isVOModalOpen} onOpenChange={setIsVOModalOpen}>
                 <DialogContent className="sm:max-w-xl">
-                    <DialogHeader><DialogTitle>Initialize Variation</DialogTitle></DialogHeader>
+                    <DialogHeader>
+                        <DialogTitle>Initialize Variation</DialogTitle>
+                        <DialogDescription>Create a new variation order to track contract amendments.</DialogDescription>
+                    </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="space-y-2">
                             <Label htmlFor="vo-title">VO Title</Label>
@@ -707,7 +711,10 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
 
             <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
                 <DialogContent>
-                    <DialogHeader><DialogTitle>Import BOQ</DialogTitle></DialogHeader>
+                    <DialogHeader>
+                        <DialogTitle>Import BOQ</DialogTitle>
+                        <DialogDescription>Select an Excel or CSV file to import Bill of Quantity items.</DialogDescription>
+                    </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="space-y-2">
                             <Label htmlFor="import-boq-file">Select Excel/CSV File</Label>

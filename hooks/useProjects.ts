@@ -1,5 +1,5 @@
 
-import { useEffect, useMemo, startTransition, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, startTransition, useCallback, useRef } from 'react';
 import { Project, User } from '../types';
 import { apiService } from '../services/api/apiService';
 import { DataCache, getCacheKey } from '../utils/data/cacheUtils';
@@ -24,6 +24,7 @@ interface ProjectsReturn {
   updateLocation: (projectId: string, latitude: number, longitude: number) => Promise<void>;
   deleteProject: (projectId: string) => Promise<void>;
   isHydrated?: boolean;
+  isRefreshingDetail: boolean;
 }
 
 
@@ -54,16 +55,46 @@ const projectsReducer = (state: ProjectsState, action: ProjectsAction): Projects
       };
     case 'FETCH_START':
       return { ...state, isLoading: true, error: null };
-    case 'FETCH_SUCCESS':
-      const fetchedProjects = (action.payload || []).map((p: Project) => prepareProjectWithMaterials(p));
+    case 'FETCH_SUCCESS': {
+      const fetchedProjects = (action.payload || []).map((p: Project) => {
+        const prepared = prepareProjectWithMaterials(p);
+        // CRITICAL: Preserve detailed fields (documents, variation orders, etc.) 
+        // if they already exist in our state but are missing from the bulk fetch list.
+        const existing = state.projects.find(ep => ep.id === prepared.id);
+        if (existing) {
+          return {
+            ...prepared,
+            documents: prepared.documents?.length ? prepared.documents : (existing.documents || []),
+            variationOrders: prepared.variationOrders?.length ? prepared.variationOrders : (existing.variationOrders || []),
+            agencies: prepared.agencies?.length ? prepared.agencies : (existing.agencies || []),
+            labTests: prepared.labTests?.length ? prepared.labTests : (existing.labTests || []),
+            rfis: prepared.rfis?.length ? prepared.rfis : (existing.rfis || []),
+            sitePhotos: prepared.sitePhotos?.length ? prepared.sitePhotos : (existing.sitePhotos || []),
+          };
+        }
+        return prepared;
+      });
       return { ...state, isLoading: false, projects: fetchedProjects, error: null };
+    }
     case 'FETCH_ERROR':
       return { ...state, isLoading: false, error: action.payload };
     case 'SET_SELECTED_PROJECT':
       return { ...state, selectedProjectId: action.payload };
-case 'UPDATE_PROJECTS': {
-      const updatedProjects = (action.payload || []).map((p: Project) => prepareProjectWithMaterials(p));
-      return { ...state, projects: updatedProjects };
+    case 'UPDATE_PROJECTS': {
+      const incomingProjects = (action.payload || []).map((p: Project) => prepareProjectWithMaterials(p));
+      const mergedProjects = incomingProjects.map(p => {
+        const existing = state.projects.find(ep => ep.id === p.id);
+        if (existing) {
+          return {
+            ...p,
+            documents: p.documents?.length ? p.documents : (existing.documents || []),
+            variationOrders: p.variationOrders?.length ? p.variationOrders : (existing.variationOrders || []),
+            agencies: p.agencies?.length ? p.agencies : (existing.agencies || []),
+          };
+        }
+        return p;
+      });
+      return { ...state, projects: mergedProjects };
     }
     default:
       return state;
@@ -84,6 +115,8 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: User): Proje
     'roadmaster-projects-state'
   );
 
+  const [isRefreshingDetail, setIsRefreshingDetail] = useState(false);
+
   // Ref to always access latest projects in async callbacks without stale closures
   const projectsRef = useRef(state.projects);
   projectsRef.current = state.projects;
@@ -94,8 +127,10 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: User): Proje
 
   const refreshCurrentProject = useCallback(async () => {
     if (!state.selectedProjectId) return;
+    
+    setIsRefreshingDetail(true);
     try {
-      const updatedProject = await apiService.getProject(state.selectedProjectId);
+      const updatedProject = await apiService.getProject(state.selectedProjectId, true);
 
       if (!updatedProject) throw new Error('Project not found after refresh.');
 
@@ -109,8 +144,17 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: User): Proje
       });
     } catch (error) {
       console.warn('[SYNC] Failed to background refresh project from Supabase:', error);
+    } finally {
+      setIsRefreshingDetail(false);
     }
   }, [state.selectedProjectId, dispatch]);
+
+  // AUTO-REFRESH: When a project is selected, fetch its full details (joins)
+  useEffect(() => {
+    if (state.selectedProjectId && isAuthenticated && isHydrated) {
+      refreshCurrentProject();
+    }
+  }, [state.selectedProjectId, isAuthenticated, isHydrated, refreshCurrentProject]);
 
   const lastLocationUpdateRef = useRef<number>(0);
   const LOCATION_THROTTLE = 10000; // 10 seconds
@@ -416,7 +460,8 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: User): Proje
     refreshCurrentProject,
     updateLocation,
     deleteProject,
-    isHydrated: isHydrated, // Added to expose isHydrated
+    isHydrated: isHydrated,
+    isRefreshingDetail,
   };
   };
 
