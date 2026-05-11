@@ -95,19 +95,35 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         projId = doc?.project_id;
       } catch (e) { /* ignore */ }
 
-      // Get the appropriate bucket and generate public URL
+      // Get the appropriate bucket and fetch the file
       const bucketName = await getProjectBucket(supabaseAdmin, projId);
-      const { data: publicUrlData } = supabaseAdmin.storage
-        .from(bucketName)
-        .getPublicUrl(filePath);
       
-      if (publicUrlData?.publicUrl) {
-        return res.redirect(publicUrlData.publicUrl);
-      } else {
-        // Fallback if direct public URL isn't available
-        console.error(`Public URL not found for path: ${filePath}`);
-        return res.status(500).json({ error: 'Could not retrieve public URL for file.' });
-      }
+      const { data: fileBlob, error: downloadError } = await supabaseAdmin.storage
+        .from(bucketName)
+        .download(filePath);
+      
+      if (downloadError) throw downloadError;
+
+      // Determine content type from metadata or fallback
+      let contentType = 'application/octet-stream';
+      try {
+        const metadata = typeof latestVersion.metadata === 'string' 
+          ? JSON.parse(latestVersion.metadata) 
+          : latestVersion.metadata;
+        if (metadata?.mimeType) {
+          contentType = metadata.mimeType;
+        } else if (filePath.toLowerCase().endsWith('.pdf')) {
+          contentType = 'application/pdf';
+        } else if (filePath.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+          contentType = `image/${filePath.split('.').pop()}`;
+        }
+      } catch (e) {}
+
+      const buffer = Buffer.from(await fileBlob.arrayBuffer());
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Length', buffer.length.toString());
+      res.setHeader('Content-Disposition', `inline; filename="${latestVersion.name || 'document'}"`);
+      return res.send(buffer);
 
 
     } catch (error: any) {
@@ -308,11 +324,14 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         });
       if (insertVersionError) throw insertVersionError;
 
+      // Determine content type from metadata or fallback to type
+      let finalContentType = metadata?.mimeType || contentType;
+
       return res.status(201).json({
         id: finalDocId,
         versionId: versionId,
         name,
-        contentType,
+        contentType: finalContentType,
         size: buffer.length,
         url: `/api/files?id=${finalDocId}`,
       });

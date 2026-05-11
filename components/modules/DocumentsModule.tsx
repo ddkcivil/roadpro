@@ -275,10 +275,20 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
 
       try {
           for (const f of uploadFiles) {
-              const existingDoc = (project.documents || []).find(doc => 
-                  doc.name === f.name && 
-                  Math.abs(parseFloat(doc.size) - parseFloat(`${(f.size / 1024 / 1024).toFixed(2)} MB`)) < 0.1
-              );
+              const existingDoc = (project.documents || []).find(doc => {
+                  if (doc.name !== f.name) return false;
+                  
+                  // Normalize existing size to bytes for accurate comparison
+                  let existingSizeBytes = 0;
+                  if (typeof doc.size === 'string' && doc.size.includes('MB')) {
+                      existingSizeBytes = Math.round(parseFloat(doc.size) * 1024 * 1024);
+                  } else {
+                      existingSizeBytes = parseInt(doc.size) || 0;
+                  }
+                  
+                  // 100KB tolerance to handle slight differences in calculation/compression
+                  return Math.abs(existingSizeBytes - f.size) < 102400; 
+              });
               
               if (existingDoc) {
                   skippedDocs.push(f.name);
