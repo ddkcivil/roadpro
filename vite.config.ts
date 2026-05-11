@@ -40,7 +40,6 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, '.'),
         '~': path.resolve(__dirname, '.'),
         'lib': path.resolve(__dirname, './lib'),
-        'pdfjs-dist/build/pdf.worker.min.mjs': 'pdfjs-worker/pdf.worker.min.mjs',
         'warning': path.resolve(__dirname, 'node_modules/warning/warning.js'),
       }
     },

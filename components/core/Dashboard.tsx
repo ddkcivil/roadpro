@@ -305,7 +305,7 @@ const financialChartData = useMemo(() => {
               <DialogContent className="rounded-[2rem] glass sm:max-w-[400px]">
                 <DialogHeader>
                   <DialogTitle className="text-2xl font-black tracking-tight">Display Units</DialogTitle>
-                  <DialogDescription className="font-medium text-muted-foreground">Toggle visibility of operational modules.</DialogDescription>
+                  <DialogDescription className="font-medium text-muted-foreground">Toggle visibility of operational modules and metrics on your dashboard.</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-3 py-6">
                   {(settings.dashboardWidgets || []).sort((a, b) => a.position - b.position).map((widget) => (
@@ -427,7 +427,7 @@ const financialChartData = useMemo(() => {
               </CardHeader>
 <CardContent className="h-[400px] pt-12 px-8 pb-8 min-h-[300px] min-w-0">
                 {hasMounted && (
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200} debounce={100}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={200} debounce={1}>
                   {sCurveData.length > 0 ? (
                     activeChart === 'scumulative' ? (
                       <LineChart data={sCurveData}>

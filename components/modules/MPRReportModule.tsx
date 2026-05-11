@@ -26,9 +26,10 @@ import { toast } from 'sonner';
 interface Props {
   project: Project;
   settings: AppSettings;
+  hideStats?: boolean;
 }
 
-const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
+const MPRReportModule: React.FC<Props> = ({ project, settings, hideStats }) => {
   const [reportMonth, setReportMonth] = useState<string>(new Date().toISOString().slice(0, 7)); // YYYY-MM
   const [activeTab, setActiveTab] = useState(0);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
@@ -156,38 +157,40 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
     <>
     <div className="h-[calc(100vh-140px)] flex flex-col gap-3">
       {/* Executive Progress Header */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 px-1">
-          <Card className="bg-primary text-primary-foreground shadow-lg border-none relative overflow-hidden">
-              <CardContent className="p-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Physical Progress</p>
-                  <p className="text-2xl font-black italic">{(structuralProgress * 100).toFixed(2)}%</p>
-                  <p className="text-[8px] mt-1 font-bold opacity-50 uppercase">From Structural Assets</p>
-              </CardContent>
-          </Card>
-          <Card className="bg-slate-900 text-white shadow-lg border-none relative overflow-hidden">
-              <CardContent className="p-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Financial Progress</p>
-                  <p className="text-2xl font-black italic">{(physicalProgress.actual * 100).toFixed(2)}%</p>
-                  <p className="text-[8px] mt-1 font-bold opacity-50 uppercase">From Certified BOQ</p>
-              </CardContent>
-          </Card>
-          <Card className={cn("shadow-lg border-none relative overflow-hidden text-white", divergence > 2 ? "bg-amber-500" : "bg-emerald-500")}>
-              <CardContent className="p-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Progress Gap</p>
-                  <p className="text-2xl font-black italic">{divergence.toFixed(2)}%</p>
-                  <p className="text-[8px] mt-1 font-bold opacity-50 uppercase">
-                      {divergence > 0 ? "Work Done Not Yet Billed" : "Billing Ahead of Physical"}
-                  </p>
-              </CardContent>
-          </Card>
-          <Card className="bg-indigo-600 text-white shadow-lg border-none relative overflow-hidden">
-              <CardContent className="p-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Schedule Status</p>
-                  <p className="text-2xl font-black italic">{((physicalProgress.actual - physicalProgress.planned) * 100).toFixed(1)}%</p>
-                  <p className="text-[8px] mt-1 font-bold opacity-50 uppercase">Variance vs Plan</p>
-              </CardContent>
-          </Card>
-      </div>
+      {!hideStats && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 px-1">
+            <Card className="bg-primary text-primary-foreground shadow-lg border-none relative overflow-hidden">
+                <CardContent className="p-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Physical Progress</p>
+                    <p className="text-2xl font-black italic">{(structuralProgress * 100).toFixed(2)}%</p>
+                    <p className="text-[8px] mt-1 font-bold opacity-50 uppercase">From Structural Assets</p>
+                </CardContent>
+            </Card>
+            <Card className="bg-slate-900 text-white shadow-lg border-none relative overflow-hidden">
+                <CardContent className="p-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Financial Progress</p>
+                    <p className="text-2xl font-black italic">{(physicalProgress.actual * 100).toFixed(2)}%</p>
+                    <p className="text-[8px] mt-1 font-bold opacity-50 uppercase">From Certified BOQ</p>
+                </CardContent>
+            </Card>
+            <Card className={cn("shadow-lg border-none relative overflow-hidden text-white", divergence > 2 ? "bg-amber-500" : "bg-emerald-500")}>
+                <CardContent className="p-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Progress Gap</p>
+                    <p className="text-2xl font-black italic">{divergence.toFixed(2)}%</p>
+                    <p className="text-[8px] mt-1 font-bold opacity-50 uppercase">
+                        {divergence > 0 ? "Work Done Not Yet Billed" : "Billing Ahead of Physical"}
+                    </p>
+                </CardContent>
+            </Card>
+            <Card className="bg-indigo-600 text-white shadow-lg border-none relative overflow-hidden">
+                <CardContent className="p-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Schedule Status</p>
+                    <p className="text-2xl font-black italic">{((physicalProgress.actual - physicalProgress.planned) * 100).toFixed(1)}%</p>
+                    <p className="text-[8px] mt-1 font-bold opacity-50 uppercase">Variance vs Plan</p>
+                </CardContent>
+            </Card>
+        </div>
+      )}
 
       <div className="flex-1 flex gap-3 min-h-0">
       {/* MPR Preview Dialog */}
@@ -898,11 +901,11 @@ const MPRReportModule: React.FC<Props> = ({ project, settings }) => {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Export Monthly Progress Report</DialogTitle>
+            <DialogDescription>
+              Your report will be generated in the required MPR format with all project data as of {new Date(reportMonth + '-01').toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <p className="text-sm text-muted-foreground">
-              Your report will be generated in the required MPR format with all project data as of {new Date(reportMonth + '-01').toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}.
-            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>

@@ -189,15 +189,10 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
     const loadPdfComponents = async () => {
       try {
         const pdfModule = await import('react-pdf');
-        const pdfjs = pdfModule.pdfjs;
-        if (pdfjs && pdfjs.GlobalWorkerOptions) {
-          // Use the local worker file from the public folder instead of CDN
-          pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
-        }
         setPdfComponents({
           Document: pdfModule.Document,
           Page: pdfModule.Page,
-          pdfjs: pdfjs
+          pdfjs: pdfModule.pdfjs
         });
       } catch (error) {
         console.warn('Failed to load PDF components:', error);
@@ -998,89 +993,57 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
                         <p className="text-sm font-medium">Current Version: {previewDoc.currentVersion}</p>
                         <Input
                           type="file"
-                          id={`version-upload-${previewDoc.id}`}
-                          className="hidden"
-                          onChange={(e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              handleUploadNewVersion(previewDoc.id, e.target.files[0]);
+                          className="w-40 text-xs"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              await handleUploadNewVersion(previewDoc.id, file);
                             }
                           }}
                           aria-label="Upload new version"
                         />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => document.getElementById(`version-upload-${previewDoc.id}`)?.click()}
-                        >
-                          <UploadCloud className="mr-2 h-4 w-4" /> New Version
-                        </Button>
                       </div>
-                      <ScrollArea className="h-32">
-                        {(previewDoc.versions || []).map(version => (
-                          <div key={version.id} className="flex items-center justify-between text-sm py-1">
-                            <div className="flex items-center gap-2">
-                              {version.version === previewDoc.currentVersion ? (
-                                <CheckCircle className="h-4 w-4 text-green-500" />
-                              ) : (
-                                <FileText className="h-4 w-4 text-muted-foreground" />
-                              )}
-                              <div>
-                                <p>Version {version.version} - {version.date}</p>
-                                <p className="text-xs text-muted-foreground">{version.size} | {version.uploadedBy}</p>
-                              </div>
-                            </div>
-                            {version.version !== previewDoc.currentVersion && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRevertToVersion(previewDoc.id, version.id)}
-                              >
-                                Restore
-                              </Button>
-                            )}
+                      <div className="space-y-1 max-h-40 overflow-y-auto">
+                        {previewDoc.versions?.sort((a, b) => b.version - a.version).map(v => (
+                          <div key={v.id} className="flex items-center justify-between text-xs py-1 px-2 rounded hover:bg-muted cursor-pointer" onClick={() => v.version !== previewDoc.currentVersion && handleRevertToVersion(previewDoc.id, v.id)} title={v.version !== previewDoc.currentVersion ? `Revert to version ${v.version}` : 'Current version'}>
+                            <span className="text-muted-foreground">v{v.version} — {v.date}</span>
+                            <span className="text-muted-foreground">{v.size}</span>
+                            {v.version === previewDoc.currentVersion && <CheckCircle className="h-3 w-3 ml-2 text-green-500" />}
                           </div>
                         ))}
-                      </ScrollArea>
+                      </div>
                     </Card>
                   </div>
-                  <Separator />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Audit Trail</p>
-                    <p className="text-sm text-muted-foreground mt-1">Created: {previewDoc.date}</p>
-                    <p className="text-sm text-muted-foreground">Size: {previewDoc.size}</p>
-                  </div>
-                  <Button variant="destructive" className="w-full mt-4" onClick={() => { handleDeleteDoc(previewDoc.id); setPreviewDoc(null); }}>
-                    <Trash2 className="mr-2 h-4 w-4" /> Delete Document
-                  </Button>
                 </div>
               </div>
             </div>
           </DialogContent>
         )}
       </Dialog>
-      
+
       <Dialog open={!!editingDoc} onOpenChange={() => setEditingDoc(null)}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Edit Document Details</DialogTitle>
-            <DialogDescription>Update metadata for this document.</DialogDescription>
+            <DialogTitle>Edit Document</DialogTitle>
+            <DialogDescription>Update document metadata.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="edit-name">Filename</Label>
-              <Input
-                id="edit-name"
-                value={editFormData.name || ''}
-                onChange={e => setEditFormData({ ...editFormData, name: e.target.value })}
-              />
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-name" className="text-right">Name</Label>
+              <Input id="edit-name" value={editFormData.name || ''} onChange={e => setEditFormData({...editFormData, name: e.target.value})} className="col-span-3" />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-folder">Folder</Label>
-              <Select
-                value={editFormData.folder || 'General'}
-                onValueChange={value => setEditFormData({ ...editFormData, folder: value })}
-              >
-                <SelectTrigger id="edit-folder">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-subject" className="text-right">Subject</Label>
+              <Input id="edit-subject" value={editFormData.subject || ''} onChange={e => setEditFormData({...editFormData, subject: e.target.value})} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-ref" className="text-right">Ref No.</Label>
+              <Input id="edit-ref" value={editFormData.refNo || ''} onChange={e => setEditFormData({...editFormData, refNo: e.target.value})} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-folder" className="text-right">Folder</Label>
+              <Select value={editFormData.folder || ''} onValueChange={value => setEditFormData({...editFormData, folder: value})}>
+                <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select folder" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1088,48 +1051,21 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-subject">Subject</Label>
-              <Input
-                id="edit-subject"
-                value={editFormData.subject || ''}
-                onChange={e => setEditFormData({ ...editFormData, subject: e.target.value })}
-              />
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-letterDate" className="text-right">Letter Date</Label>
+              <Input id="edit-letterDate" type="date" value={editFormData.letterDate?.split('T')[0] || ''} onChange={e => setEditFormData({...editFormData, letterDate: e.target.value})} className="col-span-3" />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-ref">Reference No</Label>
-              <Input
-                id="edit-ref"
-                value={editFormData.refNo || ''}
-                onChange={e => setEditFormData({ ...editFormData, refNo: e.target.value })}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-date">Letter Date</Label>
-                <Input
-                  id="edit-date"
-                  type="date"
-                  value={editFormData.letterDate || ''}
-                  onChange={e => setEditFormData({ ...editFormData, letterDate: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-type">Type</Label>
-                <Select
-                  value={editFormData.correspondenceType || 'none'}
-                  onValueChange={value => setEditFormData({ ...editFormData, correspondenceType: value === 'none' ? undefined : (value as any) })}
-                >
-                  <SelectTrigger id="edit-type">
-                    <SelectValue placeholder="Correspondence Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Not Specified</SelectItem>
-                    <SelectItem value="incoming">Incoming</SelectItem>
-                    <SelectItem value="outgoing">Outgoing</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-correspondenceType" className="text-right">Correspondence Type</Label>
+              <Select value={editFormData.correspondenceType || ''} onValueChange={value => setEditFormData({...editFormData, correspondenceType: value as any})}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="incoming">Incoming</SelectItem>
+                  <SelectItem value="outgoing">Outgoing</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

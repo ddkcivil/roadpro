@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Project, UserRole, DailyWorkItem, DailyReport } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
-import { Activity, FileText, Trash2, Plus, Printer, CheckCircle, Info, CloudSun, Wifi, User, Users, AlertCircle } from 'lucide-react';
+import { 
+    Activity, FileText, Trash2, Plus, Printer, CheckCircle, Info, 
+    CloudSun, Wifi, User, Users, AlertCircle, Eye, ArrowLeft, 
+    Sun, Cloud, CloudRain, BookOpen, Search
+} from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
@@ -12,11 +16,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { Textarea } from '~/components/ui/textarea';
+import { ScrollArea } from '~/components/ui/scroll-area';
+import { Badge } from '~/components/ui/badge';
+import { Separator } from '~/components/ui/separator';
 
 interface Props {
     project: Project;
     userRole: UserRole;
     onProjectUpdate: (project: Project) => void;
+    initialView?: 'list' | 'create';
+    hideHeader?: boolean;
 }
 
 interface ValidationError {
@@ -31,13 +40,28 @@ interface ValidationError {
     }>;
 }
 
-const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
+const DailyReportModule: React.FC<Props> = ({ 
+    project, 
+    userRole, 
+    onProjectUpdate, 
+    initialView = 'create',
+    hideHeader = false 
+}) => {
     const { userName } = useAuth();
+    const [view, setView] = useState<'list' | 'create' | 'view'>(initialView);
+    const [selectedReport, setSelectedReport] = useState<DailyReport | null>(null);
+    
+    // Create form states
     const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
     const [weather, setWeather] = useState('Sunny');
     const [activeTab, setActiveTab] = useState(0);
     const [printModalOpen, setPrintModalOpen] = useState(false);
     const [isFetchingWeather, setIsFetchingWeather] = useState(false);
+    const [workItemsToday, setWorkItemsToday] = useState<DailyWorkItem[]>([]);
+    const [visitors, setVisitors] = useState([{ id: Date.now().toString(), name: '', organization: '' }]);
+    const [remarks, setRemarks] = useState(['']);
+    const [submittedBy, setSubmittedBy] = useState(userName || '');
+    const [receivedBy, setReceivedBy] = useState('');
 
     // Validation states
     const [errors, setErrors] = useState<ValidationError>({
@@ -47,18 +71,6 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
         workItems: []
     });
 
-    const [workItemsToday, setWorkItemsToday] = useState<DailyWorkItem[]>([]);
-
-    // Additional fields for Daily Site Report
-    const [rainfall] = useState('');
-    const [temperatureMin] = useState('');
-    const [temperatureMax] = useState('');
-    const [visitors, setVisitors] = useState([{ id: Date.now().toString(), name: '', organization: '' }]);
-    const [remarks, setRemarks] = useState(['']);
-    const [submittedBy, setSubmittedBy] = useState(userName || '');
-    const [receivedBy, setReceivedBy] = useState('');
-
-    // Update submittedBy when userName is available
     useEffect(() => {
         if (userName && !submittedBy) {
             setSubmittedBy(userName);
@@ -73,7 +85,6 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
     const handleFetchWeather = async () => {
         setIsFetchingWeather(true);
         try {
-            // Mock weather fetch for now
             setWeather('Sunny');
         } finally {
             setIsFetchingWeather(false);
@@ -93,13 +104,11 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
             alert('Only Admin and Project Manager can delete daily work entries');
             return;
         }
-
         setWorkItemsToday(workItemsToday.filter((_, i) => i !== index));
     };
 
     const handleFinalizeReport = (e?: React.FormEvent) => {
         e?.preventDefault();
-        // Validate required fields
         let isValid = true;
         const newErrors: ValidationError = {
             reportDate: reportDate ? '' : 'Report date is required',
@@ -108,7 +117,6 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
             workItems: Array(workItemsToday.length).fill({})
         };
 
-        // Validate work items
         workItemsToday.forEach((item, i) => {
             const itemErrors: any = {};
             if (!item.description?.trim()) {
@@ -149,10 +157,7 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                 workToday: workItemsToday
             };
 
-            // Update project with the new report
             const updatedReports = [...(project.dailyReports || []), newReport];
-
-            // Also update the physical progress of the components
             let updatedStructures = [...(project.structures || [])];
 
             workItemsToday.forEach(item => {
@@ -181,197 +186,296 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
             });
 
             alert("Report submitted successfully! Physical progress has been updated in linked assets.");
-
-            // Reset form
+            
+            // Reset and go to list
             setWorkItemsToday([]);
             setRemarks(['']);
             setVisitors([{ id: Date.now().toString(), name: '', organization: '' }]);
+            setView('list');
         } else {
             alert("Please fix the validation errors before submitting.");
         }
     };
 
-    return (
-        <div className="animate-in fade-in duration-300">
+    const renderListView = () => {
+        const dailyReports = project.dailyReports || [];
+        return (
+            <div className="space-y-4">
+                <div className="flex justify-between items-center mb-4">
+                    <div className="relative w-64">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="Search reports..." className="pl-8" />
+                    </div>
+                    <Button onClick={() => setView('create')}>
+                        <Plus className="mr-2 h-4 w-4" /> New Report
+                    </Button>
+                </div>
+                
+                <Card className="p-0 overflow-hidden">
+                    <ScrollArea className="h-[500px] w-full border-none">
+                        <Table>
+                            <TableHeader className="bg-muted/50">
+                                <TableRow>
+                                    <TableHead>Date / ID</TableHead>
+                                    <TableHead>Weather</TableHead>
+                                    <TableHead>Work Summary</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {dailyReports.length > 0 ? [...dailyReports].reverse().map((report: DailyReport) => (
+                                    <TableRow key={report.id} className="hover:bg-muted/30 transition-colors">
+                                        <TableCell>
+                                            <p className="font-bold">{report.date}</p>
+                                            <p className="text-[10px] text-muted-foreground font-mono">{report.reportNumber || report.id}</p>
+                                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                                                <User className="h-3 w-3" /> {report.submittedBy}
+                                            </p>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                {report.weather === 'Sunny' && <Sun className="h-4 w-4 text-orange-500" />}
+                                                {report.weather === 'Cloudy' && <Cloud className="h-4 w-4 text-slate-400" />}
+                                                {report.weather === 'Rainy' && <CloudRain className="h-4 w-4 text-blue-500" />}
+                                                <span className="text-xs font-medium">{report.weather}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="max-w-xs">
+                                                <p className="text-sm font-medium line-clamp-1">
+                                                    {(report.workToday || []).length} work items logged
+                                                </p>
+                                                <p className="text-xs text-muted-foreground truncate">
+                                                    {(report.workToday || []).map(w => w.description).join(', ')}
+                                                </p>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={report.status === 'Submitted' ? 'success' : 'outline' as any}>
+                                                {report.status}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex justify-end gap-1">
+                                                <Button variant="ghost" size="icon" onClick={() => { setSelectedReport(report); setView('view'); }}>
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" onClick={() => { setSelectedReport(report); setPrintModalOpen(true); }}>
+                                                    <Printer className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )) : (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                                            <BookOpen className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                                            <p className="font-bold">No daily reports found.</p>
+                                            <p className="text-sm">Start by creating your first site report.</p>
+                                            <Button variant="outline" className="mt-4" onClick={() => setView('create')}>
+                                                <Plus className="mr-2 h-4 w-4" /> Create First Report
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </ScrollArea>
+                </Card>
+            </div>
+        );
+    };
+
+    const renderViewMode = () => {
+        if (!selectedReport) return null;
+        return (
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <Button variant="ghost" onClick={() => setView('list')}>
+                        <ArrowLeft className="mr-2 h-4 w-4" /> Back to History
+                    </Button>
+                    <Button onClick={() => setPrintModalOpen(true)}>
+                        <Printer className="mr-2 h-4 w-4" /> Print Report
+                    </Button>
+                </div>
+
+                <Card className="border-2">
+                    <CardHeader className="bg-muted/30 border-b">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <CardTitle className="text-2xl font-black">Report: {selectedReport.reportNumber || selectedReport.id}</CardTitle>
+                                <p className="text-muted-foreground font-bold">Project: {project.name}</p>
+                            </div>
+                            <div className="text-right">
+                                <Badge className="mb-2">{selectedReport.status}</Badge>
+                                <p className="text-sm font-bold">{selectedReport.date}</p>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                            <div className="space-y-4">
+                                <h3 className="font-black text-sm uppercase tracking-widest text-slate-400">Environment</h3>
+                                <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl">
+                                    <div className="h-12 w-12 rounded-full bg-white shadow-sm flex items-center justify-center">
+                                        {selectedReport.weather === 'Sunny' ? <Sun className="text-orange-500" /> : <Cloud className="text-slate-400" />}
+                                    </div>
+                                    <div>
+                                        <p className="font-black text-slate-900">{selectedReport.weather}</p>
+                                        <p className="text-xs font-bold text-slate-500 uppercase">Site Condition</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <h3 className="font-black text-sm uppercase tracking-widest text-slate-400">Personnel</h3>
+                                <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl">
+                                    <div className="h-12 w-12 rounded-full bg-white shadow-sm flex items-center justify-center">
+                                        <User className="text-indigo-500" />
+                                    </div>
+                                    <div>
+                                        <p className="font-black text-slate-900">{selectedReport.submittedBy}</p>
+                                        <p className="text-xs font-bold text-slate-500 uppercase">Field Engineer</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <Separator className="my-8" />
+
+                        <div className="space-y-4">
+                            <h3 className="font-black text-sm uppercase tracking-widest text-slate-400">Execution Log</h3>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-slate-50">
+                                        <TableHead className="font-black uppercase text-[10px]">Structure / Asset</TableHead>
+                                        <TableHead className="font-black uppercase text-[10px]">Work Item</TableHead>
+                                        <TableHead className="font-black uppercase text-[10px]">Quantity</TableHead>
+                                        <TableHead className="font-black uppercase text-[10px]">Location</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {(selectedReport.workToday || []).map((work, idx) => {
+                                        const asset = project.structures?.find(s => s.id === work.assetId);
+                                        const comp = asset?.components?.find(c => c.id === work.componentId);
+                                        return (
+                                            <TableRow key={idx}>
+                                                <TableCell className="font-bold">{asset?.name || 'General'}</TableCell>
+                                                <TableCell>
+                                                    <p className="font-bold">{comp?.name || 'N/A'}</p>
+                                                    <p className="text-xs text-muted-foreground">{work.description}</p>
+                                                </TableCell>
+                                                <TableCell className="font-mono font-bold">{work.quantity}</TableCell>
+                                                <TableCell className="text-xs font-medium">{work.location || 'Site Wide'}</TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </div>
+
+                        {selectedReport.remarks && (
+                            <div className="mt-8 p-6 bg-indigo-50/50 rounded-2xl border-2 border-indigo-100">
+                                <h3 className="font-black text-sm uppercase tracking-widest text-indigo-400 mb-2">Remarks & Observations</h3>
+                                <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">{selectedReport.remarks}</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    };
+
+    const renderCreateForm = () => {
+        return (
             <form onSubmit={handleFinalizeReport}>
                 <div className="flex justify-between mb-4 items-center">
-                    <div>
-                        <h1 className="text-2xl font-black text-foreground">Daily Site Operations (DPR)</h1>
-                        <p className="text-sm text-muted-foreground">Execution logging and resource allocation oversight</p>
-                    </div>
-                    <div className="flex gap-2">
+                    {initialView === 'list' && (
+                        <Button type="button" variant="ghost" onClick={() => setView('list')}>
+                            <ArrowLeft className="mr-2 h-4 w-4" /> Cancel
+                        </Button>
+                    )}
+                    <div className="ml-auto flex gap-2">
                         <Button type="button" variant="outline" onClick={() => setPrintModalOpen(true)} className="rounded-lg">
                             <Printer className="w-4 h-4 mr-2" />
-                            Print Official Form
+                            Preview Form
                         </Button>
-
-                        <Dialog open={printModalOpen} onOpenChange={setPrintModalOpen}>
-                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                                <DialogHeader>
-                                    <DialogTitle>Daily Site Report - Print Preview</DialogTitle>
-                                    <DialogDescription>Review the official daily site report before printing or saving.</DialogDescription>
-                                </DialogHeader>
-                                <div className="p-6 print-container">
-                                    {/* Print Header */}
-                                    <div className="flex justify-between mb-6 pb-4 border-b-2 border-black">
-                                        <div>
-                                            <h1 className="text-3xl font-bold">DAILY SITE REPORT</h1>
-                                            <h2 className="text-xl text-muted-foreground">Project: {project.name}</h2>
-                                            <p className="text-sm">Report Date: {reportDate}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-sm">Report No: DPR-{reportDate.replace(/-/g, '')}</p>
-                                            <p className="text-sm">Location: {project.location}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Weather Section */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                        <div>
-                                            <h3 className="text-lg font-bold mb-2">Weather Conditions</h3>
-                                            <p className="text-base">Condition: {weather}</p>
-                                            {rainfall && <p className="text-base">Rainfall: {rainfall} mm</p>}
-                                            {(temperatureMin || temperatureMax) && (
-                                                <p className="text-base">
-                                                    Temperature: Min {temperatureMin || 'N/A'}°C / Max {temperatureMax || 'N/A'}°C
-                                                </p>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <h3 className="text-lg font-bold mb-2">Project Team Present</h3>
-                                            <p className="text-base">Site Engineer: N/A</p>
-                                            <p className="text-base">Project Manager: {project.projectManager || 'N/A'}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Work Items Section */}
-                                    <div className="mb-6">
-                                        <h3 className="text-lg font-bold mb-2">Execution Logging</h3>
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>Structure</TableHead>
-                                                    <TableHead>Component</TableHead>
-                                                    <TableHead>Description</TableHead>
-                                                    <TableHead>Quantity</TableHead>
-                                                    <TableHead>Location (Chainage)</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {workItemsToday.map((item) => {
-                                                    const asset = project.structures?.find(s => s.id === item.assetId);
-                                                    const component = asset?.components.find(c => c.id === item.componentId);
-                                                    return (
-                                                        <TableRow key={item.id}>
-                                                            <TableCell>{asset?.name || ''}</TableCell>
-                                                            <TableCell>{component?.name || ''}</TableCell>
-                                                            <TableCell>{item.description}</TableCell>
-                                                            <TableCell>{item.quantity}</TableCell>
-                                                            <TableCell>{item.location}</TableCell>
-                                                        </TableRow>
-                                                    );
-                                                })}
-                                            </TableBody>
-                                        </Table>
-                                    </div>
-
-                                    {/* Signatures */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-                                        <div className="text-center pt-16">
-                                            <div className="h-16 border border-gray-400 w-4/5 mx-auto mb-2"></div>
-                                            <p className="text-base">Submitted By (Contractor)</p>
-                                            <p className="text-xs">{submittedBy || '_________________________'}</p>
-                                        </div>
-                                        <div className="text-center pt-16">
-                                            <div className="h-16 border border-gray-400 w-4/5 mx-auto mb-2"></div>
-                                            <p className="text-base">Received By (Engineer)</p>
-                                            <p className="text-xs">{receivedBy || '_________________________'}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex justify-end gap-2 mt-4">
-                                    <Button type="button" onClick={() => setPrintModalOpen(false)}>Close</Button>
-                                    <Button type="button" onClick={() => window.print()}>
-                                        <Printer className="w-4 h-4 mr-2" />
-                                        Print Report
-                                    </Button>
-                                </div>
-                            </DialogContent>
-                        </Dialog>
-
-                        <Button type="submit" variant="default" className="rounded-lg">
+                        <Button type="submit" variant="default" className="bg-indigo-600 hover:bg-indigo-700 font-bold rounded-lg shadow-lg shadow-indigo-600/20">
                             <CheckCircle className="w-4 h-4 mr-2" />
-                            Submit & Sync Data
+                            Submit & Sync
                         </Button>
-                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-800">
-                            <Wifi className="w-4 h-4" />
-                            <span className="text-sm font-semibold">Online</span>
-                        </div>
                     </div>
                 </div>
 
-                <Card className="p-6 mb-6">
+                <Card className="p-6 mb-6 border-2">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                         <div>
-                            <Label htmlFor="report-date" className={errors.reportDate ? "text-destructive" : ""}>Site Date</Label>
+                            <Label htmlFor="report-date" className={`font-black text-[10px] uppercase tracking-widest ${errors.reportDate ? "text-destructive" : "text-slate-500"}`}>Site Date</Label>
                             <Input
                                 id="report-date"
                                 type="date"
                                 value={reportDate}
                                 onChange={e => setReportDate(e.target.value)}
-                                className={errors.reportDate ? "border-destructive" : ""}
+                                className={`rounded-xl border-2 font-bold ${errors.reportDate ? "border-destructive" : ""}`}
                             />
-                            {errors.reportDate && <p className="text-xs text-destructive mt-1">{errors.reportDate}</p>}
+                            {errors.reportDate && <p className="text-xs text-destructive mt-1 font-bold">{errors.reportDate}</p>}
                         </div>
                         <div className="flex gap-2">
-                            <Select value={weather} onValueChange={setWeather}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Weather Context" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Sunny">Clear / Sunny</SelectItem>
-                                    <SelectItem value="Cloudy">Partly Cloudy</SelectItem>
-                                    <SelectItem value="Rainy">Inclement Weather (Rainy)</SelectItem>
-                                    <SelectItem value="Foggy">Low Visibility (Foggy)</SelectItem>
-                                    <SelectItem value="Windy">Windy</SelectItem>
-                                    <SelectItem value="Dusty">Dusty</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                onClick={handleFetchWeather}
-                                disabled={isFetchingWeather}
-                            >
-                                <CloudSun className="w-5 h-5" />
-                            </Button>
+                            <div className="flex-1">
+                                <Label className="font-black text-[10px] uppercase tracking-widest text-slate-500">Weather Context</Label>
+                                <Select value={weather} onValueChange={setWeather}>
+                                    <SelectTrigger className="rounded-xl border-2 font-bold">
+                                        <SelectValue placeholder="Weather" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Sunny" className="font-bold">Clear / Sunny</SelectItem>
+                                        <SelectItem value="Cloudy" className="font-bold">Partly Cloudy</SelectItem>
+                                        <SelectItem value="Rainy" className="font-bold">Inclement (Rainy)</SelectItem>
+                                        <SelectItem value="Foggy" className="font-bold">Low Visibility (Foggy)</SelectItem>
+                                        <SelectItem value="Windy" className="font-bold">Windy</SelectItem>
+                                        <SelectItem value="Dusty" className="font-bold">Dusty</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="flex items-end pb-0.5">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={handleFetchWeather}
+                                    disabled={isFetchingWeather}
+                                    className="rounded-xl border-2 h-10 w-10"
+                                >
+                                    <CloudSun className="w-5 h-5" />
+                                </Button>
+                            </div>
                         </div>
-                        <Alert>
-                            <Info className="h-4 w-4" />
-                            <AlertTitle>Info</AlertTitle>
-                            <AlertDescription>
-                                Linked DPR entries update structural asset progress and BOQ completion.
+                        <Alert className="bg-indigo-50 border-indigo-100">
+                            <Info className="h-4 w-4 text-indigo-500" />
+                            <AlertTitle className="text-indigo-700 font-bold">Linked Reporting</AlertTitle>
+                            <AlertDescription className="text-indigo-600 text-xs">
+                                entries update structural asset progress and BOQ completion automatically.
                             </AlertDescription>
                         </Alert>
                     </div>
                 </Card>
 
-                <Card className="p-6 mb-6">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <User className="w-5 h-5" />
+                <Card className="p-6 mb-6 border-2">
+                    <CardHeader className="px-0 pt-0">
+                        <CardTitle className="flex items-center gap-2 text-sm uppercase tracking-widest font-black text-slate-400">
+                            <User className="w-4 h-4" />
                             Visitors on Site
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    <CardContent className="px-0 pb-0">
+                        <div className="space-y-4">
                             {visitors.map((visitor, index) => (
-                                <React.Fragment key={visitor.id}>
+                                <div key={visitor.id} className="grid grid-cols-1 md:grid-cols-12 gap-4">
                                     <div className="md:col-span-5">
-                                        <Label>Name</Label>
+                                        <Label className="font-black text-[10px] uppercase text-slate-500">Name</Label>
                                         <Input
                                             value={visitor.name}
+                                            className="rounded-xl border-2 font-bold"
                                             onChange={e => {
                                                 const updated = [...visitors];
                                                 updated[index] = { ...updated[index], name: e.target.value };
@@ -380,9 +484,10 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                                         />
                                     </div>
                                     <div className="md:col-span-5">
-                                        <Label>Organization</Label>
+                                        <Label className="font-black text-[10px] uppercase text-slate-500">Organization</Label>
                                         <Input
                                             value={visitor.organization}
+                                            className="rounded-xl border-2 font-bold"
                                             onChange={e => {
                                                 const updated = [...visitors];
                                                 updated[index] = { ...updated[index], organization: e.target.value };
@@ -396,6 +501,7 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                                                 type="button"
                                                 variant="destructive"
                                                 size="icon"
+                                                className="rounded-xl h-10 w-10"
                                                 onClick={() => setVisitors(visitors.filter((_, i) => i !== index))}
                                             >
                                                 <Trash2 className="w-4 h-4" />
@@ -406,32 +512,33 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                                                 type="button"
                                                 variant="outline"
                                                 size="icon"
+                                                className="rounded-xl border-2 h-10 w-10"
                                                 onClick={() => setVisitors([...visitors, { id: Date.now().toString(), name: '', organization: '' }])}
                                             >
                                                 <Plus className="w-4 h-4" />
                                             </Button>
                                         )}
                                     </div>
-                                </React.Fragment>
+                                </div>
                             ))}
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card className="overflow-hidden">
+                <Card className="overflow-hidden border-2 rounded-2xl">
                     <Tabs value={activeTab.toString()} onValueChange={(value) => setActiveTab(parseInt(value))} className="w-full">
-                        <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="0" className="flex items-center gap-2">
+                        <TabsList className="grid w-full grid-cols-3 h-12 rounded-none bg-slate-100 p-1">
+                            <TabsTrigger value="0" className="flex items-center gap-2 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
                                 <Activity className="w-4 h-4" />
-                                Execution Logging
+                                Execution Log
                             </TabsTrigger>
-                            <TabsTrigger value="1" className="flex items-center gap-2">
+                            <TabsTrigger value="1" className="flex items-center gap-2 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
                                 <Users className="w-4 h-4" />
-                                Manpower & Fleet
+                                Manpower
                             </TabsTrigger>
-                            <TabsTrigger value="2" className="flex items-center gap-2">
+                            <TabsTrigger value="2" className="flex items-center gap-2 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">
                                 <FileText className="w-4 h-4" />
-                                Description & Remarks
+                                Remarks
                             </TabsTrigger>
                         </TabsList>
 
@@ -441,70 +548,67 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                                     const asset = project.structures?.find(s => s.id === item.assetId);
                                     const availableComponents = asset?.components || [];
                                     return (
-                                        <Card key={item.id} className="p-4">
-                                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                        <Card key={item.id} className="p-4 border-2 bg-slate-50/50">
+                                            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                                                 <div className="md:col-span-4 space-y-4">
                                                     <div>
-                                                        <Label className={errors.workItems[i]?.assetId ? "text-destructive" : ""}>Target Structure</Label>
+                                                        <Label className={`font-black text-[10px] uppercase text-slate-500 ${errors.workItems[i]?.assetId ? "text-destructive" : ""}`}>Structure</Label>
                                                         <Select
                                                             value={item.assetId || ''}
                                                             onValueChange={(value) => updateWorkToday(i, 'assetId', value)}
                                                         >
-                                                            <SelectTrigger className={errors.workItems[i]?.assetId ? "border-destructive" : ""}>
-                                                                <SelectValue placeholder="Select structure" />
+                                                            <SelectTrigger className={`rounded-xl border-2 font-bold bg-white ${errors.workItems[i]?.assetId ? "border-destructive" : ""}`}>
+                                                                <SelectValue placeholder="Structure" />
                                                             </SelectTrigger>
                                                             <SelectContent>
                                                                 {(project.structures || []).map(s =>
-                                                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                                                    <SelectItem key={s.id} value={s.id} className="font-bold">{s.name}</SelectItem>
                                                                 )}
                                                             </SelectContent>
                                                         </Select>
-                                                        {errors.workItems[i]?.assetId && <p className="text-xs text-destructive mt-1">{errors.workItems[i].assetId}</p>}
                                                     </div>
                                                     <div>
-                                                        <Label className={errors.workItems[i]?.componentId ? "text-destructive" : ""}>Component</Label>
+                                                        <Label className={`font-black text-[10px] uppercase text-slate-500 ${errors.workItems[i]?.componentId ? "text-destructive" : ""}`}>Component</Label>
                                                         <Select
                                                             value={item.componentId || ''}
                                                             onValueChange={(value) => updateWorkToday(i, 'componentId', value)}
                                                             disabled={!item.assetId}
                                                         >
-                                                            <SelectTrigger className={errors.workItems[i]?.componentId ? "border-destructive" : ""}>
-                                                                <SelectValue placeholder="Select component" />
+                                                            <SelectTrigger className={`rounded-xl border-2 font-bold bg-white ${errors.workItems[i]?.componentId ? "border-destructive" : ""}`}>
+                                                                <SelectValue placeholder="Component" />
                                                             </SelectTrigger>
                                                             <SelectContent>
                                                                 {availableComponents.map(c =>
-                                                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                                                    <SelectItem key={c.id} value={c.id} className="font-bold">{c.name}</SelectItem>
                                                                 )}
                                                             </SelectContent>
                                                         </Select>
-                                                        {errors.workItems[i]?.componentId && <p className="text-xs text-destructive mt-1">{errors.workItems[i].componentId}</p>}
                                                     </div>
                                                 </div>
                                                 <div className="md:col-span-6 space-y-4">
                                                     <div>
-                                                        <Label className={errors.workItems[i]?.description ? "text-destructive" : ""}>Detailed Work Description</Label>
+                                                        <Label className={`font-black text-[10px] uppercase text-slate-500 ${errors.workItems[i]?.description ? "text-destructive" : ""}`}>Work Description</Label>
                                                         <Textarea
                                                             value={item.description}
+                                                            className={`rounded-xl border-2 font-medium bg-white ${errors.workItems[i]?.description ? "border-destructive" : ""}`}
                                                             onChange={e => updateWorkToday(i, 'description', e.target.value)}
-                                                            className={errors.workItems[i]?.description ? "border-destructive" : ""}
                                                         />
-                                                        {errors.workItems[i]?.description && <p className="text-xs text-destructive mt-1">{errors.workItems[i].description}</p>}
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div>
-                                                            <Label className={errors.workItems[i]?.quantity ? "text-destructive" : ""}>Qty</Label>
+                                                            <Label className={`font-black text-[10px] uppercase text-slate-500 ${errors.workItems[i]?.quantity ? "text-destructive" : ""}`}>Qty</Label>
                                                             <Input
                                                                 type="number"
                                                                 value={item.quantity}
+                                                                className={`rounded-xl border-2 font-bold bg-white ${errors.workItems[i]?.quantity ? "border-destructive" : ""}`}
                                                                 onChange={e => updateWorkToday(i, 'quantity', Number(e.target.value))}
-                                                                className={errors.workItems[i]?.quantity ? "border-destructive" : ""}
                                                             />
-                                                            {errors.workItems[i]?.quantity && <p className="text-xs text-destructive mt-1">{errors.workItems[i].quantity}</p>}
                                                         </div>
                                                         <div>
-                                                            <Label>Chainage</Label>
+                                                            <Label className="font-black text-[10px] uppercase text-slate-500">Chainage</Label>
                                                             <Input
                                                                 value={item.location}
+                                                                className="rounded-xl border-2 font-bold bg-white"
                                                                 onChange={e => updateWorkToday(i, 'location', e.target.value)}
                                                             />
                                                         </div>
@@ -513,110 +617,214 @@ const DailyReportModule: React.FC<Props> = ({ project, userRole, onProjectUpdate
                                                 <div className="md:col-span-2 flex justify-end items-center">
                                                     <Button
                                                         type="button"
-                                                        variant="destructive"
+                                                        variant="ghost"
                                                         size="icon"
+                                                        className="text-destructive hover:bg-red-50"
                                                         onClick={() => removeWorkToday(i)}
                                                     >
-                                                        <Trash2 className="w-4 h-4" />
+                                                        <Trash2 className="w-5 h-5" />
                                                     </Button>
                                                 </div>
                                             </div>
                                         </Card>
                                     );
                                 })}
-                                <Button type="button" variant="outline" onClick={handleAddWorkToday} className="w-full border-dashed">
+                                <Button type="button" variant="outline" onClick={handleAddWorkToday} className="w-full border-dashed border-2 py-8 rounded-2xl hover:bg-slate-50 font-bold text-slate-500">
                                     <Plus className="w-4 h-4 mr-2" />
-                                    Add Another Entry
+                                    Add Another Log Entry
                                 </Button>
                             </div>
                         </TabsContent>
 
                         <TabsContent value="1" className="p-6">
-                            <h3 className="text-lg font-bold mb-4">Manpower & Fleet Tracking</h3>
-                            <Alert>
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertTitle>Coming Soon</AlertTitle>
-                                <AlertDescription>
-                                    Manpower and fleet tracking functionality coming soon.
-                                </AlertDescription>
-                            </Alert>
+                            <div className="h-48 flex flex-col items-center justify-center border-2 border-dashed rounded-2xl text-muted-foreground">
+                                <Users size={48} className="mb-4 opacity-10" />
+                                <p className="font-black uppercase tracking-widest text-sm">Fleet & Manpower</p>
+                                <p className="text-xs font-medium">Tracking features currently in development.</p>
+                            </div>
                         </TabsContent>
 
                         <TabsContent value="2" className="p-6">
-                            <h3 className="text-lg font-bold mb-4">Description of Works Done & Remarks</h3>
+                            <div className="space-y-6">
+                                <div>
+                                    <Label className="font-black text-[10px] uppercase tracking-widest text-slate-500 mb-2 block">General Remarks</Label>
+                                    {remarks.map((remark, index) => (
+                                        <div key={index} className="flex gap-2 mb-4">
+                                            <Textarea
+                                                placeholder={`Site observation ${index + 1}...`}
+                                                value={remark}
+                                                className="rounded-xl border-2 font-medium"
+                                                onChange={e => {
+                                                    const updated = [...remarks];
+                                                    updated[index] = e.target.value;
+                                                    setRemarks(updated);
+                                                }}
+                                                rows={2}
+                                            />
+                                            {index > 0 && (
+                                                <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => setRemarks(remarks.filter((_, i) => i !== index))}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="rounded-xl border-2 font-bold"
+                                        onClick={() => setRemarks([...remarks, ''])}
+                                    >
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Add Observation
+                                    </Button>
+                                </div>
 
-                            <Card className="p-4 mb-4">
-                                <h4 className="font-semibold mb-2">Description of Works Done</h4>
-                                <Textarea
-                                    placeholder="Sample collection for Test performance, etc."
-                                    value={workItemsToday.map(item => item.description).join('\n')}
-                                    onChange={e => {
-                                        const descriptions = e.target.value.split('\n');
-                                        const updated = [...workItemsToday];
-                                        for (let i = 0; i < updated.length; i++) {
-                                            if (descriptions[i]) {
-                                                updated[i] = { ...updated[i], description: descriptions[i] };
-                                            }
-                                        }
-                                        setWorkItemsToday(updated);
-                                    }}
-                                    rows={4}
-                                />
-                            </Card>
+                                <Separator />
 
-                            <Card className="p-4 mb-4">
-                                <h4 className="font-semibold mb-2">Remarks</h4>
-                                {remarks.map((remark, index) => (
-                                    <div key={index} className="mb-4">
-                                        <Textarea
-                                            placeholder={`Remark ${index + 1}...`}
-                                            value={remark}
-                                            onChange={e => {
-                                                const updated = [...remarks];
-                                                updated[index] = e.target.value;
-                                                setRemarks(updated);
-                                            }}
-                                            rows={2}
-                                        />
-                                    </div>
-                                ))}
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setRemarks([...remarks, ''])}
-                                >
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    Add Remark
-                                </Button>
-                            </Card>
-
-                            <Card className="p-4">
-                                <h4 className="font-semibold mb-4">Submission</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <Label className={errors.submittedBy ? "text-destructive" : ""}>Submitted By (Contractor)</Label>
+                                        <Label className={`font-black text-[10px] uppercase tracking-widest text-slate-500 ${errors.submittedBy ? "text-destructive" : ""}`}>Submitted By (Contractor)</Label>
                                         <Input
                                             value={submittedBy}
+                                            className={`rounded-xl border-2 font-bold ${errors.submittedBy ? "border-destructive" : ""}`}
                                             onChange={e => setSubmittedBy(e.target.value)}
-                                            className={errors.submittedBy ? "border-destructive" : ""}
                                         />
-                                        {errors.submittedBy && <p className="text-xs text-destructive mt-1">{errors.submittedBy}</p>}
                                     </div>
                                     <div>
-                                        <Label className={errors.receivedBy ? "text-destructive" : ""}>Received By (Engineer)</Label>
+                                        <Label className={`font-black text-[10px] uppercase tracking-widest text-slate-500 ${errors.receivedBy ? "text-destructive" : ""}`}>Received By (Engineer)</Label>
                                         <Input
                                             value={receivedBy}
+                                            className={`rounded-xl border-2 font-bold ${errors.receivedBy ? "border-destructive" : ""}`}
                                             onChange={e => setReceivedBy(e.target.value)}
-                                            className={errors.receivedBy ? "border-destructive" : ""}
                                         />
-                                        {errors.receivedBy && <p className="text-xs text-destructive mt-1">{errors.receivedBy}</p>}
                                     </div>
                                 </div>
-                            </Card>
+                            </div>
                         </TabsContent>
                     </Tabs>
                 </Card>
             </form>
+        );
+    };
+
+    const reportToPreview = selectedReport || {
+        date: reportDate,
+        weather,
+        submittedBy,
+        remarks: remarks.join('\n'),
+        workToday: workItemsToday,
+        id: 'PREVIEW'
+    };
+
+    return (
+        <div className="animate-in fade-in duration-300 h-full flex flex-col">
+            {!hideHeader && (
+                <div className="flex justify-between mb-6 items-center shrink-0">
+                    <div>
+                        <h1 className="text-2xl font-black">Field Operations (DPR)</h1>
+                        <p className="text-sm text-muted-foreground uppercase font-bold tracking-wider">Site execution & progress monitoring</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <Badge variant="success" className="flex items-center gap-1.5 h-10 px-4 rounded-xl">
+                            <Wifi size={14} />
+                            SYSTEM ONLINE
+                        </Badge>
+                    </div>
+                </div>
+            )}
+
+            <div className="flex-1 overflow-y-auto">
+                {view === 'list' && renderListView()}
+                {view === 'create' && renderCreateForm()}
+                {view === 'view' && renderViewMode()}
+            </div>
+
+            <Dialog open={printModalOpen} onOpenChange={setPrintModalOpen}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 border-none shadow-2xl rounded-3xl">
+                    <DialogHeader className="p-8 bg-slate-900 text-white">
+                        <DialogTitle className="text-2xl font-black">Official Daily Site Report</DialogTitle>
+                        <DialogDescription className="text-slate-400 font-medium">Print-ready document for project archives.</DialogDescription>
+                    </DialogHeader>
+                    <div className="p-10 bg-white" id="printable-dpr">
+                        <div className="flex justify-between mb-10 pb-6 border-b-4 border-slate-900">
+                            <div>
+                                <h1 className="text-4xl font-black tracking-tighter mb-2">DAILY SITE REPORT</h1>
+                                <p className="text-lg font-bold text-slate-500">Project: {project.name}</p>
+                                <p className="font-bold text-slate-400">Date: {reportToPreview.date}</p>
+                            </div>
+                            <div className="text-right flex flex-col justify-end">
+                                <p className="text-xs font-black uppercase text-slate-400">REPORT NO</p>
+                                <p className="text-xl font-mono font-bold">DPR-{(reportToPreview as any).reportNumber || reportToPreview.id}</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-10 mb-10">
+                            <div className="p-6 bg-slate-50 rounded-2xl border-2">
+                                <h3 className="font-black text-xs uppercase tracking-widest text-slate-400 mb-4">Site Conditions</h3>
+                                <div className="space-y-2">
+                                    <p className="font-bold text-slate-700">Weather: <span className="text-slate-900">{reportToPreview.weather}</span></p>
+                                    <p className="font-bold text-slate-700">Location: <span className="text-slate-900">{project.location}</span></p>
+                                </div>
+                            </div>
+                            <div className="p-6 bg-slate-50 rounded-2xl border-2">
+                                <h3 className="font-black text-xs uppercase tracking-widest text-slate-400 mb-4">Site Personnel</h3>
+                                <div className="space-y-2">
+                                    <p className="font-bold text-slate-700">Site Engineer: <span className="text-slate-900">{reportToPreview.submittedBy}</span></p>
+                                    <p className="font-bold text-slate-700">Project Manager: <span className="text-slate-900">{project.projectManager || 'N/A'}</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mb-10">
+                            <h3 className="font-black text-xs uppercase tracking-widest text-slate-400 mb-4">Execution Summary</h3>
+                            <Table className="border-2 rounded-xl overflow-hidden">
+                                <TableHeader className="bg-slate-900">
+                                    <TableRow>
+                                        <TableHead className="text-white font-black text-[10px] uppercase">Structure</TableHead>
+                                        <TableHead className="text-white font-black text-[10px] uppercase">Work Component</TableHead>
+                                        <TableHead className="text-white font-black text-[10px] uppercase">Qty</TableHead>
+                                        <TableHead className="text-white font-black text-[10px] uppercase">Chainage</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {(reportToPreview.workToday || []).map((item, idx) => {
+                                        const asset = project.structures?.find(s => s.id === item.assetId);
+                                        const component = asset?.components.find(c => c.id === item.componentId);
+                                        return (
+                                            <TableRow key={idx} className="border-b">
+                                                <TableCell className="font-bold">{asset?.name || ''}</TableCell>
+                                                <TableCell className="font-bold">{component?.name || item.description}</TableCell>
+                                                <TableCell className="font-mono font-black">{item.quantity}</TableCell>
+                                                <TableCell className="font-bold">{item.location}</TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-20 mt-20">
+                            <div className="text-center">
+                                <div className="h-px bg-slate-400 mb-4"></div>
+                                <p className="font-black text-[10px] uppercase text-slate-400 mb-1">CONTRACTOR REPRESENTATIVE</p>
+                                <p className="font-bold text-slate-900">{reportToPreview.submittedBy}</p>
+                            </div>
+                            <div className="text-center">
+                                <div className="h-px bg-slate-400 mb-4"></div>
+                                <p className="font-black text-[10px] uppercase text-slate-400 mb-1">ENGINEER REPRESENTATIVE</p>
+                                <p className="font-bold text-slate-900">{receivedBy || '_________________________'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-8 bg-slate-50 flex justify-end gap-3 border-t">
+                        <Button variant="outline" onClick={() => setPrintModalOpen(false)} className="rounded-xl font-bold">Close Preview</Button>
+                        <Button onClick={() => window.print()} className="bg-slate-900 hover:bg-black text-white rounded-xl font-bold px-8">
+                            <Printer className="w-4 h-4 mr-2" />
+                            Print Document
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

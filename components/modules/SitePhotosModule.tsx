@@ -18,11 +18,12 @@ interface Props {
   project: Project;
   userRole: UserRole;
   onProjectUpdate: (project: Project) => void;
+  hideHeader?: boolean;
 }
 
 const PHOTO_CATEGORIES = ['General', 'Earthwork', 'Structures', 'Pavement', 'Safety'] as const;
 
-const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) => {
+const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, hideHeader }) => {
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
     const [previewPhoto, setPreviewPhoto] = useState<SitePhoto | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -187,24 +188,26 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole 
 
     return (
         <div className="animate-in fade-in duration-500 h-full flex flex-col">
-            <div className="flex justify-between mb-4 items-center shrink-0">
-                <div>
-                    <h1 className="text-2xl font-black">Visual Intelligence</h1>
-                    <p className="text-sm text-muted-foreground uppercase font-bold tracking-wider">Site surveillance & AI monitoring</p>
+            {!hideHeader && (
+                <div className="flex justify-between mb-4 items-center shrink-0">
+                    <div>
+                        <h1 className="text-2xl font-black">Visual Intelligence</h1>
+                        <p className="text-sm text-muted-foreground uppercase font-bold tracking-wider">Site surveillance & AI monitoring</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button onClick={() => setUploadModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 font-bold">
+                            <Camera className="w-4 h-4 mr-2" />
+                            Capture Update
+                        </Button>
+                        <Badge variant={isOnline ? "success" : "destructive" as any} className="flex items-center gap-1.5 h-10 px-4 rounded-xl">
+                            {isOnline ? <Wifi size={14} /> : <WifiOff size={14} />}
+                            {isOnline ? "SYSTEM ONLINE" : "OFFLINE MODE"}
+                        </Badge>
+                    </div>
                 </div>
-                <div className="flex gap-2">
-                    <Button onClick={() => setUploadModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 font-bold">
-                        <Camera className="w-4 h-4 mr-2" />
-                        Capture Update
-                    </Button>
-                    <Badge variant={isOnline ? "success" : "destructive" as any} className="flex items-center gap-1.5 h-10 px-4 rounded-xl">
-                        {isOnline ? <Wifi size={14} /> : <WifiOff size={14} />}
-                        {isOnline ? "SYSTEM ONLINE" : "OFFLINE MODE"}
-                    </Badge>
-                </div>
-            </div>
+            )}
 
-            <Card className="p-4 mb-6 shrink-0 border-2">
+            <Card className={`p-4 mb-6 shrink-0 border-2 ${hideHeader ? 'mt-4' : ''}`}>
                 <div className="flex gap-4 items-center">
                     <div className="relative flex-1 max-w-sm">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -399,6 +402,10 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole 
             {/* Preview Modal */}
             <Dialog open={!!previewPhoto} onOpenChange={() => setPreviewPhoto(null)}>
                 <DialogContent className="max-w-6xl max-h-[90vh] p-0 border-none shadow-2xl rounded-[2rem] overflow-hidden">
+                    <DialogHeader className="sr-only">
+                        <DialogTitle>{previewPhoto?.caption || 'Photo Preview'}</DialogTitle>
+                        <DialogDescription>Detailed view and AI analysis of the selected site photo.</DialogDescription>
+                    </DialogHeader>
                     {previewPhoto && (
                         <div className="flex flex-col md:flex-row h-full">
                             <div className="flex-1 bg-slate-900 flex items-center justify-center p-4 relative group">

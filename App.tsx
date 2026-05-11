@@ -411,16 +411,16 @@ const {
                           />
                         )}
                         {activeTab === 'documents' && (
-                          <DocumentationHub 
-                            project={currentProject!} 
-                            onProjectUpdate={handleSaveProject as any} 
-                            userRole={userRole} 
+                          <DocumentationHub
+                            project={currentProject!}
+                            onProjectUpdate={handleSaveProject as any}
+                            userRole={userRole}
+                            settings={appSettings}
                             onNavigate={handleTabChange}
                             isLoading={isRefreshingDetail}
                             onRefresh={refreshCurrentProject}
                           />
-                        )}
-                        {activeTab === 'settings' && userRole === UserRole.ADMIN && (
+                        )}                        {activeTab === 'settings' && userRole === UserRole.ADMIN && (
                           <SettingsModule settings={appSettings} onUpdate={updateSettings} />
                         )}
                         {activeTab === 'staff-management' && (
