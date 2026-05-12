@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+
+import React, { useState, useMemo, useEffect, useCallback, ChangeEvent } from 'react';
 import { Project, UserRole, ProjectDocument, DocumentVersion } from '../../types';
 import { 
     Sparkles, FileText, Loader2, 
@@ -36,6 +37,9 @@ import CommentsPanel from './CommentsPanel';
 import { ocrService } from '../../services/ai/ocrService';
 import { toast } from 'sonner';
 import { fileToBase64, base64ToBlobUrl } from '../../utils/data/documentUtils';
+
+// Import the history hook
+import { useHistoryAutoFill } from '~/lib/historyUtils';
 
 // Dynamically load PDF components when needed
 interface PdfComponents {
@@ -92,6 +96,12 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
   
   const [editingDoc, setEditingDoc] = useState<ProjectDocument | null>(null);
   const [editFormData, setEditFormData] = useState<Partial<ProjectDocument>>({});
+
+  // History auto-fill hooks for document fields
+  const subjectHistory = useHistoryAutoFill('documentSubjects');
+  const refNoHistory = useHistoryAutoFill('documentRefNos');
+  const folderHistory = useHistoryAutoFill('documentFolders');
+  const subIdHistory = useHistoryAutoFill('documentSubcontractors');
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -217,46 +227,12 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
     return doc.fileUrl || '';
   };
 
-  // Pre-fetch the PDF file as a blob with auth headers to pass to react-pdf
-  const [previewPdfBlob, setPreviewPdfBlob] = useState<string | null>(null);
-  const [previewPdfLoading, setPreviewPdfLoading] = useState(false);
-
-  useEffect(() => {
-    let currentBlobUrl: string | null = null;
-    
-    if (!previewDoc) {
-      setPreviewPdfBlob(null);
-      return;
-    }
-    const isPdf = previewDoc.type === 'PDF' || (previewDoc.fileUrl && previewDoc.fileUrl.toLowerCase().endsWith('.pdf'));
-    if (!isPdf) return;
-
-    const loadPdfWithAuth = async () => {
-      setPreviewPdfLoading(true);
-      try {
-        const token = localStorage.getItem('roadmaster-token');
-        const response = await fetch(getFileUrl(previewDoc), {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-          credentials: 'include',
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        currentBlobUrl = blobUrl;
-        setPreviewPdfBlob(blobUrl);
-      } catch (error) {
-        console.error('Failed to fetch PDF with auth:', error);
-        setPreviewPdfBlob(null);
-      } finally {
-        setPreviewPdfLoading(false);
-      }
-    };
-    loadPdfWithAuth();
-
-    return () => {
-      if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
-    };
-  }, [previewDoc?.id, previewDoc?.fileUrl, previewDoc?.type]);
+  // Build httpHeaders for react-pdf Document component to pass auth token
+  const pdfHttpHeaders = useMemo(() => {
+    const token = localStorage.getItem('roadmaster-token');
+    if (!token) return {};
+    return { Authorization: `Bearer ${token}` };
+  }, [previewDoc?.id, previewUrl, previewDoc?.type]); // Include previewUrl to re-fetch token if it changes
 
   const filteredDocuments = useMemo(() => {
     return (project.documents || []).filter(doc => {
@@ -302,7 +278,58 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
     }
   };
 
+  // --- Handlers for Upload Modal Inputs ---
+  const handleSubjectChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setScannedMetadata({...scannedMetadata, subject: value});
+    subjectHistory.updateSuggestions(value);
+  };
+
+  const handleRefNoChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setScannedMetadata({...scannedMetadata, refNo: value});
+    refNoHistory.updateSuggestions(value);
+  };
+
+  const handleFolderChange = (value: string) => {
+    setUploadTargetFolder(value);
+    folderHistory.updateSuggestions(value);
+    folderHistory.saveEntry(value); // Save folder history immediately
+  };
+
+  const handleSubcontractorChange = (value: string) => {
+    setScannedMetadata({...scannedMetadata, subId: value === 'none' ? '' : value});
+    subIdHistory.updateSuggestions(value === 'none' ? '' : subcontractors.find(s => s.id === value)?.name || '');
+    if (value !== 'none') subIdHistory.saveEntry(subcontractors.find(s => s.id === value)?.name || '');
+  };
+
+  // --- Handlers for Edit Modal Inputs ---
+  const handleEditSubjectChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEditFormData({...editFormData, subject: value});
+    subjectHistory.updateSuggestions(value);
+  };
+
+  const handleEditRefNoChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEditFormData({...editFormData, refNo: value});
+    refNoHistory.updateSuggestions(value);
+  };
+
+  const handleEditFolderChange = (value: string) => {
+    setEditFormData({...editFormData, folder: value});
+    folderHistory.updateSuggestions(value);
+  };
+  
   const processUploads = async () => {
+      // Save histories *after* potential successful upload/review, if they were interacted with.
+      // This is a simplified approach; more robust would be to save on blur or on final save.
+      if (scannedMetadata.subject) subjectHistory.saveEntry(scannedMetadata.subject);
+      if (scannedMetadata.refNo) refNoHistory.saveEntry(scannedMetadata.refNo);
+      if (uploadTargetFolder !== 'All') folderHistory.saveEntry(uploadTargetFolder); // Save selected folder
+      if (scannedMetadata.subId) subIdHistory.saveEntry(subcontractors.find(s => s.id === scannedMetadata.subId)?.name || '');
+
+
       const newDocs: ProjectDocument[] = [];
       const skippedDocs: string[] = [];
       
@@ -473,6 +500,12 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
       letterDate: doc.letterDate,
       correspondenceType: doc.correspondenceType
     });
+    // Pre-fill history suggestions when opening edit modal
+    subjectHistory.updateSuggestions(doc.subject || '');
+    refNoHistory.updateSuggestions(doc.refNo || '');
+    folderHistory.updateSuggestions(doc.folder || '');
+    const subName = subcontractors.find(s => s.name === doc.tags?.[0])?.id || 'none'; // Assuming first tag is sub name
+    subIdHistory.updateSuggestions(doc.tags?.[0] || '');
   };
 
   const handleUpdateMetadata = async () => {
@@ -499,6 +532,12 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
       if (previewDoc?.id === editingDoc.id) {
         setPreviewDoc(prev => prev ? { ...prev, ...editFormData } : null);
       }
+
+      // Save updated values to history
+      if (editFormData.subject) subjectHistory.saveEntry(editFormData.subject);
+      if (editFormData.refNo) refNoHistory.saveEntry(editFormData.refNo);
+      if (editFormData.folder) folderHistory.saveEntry(editFormData.folder);
+      if (editFormData.folder) subIdHistory.saveEntry(subcontractors.find(s => s.id === editFormData.subId)?.name || '');
       
       setEditingDoc(null);
       toast.dismiss(updateToast);
@@ -626,6 +665,47 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
       });
     }
   };
+
+  // --- Auto-complete suggestion rendering helper ---
+  const renderSuggestions = (
+    historyHook: ReturnType<typeof useHistoryAutoFill>, 
+    inputRef: React.RefObject<HTMLInputElement | HTMLSelectElement>, // Ref to the input/select element
+    onChange: (value: string) => void, // Handler to update component state
+    isSelect?: boolean // Flag to indicate if it's a Select component
+  ) => {
+    const handleSuggestionClick = (suggestion: string) => {
+      onChange(suggestion); // Update component state
+      historyHook.updateSuggestions(''); // Clear suggestions after selection
+      inputRef.current?.focus(); // Keep focus on the input
+    };
+
+    // Ensure ref is current and accessible
+    if (!inputRef.current) return null;
+
+    return (
+      <>
+        {historyHook.suggestions.length > 0 && historyHook.searchTerm && (
+          <div className="absolute z-10 mt-1 w-full rounded-md bg-white shadow-lg max-h-60 overflow-auto border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+            {historyHook.suggestions.map((suggestion, index) => (
+              <div
+                key={index}
+                className="cursor-pointer px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                onClick={() => handleSuggestionClick(suggestion)}
+              >
+                {suggestion}
+              </div>
+            ))}
+          </div>
+        )}
+      </>
+    );
+  };
+
+  // Refs for input elements to manage focus and suggestions display
+  const subjectInputRef = useRef<HTMLInputElement>(null);
+  const refNoInputRef = useRef<HTMLInputElement>(null);
+  const folderSelectRef = useRef<HTMLButtonElement>(null); // Ref for Select Trigger
+  const subcontractorSelectRef = useRef<HTMLButtonElement>(null); // Ref for Select Trigger
 
   return (
     <div className="flex h-[calc(100vh-140px)] gap-4 p-4">
@@ -787,7 +867,8 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
             <DialogDescription>Upload documents or scan them using AI OCR.</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-            <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg h-80 bg-muted/20">
+            {/* File Upload / Preview Area */}
+            <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg h-80 bg-muted/20 relative">
               {uploadFiles.length > 0 ? (
                 <div className="text-center">
                   <FileText className="mx-auto h-12 w-12 text-primary mb-2" />
@@ -811,6 +892,8 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
                 </Button>
               )}
             </div>
+
+            {/* Metadata and Controls Area */}
             <div className="grid gap-4">
               <div className="flex gap-2">
                 <Button
@@ -828,44 +911,100 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
                   <Sparkles className="mr-2 h-4 w-4" /> AI OCR Scan
                 </Button>
               </div>
-              <Select value={uploadTargetFolder} onValueChange={setUploadTargetFolder}>
-                <SelectTrigger aria-label="Target Folder">
-                  <SelectValue placeholder="Target Folder" />
-                </SelectTrigger>
-                <SelectContent>
-                  {FOLDERS.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={scannedMetadata.subId || 'none'} onValueChange={value => setScannedMetadata({...scannedMetadata, subId: value === 'none' ? '' : value})}>
-                <SelectTrigger aria-label="Associated Subcontractor">
-                  <SelectValue placeholder="Associated Subcontractor" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None / General</SelectItem>
-                  {subcontractors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Input
-                placeholder="Subject Line"
-                value={scannedMetadata.subject} onChange={e => setScannedMetadata({...scannedMetadata, subject: e.target.value})}
-                aria-label="Subject Line"
-              />
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Reference No"
-                  value={scannedMetadata.refNo} onChange={e => setScannedMetadata({...scannedMetadata, refNo: e.target.value})}
-                  aria-label="Reference Number"
-                />
-                <Input
-                  type="date"
-                  value={scannedMetadata.letterDate} onChange={e => setScannedMetadata({...scannedMetadata, letterDate: e.target.value})}
-                  aria-label="Letter Date"
-                />
+              
+              {/* Folder Select with History */}
+              <div className="grid gap-2">
+                <Label htmlFor="upload-folder">Target Folder</Label>
+                <div className="relative">
+                  <Select value={uploadTargetFolder} onValueChange={handleFolderChange}>
+                    <SelectTrigger ref={folderSelectRef} id="upload-folder" aria-label="Target Folder">
+                      <SelectValue placeholder="Select folder" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {FOLDERS.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {renderSuggestions(folderHistory, folderSelectRef, handleFolderChange, true)}
+                </div>
               </div>
+              
+              {/* Subcontractor Select with History */}
+              <div className="grid gap-2">
+                <Label htmlFor="upload-subcontractor">Associated Subcontractor</Label>
+                <div className="relative">
+                  <Select 
+                    value={scannedMetadata.subId || 'none'} 
+                    onValueChange={(value) => handleSubcontractorChange(value)}
+                  >
+                    <SelectTrigger ref={subcontractorSelectRef} id="upload-subcontractor" aria-label="Associated Subcontractor">
+                      <SelectValue placeholder="Associated Subcontractor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None / General</SelectItem>
+                      {subcontractors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {renderSuggestions(subIdHistory, subcontractorSelectRef, (value) => handleSubcontractorChange(value), true)}
+                </div>
+              </div>
+
+              {/* Subject Input with History */}
+              <div className="grid gap-2">
+                <Label htmlFor="upload-subject">Subject Line</Label>
+                <div className="relative">
+                  <Input 
+                    id="upload-subject"
+                    placeholder="e.g. Site Inspection Report"
+                    value={scannedMetadata.subject} 
+                    onChange={handleSubjectChange} 
+                    onBlur={() => subjectHistory.saveEntry(scannedMetadata.subject)} // Save on blur
+                    ref={subjectInputRef}
+                    aria-label="Subject Line"
+                  />
+                  {renderSuggestions(subjectHistory, subjectInputRef, (value) => setScannedMetadata({...scannedMetadata, subject: value}))}
+                </div>
+              </div>
+
               <div className="flex gap-2">
-                <Select
+                {/* Reference No Input with History */}
+                <div className="grid gap-2 flex-1">
+                  <Label htmlFor="upload-refNo">Reference No</Label>
+                  <div className="relative">
+                    <Input 
+                      id="upload-refNo"
+                      placeholder="e.g. SIR-2023-001" 
+                      value={scannedMetadata.refNo} 
+                      onChange={handleRefNoChange} 
+                      onBlur={() => refNoHistory.saveEntry(scannedMetadata.refNo)} // Save on blur
+                      ref={refNoInputRef}
+                      aria-label="Reference Number"
+                    />
+                    {renderSuggestions(refNoHistory, refNoInputRef, (value) => setScannedMetadata({...scannedMetadata, refNo: value}))}
+                  </div>
+                </div>
+                
+                {/* Letter Date - typically not auto-filled */}
+                <div className="grid gap-2 flex-1">
+                  <Label htmlFor="upload-letterDate">Letter Date</Label>
+                  <Input
+                    id="upload-letterDate"
+                    type="date"
+                    value={scannedMetadata.letterDate} 
+                    onChange={e => setScannedMetadata({...scannedMetadata, letterDate: e.target.value})}
+                    aria-label="Letter Date"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                {/* Correspondence Type Select - might benefit from history if common */}
+                <Select 
                     value={scannedMetadata.correspondenceType || 'none'}
-                    onValueChange={value => setScannedMetadata({...scannedMetadata, correspondenceType: value === 'none' ? '' : value})}
+                    onValueChange={value => {
+                        const actualValue = value === 'none' ? '' : value;
+                        setScannedMetadata({...scannedMetadata, correspondenceType: actualValue});
+                        // Potentially save history for correspondence type if it's a frequent choice
+                    }}
                 >
                     <SelectTrigger aria-label="Correspondence Type">
                         <SelectValue placeholder="Correspondence Type" />
@@ -876,10 +1015,14 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
                         <SelectItem value="outgoing">Outgoing</SelectItem>
                     </SelectContent>
                 </Select>
+                
+                {/* Upload Date - typically not auto-filled */}
                 <Input
                   type="date"
-                  value={scannedMetadata.date} onChange={e => setScannedMetadata({...scannedMetadata, date: e.target.value})}
+                  value={scannedMetadata.date} 
+                  onChange={e => setScannedMetadata({...scannedMetadata, date: e.target.value})}
                   aria-label="Upload Date"
+                  className="flex-1"
                 />
               </div>
             </div>
@@ -891,6 +1034,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
         </DialogContent>
       </Dialog>
 
+      {/* Preview Document Dialog */}
       <Dialog open={!!previewDoc} onOpenChange={() => setPreviewDoc(null)}>
         {previewDoc && (
           <DialogContent className="max-w-[calc(100vw-6rem)] h-[calc(100vh-6rem)] flex flex-col p-0">
@@ -917,14 +1061,10 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
                   <div className="w-full h-full flex flex-col">
                     {(previewDoc.type?.toLowerCase().includes('pdf') || previewDoc.fileUrl?.toLowerCase().endsWith('.pdf')) ? (
                       <div className="flex-1 flex items-center justify-center">
-                        {previewPdfLoading ? (
-                          <div className="text-center p-4 text-muted-foreground">
-                            <Loader2 className="animate-spin mx-auto mb-2" />
-                            <p>Loading PDF with authentication...</p>
-                          </div>
-                        ) : Document && previewPdfBlob ? (
+                        {Document ? (
                           <Document
-                            file={previewPdfBlob}
+                            file={getFileUrl(previewDoc)}
+                            httpHeaders={pdfHttpHeaders}
                             loading={<div className="text-center text-muted-foreground">Loading PDF...</div>}
                             error={
                               <div className="flex flex-col items-center justify-center p-4 text-destructive">
@@ -989,13 +1129,41 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
               <div className="w-80 border-l bg-background p-4 overflow-y-auto">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Document Metadata</h3>
                 <div className="grid gap-4">
+                  {/* Subject */}
                   <div>
-                    <p className="text-xs text-muted-foreground">Subject</p>
-                    <p className="font-medium">{previewDoc.subject || 'Not specified'}</p>
+                    <Label htmlFor="preview-subject" className="text-xs text-muted-foreground">Subject</Label>
+                    <div className="relative">
+                      <Input 
+                        id="preview-subject"
+                        className="h-9 font-medium border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        value={previewDoc.subject || 'Not specified'} 
+                        onChange={(e) => {
+                          setPreviewDoc(prev => prev ? {...prev, subject: e.target.value} : null);
+                          subjectHistory.updateSuggestions(e.target.value);
+                        }}
+                        onBlur={() => previewDoc && subjectHistory.saveEntry(previewDoc.subject || '')}
+                        ref={subjectInputRef}
+                      />
+                      {renderSuggestions(subjectHistory, subjectInputRef, (value) => setPreviewDoc(prev => prev ? {...prev, subject: value} : null))}
+                    </div>
                   </div>
+                  {/* Reference Number */}
                   <div>
-                    <p className="text-xs text-muted-foreground">Reference Number</p>
-                    <p className="font-medium">{previewDoc.refNo || 'N/A'}</p>
+                    <Label htmlFor="preview-refNo" className="text-xs text-muted-foreground">Reference Number</Label>
+                    <div className="relative">
+                      <Input
+                        id="preview-refNo"
+                        className="h-9 font-medium border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        value={previewDoc.refNo || 'N/A'} 
+                        onChange={(e) => {
+                          setPreviewDoc(prev => prev ? {...prev, refNo: e.target.value} : null);
+                          refNoHistory.updateSuggestions(e.target.value);
+                        }}
+                        onBlur={() => previewDoc && refNoHistory.saveEntry(previewDoc.refNo || '')}
+                        ref={refNoInputRef}
+                      />
+                      {renderSuggestions(refNoHistory, refNoInputRef, (value) => setPreviewDoc(prev => prev ? {...prev, refNo: value} : null))}
+                    </div>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Organization Tags</p>
@@ -1071,48 +1239,67 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Edit Document</DialogTitle>
-            <DialogDescription>Update document metadata.</DialogDescription>
+            <DialogDescription>Update document metadata for the project archive.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-name" className="text-right">Name</Label>
-              <Input id="edit-name" value={editFormData.name || ''} onChange={e => setEditFormData({...editFormData, name: e.target.value})} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-subject" className="text-right">Subject</Label>
-              <Input id="edit-subject" value={editFormData.subject || ''} onChange={e => setEditFormData({...editFormData, subject: e.target.value})} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-ref" className="text-right">Ref No.</Label>
-              <Input id="edit-ref" value={editFormData.refNo || ''} onChange={e => setEditFormData({...editFormData, refNo: e.target.value})} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-folder" className="text-right">Folder</Label>
-              <Select value={editFormData.folder || ''} onValueChange={value => setEditFormData({...editFormData, folder: value})}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select folder" />
-                </SelectTrigger>
-                <SelectContent>
-                  {FOLDERS.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-letterDate" className="text-right">Letter Date</Label>
-              <Input id="edit-letterDate" type="date" value={editFormData.letterDate?.split('T')[0] || ''} onChange={e => setEditFormData({...editFormData, letterDate: e.target.value})} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-correspondenceType" className="text-right">Correspondence Type</Label>
-              <Select value={editFormData.correspondenceType || ''} onValueChange={value => setEditFormData({...editFormData, correspondenceType: value as any})}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="incoming">Incoming</SelectItem>
-                  <SelectItem value="outgoing">Outgoing</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {editingDoc && (
+              <>
+                {/* Name */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-name" className="text-right">Name</Label>
+                  <Input id="edit-name" value={editFormData.name || ''} onChange={e => setEditFormData({...editFormData, name: e.target.value})} className="col-span-3" />
+                </div>
+                {/* Subject */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-subject" className="text-right">Subject</Label>
+                  <div className="relative col-span-3">
+                    <Input id="edit-subject" value={editFormData.subject || ''} onChange={handleEditSubjectChange} onBlur={() => editFormData.subject && subjectHistory.saveEntry(editFormData.subject)} ref={subjectInputRef} className="col-span-3" />
+                    {renderSuggestions(subjectHistory, subjectInputRef, (value) => setEditFormData({...editFormData, subject: value}))}
+                  </div>
+                </div>
+                {/* Reference No */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-ref" className="text-right">Ref No.</Label>
+                  <div className="relative col-span-3">
+                    <Input id="edit-ref" value={editFormData.refNo || ''} onChange={handleEditRefNoChange} onBlur={() => editFormData.refNo && refNoHistory.saveEntry(editFormData.refNo)} ref={refNoInputRef} className="col-span-3" />
+                    {renderSuggestions(refNoHistory, refNoInputRef, (value) => setEditFormData({...editFormData, refNo: value}))}
+                  </div>
+                </div>
+                {/* Folder */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-folder" className="text-right">Folder</Label>
+                  <div className="relative col-span-3">
+                    <Select value={editFormData.folder || ''} onValueChange={(value) => {handleEditFolderChange(value); setEditFormData({...editFormData, folder: value})}}>
+                      <SelectTrigger ref={folderSelectRef} id="edit-folder">
+                        <SelectValue placeholder="Select folder" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FOLDERS.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    {renderSuggestions(folderHistory, folderSelectRef, (value) => setEditFormData({...editFormData, folder: value}), true)}
+                  </div>
+                </div>
+                {/* Letter Date */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-letterDate" className="text-right">Letter Date</Label>
+                  <Input id="edit-letterDate" type="date" value={editFormData.letterDate?.split('T')[0] || ''} onChange={e => setEditFormData({...editFormData, letterDate: e.target.value})} className="col-span-3" />
+                </div>
+                {/* Correspondence Type */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-correspondenceType" className="text-right">Correspondence Type</Label>
+                  <Select value={editFormData.correspondenceType || ''} onValueChange={value => setEditFormData({...editFormData, correspondenceType: value as any})}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="incoming">Incoming</SelectItem>
+                      <SelectItem value="outgoing">Outgoing</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingDoc(null)}>Cancel</Button>

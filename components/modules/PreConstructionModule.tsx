@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
     Plus, Calendar, Target, Trash2, AlertTriangle, 
@@ -15,6 +16,9 @@ import { toast } from 'sonner';
 import { Badge } from '~/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { Textarea } from '~/components/ui/textarea';
+
+// Import the history hook
+import { useHistoryAutoFill } from '~/lib/historyUtils';
 
 interface Props {
   project: Project;
@@ -43,15 +47,46 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
       description: ''
   });
 
+  // History auto-fill hooks
+  const descriptionHistory = useHistoryAutoFill('preConstructionDescriptions');
+  const remarksHistory = useHistoryAutoFill('preConstructionRemarks'); // Optional, but remarks can be repetitive
+
+  // --- Handlers for New Task Modal Inputs ---
+  const handleNewDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setNewTask({...newTask, description: value});
+    descriptionHistory.updateSuggestions(value);
+  };
+
+  const handleNewRemarksChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setNewTask({...newTask, remarks: value});
+    // Remarks might be longer, saving on blur might be better
+    // remarksHistory.updateSuggestions(value);
+  };
+
+  // --- Handlers for Track Progress Modal Inputs ---
+  const handleTrackDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setTrackForm({...trackForm, description: value});
+    // For track description, maybe save history on submit
+    // descriptionHistory.updateSuggestions(value);
+  };
+
   // --- Logic ---
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Check for duplicate description before saving
     const isDuplicate = project.preConstruction.some(t => t.description.toLowerCase() === newTask.description?.toLowerCase());
     if (isDuplicate) {
         toast.error("Duplicate: An activity with this description already exists.");
         return;
     }
+
+    // Save histories if they were interacted with
+    if (newTask.description) descriptionHistory.saveEntry(newTask.description);
+    if (newTask.remarks) remarksHistory.saveEntry(newTask.remarks);
 
     const task: PreConstructionTask = {
         id: `pre-${Date.now()}`,
@@ -103,6 +138,8 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
       onProjectUpdate({ ...project, preConstruction: updated as any });
       setIsTrackModalOpen(false);
       setTrackForm({ date: new Date().toISOString().split('T')[0], progressAdded: 0, description: '' });
+      // Save the track progress description to history
+      if (trackForm.description) descriptionHistory.saveEntry(trackForm.description);
   };
 
   const getStatusVariant = (status: string) => {
@@ -115,6 +152,45 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
 
   const today = new Date().toISOString().split('T')[0];
   const dueTasks = project.preConstruction.filter(t => t.status !== 'Completed' && t.estEndDate && t.estEndDate <= today);
+
+  // --- Auto-complete suggestion rendering helper ---
+  const renderSuggestions = (
+    historyHook: ReturnType<typeof useHistoryAutoFill>, 
+    inputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement>, // Ref to the input/textarea element
+    onChange: (value: string) => void, // Handler to update component state
+  ) => {
+    const handleSuggestionClick = (suggestion: string) => {
+      onChange(suggestion); // Update component state
+      historyHook.updateSuggestions(''); // Clear suggestions after selection
+      inputRef.current?.focus(); // Keep focus on the input
+    };
+
+    // Ensure ref is current and accessible
+    if (!inputRef.current) return null;
+
+    return (
+      <>
+        {historyHook.suggestions.length > 0 && historyHook.searchTerm && (
+          <div className="absolute z-10 mt-1 w-full rounded-md bg-white shadow-lg max-h-60 overflow-auto border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+            {historyHook.suggestions.map((suggestion, index) => (
+              <div
+                key={index}
+                className="cursor-pointer px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                onClick={() => handleSuggestionClick(suggestion)}
+              >
+                {suggestion}
+              </div>
+            ))}
+          </div>
+        )}
+      </>
+    );
+  };
+
+  // Refs for input/textarea elements
+  const newTaskDescriptionRef = useRef<HTMLInputElement>(null);
+  const newTaskRemarksRef = useRef<HTMLTextAreaElement>(null);
+  const trackTaskDescriptionRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="space-y-6">
@@ -232,14 +308,23 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
                       </SelectContent>
                   </Select>
                 </div>
+                
+                {/* Description Input with History */}
                 <div className="grid gap-2">
                   <Label htmlFor="description">Description</Label>
-                  <Input 
-                    id="description" required 
-                    value={newTask.description} onChange={e => setNewTask({...newTask, description: e.target.value})}
-                    placeholder="e.g. Joint Verification"
-                  />
+                  <div className="relative">
+                    <Input 
+                      id="description" required 
+                      placeholder="e.g. Joint Verification"
+                      value={newTask.description} 
+                      onChange={handleNewDescriptionChange}
+                      onBlur={() => newTask.description && descriptionHistory.saveEntry(newTask.description)} // Save on blur
+                      ref={newTaskDescriptionRef}
+                    />
+                    {renderSuggestions(descriptionHistory, newTaskDescriptionRef, (value) => setNewTask({...newTask, description: value}))}
+                  </div>
                 </div>
+                
                 <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
                         <Label htmlFor="est-start">Est. Start</Label>
@@ -256,13 +341,23 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
                         />
                     </div>
                 </div>
+                
+                {/* Remarks Textarea with History */}
                 <div className="grid gap-2">
                   <Label htmlFor="remarks">Remarks</Label>
-                  <Textarea 
-                    id="remarks" 
-                    value={newTask.remarks} onChange={e => setNewTask({...newTask, remarks: e.target.value})}
-                  />
+                  <div className="relative">
+                    <Textarea 
+                      id="remarks" 
+                      value={newTask.remarks} 
+                      onChange={handleNewRemarksChange}
+                      onBlur={() => newTask.remarks && remarksHistory.saveEntry(newTask.remarks)} // Save on blur
+                      ref={newTaskRemarksRef}
+                      className="min-h-[100px]"
+                    />
+                    {renderSuggestions(remarksHistory, newTaskRemarksRef, (value) => setNewTask({...newTask, remarks: value}))}
+                  </div>
                 </div>
+
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setIsModalOpen(false)}><X className="mr-2 h-4 w-4" />Cancel</Button>
                     <Button type="submit"><CheckCircle2 className="mr-2 h-4 w-4" />Add Activity</Button>
@@ -295,13 +390,23 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
                     />
                     <p className="text-sm text-muted-foreground">Enter incremental percentage completed today.</p>
                 </div>
+                
+                {/* Description Input with History */}
                 <div className="grid gap-2">
-                    <Label htmlFor="description">Description / Activity</Label>
-                    <Input 
-                        id="description" required 
-                        placeholder="e.g. Field work done" value={trackForm.description} onChange={e => setTrackForm({...trackForm, description: e.target.value})} 
-                    />
+                    <Label htmlFor="track-description">Description / Activity</Label>
+                    <div className="relative">
+                        <Input 
+                            id="track-description" required 
+                            placeholder="e.g. Field work done" 
+                            value={trackForm.description} 
+                            onChange={handleTrackDescriptionChange} 
+                            onBlur={() => trackForm.description && descriptionHistory.saveEntry(trackForm.description)} // Save on blur
+                            ref={trackTaskDescriptionRef}
+                        />
+                        {renderSuggestions(descriptionHistory, trackTaskDescriptionRef, (value) => setTrackForm({...trackForm, description: value}))}
+                    </div>
                 </div>
+                
                 <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setIsTrackModalOpen(false)}><X className="mr-2 h-4 w-4" />Cancel</Button>
                     <Button type="submit"><CheckCircle2 className="mr-2 h-4 w-4" />Update Progress</Button>

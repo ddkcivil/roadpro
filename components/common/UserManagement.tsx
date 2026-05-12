@@ -1,4 +1,5 @@
-import React, { useState, useEffect, ChangeEvent } from 'react';
+
+import React, { useState, useEffect, ChangeEvent, useRef } from 'react';
 import { User, UserRole } from '../../types';
 import { apiService } from '../../services/api/apiService';
 
@@ -22,6 +23,7 @@ import { compressImage } from '../../utils/data/imageUtils';
 import { UserPlus, Users, Mail, Shield, X, Edit3, Trash2, Upload } from 'lucide-react';
 
 import { useAvatarUpload } from '~/hooks/useAvatarUpload';
+import { useHistoryAutoFill } from '~/lib/historyUtils'; // Import the hook
 
 const UserManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -38,6 +40,10 @@ const UserManagement: React.FC = () => {
     phone: ''
   });
 
+  // History auto-fill hooks
+  const emailHistory = useHistoryAutoFill('userEmails');
+  const nameHistory = useHistoryAutoFill('userNames'); // Assuming names might also benefit from history
+
   const {
     avatarFile,
     previewUrl,
@@ -47,35 +53,36 @@ const UserManagement: React.FC = () => {
     reset: resetAvatar
   } = useAvatarUpload();
 
-  useEffect(() => {
-    const loadData = async () => {
-      setError(null);
-      try {
-        const [usersData, pendingData] = await Promise.all([
-          apiService.getUsers(),
-          apiService.getPendingRegistrations()
-        ]);
-        setUsers(usersData);
-        setPendingUsers(pendingData);
-      } catch (error: any) {
-        console.error('Error loading user data:', error);
-        const msg = error?.message || error?.error || 'Failed to load user data';
-        if (msg.includes('401') || msg.includes('Unauthorized') || error?.status === 401) {
-          setError('Authentication failed. Your session may have expired. Please try logging in again.');
-        } else if (msg.includes('Network error') || msg.includes('Failed to fetch')) {
-          setError('Cannot reach the server. Please check your internet connection.');
-        } else {
-          setError(`Failed to load users: ${msg}`);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
+  // --- Handlers ---
+  const handleNewEmailChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setNewUser({ ...newUser, email: value });
+    emailHistory.updateSuggestions(value); // Update suggestions as user types
+  };
 
-    loadData();
-  }, []);
+  const handleEditEmailChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (editingUser) {
+      setEditingUser({ ...editingUser, email: value });
+      emailHistory.updateSuggestions(value); // Update suggestions
+    }
+  };
+  
+  const handleNewNameChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setNewUser({ ...newUser, name: value });
+    nameHistory.updateSuggestions(value);
+  };
 
-  const handleAddUser = async (e: React.FormEvent) => {
+  const handleEditNameChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (editingUser) {
+      setEditingUser({ ...editingUser, name: value });
+      nameHistory.updateSuggestions(value);
+    }
+  };
+
+  const handleNewUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!(newUser.name ?? '').trim()) { alert('User name is required'); return; }
@@ -94,6 +101,8 @@ const UserManagement: React.FC = () => {
       } as any);
 
       setUsers(prev => [...prev, user]);
+      emailHistory.saveEntry(newUser.email); // Save email to history
+      nameHistory.saveEntry(newUser.name); // Save name to history
       setIsModalOpen(false);
       setNewUser({ name: '', email: '', role: UserRole.SITE_ENGINEER, phone: '' });
       resetAvatar();
@@ -102,7 +111,7 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const handleEditUser = async (e: React.FormEvent) => {
+  const handleEditUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) return;
 
@@ -133,6 +142,8 @@ const UserManagement: React.FC = () => {
       );
 
       setUsers(updatedUsers);
+      emailHistory.saveEntry(editingUser.email); // Save email to history
+      nameHistory.saveEntry(editingUser.name); // Save name to history
       setIsEditModalOpen(false);
       setEditingUser(null);
       resetAvatar();
@@ -158,6 +169,9 @@ const UserManagement: React.FC = () => {
     setIsEditModalOpen(true);
     resetAvatar();
     if (user.avatar) setPreviewUrl(user.avatar);
+    // Pre-fill history hook state when opening edit modal
+    emailHistory.updateSuggestions(user.email);
+    nameHistory.updateSuggestions(user.name);
   };
 
   const approveUser = async (pendingUser: any) => {
@@ -183,7 +197,7 @@ const UserManagement: React.FC = () => {
     }
   };
 
-
+  // --- Rendering Helpers ---
   const getUserRoleColor = (role: UserRole) => {
     switch (role) {
       case UserRole.ADMIN: return 'bg-red-500/20 text-red-700';
@@ -196,6 +210,35 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  // --- Auto-complete suggestion rendering ---
+  const renderSuggestions = (historyHook: ReturnType<typeof useHistoryAutoFill>, inputId: string, onChange: (e: any) => void) => {
+    const handleSuggestionClick = (suggestion: string) => {
+      onChange({ target: { value: suggestion } }); // Simulate an input change event
+      historyHook.updateSuggestions(''); // Clear suggestions after selection
+    };
+
+    return (
+      <>
+        {/* The input field itself will be controlled by its onChange handler */}
+        {/* Suggestions will be rendered in a dropdown below the input */}
+        {historyHook.suggestions.length > 0 && historyHook.searchTerm && (
+          <div className="absolute z-10 mt-1 w-full rounded-md bg-white shadow-lg max-h-60 overflow-auto border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+            {historyHook.suggestions.map((suggestion, index) => (
+              <div
+                key={index}
+                className="cursor-pointer px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                onClick={() => handleSuggestionClick(suggestion)}
+              >
+                {suggestion}
+              </div>
+            ))}
+          </div>
+        )}
+      </>
+    );
+  };
+
+  // --- JSX Rendering ---
   return (
     <div className="p-4 h-[calc(100vh-140px)] overflow-y-auto">
       {loading && (
@@ -224,7 +267,7 @@ const UserManagement: React.FC = () => {
             </div>
           </div>
 
-          {/* Pending Users Section */}
+          {/* Pending Users Section (no changes related to history auto-fill here) */}
           {pendingUsers.length > 0 && (
             <Card className="mb-6 border-amber-300">
               <CardHeader className="bg-amber-100 border-b border-amber-300">
@@ -286,6 +329,7 @@ const UserManagement: React.FC = () => {
             </Card>
           )}
 
+          {/* Main Users Table */}
           <Card>
             <CardContent className="p-0">
               <Table>
@@ -324,9 +368,19 @@ const UserManagement: React.FC = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 relative"> {/* Relative positioning for suggestions */}
                             <Mail className="h-4 w-4 text-muted-foreground" />
-                            <span>{user.email}</span>
+                            <Input
+                              id={`edit-email-${user.id}`} // Unique ID for input
+                              type="email"
+                              value={editingUser?.id === user.id ? editingUser.email : user.email}
+                              onChange={editingUser?.id === user.id ? handleEditEmailChange : undefined} // Use handler if editing
+                              className="h-8 border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 col-span-3"
+                              onFocus={() => editingUser?.id === user.id && emailHistory.updateSuggestions(editingUser.email)} // Show suggestions on focus
+                              disabled={editingUser?.id !== user.id} // Disabled if not currently editing
+                              aria-label="User email"
+                            />
+                            {renderSuggestions(emailHistory, `edit-email-${user.id}`, (e) => { /* Handle suggestion click */ })}
                           </div>
                         </TableCell>
                         <TableCell>{user.phone || '-'}</TableCell>
@@ -381,11 +435,17 @@ const UserManagement: React.FC = () => {
 
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="name" className="text-right">Full Name</Label>
-                  <Input id="name" value={newUser.name} onChange={e => setNewUser({ ...newUser, name: e.target.value })} className="col-span-3" />
+                  <div className="relative col-span-3"> {/* Container for input + suggestions */}
+                    <Input id="name" value={newUser.name} onChange={handleNewNameChange} className="col-span-3" />
+                    {renderSuggestions(nameHistory, 'name', handleNewNameChange)}
+                  </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="email" className="text-right">Email</Label>
-                  <Input id="email" type="email" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} className="col-span-3" />
+                  <div className="relative col-span-3"> {/* Container for input + suggestions */}
+                    <Input id="email" type="email" value={newUser.email} onChange={handleNewEmailChange} className="col-span-3" />
+                    {renderSuggestions(emailHistory, 'email', handleNewEmailChange)}
+                  </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="phone" className="text-right">Phone</Label>
@@ -407,7 +467,7 @@ const UserManagement: React.FC = () => {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                <Button onClick={handleAddUser}>Add User</Button>
+                <Button onClick={handleNewUserSubmit}>Add User</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -447,11 +507,17 @@ const UserManagement: React.FC = () => {
 
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="edit-name" className="text-right">Full Name</Label>
-                      <Input id="edit-name" value={editingUser.name ?? ''} onChange={e => setEditingUser({ ...editingUser, name: e.target.value })} className="col-span-3" />
+                      <div className="relative col-span-3"> {/* Container for input + suggestions */}
+                        <Input id="edit-name" value={editingUser.name ?? ''} onChange={handleEditNameChange} className="col-span-3" />
+                        {renderSuggestions(nameHistory, `edit-name-${editingUser.id}`, handleEditNameChange)}
+                      </div>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="edit-email" className="text-right">Email</Label>
-                      <Input id="edit-email" type="email" value={editingUser.email ?? ''} onChange={e => setEditingUser({ ...editingUser, email: e.target.value })} className="col-span-3" />
+                      <div className="relative col-span-3"> {/* Container for input + suggestions */}
+                        <Input id="edit-email" type="email" value={editingUser.email ?? ''} onChange={handleEditEmailChange} className="col-span-3" />
+                        {renderSuggestions(emailHistory, `edit-email-${editingUser.id}`, handleEditEmailChange)}
+                      </div>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="edit-phone" className="text-right">Phone</Label>
@@ -475,7 +541,7 @@ const UserManagement: React.FC = () => {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-                <Button onClick={handleEditUser}>Save Changes</Button>
+                <Button onClick={handleEditUserSubmit}>Save Changes</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

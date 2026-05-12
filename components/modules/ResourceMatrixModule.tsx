@@ -44,19 +44,27 @@ const ResourceMatrixModule: React.FC<ResourceMatrixModuleProps> = ({ project, on
     } else {
       setEditingResource({
         name: '',
-        type: 'Material',
+        type: 'Material', // Default type to Material
         category: '',
         unit: '',
         unitCost: 0,
         totalQuantity: 0,
         availableQuantity: 0,
         allocatedQuantity: 0,
-        status: 'Available',
+        status: 'Available', // Default status
         criticality: 'Medium',
         supplier: '',
         leadTime: 0,
         reorderLevel: 0,
-        notes: ''
+        notes: '',
+        // Material-specific fields
+        insuranceExpiry: '',
+        taxExpiry: '',
+        safetyExpiryDate: '', // Refill Date
+        lastRestockDate: '',
+        description: '',
+        maxStockLevel: 0,
+        tags: [],
       });
     }
     setIsModalOpen(true);
@@ -574,9 +582,75 @@ const ResourceMatrixModule: React.FC<ResourceMatrixModuleProps> = ({ project, on
                 value={editingResource.notes}
                 onChange={(e) => setEditingResource({...editingResource, notes: e.target.value})}
               />
+            <div>
+              <Label htmlFor="description-input">Description</Label>
+              <Textarea
+                id="description-input"
+                value={editingResource.description || ''}
+                onChange={(e) => setEditingResource({...editingResource, description: e.target.value})}
+                className="col-span-3"
+                placeholder="Enter material description"
+                rows={2}
+              />
             </div>
-          </div>
-        </DialogContent>
+            <div>
+              <Label htmlFor="max-stock-level-input">Max Stock Level</Label>
+              <Input
+                id="max-stock-level-input"
+                type="number"
+                value={editingResource.maxStockLevel}
+                onChange={(e) => setEditingResource({...editingResource, maxStockLevel: Number(e.target.value)})}
+              />
+            </div>
+            <div>
+              <Label htmlFor="tags-input">Tags</Label>
+              <Input
+                id="tags-input"
+                value={editingResource.tags?.join(', ') || ''}
+                onChange={(e) => setEditingResource({...editingResource, tags: e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag)})}
+                placeholder="e.g., hazardous, consumable"
+              />
+            </div>
+            {editingResource.type === 'Material' && (
+              <>
+                <div>
+                  <Label htmlFor="insurance-expiry-input">Insurance Expiry</Label>
+                  <Input
+                    id="insurance-expiry-input"
+                    type="date"
+                    value={editingResource.insuranceExpiry || ''}
+                    onChange={(e) => setEditingResource({...editingResource, insuranceExpiry: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="tax-expiry-input">Tax Expiry</Label>
+                  <Input
+                    id="tax-expiry-input"
+                    type="date"
+                    value={editingResource.taxExpiry || ''}
+                    onChange={(e) => setEditingResource({...editingResource, taxExpiry: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="safety-expiry-input">Safety Expiry / Refill Date</Label>
+                  <Input
+                    id="safety-expiry-input"
+                    type="date"
+                    value={editingResource.safetyExpiryDate || ''}
+                    onChange={(e) => setEditingResource({...editingResource, safetyExpiryDate: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="restock-date-input">Last Restock Date</Label>
+                  <Input
+                    id="restock-date-input"
+                    type="date"
+                    value={editingResource.lastRestockDate || ''}
+                    onChange={(e) => setEditingResource({...editingResource, lastRestockDate: e.target.value})}
+                  />
+                </div>
+              </>
+            )}
         <DialogFooter>
           <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
           <Button onClick={handleSaveResource}>Save</Button>

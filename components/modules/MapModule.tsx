@@ -6,7 +6,9 @@ import { parseKML, ParsedKML, getKMLBounds } from '~/utils/kmlParser';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Project, StructureAsset, Vehicle, StaffLocation, LandParcel, MapOverlay, SitePhoto, LinearWorkLog, KMLData, AppSettings, User } from '../../types';
+import { Road, Alignment } from '../../utils/roadTypes';
 import { Button } from '~/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Badge } from '~/components/ui/badge';
 import { Switch } from '~/components/ui/switch';
@@ -18,7 +20,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "~/components/ui/accordion";
-import {
+import { 
   MapPin,
   Truck,
   Users,
@@ -42,7 +44,12 @@ import {
   FileQuestion,
   Beaker,
   TreePine,
-  Info
+  Info,
+  Navigation,
+  Edit,
+  ExternalLink,
+  Milestone,
+  Activity
 } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import { toast } from 'sonner';
@@ -440,9 +447,14 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   const [isRulerActive, setIsRulerActive] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [selectedRoadId, setSelectedRoadId] = useState<string>('all');
   
   const [targetBounds, setTargetBounds] = useState<L.LatLngBounds | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Get roads from project
+  const roads = project.roads || [];
+  const selectedRoad = selectedRoadId !== 'all' ? roads.find(r => r.id === selectedRoadId) : null;
   
   // States for non-blocking delete confirmation
   const [isDeletingKML, setIsDeletingKML] = useState(false);
@@ -1303,9 +1315,48 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
           <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
             <MapPin className="text-primary" /> GIS ALIGNMENT CENTER
           </h2>
-          <p className="text-muted-foreground text-sm font-medium uppercase tracking-wider">
+<p className="text-muted-foreground text-sm font-medium uppercase tracking-wider">
             Spatial Intelligence & Progress Monitoring
           </p>
+          {/* Road Selector Dropdown */}
+          {roads.length > 0 && (
+            <div className="flex items-center gap-2 mt-2">
+              <Select value={selectedRoadId} onValueChange={setSelectedRoadId}>
+                <SelectTrigger className="w-48 h-8 text-xs font-bold bg-background/80 backdrop-blur-sm">
+                  <SelectValue placeholder="Select Road" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs font-bold">
+                    <div className="flex items-center gap-2">
+                      <Route size={14} />
+                      <span>All Roads ({roads.length})</span>
+                    </div>
+                  </SelectItem>
+                  {roads.map(road => (
+                    <SelectItem key={road.id} value={road.id} className="text-xs font-bold">
+                      <div className="flex items-center gap-2">
+                        <Navigation size={14} />
+                        <span className="truncate">{road.name}</span>
+                        <Badge variant="outline" className="ml-auto text-[8px]">
+                          {road.alignments?.length || 0}
+                        </Badge>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedRoad && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 px-2 text-xs font-bold text-primary"
+                  title="Edit in Road Inventory"
+                >
+                  <Edit size={14} />
+                </Button>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex gap-2">
           <input

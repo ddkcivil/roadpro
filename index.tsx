@@ -10,11 +10,14 @@ import './index.css';
 // This must be synchronous to prevent the internal CDN fallback from being used.
 import { GlobalWorkerOptions, version } from 'pdfjs-dist';
 
-// Use the local worker file (copied to public/pdfjs-worker/) instead of the CDN default
-// We use window.location.origin to ensure the path is absolute and correctly resolved by the browser
-GlobalWorkerOptions.workerSrc = `${window.location.origin}/pdfjs-worker/pdf.worker.min.mjs`;
+// Use the CDN worker because Vite dev server does not serve .mjs files
+// from the public/ directory with the correct JavaScript MIME type.
+// The CDN worker is served from unpkg with proper MIME types.
+// For offline use, copy pdf.worker.min.mjs to public/pdfjs-worker/pdf.worker.min.js
+// and change workerSrc to '/pdfjs-worker/pdf.worker.min.js'
+GlobalWorkerOptions.workerSrc = `/pdfjs-worker/pdf.worker.min.js`;
 
-console.log(`PDF.js version ${version} initialized with worker: ${GlobalWorkerOptions.workerSrc}`);
+console.log(`PDF.js version ${version} initialized with local worker: ${GlobalWorkerOptions.workerSrc}`);
 
 // Initialize and render
 const rootElement = document.getElementById('root');
@@ -33,4 +36,4 @@ root.render(
   </ErrorBoundary>
 );
 
-console.log('App entry point: React root rendered. PDF.js worker configured to use local file');
+console.log('App entry point: React root rendered.');

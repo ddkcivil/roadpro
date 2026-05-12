@@ -30,19 +30,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
   const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
   const [isAddLogModalOpen, setIsAddLogModalOpen] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<Vehicle | null>(null);
-  const [assetForm, setAssetForm] = useState<Partial<Vehicle>>({
-    plateNumber: '',
-    type: '',
-    status: 'Active',
-    driver: '',
-    agencyId: '',
-    chainage: '',
-    gpsLocation: undefined,
-    insuranceExpiry: '',
-    taxExpiry: '',
-    safetyExpiryDate: '',
-    lastRestockDate: ''
-  });
+
   const [logForm, setLogForm] = useState<Partial<MaintenanceLog>>({
     type: 'Routine Service',
     description: '',
@@ -50,7 +38,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
     status: 'Completed',
     date: new Date().toISOString().split('T')[0]
   });
-  const [coords, setCoords] = useState({ lat: '', lng: '' });
+
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   
   const assets = project.vehicles || [];
@@ -80,26 +68,10 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
   };
 
   const handleEditAsset = (asset: Vehicle) => {
-    setAssetForm({
-      id: asset.id,
-      plateNumber: asset.plateNumber,
-      type: asset.type,
-      status: asset.status,
-      driver: asset.driver,
-      agencyId: asset.agencyId || '',
-      chainage: asset.chainage,
-      gpsLocation: asset.gpsLocation,
-      insuranceExpiry: asset.insuranceExpiry || '',
-      taxExpiry: asset.taxExpiry || '',
-      safetyExpiryDate: asset.safetyExpiryDate || '',
-      lastRestockDate: asset.lastRestockDate || ''
-    });
-    setCoords({
-      lat: asset.gpsLocation?.latitude?.toString() || '',
-      lng: asset.gpsLocation?.longitude?.toString() || ''
-    });
-    setEditingAssetId(asset.id);
-    setIsAssetModalOpen(true);
+    // The modal for editing assets has been removed, so this function is currently non-functional.
+    // If editing is to be restored, a modal and form handling would need to be reimplemented.
+    console.warn("Editing functionality for assets in AssetsModule is currently not fully supported as the edit modal has been removed.");
+    // Placeholder for user feedback, as the UI for editing is gone.
   };
 
   const handleShowMaintenance = (asset: Vehicle) => {
@@ -268,12 +240,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
           <h5 className="text-xl font-black">Asset & Equipment Registry</h5>
           <p className="text-sm text-muted-foreground">Manage project vehicles, machinery, and equipment inventory</p>
         </div>
-        {canAdd && (
-          <Button onClick={handleAddAsset}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Asset
-          </Button>
-        )}
+
       </div>
 
       {/* Stats Cards */}
@@ -437,7 +404,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
             )) : (
               <TableRow>
                 <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
-                  No assets registered yet. Click "Add Asset" to get started.
+                  No assets registered. Please use the Fleet module to register vehicles.
                 </TableCell>
               </TableRow>
             )}
@@ -446,181 +413,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
       </Card>
 
       {/* Add/Edit Asset Modal */}
-      <Dialog open={isAssetModalOpen} onOpenChange={setIsAssetModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>
-              {editingAssetId ? 'Edit Asset' : 'Add New Asset'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="plateNumber" className="text-right">
-                Plate Number
-              </Label>
-              <Input
-                id="plateNumber"
-                value={assetForm.plateNumber || ''}
-                onChange={(e) => setAssetForm({ ...assetForm, plateNumber: e.target.value })}
-                className="col-span-3"
-                placeholder="e.g., ABC-123"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="type" className="text-right">
-                Type
-              </Label>
-              <Select
-                value={assetForm.type || ''}
-                onValueChange={(value) => setAssetForm({ ...assetForm, type: value })}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select asset type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Truck">Truck</SelectItem>
-                  <SelectItem value="Excavator">Excavator</SelectItem>
-                  <SelectItem value="Bulldozer">Bulldozer</SelectItem>
-                  <SelectItem value="Crane">Crane</SelectItem>
-                  <SelectItem value="Generator">Generator</SelectItem>
-                  <SelectItem value="Fire Extinguisher">Fire Extinguisher</SelectItem>
-                  <SelectItem value="First Aid Kit">First Aid Kit</SelectItem>
-                  <SelectItem value="Safety Signage">Safety Signage</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {/* Conditional Fields based on Asset Type */}
-            {['Truck', 'Excavator', 'Bulldozer', 'Crane'].includes(assetForm.type || '') && (
-              <>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="insuranceExpiry" className="text-right">Insurance Exp</Label>
-                  <Input
-                    id="insuranceExpiry"
-                    type="date"
-                    value={assetForm.insuranceExpiry || ''}
-                    onChange={(e) => setAssetForm({ ...assetForm, insuranceExpiry: e.target.value })}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="taxExpiry" className="text-right">Tax Expiry</Label>
-                  <Input
-                    id="taxExpiry"
-                    type="date"
-                    value={assetForm.taxExpiry || ''}
-                    onChange={(e) => setAssetForm({ ...assetForm, taxExpiry: e.target.value })}
-                    className="col-span-3"
-                  />
-                </div>
-              </>
-            )}
 
-            {assetForm.type === 'Fire Extinguisher' && (
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="safetyExpiryDate" className="text-right">Refill Date</Label>
-                <Input
-                  id="safetyExpiryDate"
-                  type="date"
-                  value={assetForm.safetyExpiryDate || ''}
-                  onChange={(e) => setAssetForm({ ...assetForm, safetyExpiryDate: e.target.value })}
-                  className="col-span-3"
-                />
-              </div>
-            )}
-
-            {assetForm.type === 'First Aid Kit' && (
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="lastRestockDate" className="text-right">Restock Date</Label>
-                <Input
-                  id="lastRestockDate"
-                  type="date"
-                  value={assetForm.lastRestockDate || ''}
-                  onChange={(e) => setAssetForm({ ...assetForm, lastRestockDate: e.target.value })}
-                  className="col-span-3"
-                />
-              </div>
-            )}
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="status" className="text-right">
-                Status
-              </Label>
-              <Select
-                value={assetForm.status || 'Active'}
-                onValueChange={(value) => setAssetForm({ ...assetForm, status: value as 'Active' | 'Maintenance' | 'Idle' })}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Maintenance">Maintenance</SelectItem>
-                  <SelectItem value="Idle">Idle</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="driver" className="text-right">
-                Driver
-              </Label>
-              <Input
-                id="driver"
-                value={assetForm.driver || ''}
-                onChange={(e) => setAssetForm({ ...assetForm, driver: e.target.value })}
-                className="col-span-3"
-                placeholder="Driver name"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="chainage" className="text-right">
-                Chainage
-              </Label>
-              <Input
-                id="chainage"
-                value={assetForm.chainage || ''}
-                onChange={(e) => setAssetForm({ ...assetForm, chainage: e.target.value })}
-                className="col-span-3"
-                placeholder="e.g., 12+400"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="lat" className="text-right">
-                Latitude
-              </Label>
-              <Input
-                id="lat"
-                value={coords.lat}
-                onChange={(e) => setCoords({ ...coords, lat: e.target.value })}
-                className="col-span-3"
-                placeholder="e.g., 27.7006"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="lng" className="text-right">
-                Longitude
-              </Label>
-              <Input
-                id="lng"
-                value={coords.lng}
-                onChange={(e) => setCoords({ ...coords, lng: e.target.value })}
-                className="col-span-3"
-                placeholder="e.g., 83.4484"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAssetModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveAsset}>
-              <Save className="mr-2 h-4 w-4" />
-              {editingAssetId ? 'Update' : 'Add'} Asset
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* QR Code Modal */}
       <Dialog open={isQRModalOpen} onOpenChange={setIsQRModalOpen}>
@@ -792,3 +585,15 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
 };
 
 export default AssetsModule;
+tIsAddLogModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveLog}>Save Log Entry</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default AssetsModule;
+rt default AssetsModule;
+tsModule;
