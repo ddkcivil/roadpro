@@ -417,7 +417,7 @@ const {
                             isLoading={isLoadingMessages}
                           />
                         )}
-                        {activeTab === 'documents' && (
+                        {activeTab === 'documentation-hub' && (
                           <DocumentationHub
                             project={currentProject!}
                             onProjectUpdate={handleSaveProject as any}

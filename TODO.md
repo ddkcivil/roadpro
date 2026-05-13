@@ -1,30 +1,44 @@
-# Unified GIS-Road Module Implementation Plan
+# KML Display Issue - Investigation & Fix Plan
 
-## Current State
-- GIS Alignment: `components/modules/MapModule.tsx`  
-- Road Inventory: `components/modules/RoadInventoryModule.tsx`
+## Issue Summary
+- KML file (DS Road.kml) uploaded successfully
+- Data synchronized to cloud (Roads, Drainage, Footpath, Road Furniture)
+- But map frontend shows nothing
 
-## Tasks - COMPLETED
-- [x] 1. Analyze both modules for integration points
-- [x] 2. Create unified module plan
-- [x] 3. Create GISRoadModule.tsx (unified module)
-- [x] 4. Update navigation.ts
-- [x] 5. Update App.tsx to use unified module
-- [x] 6. Get user confirmation
+## Root Causes Identified
 
-## Implementation Details
+### 1. Missing Supabase RPC Function
+- `api/roads.ts` calls `append_road_to_project` RPC function
+- This function DOES NOT exist in Supabase database
+- Causes KML ingestion to fail silently
 
-### GISRoadModule.tsx Structure - IMPLEMENTED
-- Tab 1: Map View (GIS visualization)
-- Tab 2: Inventory (Road management)  
-- Tab 3: Analytics (Cross-layer progress)
-- Unified KML import
-- In-module road-aligment editing
+### 2. Data Storage Mismatch
+- MapModule displays KML from `project.kmlData` array
+- Roads API stores data in `project.roads` array
+- These are two different data stores!
 
-### Navigation Updates - DONE
-- 'gis-road' already in navigation.ts
-- Single unified tab
+### 3. Database Schema Missing Column
+- No `kml_data` column in projects table
+- KML files stored in frontend local state only
+- Not persisted to database
 
-### App.tsx Updates - DONE
-- GISRoadModule already integrated
-- All features working
+### 4. No Auto-Refresh After Upload
+- After KML uploaded via API, frontend doesn't refresh
+- Stale data displayed
+
+## Fix Plan
+
+### Step 1: Create Missing Supabase RPC Function
+- Create `append_road_to_project` function in Supabase
+
+### Step 2: Fix Frontend Auto-Refresh
+- Add auto-refresh after successful KML upload in MapModule
+
+### Step 3: Optional - Add kmlData Support
+- Either sync roads to kmlData OR update MapModule to check roads
+
+## Status
+- [x] Investigation Complete
+- [ ] Creating Supabase RPC Function
+- [ ] Fixing Frontend Refresh
+- [ ] Testing

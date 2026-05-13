@@ -120,50 +120,49 @@ export const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
       parsedData.placemarks.forEach((placemark) => {
         const { name, points } = placemark;
         if (points.length >= 2) {
-          const line = L.polyline(points, { 
-            color: kmlColor, 
-            weight: 5, 
-            opacity: 0.9,
-            lineJoin: 'round'
-          }).addTo(map);
-          
-          if (name) {
-            line.bindTooltip(name, { sticky: true });
-          }
-          
-          geometryLayers.push(line);
-          
-          // ONLY add chainage markers to the identified centerline placemark
-          if (placemark === centerlinePlacemark) {
-            addChainageMarkers(map, points, kml.name, markers, kmlColor);
-          }
-        } else if (points.length === 1) {
-          const marker = L.marker(points[0], {
-            title: name || undefined
-          }).addTo(map);
-          
-          if (name) {
-            marker.bindPopup(`<b>${name}</b>`);
-          }
-          
-          geometryLayers.push(marker);
+      // --- Added logs for debugging rendering ---
+      let createdLine: L.Polyline | null = null;
+      let createdMarker: L.Marker | null = null;
+      let createdChainageMarkers: L.Layer[] = [];
+
+      if (points.length >= 2) {
+        const line = L.polyline(points, { 
+          color: kmlColor, 
+          weight: 5, 
+          opacity: 0.9,
+          lineJoin: 'round'
+        });
+        
+        if (name) {
+          line.bindTooltip(name, { sticky: true });
         }
-      });
+        
+        map.addLayer(line); // Use map.addLayer directly
+        createdLine = line;
+        console.log(`[KMLDataLayer] Added L.Polyline for placemark "${name || 'Unnamed'}" with color ${kmlColor}`);
 
-    } catch (error) {
-      console.error(`[GIS] Critical Error in KML Layer "${kml.name}":`, error);
-    }
-
-    return () => {
-      console.log(`[GIS] Cleaning up KML: ${kml.name}`);
-      markers.forEach(m => map.removeLayer(m));
-      geometryLayers.forEach(l => map.removeLayer(l));
-    };
-  }, [kml.visible, kml.name, parsedData, map, kml.color]);
-
-  return null;
-};
-
+        geometryLayers.push(line);
+        
+        if (placemark === centerlinePlacemark) {
+          addChainageMarkers(map, points, kml.name, createdChainageMarkers, kmlColor); // Modified to push to local array
+          console.log(`[KMLDataLayer] Added chainage markers for centerline placemark "${name || 'Unnamed'}"`);
+        }
+      } else if (points.length === 1) {
+        const marker = L.marker(points[0], {
+          title: name || undefined
+        });
+        
+        if (name) {
+          marker.bindPopup(`<b>${name}</b>`);
+        }
+        
+        map.addLayer(marker); // Use map.addLayer directly
+        createdMarker = marker;
+        console.log(`[KMLDataLayer] Added L.Marker for placemark "${name || 'Unnamed'}"`);
+        
+        geometryLayers.push(marker);
+      }
+      // --- End of added logs ---
 /**
  * Helper to add chainage markers along a path with high visibility
  */

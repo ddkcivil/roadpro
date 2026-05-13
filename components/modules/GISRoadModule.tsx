@@ -236,7 +236,16 @@ const GISRoadModule: React.FC<{ project: Project; onProjectUpdate: (project: Par
          setNewRoadName('');
          setSelectedKmlId('manual');
       } else {
-        toast.error("Telemetry extraction failed. Check KML format.");
+        // Log detailed information when ingestion fails (backend returns success: false)
+        console.error("KML Ingestion Failed:", {
+          message: "Backend reported failure.",
+          projectId: project.id,
+          roadName: nameToUse,
+          kmlContentLength: contentToProcess?.length, // Log KML length for context
+          success: result.success,
+          roadData: result.road // Log the road data returned (might be an error object, null, or partial data)
+        });
+        toast.error("Telemetry extraction failed. Check KML format or contact support.");
       }
     } catch (error: any) {
       console.error("Ingestion error:", error);
