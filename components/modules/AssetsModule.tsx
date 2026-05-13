@@ -585,15 +585,11 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
 };
 
 export default AssetsModule;
-tIsAddLogModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveLog}>Save Log Entry</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
+</DialogContent> {/* Closing DialogContent */}
+</Dialog> {/* Closing Dialog */}
+</div> {/* Closing the main div */}
+);
 };
 
 export default AssetsModule;
-rt default AssetsModule;
-tsModule;
+

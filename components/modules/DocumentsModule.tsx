@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, useCallback, ChangeEvent } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, ChangeEvent, useRef } from 'react';
 import { Project, UserRole, ProjectDocument, DocumentVersion } from '../../types';
 import { 
     Sparkles, FileText, Loader2, 
@@ -227,12 +227,12 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
     return doc.fileUrl || '';
   };
 
-  // Build httpHeaders for react-pdf Document component to pass auth token
+// Build httpHeaders for react-pdf Document component to pass auth token
   const pdfHttpHeaders = useMemo(() => {
     const token = localStorage.getItem('roadmaster-token');
     if (!token) return {};
     return { Authorization: `Bearer ${token}` };
-  }, [previewDoc?.id, previewUrl, previewDoc?.type]); // Include previewUrl to re-fetch token if it changes
+  }, [previewDoc?.id, previewDoc?.type]);
 
   const filteredDocuments = useMemo(() => {
     return (project.documents || []).filter(doc => {
@@ -669,7 +669,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
   // --- Auto-complete suggestion rendering helper ---
   const renderSuggestions = (
     historyHook: ReturnType<typeof useHistoryAutoFill>, 
-    inputRef: React.RefObject<HTMLInputElement | HTMLSelectElement>, // Ref to the input/select element
+    inputRef: React.RefObject<HTMLElement | HTMLInputElement | HTMLSelectElement>, // Ref to the input/select element or trigger element
     onChange: (value: string) => void, // Handler to update component state
     isSelect?: boolean // Flag to indicate if it's a Select component
   ) => {

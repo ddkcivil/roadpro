@@ -649,15 +649,18 @@ const ResourceMatrixModule: React.FC<ResourceMatrixModuleProps> = ({ project, on
                     onChange={(e) => setEditingResource({...editingResource, lastRestockDate: e.target.value})}
                   />
                 </div>
-              </>
-            )}
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-          <Button onClick={handleSaveResource}>Save</Button>
-        </DialogFooter>
-      </Dialog>
-    </div>
-  );
-};
+              </div>
+              </div>
+              </DialogContent> {/* Closing DialogContent */}
+              <DialogFooter> {/* DialogFooter correctly placed inside DialogContent */}
+              <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+              <Button onClick={handleSaveResource}>Save</Button>
+              </DialogFooter>
+              </Dialog> {/* Closing Dialog */}
+              </div> {/* Closing the main div */}
+              );
+              };
 
-export default ResourceMatrixModule;
+              export default ResourceMatrixModule;
+
+

@@ -34,6 +34,7 @@ const AboutPage = lazy(() => import('./components/core/AboutPage'));
 const ContactPage = lazy(() => import('./components/core/ContactPage'));
 const ProjectModal = lazy(() => import('./components/core/ProjectModal'));
 const ProjectSelector = lazy(() => import('./components/core/ProjectSelector'));
+const GISRoadModule = lazy(() => import('./components/modules/GISRoadModule'));
 const GlobalSearch = lazy(() => import('./components/utilities/GlobalSearch'));
 const DataAnalysisModule = lazy(() => import('./components/core/DataAnalysisModule'));
 const Dashboard = lazy(() => import('./components/core/Dashboard'));
@@ -352,6 +353,12 @@ const {
                       {activeTab === 'map' && (
                         <ErrorBoundary>
                           <MapModule project={currentProject!} onProjectUpdate={handleSaveProject as any} settings={appSettings} users={users} />
+                        </ErrorBoundary>
+                      )}
+
+                      {activeTab === 'gis-road' && (
+                        <ErrorBoundary>
+                          <GISRoadModule project={currentProject!} onProjectUpdate={handleSaveProject as any} settings={appSettings} />
                         </ErrorBoundary>
                       )}
                       

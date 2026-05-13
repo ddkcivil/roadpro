@@ -524,6 +524,7 @@ export interface ProjectDocument {
   uploadedBy?: string;
   tags: string[];
   refNo?: string;
+  subId?: string;
   letterDate?: string; // Date from the document itself
   correspondenceType?: 'incoming' | 'outgoing'; // Label for correspondence direction
   fileUrl?: string; // URL to access the document file

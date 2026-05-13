@@ -49,6 +49,7 @@ export const getNavigationGroups = (currentUser: User | UserWithPermissions): Na
   const overviewItems: NavItem[] = [
     { id: 'dashboard', label: 'Command Center', icon: LayoutDashboard }, 
     { id: 'gis-road', label: 'GIS-Road', icon: Navigation },
+    { id: 'messages', label: 'Messages', icon: MessageSquare } // Added Messages item
   ];
   
   const adminItems: NavItem[] = [];
@@ -100,6 +101,14 @@ export const getNavigationGroups = (currentUser: User | UserWithPermissions): Na
         { id: 'data-analysis', label: 'Data Analysis', icon: BarChart3 }
     ]}
   ];
+
+  // Add new Documentation group
+  groups.push({
+    title: 'Documentation',
+    items: [
+      { id: 'documentation-hub', label: 'Document Hub', icon: FolderOpen } // Added Document Hub item
+    ]
+  });
 
   if (adminItems.length > 0) {
     groups.push({ title: 'Administration', items: adminItems });
