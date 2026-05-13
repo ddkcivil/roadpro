@@ -82,7 +82,7 @@ const LinearProgressView: React.FC<{ road: Road }> = ({ road }) => {
   );
 };
 
-const GISRoadModule: React.FC<{ project: Project; onProjectUpdate: (project: Project) => void }> = ({ project, onProjectUpdate }) => {
+const GISRoadModule: React.FC<{ project: Project; onProjectUpdate: (project: Partial<Project>) => void }> = ({ project, onProjectUpdate }) => {
   const [activeTab, setActiveTab] = useState<'map' | 'inventory' | 'analytics'>('map');
   const [selectedRoadId, setSelectedRoadId] = useState<string | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -560,18 +560,18 @@ const GISRoadModule: React.FC<{ project: Project; onProjectUpdate: (project: Pro
                       <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
                         <Activity size={14} /> Alignment Status Distribution
                       </h3>
-                      <div className="space-y-3">
-                        {['Planned', 'In Progress', 'Completed'].map(status => (
+<div className="space-y-3">
+                        {['Not Started', 'In Progress', 'Completed'].map(status => (
                           <div key={status} className="flex items-center justify-between">
                             <span className="text-xs font-medium text-slate-600">{status}</span>
                             <div className="flex-1">
                               <div className="h-3 bg-slate-200 rounded-full">
                                 <div 
                                   className={`h-full bg-primary transition-all duration-1000`} 
-                                  style={{ width: `${(selectedRoad.alignments.filter(a => a.status === status).length / selectedRoad.alignments.length * 100 || 0)}%` }}
+                                  style={{ width: `${(selectedRoad.alignments.filter(a => a.status === status || (status === 'Not Started' && !a.status)).length / selectedRoad.alignments.length * 100 || 0)}%` }}
                                 />
                               </div>
-                              <span className="text-xs font-medium text-slate-400">{selectedRoad.alignments.filter(a => a.status === status).length} ({Math.floor((selectedRoad.alignments.filter(a => a.status === status).length / selectedRoad.alignments.length * 100 || 0))}%)</span>
+                              <span className="text-xs font-medium text-slate-400">{selectedRoad.alignments.filter(a => a.status === status || (status === 'Not Started' && !a.status)).length} ({Math.floor((selectedRoad.alignments.filter(a => a.status === status || (status === 'Not Started' && !a.status)).length / selectedRoad.alignments.length * 100 || 0))}%)</span>
                             </div>
                           </div>
                         ))}
@@ -919,12 +919,12 @@ const GISRoadModule: React.FC<{ project: Project; onProjectUpdate: (project: Pro
               />
             </div>
             
-            <div className="space-y-2">
+<div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-primary">Alignment Type</Label>
               <select 
                 className="w-full rounded-2xl border-none bg-muted/50 h-11 font-bold px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer"
                 value={editAlignmentData.type || ''}
-                onChange={e => setEditAlignmentData({...editAlignmentData, type: e.target.value})}
+                onChange={e => setEditAlignmentData({...editAlignmentData, type: e.target.value as Alignment['type']})}
               >
                 <option value="pavement">Pavement</option>
                 <option value="subgrade">Subgrade</option>
@@ -943,7 +943,7 @@ const GISRoadModule: React.FC<{ project: Project; onProjectUpdate: (project: Pro
               <select 
                 className="w-full rounded-2xl border-none bg-muted/50 h-11 font-bold px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer"
                 value={editAlignmentData.status || ''}
-                onChange={e => setEditAlignmentData({...editAlignmentData, status: e.target.value})}
+                onChange={e => setEditAlignmentData({...editAlignmentData, status: e.target.value as Alignment['status']})}
               >
                 <option value="Planned">Planned</option>
                 <option value="In Progress">In Progress</option>

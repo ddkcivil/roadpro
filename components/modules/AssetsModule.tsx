@@ -40,6 +40,18 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
   });
 
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
+  const [assetForm, setAssetForm] = useState<Partial<Vehicle>>({
+    plateNumber: '',
+    type: '',
+    status: 'Active',
+    driver: '',
+    chainage: '',
+    insuranceExpiry: '',
+    taxExpiry: '',
+    safetyExpiryDate: '',
+    lastRestockDate: ''
+  });
+  const [coords, setCoords] = useState({ lat: '', lng: '' });
   
   const assets = project.vehicles || [];
 
@@ -582,13 +594,6 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
       </Dialog>
     </div>
   );
-};
-
-export default AssetsModule;
-</DialogContent> {/* Closing DialogContent */}
-</Dialog> {/* Closing Dialog */}
-</div> {/* Closing the main div */}
-);
 };
 
 export default AssetsModule;

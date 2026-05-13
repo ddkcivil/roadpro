@@ -582,6 +582,7 @@ const ResourceMatrixModule: React.FC<ResourceMatrixModuleProps> = ({ project, on
                 value={editingResource.notes}
                 onChange={(e) => setEditingResource({...editingResource, notes: e.target.value})}
               />
+            </div>
             <div>
               <Label htmlFor="description-input">Description</Label>
               <Textarea
@@ -649,18 +650,19 @@ const ResourceMatrixModule: React.FC<ResourceMatrixModuleProps> = ({ project, on
                     onChange={(e) => setEditingResource({...editingResource, lastRestockDate: e.target.value})}
                   />
                 </div>
-              </div>
-              </div>
-              </DialogContent> {/* Closing DialogContent */}
-              <DialogFooter> {/* DialogFooter correctly placed inside DialogContent */}
-              <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleSaveResource}>Save</Button>
-              </DialogFooter>
-              </Dialog> {/* Closing Dialog */}
-              </div> {/* Closing the main div */}
-              );
-              };
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveResource}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
 
-              export default ResourceMatrixModule;
+export default ResourceMatrixModule;
 
 
