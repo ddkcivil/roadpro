@@ -54,8 +54,10 @@ import {
 import { cn } from '~/lib/utils';
 import { toast } from 'sonner';
 
-import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
-import 'leaflet-geosearch/dist/geosearch.css';
+// GeoSearchControl and OpenStreetMapProvider removed due to v4 compatibility issues
+// causing "Cannot read properties of null (reading 'useState')" runtime errors
+// import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
+// import 'leaflet-geosearch/dist/geosearch.css';
 
 import {
   Dialog,
@@ -117,56 +119,64 @@ export const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
         return bScore - aScore;
       })[0];
 
-      parsedData.placemarks.forEach((placemark) => {
+parsedData.placemarks.forEach((placemark) => {
         const { name, points } = placemark;
+        
         if (points.length >= 2) {
-      // --- Added logs for debugging rendering ---
-      let createdLine: L.Polyline | null = null;
-      let createdMarker: L.Marker | null = null;
-      let createdChainageMarkers: L.Layer[] = [];
+          const line = L.polyline(points, { 
+            color: kmlColor, 
+            weight: 5, 
+            opacity: 0.9,
+            lineJoin: 'round'
+          });
+          
+          if (name) {
+            line.bindTooltip(name, { sticky: true });
+          }
+          
+          map.addLayer(line);
+          console.log(`[KMLDataLayer] Added L.Polyline for placemark "${name || 'Unnamed'}" with color ${kmlColor}`);
 
-      if (points.length >= 2) {
-        const line = L.polyline(points, { 
-          color: kmlColor, 
-          weight: 5, 
-          opacity: 0.9,
-          lineJoin: 'round'
-        });
-        
-        if (name) {
-          line.bindTooltip(name, { sticky: true });
+          geometryLayers.push(line);
+          
+          if (placemark === centerlinePlacemark) {
+            addChainageMarkers(map, points, kml.name, geometryLayers, kmlColor);
+            console.log(`[KMLDataLayer] Added chainage markers for centerline placemark "${name || 'Unnamed'}"`);
+          }
+        } else if (points.length === 1) {
+          const marker = L.marker(points[0], {
+            title: name || undefined
+          });
+          
+          if (name) {
+            marker.bindPopup(`<b>${name}</b>`);
+          }
+          
+          map.addLayer(marker);
+          console.log(`[KMLDataLayer] Added L.Marker for placemark "${name || 'Unnamed'}"`);
+          
+          geometryLayers.push(marker);
         }
-        
-        map.addLayer(line); // Use map.addLayer directly
-        createdLine = line;
-        console.log(`[KMLDataLayer] Added L.Polyline for placemark "${name || 'Unnamed'}" with color ${kmlColor}`);
+      });
+    } catch (error) {
+      console.error("Error rendering KML:", error);
+    }
 
-        geometryLayers.push(line);
-        
-        if (placemark === centerlinePlacemark) {
-          addChainageMarkers(map, points, kml.name, createdChainageMarkers, kmlColor); // Modified to push to local array
-          console.log(`[KMLDataLayer] Added chainage markers for centerline placemark "${name || 'Unnamed'}"`);
-        }
-      } else if (points.length === 1) {
-        const marker = L.marker(points[0], {
-          title: name || undefined
-        });
-        
-        if (name) {
-          marker.bindPopup(`<b>${name}</b>`);
-        }
-        
-        map.addLayer(marker); // Use map.addLayer directly
-        createdMarker = marker;
-        console.log(`[KMLDataLayer] Added L.Marker for placemark "${name || 'Unnamed'}"`);
-        
-        geometryLayers.push(marker);
-      }
-      // --- End of added logs ---
+    // Cleanup on unmount
+    return () => {
+      geometryLayers.forEach(layer => {
+        map.removeLayer(layer);
+      });
+    };
+  }, [kml, parsedData, map]);
+
+  return null;
+};
+
 /**
  * Helper to add chainage markers along a path with high visibility
  */
-function addChainageMarkers(map: L.Map, points: L.LatLng[], name: string, markers: L.Layer[], color: string = '#4f46e5') {
+function addChainageMarkers(map: L.Map, points: L.LatLng[], name: string | undefined, markers: L.Layer[], color: string): void {
   if (points.length < 2) return;
 
   const prefix = name?.split('.')[0] || 'file';
@@ -241,28 +251,12 @@ const createCustomIcon = (color: string, icon: string) => {
   });
 };
 
-// Search Field Component
+// Search Field Component - Disabled due to leaflet-geosearch v4 compatibility issues
+// that cause "Cannot read properties of null (reading 'useState')" runtime errors
 const SearchField: React.FC = () => {
-  const map = useMap();
-  useEffect(() => {
-    const provider = new OpenStreetMapProvider();
-    const searchControl = new (GeoSearchControl as any)({
-      provider: provider,
-      style: 'bar',
-      showMarker: true,
-      showPopup: true,
-      autoClose: true,
-      retainZoomLevel: false,
-      animateZoom: true,
-      keepResult: true,
-    });
-
-    map.addControl(searchControl);
-    return () => {
-      map.removeControl(searchControl);
-    };
-  }, [map]);
-
+  // GeoSearchControl from leaflet-geosearch v4 has type incompatibilities with react-leaflet
+  // that cause null reference errors at runtime
+  // The search functionality will be re-enabled with a custom implementation
   return null;
 };
 

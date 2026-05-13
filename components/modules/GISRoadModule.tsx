@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, Suspense, lazy } from 'react';
+import React, { useState, useMemo, Suspense, lazy, ComponentType } from 'react';
 import { Project, Road, Alignment, Structure } from '../../types';
 import { 
     Plus, Trash2, Map as MapIcon, Layers, 
@@ -28,7 +28,7 @@ import {
 import { toast } from 'sonner';
 import { apiService } from '../../services/api/apiService';
 
-// Lazy load MapModule to prevent initialization errors
+// Lazy load MapModule - the default export will be used
 const MapModule = lazy(() => import('./MapModule'));
 
 // Linear Progress View for Road Layers (same as in RoadInventoryModule)
@@ -220,15 +220,26 @@ const GISRoadModule: React.FC<{ project: Project; onProjectUpdate: (project: Par
       return;
     }
     
-    setIsProcessing(true);
+setIsProcessing(true);
     
     try {
       const result = await apiService.ingestRoadKml(project.id, nameToUse, contentToProcess);
       
       if (result.success && result.road) {
+         // Create KML data entry for map display
+         const newKmlData = {
+           id: `kml-${result.road.id}`,
+           name: `${nameToUse}.kml`,
+           kmlContent: contentToProcess,
+           timestamp: Date.now(),
+           visible: true,
+           color: '#4f46e5'
+         };
+         
          onProjectUpdate({
            ...project,
-           roads: [...roads, result.road]
+           roads: [...roads, result.road],
+           kmlData: [...(projectKmls || []), newKmlData]
          });
          toast.success(`Successfully ingested telemetry for: ${nameToUse}`);
          setIsImportModalOpen(false);
