@@ -23,7 +23,7 @@ const OCRExtractionModule: React.FC = () => {
   const [result, setResult] = useState<DocumentExtractionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
   const [documentType, setDocumentType] = useState<string>('');
   const [extractionMode, setExtractionMode] = useState<'full' | 'boq' | 'finance'>('full');
 

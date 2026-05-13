@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+
+import React, { useState, useMemo, Suspense, lazy } from 'react';
 import { Project, Road, Alignment, Structure } from '../../types';
 import { 
     Plus, Trash2, Map as MapIcon, Layers, 
@@ -26,7 +27,9 @@ import {
 } from "~/components/ui/dropdown-menu";
 import { toast } from 'sonner';
 import { apiService } from '../../services/api/apiService';
-import MapModule from './MapModule'; // Import MapModule
+
+// Lazy load MapModule to prevent initialization errors
+const MapModule = lazy(() => import('./MapModule'));
 
 // Linear Progress View for Road Layers (same as in RoadInventoryModule)
 const LinearProgressView: React.FC<{ road: Road }> = ({ road }) => {
@@ -62,7 +65,7 @@ const LinearProgressView: React.FC<{ road: Road }> = ({ road }) => {
                  className={`h-full transition-all duration-1000 ${
                    layer.status === 'Completed' ? 'bg-emerald-500' : 'bg-amber-500'
                  }`}
-                 style={{ width: `${layer.progress || 0}%` }}
+
                />
                <div className="absolute inset-0 flex justify-between items-center px-4 pointer-events-none opacity-20">
                  {[...Array(5)].map((_, i) => (
@@ -269,7 +272,7 @@ const GISRoadModule: React.FC<{ project: Project; onProjectUpdate: (project: Par
       </div>
       
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(value: string) => setActiveTab(value as "map" | "inventory" | "analytics")}>
         <TabsList className="bg-muted/40 p-1 rounded-2xl border border-border/20">
           <TabsTrigger value="map" className="rounded-xl font-bold text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <MapIcon className="mr-2 h-3.5 w-3.5" /> Map View
@@ -282,14 +285,23 @@ const GISRoadModule: React.FC<{ project: Project; onProjectUpdate: (project: Par
           </TabsTrigger>
         </TabsList>
         
-        {/* Tab Content */}
+{/* Tab Content */}
         <TabsContent value="map" className="p-6 focus-visible:outline-none animate-in fade-in duration-300">
           <div className="space-y-6">
             {/* Map Module - Full featured map with all controls */}
-            <MapModule 
-              project={project} 
-              onProjectUpdate={onProjectUpdate}
-            />
+<Suspense fallback={
+              <div className="flex items-center justify-center h-96 bg-muted/20 rounded-2xl">
+                <div className="text-center">
+                  <Activity className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
+                  <p className="text-sm font-bold text-muted-foreground">Loading GIS Module...</p>
+                </div>
+              </div>
+            }>
+              <MapModule 
+                project={project} 
+                onProjectUpdate={onProjectUpdate}
+              />
+            </Suspense>
           </div>
         </TabsContent>
         
@@ -402,7 +414,7 @@ const GISRoadModule: React.FC<{ project: Project; onProjectUpdate: (project: Par
                           <p className="text-xs font-black text-slate-700 italic">{selectedRoad.chainageOffset}m</p>
                         </div>
                       </div>
-                      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+                      <Tabs value={activeTab} onValueChange={(value: string) => setActiveTab(value as "map" | "inventory" | "analytics")} className="mt-4">
                         {/* We'll reuse the activeTab state for inner tabs? Let's create separate state for inner tabs */}
                         {/* Actually, let's create a separate state for the inventory tab's internal tabs */}
                       </Tabs>
@@ -600,7 +612,7 @@ const GISRoadModule: React.FC<{ project: Project; onProjectUpdate: (project: Par
                           </div>
                           <div>
                             <p className="font-medium text-slate-500">In Progress</p>
-                            <p className="text-black font-bold">{selectedRoad.alignments.filter(a => a.status === 'In Progress' || a.status === 'Planned').length}</p>
+                            <p className="text-black font-bold">{selectedRoad.alignments.filter(a => a.status === 'In Progress' || a.status === 'Not Started').length}</p>
                           </div>
                           <div>
                             <p className="font-medium text-slate-500">Structures</p>
@@ -829,6 +841,7 @@ const GISRoadModule: React.FC<{ project: Project; onProjectUpdate: (project: Par
                 className="w-full rounded-2xl border-none bg-muted/50 h-11 font-bold px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer"
                 value={editRoadData.category || ''}
                 onChange={e => setEditRoadData({...editRoadData, category: e.target.value})}
+                aria-label="Road Category"
               >
                 <option value="National Highway">National Highway</option>
                 <option value="Provincial Road">Provincial Road</option>
@@ -844,6 +857,7 @@ const GISRoadModule: React.FC<{ project: Project; onProjectUpdate: (project: Par
                 className="w-full rounded-2xl border-none bg-muted/50 h-11 font-bold px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer"
                 value={editRoadData.surfaceType || ''}
                 onChange={e => setEditRoadData({...editRoadData, surfaceType: e.target.value})}
+                aria-label="Surface Type"
               >
                 <option value="Asphalt">Asphalt (Flexible)</option>
                 <option value="Concrete">Concrete (Rigid)</option>
@@ -925,6 +939,7 @@ const GISRoadModule: React.FC<{ project: Project; onProjectUpdate: (project: Par
                 className="w-full rounded-2xl border-none bg-muted/50 h-11 font-bold px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer"
                 value={editAlignmentData.type || ''}
                 onChange={e => setEditAlignmentData({...editAlignmentData, type: e.target.value as Alignment['type']})}
+                aria-label="Alignment Type"
               >
                 <option value="pavement">Pavement</option>
                 <option value="subgrade">Subgrade</option>
@@ -944,6 +959,7 @@ const GISRoadModule: React.FC<{ project: Project; onProjectUpdate: (project: Par
                 className="w-full rounded-2xl border-none bg-muted/50 h-11 font-bold px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer"
                 value={editAlignmentData.status || ''}
                 onChange={e => setEditAlignmentData({...editAlignmentData, status: e.target.value as Alignment['status']})}
+                aria-label="Status"
               >
                 <option value="Planned">Planned</option>
                 <option value="In Progress">In Progress</option>
