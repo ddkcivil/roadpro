@@ -612,7 +612,7 @@ if (result.success && result.road) {
         </DialogContent>
       </Dialog>
 
-      {/* Map Modal */}
+{/* Map Modal */}
       <Dialog open={isMapModalOpen} onOpenChange={setIsMapModalOpen}>
         <DialogContent className="max-w-6xl w-full h-[80vh] rounded-[2.5rem] glass border-none shadow-2xl overflow-hidden p-0">
           <DialogHeader className="p-8 pb-4">
@@ -623,15 +623,16 @@ if (result.success && result.road) {
               Interactive map displaying road data for {selectedRoad?.name}
             </DialogDescription>
           </DialogHeader>
-          <DialogContent className="h-[calc(80vh-120px)] p-0 border-none"> {/* Adjust DialogContent height */}
-             {selectedRoad && (
+          <div className="h-[calc(80vh-120px)] p-0 border-none overflow-hidden">
+            {selectedRoad && (
                <MapModule 
                  project={project} 
-                 selectedRoad={selectedRoad} 
-                 onClose={() => setIsMapModalOpen(false)} 
+                 onProjectUpdate={onProjectUpdate}
+                 settings={{}}
+                 users={[]}
                />
              )}
-          </DialogContent>
+          </div>
         </DialogContent>
       </Dialog>
 

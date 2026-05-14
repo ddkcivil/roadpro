@@ -89,7 +89,16 @@ interface MapModuleProps {
  * Now using robust utility parser and memoization to prevent re-render loops.
  */
 export const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
-  const map = useMap();
+  // Defensive: Ensure useMap context is available before using it
+  let map: L.Map | null = null;
+  try {
+    map = useMap();
+  } catch (e) {
+    // If useMap fails (e.g., called outside MapContainer), return null
+    console.warn('[KMLDataLayer] useMap context unavailable, skipping render');
+    return null;
+  }
+  if (!map) return null;
 
   // Memoize parsed KML to avoid redundant parsing
   const parsedData = useMemo((): ParsedKML | null => {
@@ -276,7 +285,15 @@ const MapCenterUpdater: React.FC<{ center: [number, number]; zoom: number }> = (
 const MapRuler: React.FC<{ 
   active: boolean; 
 }> = ({ active }) => {
-  const map = useMap();
+  // Defensive: Ensure useMap context is available
+  let map: L.Map | null = null;
+  try {
+    map = useMap();
+  } catch (e) {
+    return null;
+  }
+  if (!map) return null;
+  
   const [points, setPoints] = useState<L.LatLng[]>([]);
   const [totalDistance, setTotalDistance] = useState(0);
 
@@ -340,7 +357,15 @@ const MapDrawingTool: React.FC<{
   onComplete: (coords: { lat: number, lng: number }[]) => void;
   onCancel: () => void;
 }> = ({ active, onComplete, onCancel }) => {
-  const map = useMap();
+  // Defensive: Ensure useMap context is available
+  let map: L.Map | null = null;
+  try {
+    map = useMap();
+  } catch (e) {
+    return null;
+  }
+  if (!map) return null;
+  
   const [points, setPoints] = useState<L.LatLng[]>([]);
 
   useEffect(() => {
@@ -1416,8 +1441,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
             </LayersControl>
 
             <MapCenterUpdater center={mapCenter} zoom={defaultZoom} />
-            <MapController bounds={targetBounds} />
-            <SearchField />
+<MapController bounds={targetBounds} />
             
             {layerVisibility.structures && structureMarkers}
             {layerVisibility.vehicles && vehicleMarkers}
