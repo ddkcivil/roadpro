@@ -108,14 +108,17 @@ export function mapProjectFromDb(dbProj: any): any {
   mapped.dailyReports = dbProj.daily_reports || dbProj.dailyReports || [];
   mapped.preConstruction = dbProj.pre_construction || dbProj.preConstruction || [];
   mapped.landParcels = dbProj.land_parcels || dbProj.landParcels || [];
-  mapped.mapOverlays = dbProj.map_overlays || dbProj.mapOverlays || [];
+mapped.mapOverlays = dbProj.map_overlays || dbProj.mapOverlays || [];
+  // Map KML data from either JSONB field (kml_data) or separate table (project_kml)
+  // The separate table is fetched separately in the GET handler
+  mapped.kmlData = dbProj.project_kml || dbProj.kml_data || dbProj.kmlData || [];
   mapped.ncrs = dbProj.ncrs || [];
   mapped.contractBills = dbProj.contract_bills || dbProj.contractBills || [];
   mapped.measurementSheets = dbProj.measurement_sheets || dbProj.measurementSheets || [];
   mapped.roads = dbProj.roads || [];
-  mapped.staffLocations = (dbProj.staff_locations || dbProj.staffLocations || []).filter(
-        (loc: any) => loc && typeof loc.userId === 'string'
-      );
+  mapped.staffLocations = (dbProj.staff_locations || dbProj.staffLocation || []).filter(
+    (loc: any) => loc && typeof loc.userId === 'string'
+  );
   mapped.environmentRegistry = dbProj.environment_registry || dbProj.environmentRegistry || { sprinklingLogs: [], treeLogs: [] };
   mapped.accountingIntegrations = dbProj.accountingintegrations || dbProj.accounting_integrations || dbProj.accountingIntegrations || [];
   mapped.accountingTransactions = dbProj.accountingtransactions || dbProj.accounting_transactions || dbProj.accountingTransactions || [];
@@ -231,7 +234,7 @@ export function mapProjectToDb(proj: any): any {
     'agency_bills', 'materials', 'linear_works', 'inventory', 
     'purchase_orders', 'inventory_transactions', 'vehicles', 
     'vehicle_logs', 'daily_reports', 'pre_construction', 
-    'land_parcels', 'map_overlays', 'ncrs', 'contract_bills',
+    'land_parcels', 'map_overlays', 'kml_data', 'ncrs', 'contract_bills',
     'staff_locations', 'environment_registry'
   ];
   

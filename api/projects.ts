@@ -105,8 +105,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         // This avoids fragile join/select behavior that can cause Supabase to throw (500) for GET.
         const projectId = (id as string).trim();
 
-        let docsData: any[] = [];
+let docsData: any[] = [];
         let photosData: any[] = [];
+        let kmlData: any[] = [];
 
         // 1) Documents (no joins)
         try {
@@ -184,10 +185,72 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           console.warn('[GET Project] Warning: project_site_photos query failed:', photosErr?.message);
         }
 
+// 4) KML Data - Try JSONB field first, then table
+        try {
+          // FIRST: Try to get KML from the kml_data field on projects table (primary storage)
+          // It could be returned as JSON (if JSONB) or string (if text type)
+          const rawKmlData = (project as any).kml_data;
+          
+          if (rawKmlData) {
+            // Parse if it's a string (text column) or use directly if it's JSON (JSONB column)
+            let parsedKml: any[] = [];
+            if (typeof rawKmlData === 'string') {
+              try {
+                parsedKml = JSON.parse(rawKmlData);
+              } catch (parseErr) {
+                console.warn('[GET Project] Failed to parse kml_data:', parseErr);
+              }
+            } else if (Array.isArray(rawKmlData)) {
+              parsedKml = rawKmlData;
+            }
+            
+            if (parsedKml.length > 0) {
+              kmlData = parsedKml.map((kml: any) => ({
+                id: kml.id,
+                name: kml.name,
+                kmlContent: kml.kmlContent,
+                timestamp: kml.timestamp,
+                visible: kml.visible !== false,
+                color: kml.color
+              }));
+              console.log('[GET Project] Loaded KML from kml_data field:', kmlData.length, 'files');
+            }
+          }
+          
+          // FALLBACK: Try separate table if no data in kml_data field
+          if (kmlData.length === 0) {
+            const { data: kmlRes, error: kmlError } = await supabaseAdmin
+              .from('project_kml')
+              .select('*')
+              .eq('project_id', projectId);
+
+            if (kmlError) {
+              console.warn('[GET Project] Could not fetch project_kml:', kmlError.message);
+            }
+
+            // Map KML data to expected format
+            kmlData = (kmlRes || []).map((kml: any) => ({
+              id: kml.id,
+              name: kml.name,
+              kmlContent: kml.kml_content,  // Map kml_content to kmlContent
+              timestamp: kml.timestamp,
+              visible: kml.visible !== false,
+              color: kml.color
+            }));
+            
+            if (kmlData.length > 0) {
+              console.log('[GET Project] Loaded KML from table:', kmlData.length, 'files');
+            }
+          }
+        } catch (kmlErr: any) {
+          console.warn('[GET Project] Warning: project_kml query failed:', kmlErr?.message);
+        }
+
         const projectWithData = {
           ...project,
           project_documents: docsData,
-          project_site_photos: photosData
+          project_site_photos: photosData,
+          project_kml: kmlData
         };
 
         return res.status(200).json(mapProjectFromDb(projectWithData));
@@ -384,7 +447,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       const syncTasks = [];
 
-      // 1. Sync Documents Metadata
+// 1. Sync Documents Metadata
       if (req.body.documents && Array.isArray(req.body.documents)) {
         const docsToSync = req.body.documents.map((doc: any) => mapProjectDocumentToDb({
           ...doc,
@@ -419,19 +482,58 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         }
       }
 
-      // Wait for all sync tasks to complete (non-blocking for the main response if one fails)
+// 3. Sync KML Data - Ensure it's stored in JSONB field (kml_data)
+      if (req.body.kmlData && Array.isArray(req.body.kmlData)) {
+        // Store KML data in the JSONB field on the projects table
+        // This is the primary storage method that always works
+        const { error: kmlJsonbError } = await supabaseAdmin
+          .from('projects')
+          .update({ kml_data: req.body.kmlData })
+          .eq('id', (id as string).trim());
+
+        if (kmlJsonbError) {
+          console.warn('[Deep Sync] KML JSONB storage failed:', kmlJsonbError.message);
+        } else {
+          console.log('[Deep Sync] KML saved to JSONB field:', req.body.kmlData.length, 'files');
+        }
+        
+        // Also try to sync to separate table (optional - won't fail if table doesn't exist)
+        const kmlToSync = req.body.kmlData.map((kml: any) => ({
+          id: kml.id,
+          project_id: id,
+          name: kml.name,
+          kml_content: kml.kmlContent,
+          timestamp: kml.timestamp,
+          visible: kml.visible !== false,
+          color: kml.color || null
+        })).filter((kml: any) => kml.id);
+
+        if (kmlToSync.length > 0) {
+          syncTasks.push(
+            supabaseAdmin.from('project_kml').upsert(kmlToSync, { onConflict: 'id' })
+              .then(({ error: e }: any) => { 
+                if (e) {
+                  console.log('[Deep Sync] KML table sync skipped (table may not exist)');
+                }
+              })
+          );
+        }
+      }
+
+      // Wait for all sync tasks to complete
       if (syncTasks.length > 0) {
         await Promise.all(syncTasks).catch(err => console.error('[Deep Sync] Unhandled error:', err));
       }
 
-      // Attach the synced data to the updatedProject object so mapProjectFromDb can return a full object
+// Attach the synced data to the updatedProject object so mapProjectFromDb can return a full object
       const projectWithAssociations = {
         ...updatedProject,
         project_documents: req.body.documents || [],
-        project_site_photos: req.body.sitePhotos || []
+        project_site_photos: req.body.sitePhotos || [],
+        project_kml: req.body.kmlData || []  // Include KML data in response
       };
 
-      console.log(`[PUT Project] Updated ${id} with ${projectWithAssociations.project_documents.length} docs and ${projectWithAssociations.project_site_photos.length} photos`);
+      console.log(`[PUT Project] Updated ${id} with ${projectWithAssociations.project_documents.length} docs, ${projectWithAssociations.project_site_photos.length} photos, and ${projectWithAssociations.project_kml.length} KML files`);
 
       return res.status(200).json(mapProjectFromDb(projectWithAssociations));
     } catch (error: any) {
@@ -601,7 +703,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         }
       }
 
-      // Clean up associated site photos
+// Clean up associated site photos
       const { error: deletePhotosError } = await supabaseAdmin
         .from('project_site_photos')
         .delete()
@@ -609,6 +711,17 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       if (deletePhotosError) {
         console.error('Error deleting project site photos:', deletePhotosError);
+        // Log the error but do not throw.
+      }
+
+      // Clean up associated KML data
+      const { error: deleteKmlError } = await supabaseAdmin
+        .from('project_kml')
+        .delete()
+        .eq('project_id', projectIdToDelete);
+
+      if (deleteKmlError) {
+        console.error('Error deleting project KML:', deleteKmlError);
         // Log the error but do not throw.
       }
 

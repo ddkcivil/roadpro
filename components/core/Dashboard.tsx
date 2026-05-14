@@ -427,7 +427,7 @@ const financialChartData = useMemo(() => {
               </CardHeader>
 <CardContent className="h-[400px] pt-12 px-8 pb-8 min-h-[300px] min-w-0">
                 {hasMounted && (
-                <ResponsiveContainer width="100%" height="100%" debounce={1}>
+                <ResponsiveContainer width="100%" height="100%" minHeight={300} debounce={1}>
                   {sCurveData.length > 0 ? (
                     activeChart === 'scumulative' ? (
                       <LineChart data={sCurveData}>
@@ -586,7 +586,7 @@ const financialChartData = useMemo(() => {
               </CardHeader>
 <CardContent className="h-[300px] flex flex-col items-center justify-center p-8 min-w-0">
                 {hasMounted && (
-                <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                <ResponsiveContainer width="100%" height="100%" minHeight={200} debounce={100}>
                   <PieChart>
                     <Pie
                       data={boqCategoryData}

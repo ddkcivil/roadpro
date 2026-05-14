@@ -29,7 +29,7 @@ import MapModule from './MapModule'; // Import MapModule
 
 interface Props {
   project: Project;
-  onProjectUpdate: (project: Project) => void;
+  onProjectUpdate: (project: Partial<Project>) => void;
 }
 
 // Linear Progress View for Road Layers
@@ -628,7 +628,22 @@ if (result.success && result.road) {
                <MapModule 
                  project={project} 
                  onProjectUpdate={onProjectUpdate}
-                 settings={{}}
+                 settings={{
+                   companyName: '',
+                   currency: 'USD',
+                   vatRate: 0,
+                   fiscalYearStart: '',
+                   theme: 'light',
+                   googleSpreadsheetId: '',
+                   notifications: { 
+                     enableEmail: false, 
+                     enableInApp: false, 
+                     notifyUpcoming: false, 
+                     daysBefore: 0, 
+                     notifyOverdue: false, 
+                     dailyDigest: false 
+                   }
+                 }}
                  users={[]}
                />
              )}

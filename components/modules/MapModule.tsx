@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, startTransition } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap, LayerGroup, CircleMarker, LayersControl, Tooltip as MapTooltip } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap, LayerGroup, CircleMarker, LayersControl, Tooltip as MapTooltip, SVGOverlay } from 'react-leaflet';
 
 const { BaseLayer } = LayersControl;
 import { parseKML, ParsedKML, getKMLBounds } from '~/utils/kmlParser';
