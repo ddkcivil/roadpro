@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
       host: 'localhost',
       logLevel: 'info',
       port: 3000,
-      strictPort: true,
+      strictPort: false,
       proxy: {
         '/api': {
           target: 'http://localhost:3001',
@@ -24,7 +24,10 @@ export default defineConfig(({ mode }) => {
         usePolling: true,
         interval: 1000,
       },
-      cors: true
+      cors: true,
+      fs: {
+        allow: ['..'],
+      },
     },
     envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
     plugins: [react()],

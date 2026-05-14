@@ -6,18 +6,15 @@ import App from './App';
 import ErrorBoundary from './components/core/ErrorBoundary';
 import './index.css';
 
-// Configure PDF.js worker globally at application startup BEFORE any pdfjs code runs.
-// This must be synchronous to prevent the internal CDN fallback from being used.
+// Configure PDF.js worker.
+// Use CDN worker for reliable loading - avoids MIME type issues with local files
 import { GlobalWorkerOptions, version } from 'pdfjs-dist';
 
-// Use the CDN worker because Vite dev server does not serve .mjs files
-// from the public/ directory with the correct JavaScript MIME type.
-// The CDN worker is served from unpkg with proper MIME types.
-// For offline use, copy pdf.worker.min.mjs to public/pdfjs-worker/pdf.worker.min.js
-// and change workerSrc to '/pdfjs-worker/pdf.worker.min.js'
-GlobalWorkerOptions.workerSrc = `/pdfjs-worker/pdf.worker.min.js`;
+// Use the reliable CDN version to prevent MIME type errors
+// The CDN worker is served from unpkg with proper MIME types
+GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.mjs`;
 
-console.log(`PDF.js version ${version} initialized with local worker: ${GlobalWorkerOptions.workerSrc}`);
+console.log(`PDF.js version ${version} initialized with CDN worker: ${GlobalWorkerOptions.workerSrc}`);
 
 // Initialize and render
 const rootElement = document.getElementById('root');

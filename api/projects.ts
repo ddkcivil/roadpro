@@ -482,22 +482,10 @@ let docsData: any[] = [];
         }
       }
 
-// 3. Sync KML Data - Ensure it's stored in JSONB field (kml_data)
+// 3. Sync KML Data - Store in separate table only (skip JSONB field which may not exist in all schemas)
       if (req.body.kmlData && Array.isArray(req.body.kmlData)) {
-        // Store KML data in the JSONB field on the projects table
-        // This is the primary storage method that always works
-        const { error: kmlJsonbError } = await supabaseAdmin
-          .from('projects')
-          .update({ kml_data: req.body.kmlData })
-          .eq('id', (id as string).trim());
-
-        if (kmlJsonbError) {
-          console.warn('[Deep Sync] KML JSONB storage failed:', kmlJsonbError.message);
-        } else {
-          console.log('[Deep Sync] KML saved to JSONB field:', req.body.kmlData.length, 'files');
-        }
-        
-        // Also try to sync to separate table (optional - won't fail if table doesn't exist)
+        // Skip JSONB field update - it requires kml_data column which may not exist in all Supabase schemas
+        // Only sync to separate table (optional - won't fail if table doesn't exist)
         const kmlToSync = req.body.kmlData.map((kml: any) => ({
           id: kml.id,
           project_id: id,
@@ -514,6 +502,8 @@ let docsData: any[] = [];
               .then(({ error: e }: any) => { 
                 if (e) {
                   console.log('[Deep Sync] KML table sync skipped (table may not exist)');
+                } else {
+                  console.log('[Deep Sync] KML synced to table:', kmlToSync.length, 'files');
                 }
               })
           );
