@@ -663,9 +663,10 @@ if (result.success && result.road) {
               />
             </div>
 
-            <div className="space-y-2">
+<div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-primary">Category</Label>
               <select 
+                title="Road category selection"
                 className="w-full rounded-2xl border-none bg-muted/50 h-11 font-bold px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer"
                 value={editRoadData.category || ''}
                 onChange={e => setEditRoadData({...editRoadData, category: e.target.value})}
@@ -678,9 +679,10 @@ if (result.success && result.road) {
               </select>
             </div>
 
-            <div className="space-y-2">
+<div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-primary">Surface Type</Label>
               <select 
+                title="Road surface type selection"
                 className="w-full rounded-2xl border-none bg-muted/50 h-11 font-bold px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer"
                 value={editRoadData.surfaceType || ''}
                 onChange={e => setEditRoadData({...editRoadData, surfaceType: e.target.value})}
