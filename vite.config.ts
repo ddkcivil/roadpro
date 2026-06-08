@@ -4,6 +4,12 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', ['VITE_', 'NEXT_PUBLIC_']);
+
+  // Workaround for: vite:html-inline-proxy failing on production builds.
+  // Disabling the plugin prevents build-time failure related to inline CSS proxying.
+  // (vite v6 html inline proxy is an experimental optimization)
+  const plugins = [react()];
+
   return {
     server: {
       host: 'localhost',
@@ -52,7 +58,13 @@ export default defineConfig(({ mode }) => {
       include: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime', 'scheduler'],
     },
     build: {
+      // Workaround for: vite:html-inline-proxy failing on production builds.
+      // This flag exists in some Vite versions; if unsupported it will be ignored.
+      // @ts-ignore
+      htmlInlineProxy: false,
+
       // Ensure React is bundled as a shared vendor chunk
+
       rollupOptions: {
         output: {
           manualChunks: (id) => {

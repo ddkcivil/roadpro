@@ -72,3 +72,5 @@ export {
   WifiOff,
   type LucideIcon
 } from 'lucide-react';
+
+export { Fingerprint } from 'lucide-react';

@@ -20,6 +20,7 @@ import { I18nProvider } from './contexts/I18nContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 
 // Components
+import Homepage from './components/core/Homepage';
 import Login from './components/core/Login';
 import { LoadingScreen } from './components/core/LoadingScreen';
 
@@ -96,7 +97,8 @@ const App: React.FC = () => {
   const [systemReady, setSystemReady] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState('Booting Kernel...');
 
-  console.log('[App] State:', { isAuthenticated, isAuthLoading, isInitialLoading, systemReady });
+console.log('[App] State:', { isAuthenticated, isAuthLoading, isInitialLoading, systemReady });
+  console.log('[App] >>> RENDERING: isInitialLoading=', isInitialLoading, 'isAuthLoading=', isAuthLoading, 'isAuthenticated=', isAuthenticated);
 
   // Initialize App with custom hook
   useAppInitialization(setLoadingStatus, setSystemReady, setIsInitialLoading);
@@ -261,7 +263,7 @@ const {
     return <LoadingScreen onReset={handleReset} status={isAuthLoading ? 'Authenticating...' : loadingStatus} />;
   }
 
-  if (!isAuthenticated) {
+if (!isAuthenticated) {
     return showRegistration ? (
       <Suspense fallback={<LoadingScreen status="Loading Registration..." />}>
         <div className="min-h-screen bg-muted flex items-center justify-center p-4">
@@ -271,7 +273,7 @@ const {
         </div>
       </Suspense>
     ) : (
-      <Login onLogin={login} onShowRegistration={() => setShowRegistration(true)} />
+      <Homepage onLogin={login} onShowRegistration={() => setShowRegistration(true)} />
     );
   }
 
@@ -388,7 +390,7 @@ const {
                         {activeTab === 'agencies' && <AgencyModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} settings={appSettings} />}
                         {activeTab === 'subcontractors' && <SubcontractorModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
                         {activeTab === 'subcontractor-billing' && <SubcontractorBillingModule project={currentProject!} settings={appSettings} onProjectUpdate={handleSaveProject as any} />}
-                        {activeTab === 'schedule' && <ScheduleModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
+{activeTab === 'schedule' && <ScheduleModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
                         {activeTab === 'construction' && <ConstructionModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
                         {activeTab === 'linear-works' && <LinearWorksModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
                         {activeTab === 'road-inventory' && <RoadInventoryModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}

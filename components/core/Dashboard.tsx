@@ -12,7 +12,9 @@ import {
   Clock, TrendingUp, DollarSign, 
   Layers, Sparkles,
   FileDown, Settings, GripVertical, ShieldCheck, AlertTriangle, Info,
-  ChevronRight, CloudLightning
+  ChevronRight, CloudLightning,
+  HardHat, Building2, Users, Calendar, Award, Globe, MapPin,
+  Mail, Phone, Send
 } from 'lucide-react';
 
 import { Button } from '~/components/ui/button';
@@ -23,6 +25,9 @@ import { Checkbox } from '~/components/ui/checkbox';
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group';
 import { TooltipProvider } from '~/components/ui/tooltip';
 import { Separator } from '~/components/ui/separator';
+import { Input } from '~/components/ui/input';
+import { Label } from '~/components/ui/label';
+import { Textarea } from '~/components/ui/textarea';
 import { motion } from 'framer-motion';
 import { cn } from '~/lib/utils';
 import WeatherWidget from './WeatherWidget';
@@ -39,10 +44,22 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
   const [showWidgetSettings, setShowWidgetSettings] = useState(false);
   const [activeChart, setActiveChart] = useState<'periodic' | 'scumulative'>('scumulative');
   const [hasMounted, setHasMounted] = useState(false);
+  const [contactForm, setContactForm] = useState({ name: '', email: '', subject: '', message: '' });
 
   useEffect(() => {
     setHasMounted(true);
   }, []);
+
+  const handleContactChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setContactForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleContactSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    alert('Thank you for your message! We will get back to you soon.');
+    setContactForm({ name: '', email: '', subject: '', message: '' });
+  };
 
   const remainingDays = useMemo(() => {
     if (!project?.endDate) return null;
@@ -269,6 +286,101 @@ const financialChartData = useMemo(() => {
   return (
     <TooltipProvider>
       <div className="p-4 md:p-8 space-y-8 animate-in fade-in duration-700 min-h-full safe-pb">
+{/* Brand Header - Company Info Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <Card className="lg:col-span-4 rounded-[2.5rem] glass-card border-none overflow-hidden">
+            <CardContent className="p-8">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary rounded-2xl flex items-center justify-center text-white">
+                  <HardHat size={28} />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
+                    RoadMaster<span className="text-primary">.Pro</span>
+                  </h1>
+                  <p className="text-xs text-muted-foreground mt-1">Infrastructure Management System</p>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Comprehensive construction and infrastructure management platform designed to streamline project execution, enhance collaboration, and optimize resource allocation.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-4 rounded-[2.5rem] glass-card border-none overflow-hidden">
+            <CardHeader className="py-6 px-8 border-b border-white/5">
+              <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                Our Mission
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-8">
+              <p className="text-sm text-muted-foreground">
+                To revolutionize the construction industry by providing an integrated platform that connects all stakeholders, simplifies complex workflows, and delivers real-time insights.
+              </p>
+              <Separator className="my-4 opacity-10" />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center gap-2">
+                  <Calendar size={14} className="text-primary" />
+                  <span className="text-xs font-semibold">Real-time Scheduling</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Building2 size={14} className="text-primary" />
+                  <span className="text-xs font-semibold">Project Mgmt</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-4 rounded-[2.5rem] glass-card border-none overflow-hidden">
+            <CardHeader className="py-6 px-8 border-b border-white/5">
+              <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
+                Contact Us
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-8">
+              <div className="space-y-3 mb-4">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <MapPin size={12} />
+                  <span>Global Platform</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Mail size={12} />
+                  <span>info@roadmasterpro.com</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Phone size={12} />
+                  <span>+1 (234) 567-8900</span>
+                </div>
+              </div>
+              <form onSubmit={handleContactSubmit} className="space-y-2">
+                <Input
+                  name="email"
+                  placeholder="Your email"
+                  value={contactForm.email}
+                  onChange={handleContactChange}
+                  className="h-8 text-xs"
+                  required
+                />
+                <div className="flex gap-2">
+                  <Input
+                    name="message"
+                    placeholder="Quick message..."
+                    value={contactForm.message}
+                    onChange={handleContactChange}
+                    className="h-8 text-xs flex-1"
+                    required
+                  />
+                  <Button type="submit" size="sm" className="h-8 px-3">
+                    <Send size={12} />
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative pb-2">
           <div>
