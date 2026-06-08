@@ -53,9 +53,19 @@ export default defineConfig(({ mode }) => {
       }
     },
     // Ensure React and React-DOM are pre-bundled correctly
+    // Include ALL React-related packages to prevent forwardRef undefined errors
     optimizeDeps: {
       exclude: ['sql.js', 'react-pdf', 'pdfjs-dist', 'tesseract.js'],
-      include: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime', 'scheduler'],
+      include: [
+        'react',
+        'react-dom', 
+        'react/jsx-runtime', 
+        'react/jsx-dev-runtime', 
+        'scheduler',
+        'object-assign',
+        'loose-envify',
+        'js-tokens',
+      ],
     },
     build: {
       // Workaround for: vite:html-inline-proxy failing on production builds.
@@ -63,15 +73,38 @@ export default defineConfig(({ mode }) => {
       // @ts-ignore
       htmlInlineProxy: false,
 
-      // Ensure React is bundled as a shared vendor chunk
-
+      // NOTE: Removed manual chunk splitting for React to prevent 
+      // forwardRef undefined errors in production builds.
+      // The manualChunks function was causing React namespace resolution issues
+      // where React.forwardRef wasn't properly accessible.
+      // Let Vite handle chunking naturally to ensure correct module loading.
       rollupOptions: {
         output: {
           manualChunks: (id) => {
-            if (id.includes('node_modules/react') || id.includes('node_modules/scheduler')) {
-              return 'react-vendor';
-            }
-            if (id.includes('node_modules')) {
+            // Only split third-party non-React libraries
+            if (id.includes('node_modules') && !id.includes('node_modules/react')) {
+              // Group large libraries into separate chunks
+              if (id.includes('node_modules/@radix-ui')) {
+                return 'radix-ui';
+              }
+              if (id.includes('node_modules/@supabase')) {
+                return 'supabase';
+              }
+              if (id.includes('node_modules/recharts') || id.includes('node_modules/d3')) {
+                return 'charts';
+              }
+              if (id.includes('node_modules/@tanstack')) {
+                return 'table';
+              }
+              if (id.includes('node_modules/framer-motion')) {
+                return 'motion';
+              }
+              if (id.includes('node_modules/leaflet') || id.includes('node_modules/react-leaflet')) {
+                return 'maps';
+              }
+              if (id.includes('node_modules/lucide-react')) {
+                return 'icons';
+              }
               return 'vendor';
             }
           }
