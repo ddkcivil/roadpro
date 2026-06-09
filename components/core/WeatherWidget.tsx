@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { 
   Sun, Wind, Droplets, Cloud, CloudRain, CloudSnow, 
   CloudLightning, AlertTriangle, CloudFog, Thermometer,
-  CloudSun, Calendar, ChevronRight, List
+  CloudSun, Calendar, ChevronRight, List,
+  ArrowRight
 } from 'lucide-react';
 import { fetchWeather, fetchMonthlySummary, MonthlyWeatherSummary, fetchDailyWeatherHistory, DailyWeatherRecord } from '../../services/analytics/weatherService';
 import { WeatherInfo } from '../../types';
