@@ -99,7 +99,7 @@ GRANT ALL ON TABLE public.roads TO anon;
 
 -- Road types table
 CREATE TABLE IF NOT EXISTS public.road_types (
-    id integer NOT NULL,
+    id integer PRIMARY KEY,
     type_name varchar(100) NOT NULL,
     description text,
     standard_width numeric
