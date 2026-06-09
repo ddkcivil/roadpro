@@ -1,12 +1,21 @@
--- Add explicit UNIQUE constraint on projects.id column for upsert operations
--- This fixes the PostgreSQL error:
--- "there is no unique or exclusion constraint matching the ON CONFLICT specification"
--- Error code: 42P10
---
--- PostgreSQL PRIMARY KEY should normally work for upsert, but Supabase client
--- may require a named UNIQUE constraint. This migration ensures it exists.
+-- Add UNIQUE constraint on projects.id column for upsert operations
+-- This fixes error 42P10 for the POST /api/projects endpoint
 
--- Use ALTER TABLE to add constraint if not present (PostgreSQL 9.3+)
--- This is idempotent - it will succeed silently if constraint already exists
-ALTER TABLE public.projects 
-ADD CONSTRAINT IF NOT EXISTS projects_id_key UNIQUE (id);
+-- Use a DO block to safely handle errors if constraint already exists
+DO $$
+
+BEGIN
+    -- Try to add the constraint
+    -- If it already exists, we'll catch the error
+    ALTER TABLE public.projects ADD CONSTRAINT projects_id_key UNIQUE (id);
+    
+EXCEPTION
+    WHEN duplicate_table THEN
+        -- Constraint already exists, that's fine
+        NULL;
+    WHEN duplicate_object THEN
+        -- Constraint already exists, that's fine
+        NULL;
+END
+
+$$;

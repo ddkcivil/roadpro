@@ -58,8 +58,8 @@ const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onS
   const completedProjects = projects.filter(p => getProjectStatusType(p.startDate, p.endDate) === ProjectStatusLabel.COMPLETED).length;
   
   // Calculate portfolio value
-  const totalPortfolioValue = projects.reduce((sum, project) => {
-    const projectValue = project.agencies?.reduce((agencySum, agency) => 
+  const totalPortfolioValue = (projects || []).reduce((sum, project) => {
+    const projectValue = (project.agencies || []).reduce((agencySum, agency) => 
       agencySum + (agency.contractValue || 0), 0) || 0;
     return sum + projectValue;
   }, 0);

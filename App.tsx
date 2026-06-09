@@ -37,7 +37,7 @@ const ProjectModal = lazy(() => import('./components/core/ProjectModal'));
 const ProjectSelector = lazy(() => import('./components/core/ProjectSelector'));
 const GISRoadModule = lazy(() => import('./components/modules/GISRoadModule'));
 const GlobalSearch = lazy(() => import('./components/utilities/GlobalSearch'));
-const DataAnalysisModule = lazy(() => import('./components/core/DataAnalysisModule'));
+const DataAnalysisModule = lazy(() => import('./components/modules/administration/DataAnalysisModule'));
 const Dashboard = lazy(() => import('./components/core/Dashboard'));
 const BOQModule = lazy(() => import('./components/modules/BOQModule'));
 const BillingModule = lazy(() => import('./components/modules/BillingModule'));
@@ -402,7 +402,11 @@ if (!isAuthenticated) {
                         {activeTab === 'quality' && <QualityHub project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
                         {activeTab === 'lab' && <LabModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
                         {activeTab === 'environment' && <EnvironmentModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
-                        {activeTab === 'data-analysis' && <DataAnalysisModule />}
+                        {activeTab === 'data-analysis' && (
+                          <ProtectedTab permission={Permission.SETTINGS_UPDATE}>
+                            <DataAnalysisModule />
+                          </ProtectedTab>
+                        )}
                         {activeTab === 'messages' && (
                           <MessagesModule 
                             currentUser={currentUser}

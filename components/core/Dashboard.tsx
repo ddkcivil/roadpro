@@ -81,12 +81,12 @@ const stats = useMemo(() => {
     };
     
     // a = Sum of Ps(units)
-    const provisionalSum = boqItems
+    const provisionalSum = (boqItems || [])
         .filter(item => item.unit?.toUpperCase() === 'PS')
         .reduce((acc, item) => acc + ((item.quantity + (item.variationQuantity || 0)) * item.rate), 0);
         
     // b = Sum other than ps(unit)
-    const amountWithoutPS = boqItems
+    const amountWithoutPS = (boqItems || [])
         .filter(item => item.unit?.toUpperCase() !== 'PS')
         .reduce((acc, item) => acc + ((item.quantity + (item.variationQuantity || 0)) * item.rate), 0);
         
