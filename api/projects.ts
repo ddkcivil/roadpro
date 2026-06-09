@@ -325,30 +325,38 @@ let docsData: any[] = [];
     }
   }
 
-  if (req.method === 'POST') {
+if (req.method === 'POST') {
+    console.log('[POST Project] Starting project creation...');
     const userRole = (req as any).user?.role;
+    console.log('[POST Project] User role:', userRole);
     const r = userRole?.toUpperCase();
     const allowedRoles = ['ADMIN', 'PROJECT MANAGER', 'MANAGER', 'PROJECT_MANAGER'];
     const isProjectAuth = allowedRoles.includes(r);
     if (!isProjectAuth) {
+      console.warn('[POST Project] Unauthorized role:', r);
       return res.status(403).json({ error: 'Only admins or project managers can create projects' });
     }
 
     try {
       const projectData = { ...req.body };
+      console.log('[POST Project] Received project data:', JSON.stringify(projectData).slice(0, 500));
 
       // Get userId from auth middleware
       const userId = (req as any).user?.userId;
+      console.log('[POST Project] User ID:', userId);
       if (!userId) {
+        console.error('[POST Project] User ID not found in token');
         return res.status(401).json({ error: 'User ID not found in authentication token.' });
       }
 
       if (!projectData.name || !projectData.client) {
+        console.warn('[POST Project] Missing required fields:', { name: !!projectData.name, client: !!projectData.client });
         return res.status(400).json({ error: 'Project name and client are required' });
       }
 
       // Generate a unique project ID using UUID v4
       const projectId = projectData.id || randomUUID();
+      console.log('[POST Project] Project ID:', projectId);
 
       // Prepare the project data for upsert, ensuring the ID is set correctly.
       const projectDataForUpsert = mapProjectToDb({
@@ -357,10 +365,12 @@ let docsData: any[] = [];
         ownerId: userId, // Assuming userId is available from auth middleware
         updatedAt: new Date().toISOString()
       });
+      console.log('[POST Project] Mapped data for DB:', JSON.stringify(projectDataForUpsert).slice(0, 500));
 
       // Use upsert with ignoreDuplicates to handle potential race conditions gracefully.
       // If the ID already exists, Supabase will ignore the insert and not return an error.
       // We then check if any data was actually returned, indicating a successful insert.
+      console.log('[POST Project] Calling Supabase upsert...');
       const { data: upsertedProject, error } = await supabaseAdmin
         .from('projects')
         .upsert(projectDataForUpsert, { onConflict: 'id', ignoreDuplicates: true })
@@ -370,13 +380,15 @@ let docsData: any[] = [];
 
       if (error) {
         // Catch any errors other than duplicate key violations that upsert might return.
-        console.error('Error during project upsert:', error);
-        return res.status(500).json({ error: 'Failed to save project', details: error.message });
+        console.error('[POST Project] Supabase upsert error:', error.code, error.message, error.details);
+        return res.status(500).json({ error: 'Failed to save project', details: error.message, code: error.code });
       }
+
+      console.log('[POST Project] Upsert result:', upsertedProject ? 'success' : 'no data returned');
 
       // If upsertedProject is null/undefined, it means no row was inserted or updated because ignoreDuplicates prevented it (ID already existed and was ignored).
       if (!upsertedProject) {
-        console.warn(`Project with ID ${projectId} already exists and was not updated due to ignoreDuplicates.`);
+        console.warn(`[POST Project] Project with ID ${projectId} already exists and was not updated due to ignoreDuplicates.`);
         // If a project with this ID existed, we should still return a 409 Conflict,
         // as the operation did not result in a new creation or an explicit update that returned data.
         return res.status(409).json({
@@ -390,12 +402,12 @@ let docsData: any[] = [];
 
       // Create a dedicated storage bucket for the new project
       const bucketName = await createProjectBucket(supabaseAdmin, projectId);
-      console.log(`Created storage bucket for project ${projectId}: ${bucketName}`);
+      console.log(`[POST Project] Created storage bucket: ${bucketName}`);
 
       return res.status(201).json(mapProjectFromDb(upsertedProject));
 
     } catch (error: any) {
-      console.error('Failed to create project:', error);
+      console.error('[POST Project] Exception:', error.message, error.stack);
       // This catch block now handles errors that might occur before the upsert operation
       // or unexpected errors from the upsert operation itself if they bypass the specific error handling.
       return res.status(500).json({ error: 'Failed to create project', details: error.message });

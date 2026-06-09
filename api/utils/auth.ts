@@ -27,14 +27,28 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
       const { data: { user }, error: supError } = await supabaseAdmin.auth.getUser(token);
       
       if (!supError && user) {
-        // Resolve Role from Supabase profiles ONLY (single source of truth)
-        const { data: profile } = await supabaseAdmin
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
+        // Try to resolve Role from Supabase profiles - handle missing profile gracefully
+        let userRole = 'SITE_ENGINEER'; // Default role
+        try {
+          const { data: profile, error: profileError } = await supabaseAdmin
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle();
           
-        const userRole = (profile?.role || 'SITE_ENGINEER').toUpperCase();
+          if (profileError) {
+            console.warn(`[Auth] Profile lookup error for user ${user.id}: ${profileError.message}`);
+          }
+          
+          if (profile && profile.role) {
+            userRole = profile.role.toUpperCase();
+            console.log(`[Auth] Found profile for ${user.email} with role: ${userRole}`);
+          } else {
+            console.warn(`[Auth] No profile found for user ${user.id}, defaulting to SITE_ENGINEER`);
+          }
+        } catch (profileErr: any) {
+          console.warn(`[Auth] Exception fetching profile: ${profileErr?.message}`);
+        }
 
         (req as any).user = {
           userId: user.id,
@@ -45,7 +59,11 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
         // Minimal success log
         console.log(`[Auth] ✓ ${user.email} (${userRole}) authorized for ${req.method} ${req.url}`);
         return handler(req, res);
+      } else if (supError) {
+        console.error(`[Auth] Token verification failed: ${supError.message}`);
       }
+    } else {
+      console.error(`[Auth] Supabase not configured or admin client unavailable`);
     }
 
     // Token verification failed
@@ -53,7 +71,7 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
     return res.status(401).json({ error: 'Unauthorized: Invalid token', code: 'AUTH_FAILED' });
 
   } catch (err: any) {
-    console.error(`[Auth] 500 Critical Error: ${err.message}`);
+    console.error(`[Auth] 500 Critical Error: ${err.message}`, err.stack);
     return res.status(500).json({ error: 'Authentication failed', details: err.message });
   }
 };

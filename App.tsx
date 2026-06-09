@@ -80,7 +80,6 @@ import { AnimatePresence } from 'framer-motion';
 import { ProtectedTab } from './components/common/ProtectedTab';
 
 const App: React.FC = () => {
-  console.log('App.tsx: App component function started.');
   const auth = useAuth() || { isAuthenticated: false, userRole: UserRole.SITE_ENGINEER, userName: '', currentUserId: '', currentUser: null, loading: true, login: () => {}, logout: () => {} };
   const {
     isAuthenticated,
@@ -96,9 +95,6 @@ const App: React.FC = () => {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [systemReady, setSystemReady] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState('Booting Kernel...');
-
-console.log('[App] State:', { isAuthenticated, isAuthLoading, isInitialLoading, systemReady });
-  console.log('[App] >>> RENDERING: isInitialLoading=', isInitialLoading, 'isAuthLoading=', isAuthLoading, 'isAuthenticated=', isAuthenticated);
 
   // Initialize App with custom hook
   useAppInitialization(setLoadingStatus, setSystemReady, setIsInitialLoading);
@@ -139,8 +135,7 @@ const {
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editProject, setEditProject] = useState<Partial<Project> | null>(null);
 
-  useEffect(() => {
-    console.log('App.tsx: useEffect for fetchProjects triggered. Auth:', isAuthenticated, 'Hydrated:', isHydrated);
+useEffect(() => {
     if (isAuthenticated && isHydrated) {
       fetchProjects();
     }

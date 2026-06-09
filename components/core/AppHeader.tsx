@@ -25,13 +25,17 @@ import {
   LogOut, 
   ShieldCheck, 
   Mail as MailIcon, 
-  Phone as PhoneIcon 
+  Phone as PhoneIcon,
+  MapPin,
+  Cloud,
+  ThermometerSun
 } from 'lucide-react';
 import NotificationsBadge from './NotificationsBadge';
 import { OfflineIndicator } from '../common/OfflineIndicator';
 import { Project, UserWithPermissions } from '../../types';
 import { cn } from '~/lib/utils';
 import { toast } from 'sonner';
+import { fetchWeather } from '../../services/analytics/weatherService';
 
 interface AppHeaderProps {
   setSidebarOpen: (open: boolean) => void;
@@ -61,6 +65,46 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(({
 }) => {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const watchIdRef = useRef<number | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [weather, setWeather] = useState<any>(null);
+  const [location, setLocation] = useState<string>('');
+
+  // Update time every minute
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+// Fetch weather on mount
+  useEffect(() => {
+    const loadWeather = async () => {
+      try {
+        const lat = 27.7172;
+        const lng = 85.3240;
+        const data = await fetchWeather(lat, lng);
+        setWeather(data);
+      } catch {
+        // Weather data unavailable - silently fail, no critical impact
+      }
+    };
+    loadWeather();
+  }, []);
+
+  // Get location name
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`);
+            const data = await res.json();
+            setLocation(data.address?.city || data.address?.town || data.address?.village || data.address?.county || 'Unknown');
+          } catch { setLocation('Unknown'); }
+        },
+        () => setLocation('Unknown')
+      );
+    }
+  }, []);
 
   // Use a ref for currentProject to avoid stale closures in watchPosition
   const currentProjectRef = useRef(currentProject);
@@ -169,28 +213,44 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(({
         </div>
       </div>
 
-      <div className="flex items-center gap-4 md:gap-8">
-        {/* Intelligence Command - Modern Omni-search trigger */}
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="hidden xl:flex items-center gap-4 text-muted-foreground font-black px-6 bg-black/5 dark:bg-white/5 border border-white/10 rounded-2xl h-12 hover:bg-white/10 hover:border-primary/30 hover:text-primary transition-all duration-500 group shadow-sm"
-          onClick={() => {
-            const event = new KeyboardEvent('keydown', {
-              key: 'k',
-              ctrlKey: true,
-              bubbles: true
-            });
-            document.dispatchEvent(event);
-          }}
-        >
-          <Search className="h-4 w-4 group-hover:scale-110 transition-transform text-primary" />
-          <span className="text-[10px] tracking-[0.2em] uppercase opacity-60">Intelligence Command</span>
-          <div className="ml-4 pointer-events-none inline-flex h-7 select-none items-center gap-1.5 rounded-lg border border-white/10 bg-white dark:bg-slate-900 px-2.5 font-mono text-[10px] font-black text-muted-foreground/80 shadow-inner">
-            <span className="text-xs">⌘</span>K
+<div className="flex items-center gap-4 md:gap-8">
+        {/* Time, Weather, Location Display */}
+        <div className="flex items-center gap-3 md:gap-4">
+          {/* Time */}
+          <div className="flex flex-col items-end">
+            <span className="text-lg font-black tracking-tight text-foreground">
+              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+            <span className="text-[10px] font-medium text-muted-foreground uppercase">
+              {currentTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+            </span>
           </div>
-        </Button>
-        
+
+          <Separator orientation="vertical" className="h-8 opacity-10" />
+
+          {/* Weather */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-800/30">
+            {weather?.temp ? (
+              <>
+                <Cloud className="h-4 w-4 text-blue-500" />
+                <span className="text-sm font-bold text-blue-700 dark:text-blue-400">{weather.temp}°C</span>
+              </>
+            ) : (
+              <Cloud className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+
+          <Separator orientation="vertical" className="h-8 opacity-10" />
+
+          {/* Location */}
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium text-foreground max-w-[100px] truncate">
+              {location || currentProject?.location || 'Unknown'}
+            </span>
+          </div>
+        </div>
+
         <div className="flex items-center gap-3 md:gap-4">
           <div className="hidden sm:block">
             <OfflineIndicator />
