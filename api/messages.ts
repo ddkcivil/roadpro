@@ -146,20 +146,26 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'receiverId and projectId are required' });
     }
 
-    try {
+try {
       console.log('[Messages API] Attempting to insert message. Body:', JSON.stringify(req.body));
+      
+      // Build insert data dynamically to handle optional schema columns
+      const insertData: any = {
+        sender_id: currentUser.userId,
+        receiver_id: bodyReceiverId,
+        content: content || '',
+        project_id: bodyProjectId,
+        read: false,
+      };
+      
+      // Only add attachment fields if provided
+      if (attachmentUrl) insertData.attachment_url = attachmentUrl;
+      if (attachmentName) insertData.attachment_name = attachmentName;
+      if (attachmentType) insertData.attachment_type = attachmentType;
+
       const { data: newMessage, error } = await supabaseAdmin
         .from('messages')
-        .insert([{
-          sender_id: currentUser.userId,
-          receiver_id: bodyReceiverId,
-          content: content || '',
-          project_id: bodyProjectId,
-          read: false,
-          attachment_url: attachmentUrl || null,
-          attachment_name: attachmentName || null,
-          attachment_type: attachmentType || null,
-        }])
+        .insert([insertData])
         .select('*')
         .single();
 

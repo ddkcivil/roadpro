@@ -64,35 +64,30 @@ const WeatherWidget = () => {
 
   if (loading) {
     return (
-      <Card className="h-full border-border/40 shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            <Skeleton className="h-4 w-4 rounded-full" /> Loading Weather...
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-between items-center mb-4">
-            <Skeleton className="h-8 w-16" />
-            <Skeleton className="h-10 w-10 rounded-full" />
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="h-3 w-full" />
-            <Skeleton className="h-3 w-2/3" />
-          </div>
-        </CardContent>
-      </Card>
+      <CardContent className="h-full flex flex-col items-center justify-center p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Skeleton className="h-4 w-4 rounded-full" />
+          <span className="text-sm font-medium text-muted-foreground">Loading Weather...</span>
+        </div>
+        <div className="flex justify-between items-center w-full mb-4 max-w-[200px]">
+          <Skeleton className="h-8 w-16" />
+          <Skeleton className="h-10 w-10 rounded-full" />
+        </div>
+        <div className="space-y-2 w-full">
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-2/3" />
+        </div>
+      </CardContent>
     );
   }
 
   if (error || !weather) {
     return (
-      <Card className="h-full border-destructive/20 bg-destructive/5 shadow-sm">
-        <CardContent className="flex flex-col items-center justify-center h-full p-6 text-center">
-          <CloudLightning className="h-8 w-8 text-destructive/50 mb-2" />
-          <p className="text-sm text-destructive font-medium">Weather Unavailable</p>
-          <p className="text-xs text-muted-foreground">Could not connect to service.</p>
-        </CardContent>
-      </Card>
+      <CardContent className="flex flex-col items-center justify-center h-full p-6 text-center">
+        <CloudLightning className="h-8 w-8 text-destructive/50 mb-2" />
+        <p className="text-sm text-destructive font-medium">Weather Unavailable</p>
+        <p className="text-xs text-muted-foreground">Could not connect to service.</p>
+      </CardContent>
     );
   }
 
@@ -110,15 +105,9 @@ const WeatherWidget = () => {
 
   const currentMonthName = new Date().toLocaleString('default', { month: 'long' });
 
-  return (
-    <Card className="h-full border-border/40 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl shadow-md overflow-hidden group hover:shadow-lg transition-all duration-300">
-      {viewState === 'LIVE' && (
-        <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-          <WeatherIcon icon={weather.icon} className="w-24 h-24" />
-        </div>
-      )}
-      
-      <CardHeader className="pb-2 relative z-10">
+return (
+    <>
+      <CardHeader className="py-6 px-8 border-b border-white/5">
         <div className="flex justify-between items-center">
           <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
             {viewState === 'SUMMARY' ? <><Calendar size={14} className="text-primary" /> {currentMonthName} Summary</> : 
@@ -136,7 +125,7 @@ const WeatherWidget = () => {
         </div>
       </CardHeader>
       
-      <CardContent className="relative z-10">
+      <CardContent className="p-8">
         {viewState === 'SUMMARY' && monthlySummary ? (
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">
                 <div className="flex items-center justify-between mb-4">
@@ -278,9 +267,9 @@ const WeatherWidget = () => {
                     </div>
                 </div>
             </div>
-        )}
+)}
       </CardContent>
-    </Card>
+    </>
   );
 };
 

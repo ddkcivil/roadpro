@@ -781,8 +781,9 @@ const financialChartData = useMemo(() => {
 
 {/* Site Weather & Intelligence */}
           {isWidgetVisible('weather') && (
-            
-            <WeatherWidget />
+            <Card className="md:col-span-4 lg:col-span-4 rounded-[2.5rem] glass-card border-none overflow-hidden">
+              <WeatherWidget />
+            </Card>
           )}
         </div>
       </div>
