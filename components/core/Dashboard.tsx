@@ -70,20 +70,23 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   }, [project?.endDate]);
 
-  const stats = useMemo(() => {
-    if (!project || !project.boq) return { 
+const stats = useMemo(() => {
+    // DEFENSIVE: Ensure boq is always a valid array before calling array methods
+    const boqItems = Array.isArray(project?.boq) ? project.boq : [];
+    
+    if (!project || boqItems.length === 0) return { 
       earnedValue: 0, totalPlannedValue: 0, actualCost: 0, 
       spi: 0, cpi: 0, physPercent: 0, rfiOpen: 0, rfiClosed: 0, rfiOverdue: 0,
       costVariance: 0, scheduleVariance: 0
     };
     
     // a = Sum of Ps(units)
-    const provisionalSum = project.boq
+    const provisionalSum = boqItems
         .filter(item => item.unit?.toUpperCase() === 'PS')
         .reduce((acc, item) => acc + ((item.quantity + (item.variationQuantity || 0)) * item.rate), 0);
         
     // b = Sum other than ps(unit)
-    const amountWithoutPS = project.boq
+    const amountWithoutPS = boqItems
         .filter(item => item.unit?.toUpperCase() !== 'PS')
         .reduce((acc, item) => acc + ((item.quantity + (item.variationQuantity || 0)) * item.rate), 0);
         
@@ -94,8 +97,8 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
     // totalPlannedValue (Contract Value) = a + b + c
     const totalPlannedValue = provisionalSum + amountWithoutPS + vatAmount;
 
-    // Earned Value (EV) = Sum of (Completed Quantity * Rate)
-    const earnedValue = project.boq.reduce((acc, item) => acc + (item.completedQuantity * item.rate), 0);
+// Earned Value (EV) = Sum of (Completed Quantity * Rate)
+    const earnedValue = (Array.isArray(project.boq) ? project.boq : []).reduce((acc, item) => acc + ((item.completedQuantity || 0) * item.rate), 0);
     
     // Actual Cost (AC) = Subcontractor Payments + Agency Payments
     const subPayments = (project.subcontractorPayments || []).reduce((acc, p) => acc + p.amount, 0);

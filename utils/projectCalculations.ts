@@ -1,9 +1,10 @@
 import { BOQItem } from '../types';
 
-export const calculateProgress = (boq?: BOQItem[]) => {
-  if (!boq || boq.length === 0) return 0;
-  const total = boq.reduce((acc, item) => acc + (item.quantity * item.rate), 0);
-  const earned = boq.reduce((acc, item) => acc + (item.completedQuantity * item.rate), 0);
+export const calculateProgress = (boq?: BOQItem[] | any) => {
+  // DEFENSIVE: Ensure boq is always a valid array before calling reduce()
+  if (!boq || !Array.isArray(boq) || boq.length === 0) return 0;
+  const total = boq.reduce((acc: number, item: BOQItem) => acc + (item.quantity * item.rate), 0);
+  const earned = boq.reduce((acc: number, item: BOQItem) => acc + ((item.completedQuantity || 0) * item.rate), 0);
   return total > 0 ? Math.round((earned / total) * 100) : 0;
 };
 
