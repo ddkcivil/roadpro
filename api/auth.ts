@@ -8,19 +8,19 @@ console.log('[Auth API] Server started. Env check:', {
   hasSupabaseUrl: !!(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL),
   nodeEnv: process.env.NODE_ENV,
   vercelEnv: process.env.VERCEL,
-  vercelEnvType: process.env.VERCEL_ENV, // 'production', 'preview', or 'development'
+  vercelEnvType: process.env.VERCEL_ENV,
   vercelRegion: process.env.VERCEL_REGION,
   timestamp: new Date().toISOString()
 });
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   // ALWAYS set JSON header first
-res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Type', 'application/json');
 
-    try {
-      const { action } = req.query;
+  try {
+    const { action } = req.query;
 
-      if (req.method === 'POST') {
+    if (req.method === 'POST') {
       // --- LOGIN ---
       if (action === 'login') {
         const { email, password } = req.body;
@@ -30,33 +30,23 @@ res.setHeader('Content-Type', 'application/json');
           return res.status(400).json({ error: 'Email and password are required' });
         }
 
-        // Use Supabase Auth only
         const supabaseConfigured = isSupabaseConfigured();
-        console.log('[Auth API] Supabase configured:', supabaseConfigured);
-
         if (!supabaseConfigured) {
-          console.error('[Auth API] Supabase not configured - returning 503');
+          console.error('[Auth API] Supabase not configured');
           return res.status(503).json({ error: 'Authentication service not configured' });
         }
 
         let supabase = null;
         try {
-          console.log('[Auth API] Getting Supabase client...');
           supabase = getSupabasePublic();
-          console.log('[Auth API] Got Supabase client:', !!supabase);
-          
           if (!supabase) {
-            console.error('[Auth API] Supabase client is null');
             return res.status(503).json({ error: 'Authentication service not configured. Please contact administrator.' });
           }
           
-          console.log('[Auth API] Calling Supabase signInWithPassword');
           const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
             email,
             password,
           });
-
-          console.log('[Auth API] Supabase response:', { hasData: !!authData?.session, error: authError?.message });
 
           if (authError) {
             console.log('[Auth API] Supabase auth error:', authError.message);
@@ -64,36 +54,23 @@ res.setHeader('Content-Type', 'application/json');
           }
 
           if (!authData?.session) {
-            console.log('[Auth API] No session returned');
             return res.status(401).json({ error: 'Invalid email or password' });
           }
 
-          console.log('[Auth API] Supabase login successful');
           const userId = authData.user.id;
           
-          // Profile fetch with timeout and better error handling
           let profile = null;
           try {
-            const profilePromise = supabase
+            const { data: profileData } = await supabase
               .from('profiles')
               .select('*')
               .eq('id', userId)
               .single();
-            
-            // Add a timeout for profile fetch
-            const timeoutPromise = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
-            );
-            
-            const result = await Promise.race([profilePromise, timeoutPromise]) as any;
-            profile = result.data;
-            if (result.error) console.warn('[Auth API] Supabase profile fetch error:', result.error.message);
+            profile = profileData;
           } catch (profErr: any) {
-            console.warn('[Auth API] Profile fetch error:', profErr.message);
-            // Continue without profile - it's not critical
+            console.warn('[Auth API] Profile fetch exception:', profErr.message);
           }
 
-          // Set auth cookie
           res.setHeader('Set-Cookie', `roadmaster-access=${authData.session.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
 
           const safeUser = mapUserFromDb({
@@ -108,81 +85,43 @@ res.setHeader('Content-Type', 'application/json');
           });
         } catch (supEx: any) {
           console.error('[Auth API] Supabase auth exception:', supEx.message);
-          // Check for network/DNS issues
-          if (supEx.message.includes('fetch failed') || supEx.cause?.code === 'ENOTFOUND') {
-            return res.status(503).json({ error: 'Unable to connect to authentication service. Please check your internet connection.' });
-          }
-          return res.status(503).json({ error: 'Authentication temporarily unavailable. Please try again later.' });
+          return res.status(503).json({ error: 'Authentication temporarily unavailable.' });
         }
-       } // end login
+      } // end login
 
-       // --- SIGNUP ---
-       if (action === 'signup') {
-         const { email, password, name } = req.body;
-         console.log('[Auth API] Signup attempt for:', email);
+      // --- SIGNUP ---
+      if (action === 'signup') {
+        const { email, password, name } = req.body;
+        if (!email || !password || !name) {
+          return res.status(400).json({ error: 'Email, password, and name are required' });
+        }
 
-         if (!email || !password || !name) {
-           return res.status(400).json({ error: 'Email, password, and name are required' });
-         }
+        const supabase = getSupabasePublic();
+        if (!supabase) return res.status(503).json({ error: 'Auth service error' });
 
-         // Use Supabase Auth only
-         const supabaseConfigured = isSupabaseConfigured();
-         console.log('[Auth API] Supabase configured:', supabaseConfigured);
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { name } }
+        });
 
-         if (!supabaseConfigured) {
-           return res.status(503).json({ error: 'Authentication service not configured' });
-         }
+        if (!authError && authData?.user) {
+          return res.status(200).json({
+            user: { id: authData.user.id, email: authData.user.email, name },
+            message: 'Check your email to complete registration'
+          });
+        }
+        return res.status(400).json({ error: authError?.message || 'Signup failed' });
+      } // end signup
 
-         try {
-           console.log('[Auth API] Getting Supabase client...');
-           const supabase = getSupabasePublic();
-           console.log('[Auth API] Got Supabase client:', !!supabase);
-
-           if (supabase) {
-             console.log('[Auth API] Calling Supabase signUp');
-             const { data: authData, error: authError } = await supabase.auth.signUp({
-               email,
-               password,
-               options: {
-                 data: {
-                   name: name
-                 }
-               }
-             });
-
-             console.log('[Auth API] Supabase signUp response:', { hasUser: !!authData?.user, error: authError?.message });
-
-             if (!authError && authData?.user) {
-               console.log('[Auth API] Supabase signup successful');
-               // Note: Supabase sends a confirmation email by default
-               // We don't set a cookie because the user needs to verify email first
-               return res.status(200).json({
-                 user: {
-                   id: authData.user.id,
-                   email: authData.user.email,
-                   name: authData.user.user_metadata?.name || name
-                 },
-                 message: 'Check your email to complete registration'
-               });
-             } else {
-               console.log('[Auth API] Supabase auth error:', authError?.message);
-               return res.status(400).json({ error: authError?.message || 'Signup failed' });
-             }
-           }
-         } catch (supEx: any) {
-           console.error('[Auth API] Supabase signup exception:', supEx.message, supEx.stack);
-           return res.status(500).json({ error: 'Signup temporarily unavailable' });
-         }
-       } // end signup
-
-       // --- VERIFY ---
+      // --- VERIFY ---
       if (action === 'verify') {
         let token = null;
         const authHeader = req.headers.authorization;
-        if (authHeader && authHeader.startsWith('Bearer ')) {
+        if (authHeader?.startsWith('Bearer ')) {
           token = authHeader.split(' ')[1];
         } else if (req.headers.cookie) {
-          const cookies = (req.headers.cookie || '').split(';').reduce((acc: any, cookie) => {
+          const cookies = req.headers.cookie.split(';').reduce((acc: any, cookie) => {
             const [name, value] = cookie.trim().split('=');
             if (name) acc[name] = value;
             return acc;
@@ -190,61 +129,34 @@ res.setHeader('Content-Type', 'application/json');
           token = cookies['roadmaster-access'];
         }
 
-        if (!token) {
-          return res.status(401).json({ valid: false, error: 'No token provided' });
-        }
+        if (!token) return res.status(401).json({ valid: false, error: 'No token' });
 
-        // Use Supabase for verification
-        try {
-          const supabase = getSupabasePublic();
-          if (supabase) {
-            const { data: { user }, error: supError } = await supabase.auth.getUser(token);
-            if (!supError && user) {
-              return res.status(200).json({ 
-                valid: true, 
-                provider: 'supabase',
-                user: {
-                  userId: user.id,
-                  email: user.email,
-                  role: 'RESOLVE_VIA_PROFILE'
-                }
-              });
-            }
+        const supabase = getSupabasePublic();
+        if (supabase) {
+          const { data: { user } } = await supabase.auth.getUser(token);
+          if (user) {
+            return res.status(200).json({ valid: true, user: { userId: user.id, email: user.email } });
           }
-        } catch (e: any) {
-          console.warn('[Auth API] Supabase verify exception:', e.message);
         }
-
-        return res.status(401).json({ valid: false, error: 'Invalid or expired token' });
+        return res.status(401).json({ valid: false, error: 'Invalid token' });
       } // end verify
 
-// --- REFRESH ---
+      // --- REFRESH ---
       if (action === 'refresh') {
         const refreshToken = req.body?.refresh_token;
-        
-        if (!refreshToken) {
-          return res.status(400).json({ error: 'Refresh token required' });
-        }
+        if (!refreshToken) return res.status(400).json({ error: 'Refresh token required' });
 
-        try {
-          const supabase = getSupabasePublic();
-          if (supabase) {
-            const { data: sessionData, error: refreshError } = await supabase.auth.refreshSession({
-              refresh_token: refreshToken,
-            });
+        const supabase = getSupabasePublic();
+        if (supabase) {
+          const { data: sessionData, error: refreshError } = await supabase.auth.refreshSession({
+            refresh_token: refreshToken,
+          });
 
-            if (!refreshError && sessionData?.session) {
-              return res.status(200).json({
-                session: sessionData.session,
-                token: sessionData.session.access_token
-              });
-            }
+          if (!refreshError && sessionData?.session) {
+            return res.status(200).json({ session: sessionData.session, token: sessionData.session.access_token });
           }
-          return res.status(401).json({ error: 'Failed to refresh session' });
-        } catch (e: any) {
-          console.error('[Auth API] Refresh error:', e.message);
-          return res.status(500).json({ error: 'Failed to refresh session' });
         }
+        return res.status(401).json({ error: 'Failed to refresh session' });
       }
 
       // --- LOGOUT ---
@@ -257,7 +169,7 @@ res.setHeader('Content-Type', 'application/json');
     return res.status(405).json({ error: 'Method Not Allowed' });
   } catch (criticalErr: any) {
     console.error('[Auth API] CRITICAL UNCAUGHT ERROR:', criticalErr);
-    return res.status(500).json({ error: 'Internal Server Error', message: criticalErr.message });
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 

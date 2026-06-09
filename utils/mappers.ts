@@ -27,33 +27,17 @@ function normalizeRole(role: string): string {
 export function mapUserFromDb(user: any | null): any {
   if (!user) return null;
 
-  // Detect if user is from Supabase (has id) or MongoDB (has _id)
-  const isSupabase = !!user.id && !user._id;
-  
-  if (isSupabase) {
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.full_name || 'User',
-      full_name: user.full_name,
-      role: normalizeRole(user.role),
-      avatar_url: user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random`,
-      avatar: user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random`,
-      phone: user.phone || '',
-      last_seen: user.last_seen || null,
-    };
-  }
-
-  // Legacy/local fallback mapping (for data shaped like Mongo docs)
-  const { passwordHash, ...safeUser } = user;
-  const id = user.id ?? user._id;
+  // Map from Supabase (has id)
   return {
-    ...safeUser,
-    id,
+    id: user.id,
+    email: user.email,
     name: user.full_name || 'User',
+    full_name: user.full_name,
     role: normalizeRole(user.role),
-    last_seen: user.last_seen || null,
     avatar_url: user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random`,
+    avatar: user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random`,
+    phone: user.phone || '',
+    last_seen: user.last_seen || null,
   };
 }
 

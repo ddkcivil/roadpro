@@ -1,4 +1,4 @@
-import { Road } from './roadTypes';
+import { Road } from '../../utils/roadTypes';
 
 export enum RFIStatus {
   OPEN = 'Open',
@@ -364,7 +364,7 @@ export interface DocumentVersion {
   date: string;
   size: string;
   filePath: string; // Path to the actual file
-  blobUrl?: string; // URL to the file in Vercel Blob
+  blobUrl?: string; // URL to the file in Supabase Storage
   uploadedBy: string;
   notes?: string;
 }

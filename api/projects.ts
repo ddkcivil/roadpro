@@ -347,10 +347,6 @@ let docsData: any[] = [];
         return res.status(400).json({ error: 'Project name and client are required' });
       }
 
-      // Remove MongoDB specific fields if any are accidentally passed
-      delete projectData._id;
-      delete projectData.__v;
-
       // Generate a unique project ID using UUID v4
       const projectId = projectData.id || randomUUID();
 
@@ -419,10 +415,6 @@ let docsData: any[] = [];
 
     try {
       const projectData = { ...req.body };
-
-      // Remove MongoDB specific fields if any are accidentally passed
-      delete projectData._id;
-      delete projectData.__v;
 
       // Remove id field to prevent duplicate key constraint violation
       delete projectData.id;

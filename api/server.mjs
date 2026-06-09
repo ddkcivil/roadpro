@@ -17,19 +17,29 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
+
+// Simple request logger
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`[API Server] ${req.method} ${req.url} - ${res.statusCode} (${duration}ms)`);
+  });
+  next();
+});
+
 app.use(express.json({
-  limit: '25mb', // Increased to handle larger image uploads with base64 data
-  // Add custom error handler for JSON parsing errors
-  onError: (err, req, res, next) => {
-    if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-      console.error('[API Server] JSON Parsing Error:', err.message);
-      // Ensure a JSON response is sent for invalid JSON
-      return res.status(400).json({ error: 'Invalid JSON body', details: err.message });
-    }
-    // Pass other errors to the next middleware
-    next(err);
-  }
+  limit: '25mb'
 }));
+
+// JSON Parsing Error Handler
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    console.error('[API Server] JSON Parsing Error:', err.message);
+    return res.status(400).json({ error: 'Invalid JSON body', details: err.message });
+  }
+  next(err);
+});
 
 app.use(express.urlencoded({ extended: true }));
 
@@ -142,6 +152,17 @@ async function registerStaffRoutes() {
 }
 
 registerRoutes().then(() => registerStaffRoutes()).then(() => {
+  // Global Error Handler
+  app.use((err, req, res, next) => {
+    console.error('[API Server] Global Error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        error: 'Internal Server Error', 
+        details: process.env.NODE_ENV === 'development' ? err.message : undefined 
+      });
+    }
+  });
+
   const PORT = process.env.PORT || 3001;
   app.listen(PORT, () => {
     console.log(`

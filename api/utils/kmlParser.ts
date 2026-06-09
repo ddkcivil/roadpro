@@ -17,7 +17,7 @@ import type {
   Position
 } from 'geojson';
 import { generateUniqueId } from './uuidUtils.js';
-import { Road, Alignment, Structure, ChainagePoint, Point as ProjectPoint, formatChainage } from './roadTypes';
+import { Road, Alignment, Structure, ChainagePoint, Point as ProjectPoint, formatChainage } from '../../utils/roadTypes';
 
 // Helper to convert Leaflet-like LatLngExpression ([lat, lng]) to Turf's [lng, lat]
 function toTurfCoords(coords: ProjectPoint | [number, number]): [number, number] {

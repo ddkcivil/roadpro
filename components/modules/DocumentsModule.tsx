@@ -362,7 +362,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
               const { fileToCompressedBase64 } = await import('../../utils/data/imageUtils');
               const base64Data = await fileToCompressedBase64(f);
               
-              // 2. Upload to binary store (Vercel Blob via Postgres)
+              // 2. Upload to binary store (Supabase Storage)
               const uploadResult = await realApiService.uploadFile({
                   name: f.name,
                   contentType: f.type,

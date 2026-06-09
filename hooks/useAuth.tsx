@@ -1,6 +1,6 @@
 /**
  * Authentication Hook
- * Handles user login, logout, and persistent session management using custom MongoDB Auth.
+ * Handles user login, logout, and persistent session management using Supabase.
  */
 import { useState, useEffect, useMemo, startTransition, useCallback } from 'react';
 import { UserRole, User, UserWithPermissions } from '../types';

@@ -93,7 +93,7 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole,
             const { fileToCompressedBase64 } = await import('../../utils/data/imageUtils');
             const base64Data = await fileToCompressedBase64(tempFile);
 
-            // 2. Upload to binary store (MongoDB)
+            // 2. Upload to binary store (Supabase Storage)
             const { realApiService } = await import('../../services/api/realApiService');
             const uploadResult = await realApiService.uploadFile({
                 name: tempFile.name,

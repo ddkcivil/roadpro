@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Project, ScheduleTask, UserRole, TaskDependency, ResourceAllocation, Milestone, RFI } from '../../types';
+import { Project, ScheduleTask, UserRole, TaskDependency, ResourceAllocation, Milestone, RFI, AppSettings } from '../../types';
 import {
     Plus, Edit2, Trash2, Search, LayoutList,
     BarChartHorizontal, Save, Calendar,
@@ -27,8 +27,9 @@ import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs'; // Shadcn Ta
 
 interface Props {
     project: Project;
+    settings?: AppSettings;
     userRole: UserRole;
-    onProjectUpdate: (project: Project) => void;
+    onProjectUpdate: (project: Partial<Project>) => void;
 }
 
 
@@ -39,7 +40,7 @@ const SIDEBAR_WIDTH = 250;
 type ZoomLevel = 'MONTH' | 'WEEK' | 'DAY';
 type DragType = 'MOVE' | 'RESIZE_START' | 'RESIZE_END' | 'PROGRESS';
 
-const ScheduleModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
+const ScheduleModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpdate }) => {
   // Hardcoding colors or mapping to Tailwind equivalents as Material-UI theme is removed
   const themeColors = {
       primary: {

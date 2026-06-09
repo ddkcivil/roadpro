@@ -3,7 +3,7 @@ import { UserRole } from '../../types';
 import { PermissionsService } from '../../services/auth/permissionsService';
 import { validateEmail } from '../../utils/validation/validationUtils';
 import { AuditService } from '../../services/analytics/auditService';
-import { ArrowLeft, Mail, Lock, Fingerprint, Loader2 } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, Fingerprint, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
@@ -44,6 +44,7 @@ const Login: React.FC<Props> = ({ onLogin, onShowRegistration }) => {
   // Login State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Reset State
   const [resetEmail, setResetEmail] = useState('');
@@ -188,7 +189,20 @@ console.log(`[Login] Attempting custom auth for ${email}`);
                     </div>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} className={cn("pl-10", errors.password && "border-destructive")} />
+                      <Input 
+                        id="password" 
+                        type={showPassword ? "text" : "password"} 
+                        value={password} 
+                        onChange={e => setPassword(e.target.value)} 
+                        className={cn("pl-10 pr-10", errors.password && "border-destructive")} 
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                     {errors.password && <p className="text-[10px] text-destructive font-medium">{errors.password}</p>}
                   </div>

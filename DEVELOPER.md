@@ -38,11 +38,11 @@ Services are located in `src/services/` and are organized by concern:
 
 ## Security Standards
 
-1. **Authentication**: Supabase-First architecture. Supabase handles Identity, Auth, and user profiles. MongoDB stores only GIS and application-specific data, using Supabase UIDs to reference users.
+1. **Authentication**: Supabase-Only architecture. Supabase handles Identity, Auth, user profiles, GIS, and all application-specific data.
 2. **CSRF**: Double-submit cookie pattern implemented for all POST/PUT/DELETE requests.
 3. **Data Protection**: Sensitive data in `localStorage` (like JWTs) is encrypted using `crypto-js`.
 4. **Input Sanitization**: All user-provided data is sanitized via `DOMPurify` before being processed or saved.
-5. **RBAC**: Granular permission checks using the `HasPermission` and `ProtectedTab` components, resolving roles primarily from Supabase profiles, with fallback to legacy MongoDB data for migration compatibility.
+5. **RBAC**: Granular permission checks using the `HasPermission` and `ProtectedTab` components, resolving roles from Supabase profiles.
 
 ## UI & UX Patterns
 

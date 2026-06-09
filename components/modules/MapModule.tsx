@@ -69,7 +69,11 @@ import {
 } from "~/components/ui/dialog";
 
 // Fix for default markers in react-leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+if (L?.Icon?.Default?.prototype) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
+}
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: '/leaflet/marker-icon-2x.png',
   iconUrl: '/leaflet/marker-icon.png',

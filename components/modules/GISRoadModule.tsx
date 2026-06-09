@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, Suspense, lazy, ComponentType } from 'react';
-import { Project, Road, Alignment, Structure } from '../../types';
+import { Project, Road, Alignment, Structure, AppSettings } from '../../types';
 import { 
     Plus, Trash2, Map as MapIcon, Layers, 
     Upload, FileJson, Info, Ruler, 
@@ -85,7 +85,13 @@ const LinearProgressView: React.FC<{ road: Road }> = ({ road }) => {
   );
 };
 
-const GISRoadModule: React.FC<{ project: Project; onProjectUpdate: (project: Partial<Project>) => void }> = ({ project, onProjectUpdate }) => {
+interface GISRoadModuleProps {
+  project: Project;
+  onProjectUpdate: (project: Partial<Project>) => void;
+  settings: AppSettings;
+}
+
+const GISRoadModule: React.FC<GISRoadModuleProps> = ({ project, onProjectUpdate, settings }) => {
   const [activeTab, setActiveTab] = useState<'map' | 'inventory' | 'analytics'>('map');
   const [selectedRoadId, setSelectedRoadId] = useState<string | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -320,6 +326,7 @@ setIsProcessing(true);
               <MapModule 
                 project={project} 
                 onProjectUpdate={onProjectUpdate}
+                settings={settings}
               />
             </Suspense>
           </div>
