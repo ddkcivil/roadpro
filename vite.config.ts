@@ -88,7 +88,9 @@ export default defineConfig(({ mode }) => {
       // Let Vite handle all chunking naturally to ensure correct module loading.
       rollupOptions: {
         output: {
-          // No manualChunks - let Vite bundle everything optimally
+          manualChunks: {
+            vendor: ['react', 'react-dom', 'recharts'],
+          },
         },
       },
       chunkSizeWarningLimit: 1000,
