@@ -31,5 +31,11 @@ dist-ssr
 .env
 .env*.local
 
+# Security: Token files (contains sensitive data)
+cookies.txt
+test_token.txt
+*.token
+
 # Test reports and playwright
 test-results/
+.env*
