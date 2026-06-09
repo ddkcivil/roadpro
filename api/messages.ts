@@ -147,6 +147,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     }
 
     try {
+      console.log('[Messages API] Attempting to insert message. Body:', JSON.stringify(req.body));
       const { data: newMessage, error } = await supabaseAdmin
         .from('messages')
         .insert([{
@@ -162,11 +163,14 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .select('*')
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Messages API] Supabase Insert Error:', JSON.stringify(error));
+        throw error;
+      }
       return res.status(201).json(mapMessageFromDb(newMessage));
     } catch (error: any) {
       console.error('[Messages API] Error creating message:', error);
-      return res.status(500).json({ error: 'Failed to create message', details: error.message });
+      return res.status(500).json({ error: 'Failed to create message', details: error.message, code: error.code, hint: error.hint, message: error.message });
     }
   }
 
