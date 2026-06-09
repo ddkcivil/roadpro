@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserRole } from '../../types';
-import { UserPlus, Upload, X, Eye, EyeOff, Fingerprint, Mail, Lock, User, Phone, ArrowLeft, Loader2 } from 'lucide-react';
+import { UserPlus, Upload, X, Eye, EyeOff, Fingerprint, Mail, Lock, User, Phone, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 
 import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
