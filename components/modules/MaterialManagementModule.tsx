@@ -27,11 +27,18 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
   const purchaseOrders = project.purchaseOrders || [];
 
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
-  const [newMaterial, setNewMaterial] = useState({ name: '', category: '', unit: '', quantity: 0, reorderLevel: 0 });
+  const [newMaterial, setNewMaterial] = useState({ name: '', category: '', unit: '', quantity: 0 });
 
   const handleRegisterMaterial = () => {
     if (!newMaterial.name || !newMaterial.unit) {
       toast.error("Name and Unit are required");
+      return;
+    }
+
+    // Check for duplicates
+    const isDuplicate = materials.some(m => m.name.toLowerCase() === newMaterial.name.toLowerCase());
+    if (isDuplicate) {
+      toast.error("Material with this name already exists");
       return;
     }
 
@@ -49,9 +56,23 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
       materials: [...materials, material]
     });
 
-    setNewMaterial({ name: '', category: '', unit: '', quantity: 0, reorderLevel: 0 });
+    setNewMaterial({ name: '', category: '', unit: '', quantity: 0 });
     setIsRegisterOpen(false);
     toast.success("Material Registered Successfully");
+  };
+
+  const handleNameChange = (name: string) => {
+    setNewMaterial(prev => ({ ...prev, name }));
+    // Auto-fill category and unit if material exists
+    const existingMaterial = materials.find(m => m.name.toLowerCase() === name.toLowerCase());
+    if (existingMaterial) {
+      setNewMaterial(prev => ({ 
+        ...prev, 
+        name, 
+        category: existingMaterial.category || '', 
+        unit: existingMaterial.unit || '' 
+      }));
+    }
   };
 
   // Prepare analytics data
@@ -122,7 +143,7 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
                       <Label>Material Name</Label>
-                      <Input value={newMaterial.name} onChange={e => setNewMaterial({...newMaterial, name: e.target.value})} />
+                      <Input value={newMaterial.name} onChange={e => handleNameChange(e.target.value)} />
                     </div>
                     <div className="grid gap-2">
                       <Label>Category</Label>
