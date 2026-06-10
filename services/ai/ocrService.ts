@@ -73,6 +73,60 @@ class OCRService {
       }
 
       // If no embedded text found, this is likely a scanned PDF
+      // Fall back to rendering pages to images and running OCR via Tesseract
+      if (!hasTextContent) {
+        console.log('No embedded text found in PDF. Falling back to Tesseract OCR for scanned document...');
+        try {
+          const Tesseract = await import('tesseract.js');
+          
+            // Render each page to an image canvas and run OCR
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          for (let i = 1; i <= pageCount; i++) {
+            const page = await pdf.getPage(i);
+            const viewport = page.getViewport({ scale: 2.0 }); // 2x for better OCR accuracy
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            
+            await page.render({ canvas, viewport } as any).promise;
+            
+            // Convert canvas to blob for Tesseract
+            const blob = await new Promise<Blob>((resolve) => {
+              canvas.toBlob((b) => resolve(b!), 'image/png');
+            });
+            
+            const imageFile = new File([blob], `page-${i}.png`, { type: 'image/png' });
+            
+            const tesseractResult = await Tesseract.recognize(imageFile, 'eng', {
+              logger: (m) => console.log(`[OCR Page ${i}]`, m.status, m.progress),
+            });
+            
+            fullText += `--- Page ${i} (OCR) ---\n${tesseractResult.data.text}\n\n`;
+            console.log(`Page ${i} OCR completed. Text length: ${tesseractResult.data.text.length}`);
+          }
+          
+          return {
+            text: fullText || 'No text content found in PDF.',
+            confidence: 85,
+            boundingBoxes: []
+          };
+        } catch (ocrError) {
+          console.error('Tesseract OCR fallback failed:', ocrError);
+          return {
+            text: fullText,
+            confidence: 0,
+            boundingBoxes: []
+          };
+        }
+      }
+
+      console.log('PDF text extraction completed. Length:', fullText.length);
+
+      return {
+        text: fullText || 'No text content found in PDF.',
+        confidence: 95,
+        boundingBoxes: []
       };
     } catch (error) {
       console.error('Real PDF extraction failed, falling back to basic analysis:', error);
