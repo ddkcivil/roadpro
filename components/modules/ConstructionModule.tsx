@@ -600,7 +600,7 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                       <Button variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive h-6 w-6" onClick={() => handleRemoveComponent(idx)}>
                                           <X className="h-4 w-4" />
                                       </Button>
-                                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
+                                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-2">
                                           <div className="grid gap-1.5">
 <Label htmlFor={`comp-name-${idx}`} className="text-[9px] font-black uppercase tracking-widest opacity-60">Component Name</Label>
                                               <Input id={`comp-name-${idx}`} value={comp.name || ''} onChange={e => handleUpdateComponent(idx, 'name', e.target.value)} className="h-8 text-xs rounded-lg" />
@@ -619,6 +619,18 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                                 updatedComponents[idx] = updated;
                                                 setNewStructure(prev => ({ ...prev, components: updatedComponents }));
                                             }} />
+                                          </div>
+                                          <div className="grid gap-1.5">
+                                              <Label htmlFor={`comp-sub-${idx}`} className="text-[9px] font-black uppercase tracking-widest opacity-60">Subcontractor</Label>
+                                              <Select value={comp.subcontractorId || 'none'} onValueChange={(value: string) => handleUpdateComponent(idx, 'subcontractorId', value === 'none' ? '' : value)}>
+                                                  <SelectTrigger id={`comp-sub-${idx}`} className="h-8 text-[10px] rounded-lg">
+                                                      <SelectValue placeholder="Select..." />
+                                                  </SelectTrigger>
+                                                  <SelectContent>
+                                                      <SelectItem value="none">Internal</SelectItem>
+                                                      {project.agencies?.filter(a => a.type === 'subcontractor').map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                                                  </SelectContent>
+                                              </Select>
                                           </div>
                                       </div>
                                   </div>
