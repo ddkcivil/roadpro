@@ -46,6 +46,7 @@ import { useRateLimit } from '~/hooks/useRateLimit';
 import { toast } from 'sonner';
 import { fetchWeather } from '~/services/analytics/weatherService';
 import { WeatherInfo } from '~/types';
+import { Waves } from '~/components/ui/waves';
 
 // Weather icon component
 const WeatherIcon = ({ icon, className }: { icon: string; className?: string }) => {
@@ -217,6 +218,12 @@ try {
     <div className="min-h-screen bg-slate-950 text-white overflow-x-hidden">
       {/* Animated Background */}
       <div className="fixed inset-0 z-0">
+        <Waves 
+          backgroundColor="transparent" 
+          strokeColor="rgba(255,255,255,0.03)" 
+          className="opacity-50"
+        />
+        
         {/* neon blobs */}
         <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
         <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />

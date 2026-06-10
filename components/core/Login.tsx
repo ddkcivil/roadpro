@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { ErrorSummary } from '~/components/ui/error-summary';
 import { useRateLimit } from '~/hooks/useRateLimit';
 import { toast } from 'sonner';
+import { Waves } from '~/components/ui/waves';
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -135,8 +136,13 @@ console.log(`[Login] Attempting custom auth for ${email}`);
 
   return (
     <div className="min-h-screen bg-muted flex items-center justify-center p-4 relative overflow-hidden safe-pt safe-pb">
-      <div className="absolute top-[10%] left-[15%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-[10%] right-[15%] w-[400px] h-[400px] bg-purple-500/5 rounded-full blur-3xl" />
+      <div className="absolute inset-0 z-0">
+        <Waves 
+          backgroundColor="transparent" 
+          strokeColor="rgba(0,0,0,0.03)" 
+          className="opacity-40"
+        />
+      </div>
 
       <div className="relative z-10 w-full max-w-md">
         <div className="mb-6 sm:mb-8 text-center">

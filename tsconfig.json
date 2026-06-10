@@ -1,8 +1,12 @@
 {
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "vite-env.d.ts"
+  ],
   "compilerOptions": {
     "target": "ES2022",
     "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "experimentalDecorators": true,
