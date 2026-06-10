@@ -136,7 +136,7 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
 
     return (
       <div 
-        style={style} 
+        style={{ ...style, position: 'absolute' }} 
         className="px-6 py-1"
       >
         {isNewDay && (
