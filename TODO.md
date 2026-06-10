@@ -1,44 +1,23 @@
-# TODO - Fix MapModule.tsx TypeScript Errors
+# Environment Mismatch Fix - TODO
 
 ## Task
-Fix TypeScript syntax errors in MapModule.tsx at lines ~141, 166, 174-225
+Fix environment variable mismatches between frontend (Vite) and backend (Express API)
 
 ## Steps
-- [x] 1. Analyze the errors and understand the issues
-- [x] 2. Fix the try block closing brace (around line 163)
-- [x] 3. Fix the addChainageMarkers function declaration (around line 174)
-- [x] 4. Verify the fixes resolve all TypeScript errors
 
-## Status: COMPLETED
+- [x] 1. Update vite.config.ts to add SUPABASE_URL and SUPABASE_ANON_KEY fallbacks
+- [x] 2. Update .env.example with complete variable documentation
+- [x] 3. Verify the fixes work correctly
 
----
+## Details
 
-# TODO - Fix "Cannot read properties of null (reading 'useState')" Error
+### Problem Identified
+1. Frontend expects: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
+2. Backend expects: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
+3. Variable name mismatch causes configuration failures
 
-## Task
-System crash error at runtime in MapModule - This was previously caused by leaflet-geosearch v4 compatibility issues
+### Solution
+Update vite.config.ts define block to include fallback variables that match backend expectations
 
-## Root Cause Analysis
-1. The error "Cannot read properties of null (reading 'useState')" is a React runtime error that typically occurs when:
-   - useState is called outside a React component function
-   - There's a circular import issue
-   - Stale build cache artifacts
-
-2. MapModule.tsx already had comments documenting that leaflet-geosearch v4 was previously causing this error:
-   - The imports were already commented out/disabled as a fix
-   - The SearchField component was modified to return null
-
-3. The remaining error was likely caused by stale cache/build artifacts
-
-## Fix Applied
-- [x] 1. Cleaned Vite build cache
-- [x] 2. Reinstalled node_modules
-- [x] 3. Rebuilt the project
-- [x] 4. Verified build completes without errors
-
-## Build Output
-- ✓ 3436 modules transformed
-- ✓ MapModule built successfully (55.89 kB)
-- ✓ Dev server running on http://localhost:3000/
-
-## Status: COMPLETED
+### Note
+Build has a pre-existing error about missing sqliteService module (unrelated to env variables).
