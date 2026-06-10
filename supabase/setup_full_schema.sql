@@ -19,8 +19,10 @@ CREATE TABLE IF NOT EXISTS public.messages (
     attachment_type text
 );
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "messages_select" ON messages FOR SELECT TO authenticated USING (true);
-CREATE POLICY "messages_insert" ON messages FOR INSERT TO authenticated WITH CHECK (true);
+DROP POLICY IF EXISTS "messages_select" ON public.messages;
+CREATE POLICY "messages_select" ON public.messages FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "messages_insert" ON public.messages;
+CREATE POLICY "messages_insert" ON public.messages FOR INSERT TO authenticated WITH CHECK (true);
 ALTER TABLE public.messages OWNER TO postgres;
 GRANT ALL ON TABLE public.messages TO authenticated;
 GRANT ALL ON TABLE public.messages TO anon;
