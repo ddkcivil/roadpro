@@ -27,7 +27,7 @@ GRANT ALL ON TABLE public.messages TO anon;
 
 -- Projects table  
 CREATE TABLE IF NOT EXISTS public.projects (
-    id text NOT NULL,
+    id text PRIMARY KEY,
     name text NOT NULL,
     client text NOT NULL,
     owner_id uuid,
