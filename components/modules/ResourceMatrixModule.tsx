@@ -563,24 +563,6 @@ const handleSaveResource = () => {
                 </SelectContent>
               </ShadcnSelect>
             </div>
-            <div>
-              <Label htmlFor="lead-time-input">Lead Time (days)</Label>
-              <Input
-                id="lead-time-input"
-                type="number"
-                value={editingResource.leadTime}
-                onChange={(e) => setEditingResource({...editingResource, leadTime: Number(e.target.value)})}
-              />
-            </div>
-            <div>
-              <Label htmlFor="reorder-level-input">Reorder Level</Label>
-              <Input
-                id="reorder-level-input"
-                type="number"
-                value={editingResource.reorderLevel}
-                onChange={(e) => setEditingResource({...editingResource, reorderLevel: Number(e.target.value)})}
-              />
-            </div>
             <div className="col-span-full">
               <Label htmlFor="notes-textarea">Notes</Label>
               <Textarea
@@ -618,46 +600,6 @@ const handleSaveResource = () => {
                 placeholder="e.g., hazardous, consumable"
               />
             </div>
-            {editingResource.type === 'Material' && (
-              <>
-                <div>
-                  <Label htmlFor="insurance-expiry-input">Insurance Expiry</Label>
-                  <Input
-                    id="insurance-expiry-input"
-                    type="date"
-                    value={editingResource.insuranceExpiry || ''}
-                    onChange={(e) => setEditingResource({...editingResource, insuranceExpiry: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="tax-expiry-input">Tax Expiry</Label>
-                  <Input
-                    id="tax-expiry-input"
-                    type="date"
-                    value={editingResource.taxExpiry || ''}
-                    onChange={(e) => setEditingResource({...editingResource, taxExpiry: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="safety-expiry-input">Safety Expiry / Refill Date</Label>
-                  <Input
-                    id="safety-expiry-input"
-                    type="date"
-                    value={editingResource.safetyExpiryDate || ''}
-                    onChange={(e) => setEditingResource({...editingResource, safetyExpiryDate: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="restock-date-input">Last Restock Date</Label>
-                  <Input
-                    id="restock-date-input"
-                    type="date"
-                    value={editingResource.lastRestockDate || ''}
-                    onChange={(e) => setEditingResource({...editingResource, lastRestockDate: e.target.value})}
-                  />
-                </div>
-              </>
-            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
