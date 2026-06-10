@@ -112,7 +112,7 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(({
     currentProjectRef.current = currentProject;
   }, [currentProject]);
 
-  const stopBroadcasting = useCallback(() => {
+const stopBroadcasting = useCallback(() => {
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
@@ -120,6 +120,20 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(({
     setIsBroadcasting(false);
     toast.info("Broadcast Stopped", { description: "You are no longer sharing your live location." });
   }, []);
+
+  // Helper function to get GPS error message based on error codes
+  const getGeolocationErrorMessage = (error: GeolocationPositionError) => {
+    switch (error.code) {
+      case error.PERMISSION_DENIED:
+        return "Location access was denied. Please enable location permissions in browser settings and allow access for this site.";
+      case error.POSITION_UNAVAILABLE:
+        return "Location data is currently unavailable. Please try again later or check your GPS connection.";
+      case error.TIMEOUT:
+        return "Location request timed out. Please check your internet connection and try again.";
+      default:
+        return "Failed to access your location. Please check browser permissions and try again.";
+    }
+  };
 
   const startBroadcasting = useCallback(() => {
     if (!("geolocation" in navigator)) {
@@ -141,10 +155,11 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(({
           });
         }
       },
-      (error) => {
+(error) => {
         console.error("[GPS] Error:", error);
         stopBroadcasting();
-        toast.error("GPS Error", { description: "Failed to access your location. Please check permissions." });
+        const errorMessage = getGeolocationErrorMessage(error);
+        toast.error("GPS Error", { description: errorMessage });
       },
       {
         enableHighAccuracy: true,
