@@ -42,12 +42,9 @@ async extractTextFromImage(file: File): Promise<OCRResult> {
     try {
       console.log('Starting real PDF text extraction for:', pdfFile.name);
       
-      // Use jsdelivr CDN for reliable worker loading in production (Vercel)
-      // Version 5.4.296 matches the pdfjs-dist version in package.json
-      const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-      const pdfjsWorkerUrl = isLocalhost
-        ? '/pdfjs-worker/pdf.worker.min.mjs'
-        : 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/build/pdf.worker.min.mjs';
+// Use local PDF worker for both localhost and production to avoid CDN link expiration issues
+      // The local worker is served from public/pdfjs-worker/pdf.worker.min.mjs
+      const pdfjsWorkerUrl = '/pdfjs-worker/pdf.worker.min.mjs';
       
       // Import pdfjs-dist and configure worker
       const pdfjsLib = await import('pdfjs-dist');
