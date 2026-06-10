@@ -155,7 +155,46 @@ export const chatWithGemini = async (
   const startTime = Date.now();
   
   return runWithFallback(async (model, modelName) => {
-    const systemInstruction = `You are RoadMaster AI for project: ${projectContext.name}. Provide technical advice. Currency: ${getCurrencySymbol(projectContext.settings?.currency)}`;
+    // Summarize project context for better AI grounding
+    const financialSummary = projectContext.boq ? 
+      `Budget: ${projectContext.boq.reduce((acc: number, item: any) => acc + (item.quantity * item.rate), 0).toFixed(2)} ${getCurrencySymbol(projectContext.settings?.currency)}` : 
+      'Budget info not available';
+      
+    const scheduleSummary = projectContext.schedule ? 
+      `Tasks: ${projectContext.schedule.length}, Progress: ${Math.round(projectContext.schedule.reduce((acc: number, t: any) => acc + t.progress, 0) / projectContext.schedule.length)}%` : 
+      'Schedule info not available';
+    
+    // Add daily updates context
+    const dailyUpdates = `
+    Today's Updates:
+    - Schedule: ${projectContext.dailySchedule || 'No schedule updates for today.'}
+    - Store/Inventory: ${projectContext.dailyStoreUpdates || 'No inventory updates for today.'}
+    - Vehicle Status: ${projectContext.dailyVehicleStatus || 'No vehicle status updates for today.'}
+    `;
+
+    // Add Risk, Quality, and Stakeholder context
+    const riskContext = projectContext.activeRisks?.length > 0 
+      ? `Active Risks: ${projectContext.activeRisks.map((r: any) => `${r.description} (Severity: ${r.severity})`).join('; ')}`
+      : 'No critical risks reported.';
+    
+    const qualityContext = projectContext.pendingInspections?.length > 0
+      ? `Pending Inspections: ${projectContext.pendingInspections.map((i: any) => `${i.item} due on ${i.date}`).join('; ')}`
+      : 'No pending inspections.';
+      
+    const stakeholderContext = projectContext.keyIssuesFromClient?.length > 0
+      ? `Key Client Issues: ${projectContext.keyIssuesFromClient.join('; ')}`
+      : 'No outstanding client issues.';
+
+    const systemInstruction = `You are RoadMaster AI for project: ${projectContext.name} (${projectContext.code}). 
+    Context: ${financialSummary}, ${scheduleSummary}.
+    ${dailyUpdates}
+    Project Management Context:
+    - ${riskContext}
+    - ${qualityContext}
+    - ${stakeholderContext}
+    
+    Provide technical, actionable advice based on construction engineering standards (FIDIC). 
+    Currency: ${getCurrencySymbol(projectContext.settings?.currency)}`;
     
     const contents = history.map(msg => {
       const parts: any[] = [{ text: msg.text }];
