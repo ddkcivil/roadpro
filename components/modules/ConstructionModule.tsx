@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useTransition, useEffect } from 'react';
+import StructuralBOQLinker from './StructuralBOQLinker';
 import { 
     Plus, ArrowLeft, HardHat, History, CheckCircle2,
     MapPin, X, Save, Microscope, Edit2, Trash2, Package,
@@ -613,16 +614,11 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                               <Input id={`comp-qty-${idx}`} type="number" value={comp.totalQuantity || 0} onChange={e => handleUpdateComponent(idx, 'totalQuantity', Number(e.target.value))} className="h-8 text-xs rounded-lg" />
                                           </div>
                                           <div className="grid gap-1.5">
-<Label htmlFor={`comp-subcontractor-${idx}`} className="text-[9px] font-black uppercase tracking-widest opacity-60">Subcontractor</Label>
-                                              <Select value={comp.subcontractorId || 'none'} onValueChange={(value: string) => handleUpdateComponent(idx, 'subcontractorId', value === 'none' ? '' : value)}>
-                                                  <SelectTrigger id={`comp-subcontractor-${idx}`} className="h-8 text-[10px] rounded-lg">
-                                                      <SelectValue placeholder="Assigned..." />
-                                                  </SelectTrigger>
-                                                  <SelectContent>
-                                                      <SelectItem value="none">Default</SelectItem>
-                                                      {project.agencies?.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-                                                  </SelectContent>
-                                              </Select>
+                                            <StructuralBOQLinker project={project} component={comp} onUpdate={(updated) => {
+                                                const updatedComponents = [...(newStructure.components || [])];
+                                                updatedComponents[idx] = updated;
+                                                setNewStructure(prev => ({ ...prev, components: updatedComponents }));
+                                            }} />
                                           </div>
                                       </div>
                                   </div>
