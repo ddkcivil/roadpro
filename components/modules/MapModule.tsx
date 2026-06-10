@@ -1417,7 +1417,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
             zoomControl={false}
             preferCanvas={true}
           >
-            <LayersControl position="topright">
+<LayersControl position="topright">
               <BaseLayer checked name="OpenStreetMap">
                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -1440,6 +1440,19 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                 <TileLayer
                   attribution='Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'
                   url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+                />
+              </BaseLayer>
+              {/* FREE TILE LAYERS ADDED FOR TASK 2 */}
+              <BaseLayer name="Railway">
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | &copy; <a href="https://openrailwaymap.org">OpenRailwayMap</a> (CC-BY-SA)'
+                  url="https://tiles.openrailway.org/{z}/{x}/{y}.png"
+                />
+              </BaseLayer>
+              <BaseLayer name="German Style">
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | Style: OpenStreetMap.de'
+                  url="https://tile.openstreetmap.de/{z}/{x}/{y}.png"
                 />
               </BaseLayer>
             </LayersControl>
