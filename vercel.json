@@ -3,7 +3,10 @@
   "devCommand": "vite",
   "outputDirectory": "dist",
   "functions": {
-    "api/**/*.ts": {
+    "api/*.ts": {
+      "maxDuration": 60
+    },
+    "api/staff/index.ts": {
       "maxDuration": 60
     }
   },
