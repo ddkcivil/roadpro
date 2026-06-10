@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import * as ReactWindow from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
-const List = (ReactWindow as any).FixedSizeList || ReactWindow.FixedSizeList;
+const List = (ReactWindow as any).VariableSizeList || ReactWindow.VariableSizeList;
 
 interface Props {
   currentUser: User | null;
@@ -35,6 +35,13 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
   const [showScrollButton, setShowScrollButton] = useState(false);
   const listRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const itemSizeMap = useRef<Record<number, number>>({});
+
+  const setRowHeight = (index: number, size: number) => {
+    itemSizeMap.current[index] = size;
+    listRef.current?.resetAfterIndex(index);
+  };
+  const getItemSize = (index: number) => itemSizeMap.current[index] || 100;
 
   // Mark unread messages as read when active chat changes
   useEffect(() => {
@@ -73,16 +80,22 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
   }, [scrollToBottom]);
 
   const onScroll = ({ scrollOffset, scrollDirection }: any) => {
-    // Basic logic to show jump to bottom button if we scroll up
     if (scrollDirection === 'backward' && scrollOffset > 100) {
       setShowScrollButton(true);
     } else if (scrollDirection === 'forward') {
-      // Approximate logic for bottom check
       setShowScrollButton(false);
     }
   };
 
   const MessageRow = ({ index, style }: { index: number, style: React.CSSProperties }) => {
+    const rowRef = useRef<HTMLDivElement>(null);
+    
+    useEffect(() => {
+        if (rowRef.current) {
+            setRowHeight(index, rowRef.current.getBoundingClientRect().height);
+        }
+    }, [index]);
+
     const msg = activeMessages[index];
     const isMe = msg.senderId === currentUser?.id;
     const sender = getUser(msg.senderId);
@@ -138,6 +151,7 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
       <div 
         style={{ ...style, position: 'absolute' }} 
         className="px-6 py-1"
+        ref={rowRef}
       >
         {isNewDay && (
             <div className="flex items-center justify-center my-4">
@@ -202,9 +216,6 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
               return;
           }
       }
-      
-      console.log('Sending message to:', activeChatId, 'Project:', projectId);
-      if (attachment) console.log('With attachment:', attachment.name, attachment.type, 'Size:', attachment.url.length);
       
       try {
           await onSendMessage(inputText, activeChatId, projectId, attachment);
@@ -452,31 +463,24 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                                  </p>
                              </>
                          )}
-                     const List = (ReactWindow as any).VariableSizeList || ReactWindow.VariableSizeList;
-
-                     // ... Inside MessagesModule ...
-                       const itemSizeMap = useRef<Record<number, number>>({});
-                       const setRowHeight = (index: number, size: number) => {
-                         itemSizeMap.current[index] = size;
-                         listRef.current?.resetAfterIndex(index);
-                       };
-                       const getItemSize = (index: number) => itemSizeMap.current[index] || 100;
-                     // ...
-                                             <AutoSizer>
-                                                 {({ height, width }) => (
-                                                 <List
-                                                     ref={listRef}
-                                                     height={height}
-                                                     width={width}
-                                                     itemCount={activeMessages.length}
-                                                     itemSize={getItemSize} 
-                                                     className="scrollbar-hide py-4"
-                                                     onScroll={onScroll}
-                                                 >
-                                                     {MessageRow}
-                                                 </List>
-                                                 )}
-                                             </AutoSizer>
+                     </div>
+                 ) : (
+                     <>
+                        <AutoSizer>
+                            {({ height, width }) => (
+                            <List
+                                ref={listRef}
+                                height={height}
+                                width={width}
+                                itemCount={activeMessages.length}
+                                itemSize={getItemSize} 
+                                className="scrollbar-hide py-4"
+                                onScroll={onScroll}
+                            >
+                                {MessageRow}
+                            </List>
+                            )}
+                        </AutoSizer>
                         {showScrollButton && (
                             <Button 
                                 size="sm" 
