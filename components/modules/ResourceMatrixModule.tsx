@@ -70,7 +70,13 @@ const ResourceMatrixModule: React.FC<ResourceMatrixModuleProps> = ({ project, on
     setIsModalOpen(true);
   };
 
-  const handleSaveResource = () => {
+const handleSaveResource = () => {
+    // Validate required fields
+    if (!editingResource.name || editingResource.name.trim() === '') {
+      alert('Please enter a resource name');
+      return;
+    }
+    
     let updatedResources;
     if (editingResource.id) {
       updatedResources = resources.map(r => r.id === editingResource.id ? editingResource : r);
@@ -82,7 +88,7 @@ const ResourceMatrixModule: React.FC<ResourceMatrixModuleProps> = ({ project, on
         quantity: editingResource.totalQuantity || 0, // Required by BaseResource
         location: editingResource.location || 'Warehouse', // Required by BaseResource
         lastUpdated: new Date().toISOString().split('T')[0], // Required by BaseResource
-        availableQuantity: editingResource.totalQuantity,
+        availableQuantity: editingResource.totalQuantity || 0,
         allocatedQuantity: 0
       };
       updatedResources = [...resources, newResource];
