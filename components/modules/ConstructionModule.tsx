@@ -376,7 +376,11 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
       remarks: '',
       boqItemId: comp.boqItemId || '',
       subcontractorId: comp.subcontractorId || selectedStructure?.subcontractorId || '',
-      materials: []
+      materials: [],
+      estimatedLength: 0,
+      estimatedQuantity: comp.totalQuantity,
+      doneLength: 0,
+      layer: ''
     });
     setIsLogWorkOpen(true);
   };
@@ -971,12 +975,27 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
               <div className="grid gap-6 p-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
-<Label htmlFor="log-quantity" className="text-[10px] font-black uppercase tracking-widest opacity-60">Quantity ({currentLogComponent?.unit})</Label>
-                      <Input id="log-quantity" type="number" value={logForm.quantity} onChange={e => setLogForm({...logForm, quantity: Number(e.target.value)})} className="rounded-xl h-12 text-lg font-black italic border-2" />
+                        <Label htmlFor="log-quantity" className="text-[10px] font-black uppercase tracking-widest opacity-60">Quantity ({currentLogComponent?.unit})</Label>
+                        <Input id="log-quantity" type="number" value={logForm.quantity} onChange={e => setLogForm({...logForm, quantity: Number(e.target.value)})} className="rounded-xl h-12 text-lg font-black italic border-2" />
                     </div>
                     <div className="grid gap-2">
                       <Label className="text-[10px] font-black uppercase tracking-widest opacity-60">Reporting Date</Label>
                       <Input type="date" value={logForm.date} onChange={e => setLogForm({...logForm, date: e.target.value})} className="rounded-xl h-12" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="grid gap-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest opacity-60">Est. Length (m)</Label>
+                      <Input type="number" value={logForm.estimatedLength} onChange={e => setLogForm({...logForm, estimatedLength: Number(e.target.value)})} className="rounded-xl h-10" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest opacity-60">Done Length (m)</Label>
+                      <Input type="number" value={logForm.doneLength} onChange={e => setLogForm({...logForm, doneLength: Number(e.target.value)})} className="rounded-xl h-10" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest opacity-60">Layer</Label>
+                      <Input value={logForm.layer} onChange={e => setLogForm({...logForm, layer: e.target.value})} placeholder="e.g. Sub-base" className="rounded-xl h-10" />
                     </div>
                   </div>
 

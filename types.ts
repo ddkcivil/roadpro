@@ -245,6 +245,10 @@ export interface StructureWorkLog {
   rfiId?: string;
   boqItemId?: string;
   labTestId?: string;
+  estimatedLength?: number;
+  estimatedQuantity?: number;
+  doneLength?: number;
+  layer?: string;
   materials?: {
     materialId: string;
     quantity: number;
