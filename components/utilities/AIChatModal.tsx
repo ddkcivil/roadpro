@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Bot, Send, Paperclip, Zap, Video, Loader2, Sparkles, FileText, Settings2 } from 'lucide-react';
+import { X, Send, Paperclip, Zap, Video, Loader2, Sparkles, FileText, Settings2 } from 'lucide-react';
 import { ChatMessage } from '../../services/ai/geminiService';
 import { getAIResponse, AIProvider } from '../../services/ai/universalAIService';
 import { isAIServiceAvailable as isGeminiAvailable } from '../../services/ai/geminiService';
@@ -308,8 +308,8 @@ const isServiceAvailable = isGeminiAvailable();
         {/* Header */}
         <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] p-4 flex items-center justify-between text-white shrink-0" id="chat-modal-title">
           <div className="flex items-center gap-3">
-            <div className="bg-white/10 p-2 rounded-full backdrop-blur-md border border-white/20">
-                <Bot size={24} className="text-blue-400" />
+<div className="bg-white/10 p-2 rounded-full backdrop-blur-md border border-white/20">
+                <Sparkles size={24} className="text-blue-400" />
             </div>
             <div>
                 <h6 className="font-bold leading-tight">RoadMaster AI</h6>
@@ -460,8 +460,8 @@ const isServiceAvailable = isGeminiAvailable();
             {isLoading && (
                 <div className="flex justify-start">
                     <div className="flex gap-3 max-w-[85%]">
-                        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 mt-1 shadow-sm border border-slate-200">
-                            <Bot size={16} className="text-primary" />
+<div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 mt-1 shadow-sm border border-slate-200">
+                            <Sparkles size={16} className="text-primary" />
                         </div>
                         <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-2 rounded-tl-none">
                             <Loader2 size={16} className="animate-spin text-primary" />

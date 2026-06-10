@@ -43,6 +43,7 @@ interface Props {
 const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpdate }) => {
     const [activeTab, setActiveTab] = useState("registry");
     const [isVOModalOpen, setIsVOModalOpen] = useState(false);
+    const [isContractValueModalOpen, setIsContractValueModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [importFile, setImportFile] = useState<File | null>(null);
 
@@ -156,11 +157,29 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
     // Financial summary hook moved ABOVE the early return to follow Rules of Hooks
     const financialSummary = useMemo(() => {
         const boq = project?.boq || [];
-        const original = boq.reduce((acc, item) => acc + item.amount, 0);
+        const totalPS = boq.filter(item => item.unit?.trim().toUpperCase() === 'PS').reduce((acc, item) => acc + item.amount, 0);
+        const totalWithoutPS = boq.filter(item => item.unit?.trim().toUpperCase() !== 'PS').reduce((acc, item) => acc + item.amount, 0);
+        
+        const vatRate = settings.vatRate || 13;
+        const vatAmount = (vatRate / 100) * totalWithoutPS;
+        
+        const original = totalPS + totalWithoutPS;
+        const contractValueWithVAT = totalPS + totalWithoutPS + vatAmount;
+        
         const completed = boq.reduce((acc, item) => acc + ((item.completedQuantity || 0) * item.rate), 0);
         const percent = original > 0 ? (completed / original) * 100 : 0;
-        return { original, completed, percent };
-    }, [project?.boq]);
+        
+        return { 
+            original, 
+            totalPS, 
+            totalWithoutPS, 
+            vatAmount, 
+            vatRate,
+            contractValueWithVAT,
+            completed, 
+            percent 
+        };
+    }, [project?.boq, settings.vatRate]);
 
     if (!project) {
         return (
@@ -497,10 +516,16 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
             </div>
 
             <div className={cn("grid gap-4 mb-4", compactView ? "grid-cols-2" : "grid-cols-1 md:grid-cols-3")}>
-                <StatCard title="Contract Value" value={`${currencySymbol}${(financialSummary.original || 0).toLocaleString()}`} icon={Receipt} color="#4f46e5" />
-                <StatCard title="Work Done" value={`${currencySymbol}${(financialSummary.completed || 0).toLocaleString()}`} icon={FileSpreadsheet} color="#10b981" />
+                <StatCard 
+                    title="Contract Value" 
+                    value={`${currencySymbol}${(financialSummary.contractValueWithVAT || 0).toLocaleString()}`} 
+                    icon={Receipt} 
+                    color="primary" 
+                    onClick={() => setIsContractValueModalOpen(true)}
+                />
+                <StatCard title="Work Done" value={`${currencySymbol}${(financialSummary.completed || 0).toLocaleString()}`} icon={FileSpreadsheet} color="success" />
                 {!compactView && (
-                    <StatCard title="Overall Progress" value={`${(financialSummary.percent || 0).toFixed(2)}%`} icon={BarChart4} color="#8b5cf6" />
+                    <StatCard title="Overall Progress" value={`${(financialSummary.percent || 0).toFixed(2)}%`} icon={BarChart4} color="violet" />
                 )}
             </div>
 
@@ -633,61 +658,58 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
             </Tabs>
 
             {/* Modals */}
-            <Dialog open={isMBModalOpen} onOpenChange={setIsMBModalOpen}>
-                <DialogContent className="sm:max-w-2xl">
+            <Dialog open={isContractValueModalOpen} onOpenChange={setIsContractValueModalOpen}>
+                <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2"><FileSpreadsheet className="text-primary" /> {newMB.id ? 'Edit Measurement Record' : 'New Measurement Record'}</DialogTitle>
-                        <DialogDescription>Enter or update the measurement details for contractual certification.</DialogDescription>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Receipt className="text-primary" />
+                            Contract Value Breakdown
+                        </DialogTitle>
+                        <DialogDescription>
+                            Detailed calculation of the total contract value including Provisional Sums and VAT.
+                        </DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Title</Label>
-                                <Input value={newMB.title || ''} onChange={e => setNewMB({...newMB, title: e.target.value})} />
+<div className="space-y-4 py-4">
+                        <div className="flex justify-between items-center p-3 bg-muted/30 rounded-xl">
+                            <div className="flex flex-col">
+                                <span className="text-sm font-medium">Total PS (refer unit)</span>
+                                <span className="text-[10px] text-muted-foreground">Items with unit 'PS'</span>
                             </div>
-                            <div className="space-y-2">
-                                <Label>Date</Label>
-                                <Input type="date" value={newMB.date} onChange={e => setNewMB({...newMB, date: e.target.value})} />
+                            <span className="text-sm font-bold">{currencySymbol}{financialSummary.totalPS.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-muted/30 rounded-xl">
+                            <div className="flex flex-col">
+                                <span className="text-sm font-medium">Total without PS (refer unit)</span>
+                                <span className="text-[10px] text-muted-foreground">Items without unit 'PS'</span>
                             </div>
+                            <span className="text-sm font-bold">{currencySymbol}{financialSummary.totalWithoutPS.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-primary/5 rounded-xl border border-primary/10">
+                            <div className="flex flex-col">
+                                <span className="text-sm font-medium">VAT ({financialSummary.vatRate}%) × Total without PS</span>
+                                <span className="text-[10px] text-muted-foreground">VAT on items excluding PS</span>
+                            </div>
+                            <span className="text-sm font-bold text-primary">{currencySymbol}{financialSummary.vatAmount.toLocaleString()}</span>
                         </div>
                         <Separator />
-                        <div className="grid grid-cols-12 gap-2 items-end">
-                            <div className="col-span-7 space-y-2">
-                                <Label>BOQ Item</Label>
-                                <Select value={tempMBEntry.boqItemId} onValueChange={v => setTempMBEntry({...tempMBEntry, boqItemId: v})}>
-                                    <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-                                    <SelectContent>
-                                        {(project.boq || []).map(item => <SelectItem key={item.id} value={item.id}>{item.itemNo}: {item.description.substring(0, 40)}...</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
+                        <div className="flex justify-between items-center p-4 bg-primary text-primary-foreground rounded-2xl shadow-lg">
+                            <div className="flex flex-col">
+                                <span className="text-lg font-black uppercase tracking-wider">Total Contract Value</span>
+                                <span className="text-[10px] text-primary-foreground/70">= Total PS + Total without PS + VAT</span>
                             </div>
-                            <div className="col-span-3 space-y-2">
-                                <Label>Qty</Label>
-                                <Input type="number" value={tempMBEntry.quantity || ''} onChange={e => setTempMBEntry({...tempMBEntry, quantity: Number(e.target.value)})} />
-                            </div>
-                            <Button className="col-span-2" variant="secondary" onClick={handleAddMBEntry}>Add</Button>
+                            <span className="text-2xl font-black">{currencySymbol}{financialSummary.contractValueWithVAT.toLocaleString()}</span>
                         </div>
-                        <div className="border rounded-md max-h-[200px] overflow-auto">
-                            <Table>
-                                <TableBody>
-                                    {(newMB.entries || []).map((e, i) => (
-                                        <TableRow key={e.id}>
-                                            <TableCell className="text-xs">{(project.boq || []).find(b => b.id === e.boqItemId)?.itemNo}</TableCell>
-                                            <TableCell className="text-right font-bold">{e.quantity}</TableCell>
-                                            <TableCell className="text-right"><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setNewMB({...newMB, entries: newMB.entries?.filter((_, idx) => idx !== i)})}><X size={12} /></Button></TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
+                        <p className="text-[10px] text-muted-foreground italic text-center">
+                            Note: VAT is calculated only on items excluding Provisional Sums (PS).
+                        </p>
                     </div>
                     <DialogFooter>
-                        <Button onClick={handleSaveMB} disabled={!(newMB.entries || []).length}>Save & Approve</Button>
+                        <Button onClick={() => setIsContractValueModalOpen(false)}>Close</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={isVOModalOpen} onOpenChange={setIsVOModalOpen}>
+            <Dialog open={isMBModalOpen} onOpenChange={setIsMBModalOpen}>
                 <DialogContent className="sm:max-w-xl">
                     <DialogHeader>
                         <DialogTitle>Initialize Variation</DialogTitle>

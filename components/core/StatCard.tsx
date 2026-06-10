@@ -12,9 +12,10 @@ interface StatCardProps {
   color: string;
   trend?: string;
   isLoading?: boolean;
+  onClick?: () => void;
 }
 
-const StatCard: React.FC<StatCardProps> = memo(({ title, value, icon: Icon, color, trend, isLoading = false }) => {
+const StatCard: React.FC<StatCardProps> = memo(({ title, value, icon: Icon, color, trend, isLoading = false, onClick }) => {
   const getColorClasses = (colorName: string) => {
     const map: Record<string, string> = {
       primary: "bg-blue-600 dark:bg-blue-500 text-white shadow-blue-500/25",
@@ -52,8 +53,12 @@ const StatCard: React.FC<StatCardProps> = memo(({ title, value, icon: Icon, colo
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="h-full"
+      onClick={onClick}
     >
-      <Card className="h-full bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-border/40 hover:border-primary/40 transition-all duration-500 hover:-translate-y-2 group relative overflow-hidden rounded-3xl shadow-lg hover:shadow-2xl">
+      <Card className={cn(
+        "h-full bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-border/40 hover:border-primary/40 transition-all duration-500 hover:-translate-y-2 group relative overflow-hidden rounded-3xl shadow-lg hover:shadow-2xl",
+        onClick && "cursor-pointer"
+      )}>
         <div className={cn(
           "absolute -right-8 -bottom-8 opacity-[0.05] dark:opacity-[0.08] transition-all duration-700 group-hover:scale-125 group-hover:-rotate-12",
           color === 'success' ? 'text-emerald-500' : 'text-primary'
