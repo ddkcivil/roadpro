@@ -452,24 +452,31 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                                  </p>
                              </>
                          )}
-                     </div>
-                 ) : (
-                     <>
-                        <AutoSizer>
-                            {({ height, width }) => (
-                            <List
-                                ref={listRef}
-                                height={height}
-                                width={width}
-                                itemCount={activeMessages.length}
-                                itemSize={80} 
-                                className="scrollbar-hide py-4"
-                                onScroll={onScroll}
-                            >
-                                {MessageRow}
-                            </List>
-                            )}
-                        </AutoSizer>
+                     const List = (ReactWindow as any).VariableSizeList || ReactWindow.VariableSizeList;
+
+                     // ... Inside MessagesModule ...
+                       const itemSizeMap = useRef<Record<number, number>>({});
+                       const setRowHeight = (index: number, size: number) => {
+                         itemSizeMap.current[index] = size;
+                         listRef.current?.resetAfterIndex(index);
+                       };
+                       const getItemSize = (index: number) => itemSizeMap.current[index] || 100;
+                     // ...
+                                             <AutoSizer>
+                                                 {({ height, width }) => (
+                                                 <List
+                                                     ref={listRef}
+                                                     height={height}
+                                                     width={width}
+                                                     itemCount={activeMessages.length}
+                                                     itemSize={getItemSize} 
+                                                     className="scrollbar-hide py-4"
+                                                     onScroll={onScroll}
+                                                 >
+                                                     {MessageRow}
+                                                 </List>
+                                                 )}
+                                             </AutoSizer>
                         {showScrollButton && (
                             <Button 
                                 size="sm" 
