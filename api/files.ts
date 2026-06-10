@@ -86,13 +86,15 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       // Fetch document to get projectId for bucket resolution
       let projId: string | undefined;
+      let fileName: string | undefined;
       try {
         const { data: doc } = await supabaseAdmin
           .from('project_documents')
-          .select('project_id')
-          .eq('id', latestVersion.id)
+          .select('project_id, name')
+          .eq('id', latestVersion.docId)
           .maybeSingle();
         projId = doc?.project_id;
+        fileName = doc?.name;
       } catch (e) { /* ignore */ }
 
       // Get the appropriate bucket and fetch the file
@@ -122,7 +124,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       const buffer = Buffer.from(await fileBlob.arrayBuffer());
       res.setHeader('Content-Type', contentType);
       res.setHeader('Content-Length', buffer.length.toString());
-      res.setHeader('Content-Disposition', `inline; filename="${latestVersion.name || 'document'}"`);
+      res.setHeader('Content-Disposition', `inline; filename="${fileName || latestVersion.name || 'document'}"`);
       return res.send(buffer);
 
 
