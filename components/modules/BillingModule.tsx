@@ -250,6 +250,13 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
             toast.error('Unauthorized: Insufficient permissions to save subcontractor bill');
             return;
         }
+
+        // Duplicate Check
+        if (!subcontractorBillForm.id && subcontractorBills.some(b => b.billNumber?.toLowerCase() === subcontractorBillForm.billNumber?.toLowerCase())) {
+            toast.error("Duplicate Bill", { description: "A subcontractor bill with this number already exists." });
+            return;
+        }
+
         const summary = calculateSubcontractorBillDetails(subcontractorBillForm);
         const isEdit = !!subcontractorBillForm.id;
         
@@ -381,6 +388,13 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
             toast.error('Unauthorized: Insufficient permissions to save IPC');
             return;
         }
+
+        // Duplicate Check
+        if (!ipcForm.id && bills.some(b => b.billNumber?.toLowerCase() === ipcForm.billNumber?.toLowerCase())) {
+            toast.error("Duplicate IPC", { description: "An IPC with this number already exists." });
+            return;
+        }
+
         const isEdit = !!ipcForm.id;
         const finalIPC: ContractBill = {
             ...ipcForm,

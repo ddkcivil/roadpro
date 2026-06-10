@@ -389,6 +389,12 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
         const boqItem = project.boq.find(b => b.id === tempMBEntry.boqItemId);
         if (!boqItem) return;
 
+        // Duplicate Check
+        if (newMB.entries?.some(e => e.boqItemId === tempMBEntry.boqItemId)) {
+            toast.error("Duplicate Item", { description: "This item is already added to the measurement sheet. Please edit the existing entry instead." });
+            return;
+        }
+
         const entry: MeasurementSheetEntry = {
             id: `mbe-${Date.now()}`,
             boqItemId: tempMBEntry.boqItemId,
@@ -598,7 +604,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                                                                 <Tooltip>
                                                                     <TooltipTrigger asChild>
                                                                         <Button variant="ghost" size="icon" onClick={() => handleEditMB(sheet)}>
-                                                                            <Pencil className="h-4 w-4 text-primary" />
+                                                                            <Pencil className="h-4 w-4 text-amber-600" />
                                                                         </Button>
                                                                     </TooltipTrigger>
                                                                     <TooltipContent>Edit MB Record</TooltipContent>
@@ -608,7 +614,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                                                                 <Tooltip>
                                                                     <TooltipTrigger asChild>
                                                                         <Button variant="ghost" size="icon" onClick={() => handleCertifyMB(sheet)}>
-                                                                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                                                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                                                                         </Button>
                                                                     </TooltipTrigger>
                                                                     <TooltipContent>Certify & Update BOQ</TooltipContent>
@@ -621,7 +627,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                                                             const updated = (project.measurementSheets || []).filter(s => s.id !== sheet.id);
                                                             onProjectUpdate({ ...project, measurementSheets: updated });
                                                         }}>
-                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                            <Trash2 className="h-4 w-4 text-rose-600" />
                                                         </Button>
                                                     )}
                                                 </div>

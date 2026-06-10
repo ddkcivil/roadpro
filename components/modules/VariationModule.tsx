@@ -108,6 +108,12 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
     const handleAddItemToVO = () => {
         if (!tempItem.description || !tempItem.quantityDelta) return;
         
+        // Duplicate Check (if linked to BOQ)
+        if (tempItem.boqItemId && voForm.items?.some(i => i.boqItemId === tempItem.boqItemId)) {
+            toast.error("Duplicate Item", { description: "This BOQ item is already added to this variation order." });
+            return;
+        }
+
         const newItem: VariationItem = {
             id: `voi-${Date.now()}-${Math.random()}`,
             boqItemId: tempItem.boqItemId || '',

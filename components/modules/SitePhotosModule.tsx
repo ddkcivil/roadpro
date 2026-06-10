@@ -86,6 +86,18 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole,
     const handleSavePhoto = async () => {
         if (!tempPreview || !tempFile) return;
 
+        // Duplicate Check
+        const isDuplicate = sitePhotos.some(p => 
+            p.date === uploadForm.date && 
+            p.location === uploadForm.location && 
+            p.caption?.toLowerCase() === uploadForm.caption?.toLowerCase()
+        );
+
+        if (isDuplicate) {
+            toast.error("Duplicate Photo", { description: "A photo with this caption, date, and location already exists." });
+            return;
+        }
+
         const uploadToast = toast.loading("Uploading photo to secure storage...");
 
         try {

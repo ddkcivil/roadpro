@@ -864,11 +864,25 @@ export interface BOQItem {
   amount: number;
   category: string;
   location: string;
+  chainageStart?: number; // meters
+  chainageEnd?: number;   // meters
   completedQuantity: number;
   variationQuantity?: number;
   revisedQuantity?: number;
   status?: 'Planned' | 'Executing' | 'Completed';
   subcontractorId?: string;
+}
+
+export interface LinearProgressLog {
+  id: string;
+  boqItemId: string;
+  projectId: string;
+  date: string;
+  chainageStart: number;
+  chainageEnd: number;
+  quantity: number;
+  remarks?: string;
+  createdBy: string;
 }
 
 export interface VariationItem {

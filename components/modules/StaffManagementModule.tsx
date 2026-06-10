@@ -516,6 +516,18 @@ const StaffManagementModule: React.FC = () => {
     const startDate = new Date(newLeaveRequest.startDate);
     const endDate = new Date(newLeaveRequest.endDate);
     
+    // Duplicate/Overlap Check
+    const isOverlapping = leaveRequests.some(r => 
+        r.employeeId === newLeaveRequest.employeeId && 
+        ((startDate >= new Date(r.startDate) && startDate <= new Date(r.endDate)) || 
+         (endDate >= new Date(r.startDate) && endDate <= new Date(r.endDate)))
+    );
+
+    if (isOverlapping) {
+        alert('An overlapping leave request already exists for this employee.');
+        return;
+    }
+    
     if (startDate > endDate) {
       alert('Start date cannot be after end date');
       return;
@@ -616,6 +628,12 @@ const StaffManagementModule: React.FC = () => {
   };
 
   const handleSubmitEmployee = async () => {
+    // Duplicate Check
+    if (employees.some(e => e.emailAddress.toLowerCase() === newEmployee.emailAddress.toLowerCase())) {
+        alert('An employee with this email address already exists.');
+        return;
+    }
+
     try {
       const employee: EmployeeData = {
         ...newEmployee,
@@ -847,6 +865,7 @@ const StaffManagementModule: React.FC = () => {
               <Input
                 id="personalMobile"
                 value={newEmployee.personalMobile}
+                placeholder="e.g. +977 9800000000"
                 onChange={(e) => handleInputChange('personalMobile', e.target.value)}
               />
             </div>
@@ -949,6 +968,7 @@ const StaffManagementModule: React.FC = () => {
               <Input
                 id="bankAccountNumber"
                 value={newEmployee.bankAccountNumber}
+                placeholder="e.g. 001001000123"
                 onChange={(e) => handleInputChange('bankAccountNumber', e.target.value)}
               />
             </div>
@@ -965,6 +985,7 @@ const StaffManagementModule: React.FC = () => {
               <Input
                 id="panNumber"
                 value={newEmployee.panNumber}
+                placeholder="e.g. 123-456-789"
                 onChange={(e) => handleInputChange('panNumber', e.target.value)}
               />
             </div>

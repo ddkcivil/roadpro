@@ -163,6 +163,12 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, settin
       return;
     }
 
+    // Duplicate Check
+    if (!selectedSubId && subcontractors.some(s => s.name.toLowerCase() === newSubcontractor.name?.toLowerCase())) {
+        showToast('A subcontractor with this name already exists');
+        return;
+    }
+
     if (selectedSubId) {
       // Update existing subcontractor
       const updatedAgencies = project.agencies?.map(a => 

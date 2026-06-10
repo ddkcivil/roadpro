@@ -219,7 +219,7 @@ export function mapProjectToDb(proj: any): any {
     'roads', 'accountingintegrations', 'accountingtransactions', 
     'structuretemplates', 'auditlogs', 'rfis', 'lab_tests', 'schedule', 
     'structures', 'agencies', 'agency_payments', 'agency_materials', 
-    'agency_bills', 'materials', 'linear_works', 'inventory', 
+    'agency_bills', 'materials', 'linear_works', 'linear_progress_logs', 'inventory', 
     'purchase_orders', 'inventory_transactions', 'vehicles', 
     'vehicle_logs', 'daily_reports', 'pre_construction', 
     'land_parcels', 'map_overlays', 'kml_data', 'ncrs', 'contract_bills',

@@ -161,6 +161,15 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
       return;
     }
     
+    // Duplicate Check
+    const isDuplicate = !agencyForm.id && project.agencies?.some(a => a.name.toLowerCase() === agencyForm.name?.toLowerCase());
+    const isEditDuplicate = agencyForm.id && project.agencies?.some(a => a.id !== agencyForm.id && a.name.toLowerCase() === agencyForm.name?.toLowerCase());
+    
+    if (isDuplicate || isEditDuplicate) {
+        showSnackbar('An agency with this name already exists', 'error');
+        return;
+    }
+
     if (!agencyForm.trade?.trim()) {
       showSnackbar('Trade is required', 'error');
       return;

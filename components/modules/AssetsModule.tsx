@@ -105,6 +105,18 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
   const handleSaveLog = () => {
     if (!selectedAsset || !logForm.description) return;
 
+    // Duplicate Check
+    const isDuplicate = selectedAsset.maintenanceLogs?.some(log => 
+        log.date === logForm.date && 
+        log.description.toLowerCase() === logForm.description?.toLowerCase() &&
+        log.type === logForm.type
+    );
+
+    if (isDuplicate) {
+        alert("A maintenance log with this description and date already exists for this asset.");
+        return;
+    }
+
     const newLog: MaintenanceLog = {
       id: generateUniqueId(),
       vehicleId: selectedAsset.id,
@@ -165,6 +177,12 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
     if (!assetForm.plateNumber?.trim()) {
       alert('Plate number is required');
       return;
+    }
+
+    // Duplicate Check
+    if (!editingAssetId && assets.some(a => a.plateNumber?.toLowerCase() === assetForm.plateNumber?.toLowerCase())) {
+        alert('An asset with this plate number already exists.');
+        return;
     }
     
     if (!assetForm.type?.trim()) {

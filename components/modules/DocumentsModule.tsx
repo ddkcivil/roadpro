@@ -931,13 +931,13 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuItem onClick={() => handleOpenEdit(doc)}>
-                                <Pencil className="mr-2 h-4 w-4" /> Edit Details
+                                <Pencil className="mr-2 h-4 w-4 text-amber-600" /> Edit Details
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleDownloadDocument(doc)}>
-                                <ArrowDownLeft className="mr-2 h-4 w-4" /> Download
+                                <ArrowDownLeft className="mr-2 h-4 w-4 text-emerald-600" /> Download
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDeleteDoc(doc.id)} className="text-destructive">
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                              <DropdownMenuItem onClick={() => handleDeleteDoc(doc.id)} className="text-rose-600">
+                                <Trash2 className="mr-2 h-4 w-4 text-rose-600" /> Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

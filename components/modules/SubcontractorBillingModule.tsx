@@ -214,12 +214,19 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
   };
 
   const handleSaveBill = () => {
-    if (!billForm.subcontractorId || billForm.items?.length === 0) {
-      toast.error('Please select a subcontractor and add items.');
-      return;
-    }
+      if (!billForm.subcontractorId || billForm.items?.length === 0) {
+          toast.error('Please select a subcontractor and add items.');
+          return;
+      }
 
-    const isEdit = !!billForm.id;
+      // Duplicate Check
+      if (!billForm.id && bills.some(b => b.billNumber?.toLowerCase() === billForm.billNumber?.toLowerCase())) {
+          toast.error("Duplicate Bill", { description: "A bill with this number already exists." });
+          return;
+      }
+
+      const isEdit = !!billForm.id;
+
     const finalBill: SubcontractorBill = {
       ...billForm,
       id: billForm.id || `scb-${Date.now()}`,

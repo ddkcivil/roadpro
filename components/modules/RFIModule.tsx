@@ -187,6 +187,13 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
         }
 
         const now = new Date().toISOString();
+        
+        // Duplicate Check
+        if (!formData.id && project.rfis.some(r => r.rfiNumber.toLowerCase() === requestNumber.toLowerCase())) {
+            toast.error("Duplicate RFI", { description: "An RFI with this reference number already exists." });
+            return;
+        }
+
         const existingRfi = project.rfis.find(r => r.id === formData.id);
         let updatedLog = [...(formData.workflowLog || [])];
 
@@ -645,8 +652,8 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                                                     </TableCell>
                                                     <TableCell className="text-right"> {/* Actions Cell */}
                                                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(rfi)}><Edit2 size={14}/></Button>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-500/5" onClick={() => handleDelete(rfi.id)}><Trash2 size={14}/></Button>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-amber-600" onClick={() => handleEdit(rfi)}><Edit2 size={14} className="text-amber-600" /></Button>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-500/10" onClick={() => handleDelete(rfi.id)}><Trash2 size={14} /></Button>
                                                         </div>
                                                     </TableCell>
                                                 </TableRow>

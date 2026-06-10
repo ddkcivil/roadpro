@@ -236,6 +236,13 @@ const ScheduleModule: React.FC<Props> = ({ project, settings, userRole, onProjec
 
   const handleSave = () => {
       if (!editingTask.name || !editingTask.startDate || !editingTask.endDate) return;
+
+      // Duplicate Check
+      if (!editingTask.id && project.schedule.some(t => t.name.toLowerCase() === editingTask.name?.toLowerCase())) {
+          toast.error("Duplicate Activity", { description: "An activity with this name already exists. Please choose a unique name." });
+          return;
+      }
+
       let updatedSchedule: ScheduleTask[];
       if (editingTask.id) {
           updatedSchedule = project.schedule.map(t => t.id === editingTask.id ? { ...t, ...editingTask } as ScheduleTask : t);
@@ -550,17 +557,17 @@ const ScheduleModule: React.FC<Props> = ({ project, settings, userRole, onProjec
                                         <Button 
                                             variant="ghost" 
                                             size="icon" 
-                                            className="p-1 mr-1" 
+                                            className="p-1 mr-1 hover:text-amber-600" 
                                             onClick={() => handleOpenModal(task)}
                                             title="Edit Task"
                                             aria-label="Edit Task"
                                         > {/* IconButton */}
-                                            <Edit2 size={16}/>
+                                            <Edit2 size={16} className="text-amber-600"/>
                                         </Button>
                                         <Button 
                                             variant="ghost" 
                                             size="icon" 
-                                            className="p-1 text-red-500" 
+                                            className="p-1 text-rose-600 hover:text-rose-700 hover:bg-rose-500/10" 
                                             onClick={() => handleDeleteTask(task.id)}
                                             title="Delete Task"
                                             aria-label="Delete Task"
