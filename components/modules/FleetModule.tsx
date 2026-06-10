@@ -413,12 +413,10 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                         placeholder="e.g. Ba 2 Kha 1234"
                     />
                     <Label htmlFor="new-driver">Driver Name</Label>
-                    <Input
+<Input
                         id="new-driver"
                         value={newVehicle.driver || ''}
                         onChange={(e) => setNewVehicle({...newVehicle, driver: e.target.value})}
-                        placeholder="e.g. Ram Bahadur"
-                    />
                         placeholder="e.g. Ram Bahadur"
                     />
                     <Label htmlFor="new-type">Type</Label>
@@ -489,12 +487,10 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                         placeholder="e.g. Ba 2 Kha 1234"
                     />
                     <Label htmlFor="edit-driver">Driver Name</Label>
-                    <Input
+<Input
                         id="edit-driver"
                         value={editingVehicle?.driver || ''}
                         onChange={(e) => setEditingVehicle({...editingVehicle, driver: e.target.value})}
-                        placeholder="e.g. Ram Bahadur"
-                    />
                         placeholder="e.g. Ram Bahadur"
                     />
                     <Label htmlFor="edit-type">Type</Label>
