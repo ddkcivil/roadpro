@@ -505,10 +505,14 @@ if (req.method === 'POST') {
             supabaseAdmin.from('project_kml').upsert(kmlToSync, { onConflict: 'id' })
               .then(({ error: e }: any) => { 
                 if (e) {
-                  console.log('[Deep Sync] KML table sync skipped (table may not exist)');
+                  console.log('[Deep Sync] KML table sync skipped (table may not exist):', e.message);
                 } else {
                   console.log('[Deep Sync] KML synced to table:', kmlToSync.length, 'files');
                 }
+              })
+              .catch((err: any) => {
+                // Catch any rejection errors (e.g., table doesn't exist)
+                console.log('[Deep Sync] KML table sync failed:', err.message || 'Unknown error');
               })
           );
         }
