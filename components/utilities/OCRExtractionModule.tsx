@@ -249,6 +249,14 @@ const OCRExtractionModule: React.FC = () => {
                     </h6>
                     <div className="flex flex-col gap-y-4">
                       <div className="flex justify-between">
+                        <p className="text-sm text-gray-500">Reference No:</p>
+                        <p className="text-sm font-medium">{result.structuredData.referenceNumber || '—'}</p>
+                      </div>
+                      <div className="flex justify-between">
+                        <p className="text-sm text-gray-500">Letter Date:</p>
+                        <p className="text-sm font-medium">{result.structuredData.letterDate || '—'}</p>
+                      </div>
+                      <div className="flex justify-between">
                         <p className="text-sm text-gray-500">BOQ Items:</p>
                         <p className="text-sm font-medium">{result.structuredData.boqItems?.length || 0}</p>
                       </div>
@@ -259,10 +267,6 @@ const OCRExtractionModule: React.FC = () => {
                       <div className="flex justify-between">
                         <p className="text-sm text-gray-500">Dates Found:</p>
                         <p className="text-sm font-medium">{result.structuredData.dates?.length || 0}</p>
-                      </div>
-                      <div className="flex justify-between">
-                        <p className="text-sm text-gray-500">Project Codes:</p>
-                        <p className="text-sm font-medium">{result.structuredData.codes?.length || 0}</p>
                       </div>
                       <div className="flex justify-between">
                         <p className="text-sm text-gray-500">Contractors:</p>

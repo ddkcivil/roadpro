@@ -54,9 +54,11 @@ class OCRService {
       const pdf = await loadingTask.promise;
       
       let fullText = '';
+      let hasTextContent = false;
       const pageCount = pdf.numPages;
       console.log(`PDF loaded. Total pages: ${pageCount}`);
 
+      // First try: extract embedded text (works for text-based PDFs)
       for (let i = 1; i <= pageCount; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
@@ -64,15 +66,13 @@ class OCRService {
           .map((item: any) => item.str)
           .join(' ');
         
+        if (pageText.trim().length > 0) {
+          hasTextContent = true;
+        }
         fullText += `--- Page ${i} ---\n${pageText}\n\n`;
       }
 
-      console.log('PDF text extraction completed. Length:', fullText.length);
-
-      return {
-        text: fullText || 'No text content found in PDF.',
-        confidence: 95,
-        boundingBoxes: [] // PDF.js text extraction doesn't easily provide bounding boxes in this simple mode
+      // If no embedded text found, this is likely a scanned PDF
       };
     } catch (error) {
       console.error('Real PDF extraction failed, falling back to basic analysis:', error);
@@ -122,26 +122,59 @@ class OCRService {
     const structuredData: any = {};
 
     // Normalize whitespace for better pattern matching across line breaks
+    // OCR output often has irregular spacing, so we normalize aggressively
     const normalizedText = text.replace(/\n+/g, ' ').replace(/\s+/g, ' ');
 
-    // Extract Reference Number (e.g. SIR-2023-001)
-    const refNoMatch = normalizedText.match(/(?:Reference\s+No\.?\s*|Ref\.?\s*No\.?\s*|Reference\s*Number)\s*:\s*([A-Z0-9]{2,4}[-][0-9]{4}[-][0-9]+)/i);
-    if (refNoMatch && refNoMatch[1]) {
-      structuredData.referenceNumber = refNoMatch[1].trim();
+    // === REFERENCE NUMBER EXTRACTION ===
+    // Look for patterns like: Reference No. SIR-2023-001, Reference Number SIR-2023-001, etc.
+    // OCR can produce: "Reference No : SIR-2023-001", "Reference No. S1R-2023-001", "Ref.No. SIR-2023-001"
+    // Also match standalone SIR/REF/DPR/etc patterns with year
+    const refNoPatterns = [
+      // Pattern 1: "Reference No : SIR-2023-001" (with possible OCR spacing issues)
+      /(?:Reference\s*No\.?\s*:?\s*|Ref\.?\s*No\.?\s*:?\s*|Reference\s*Number\s*:?\s*)\s*([A-Z0-9]{2,6}[-]\d{4}[-]\d+)/i,
+      // Pattern 2: Same but with OCR merging (e.g. "ReferenceNo")
+      /(?:ReferenceNo\.?\s*:?\s*|RefNo\.?\s*:?\s*|Ref\.?No\.?\s*:?\s*)\s*([A-Z0-9]{2,6}[-]\d{4}[-]\d+)/i,
+      // Pattern 3: Number/letter ref formats like "SIR-2023-001", "RFQ-2024-015", "DPR-2025-001"
+      /\b([A-Z]{2,6}[-]\d{4}[-]\d{3,6})\b/g,
+    ];
+    for (const pattern of refNoPatterns) {
+      const matches = [...normalizedText.matchAll(pattern)];
+      if (matches.length > 0) {
+        const match = matches[0];
+        structuredData.referenceNumber = (match[1] || match[0]).trim();
+        break;
+      }
+    }
+    // Fallback: If no explicit reference pattern matched, look for SIR-like codes in the text
+    if (!structuredData.referenceNumber) {
+      const fallbackRef = normalizedText.match(/\b(SIR[-]\d{4}[-]\d+|RFQ[-]\d{4}[-]\d+|DPR[-]\d{4}[-]\d+)\b/i);
+      if (fallbackRef) {
+        structuredData.referenceNumber = fallbackRef[0].trim();
+      }
     }
 
-    // Extract Letter Date (e.g. YYYY-mm-dd)
-    const letterDateMatch = normalizedText.match(/(?:Letter\s+Date|Date\s+of\s+Letter|Document\s+Date|LetterDate)[:\s]*["']?(\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{4})/i);
-    if (letterDateMatch && letterDateMatch[1]) {
-      let dateStr = letterDateMatch[1];
-      // Normalize to YYYY-MM-DD
-      if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
-        const parts = dateStr.split('/');
-        dateStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-      } else if (/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(dateStr)) {
-        dateStr = dateStr.replace(/\//g, '-');
+    // === LETTER DATE EXTRACTION ===
+    // Look for patterns like: "Letter Date: 2023-01-15", "Date of Letter: 2023/01/15"
+    // OCR can produce: "LetterDate: 2023-01-15", "Letter Date 2023-01-15"
+    const letterDatePatterns = [
+      // Labeled date patterns (OCR-friendly)
+      /(?:Letter\s*Date|Date\s*of\s*Letter|Document\s*Date|LetterDate|Date)[\s:]*["'']?(20\d{2})[-/](\d{1,2})[-/](\d{1,2})/i,
+      /(?:Letter\s*Date|Date\s*of\s*Letter|Document\s*Date|LetterDate|Date)[\s:]*["'']?(\d{1,2})[-/](\d{1,2})[-/](20\d{2})/i,
+    ];
+    for (const pattern of letterDatePatterns) {
+      const match = normalizedText.match(pattern);
+      if (match) {
+        // Pattern 1: YYYY-MM-DD -> groups[1,2,3]
+        // Pattern 2: DD-MM-YYYY -> groups[1,2,3]
+        if (match[1] && match[1].length === 4) {
+          // YYYY-MM-DD format
+          structuredData.letterDate = `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`;
+        } else {
+          // DD-MM-YYYY format
+          structuredData.letterDate = `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
+        }
+        break;
       }
-      structuredData.letterDate = dateStr;
     }
 
     // Extract document subject/title

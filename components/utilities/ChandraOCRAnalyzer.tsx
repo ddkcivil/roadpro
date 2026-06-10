@@ -370,6 +370,14 @@ const ChandraOCRAnalyzer: React.FC = () => {
                   <h6 className="text-sm font-bold mb-3">Document Analysis Summary</h6>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Reference No:</span>
+                      <span className="font-medium">{result.structuredData.referenceNumber || '—'}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Letter Date:</span>
+                      <span className="font-medium">{result.structuredData.letterDate || '—'}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">BOQ Items:</span>
                       <span className="font-medium">{result.structuredData.boqItems?.length || 0}</span>
                     </div>
@@ -380,10 +388,6 @@ const ChandraOCRAnalyzer: React.FC = () => {
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Dates Found:</span>
                       <span className="font-medium">{result.structuredData.dates?.length || 0}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Project Codes:</span>
-                      <span className="font-medium">{result.structuredData.codes?.length || 0}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Contractors:</span>
