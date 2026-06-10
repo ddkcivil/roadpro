@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin, isSupabaseConfigured } from './utils/supabaseClient.js';
-import { withErrorHandler } from './utils/errorHandler.js';
-import { withAuth } from './utils/auth.js';
+import { getSupabaseAdmin, isSupabaseConfigured } from './_utils/supabaseClient.js';
+import { withErrorHandler } from './_utils/errorHandler.js';
+import { withAuth } from './_utils/auth.js';
 import { v4 as uuidv4 } from 'uuid';
 
 function generateAvatarUrl(name: string): string {
@@ -55,7 +55,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           return res.status(404).json({ error: 'User not found' });
         }
 
-        const { mapUserFromDb } = await import('./utils/mappers.js');
+        const { mapUserFromDb } = await import('./_utils/mappers.js');
         return res.status(200).json(mapUserFromDb(profile));
       } else {
         // Fetch all users from Supabase
@@ -68,7 +68,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           throw error;
         }
         
-        const { mapUserFromDb } = await import('./utils/mappers.js');
+        const { mapUserFromDb } = await import('./_utils/mappers.js');
         return res.status(200).json(profiles.map(mapUserFromDb));
       }
     } catch (error: any) {
@@ -109,7 +109,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .single();
 
       if (error) throw error;
-      const { mapUserFromDb } = await import('./utils/mappers.js');
+      const { mapUserFromDb } = await import('./_utils/mappers.js');
       return res.status(201).json(mapUserFromDb(profile));
     } catch (error: any) {
       console.error('Failed to create user profile:', error);
@@ -149,7 +149,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .single();
 
       if (error) throw error;
-      const { mapUserFromDb } = await import('./utils/mappers.js');
+      const { mapUserFromDb } = await import('./_utils/mappers.js');
       return res.status(200).json(mapUserFromDb(updatedProfile));
 
     } catch (error: any) {

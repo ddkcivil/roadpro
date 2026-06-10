@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin, isSupabaseConfigured } from './utils/supabaseClient.js';
-import { withErrorHandler } from './utils/errorHandler.js';
-import { withAuth } from './utils/auth.js';
-import { parseKML } from './utils/kmlParser.js';
-import { v4 as uuidv4 } from 'uuid';
-import { mapProjectToDb } from './utils/mappers.js';
+import { getSupabaseAdmin, isSupabaseConfigured } from './_utils/supabaseClient.js';
+import { withErrorHandler } from './_utils/errorHandler.js';
+import { withAuth } from './_utils/auth.js';
+import { parseKML } from './_utils/kmlParser.js';
+import { generateUniqueId } from './_utils/uuidUtils.js';
+import { mapProjectToDb } from './_utils/mappers.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const supabaseAdmin = getSupabaseAdmin();

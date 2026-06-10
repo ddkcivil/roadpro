@@ -1,11 +1,11 @@
 
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin, isSupabaseConfigured } from './utils/supabaseClient.js';
-import { withErrorHandler } from './utils/errorHandler.js';
-import { withAuth } from './utils/auth.js';
-import { mapProjectDocumentToDb, mapDocumentVersionFromDb } from './utils/mappers.js';
-import { generateUniqueId } from './utils/uuidUtils.js';
+import { getSupabaseAdmin, isSupabaseConfigured } from './_utils/supabaseClient.js';
+import { withErrorHandler } from './_utils/errorHandler.js';
+import { withAuth } from './_utils/auth.js';
+import { mapProjectDocumentToDb, mapDocumentVersionFromDb } from './_utils/mappers.js';
+import { generateUniqueId } from './_utils/uuidUtils.js';
 import { Buffer } from 'buffer'; // For Buffer operations
 
 const DEFAULT_BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || 'project-files';

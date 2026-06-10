@@ -25,7 +25,7 @@ class OCRService {
     console.log('Chandra OCR Engine initialized successfully');
   }
 
-  async extractTextFromImage(file: File): Promise<OCRResult> {
+async extractTextFromImage(file: File): Promise<OCRResult> {
     if (!this.initialized) {
       throw new Error('OCR Service not initialized. Call initialize() first.');
     }
@@ -42,12 +42,16 @@ class OCRService {
     try {
       console.log('Starting real PDF text extraction for:', pdfFile.name);
       
-      // Load PDF.js dynamically to avoid issues with SSR or initialization order
-      const pdfjsLib = await import('pdfjs-dist');
+      // Use jsdelivr CDN for reliable worker loading in production (Vercel)
+      // Version 5.4.296 matches the pdfjs-dist version in package.json
+      const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+      const pdfjsWorkerUrl = isLocalhost
+        ? '/pdfjs-worker/pdf.worker.min.mjs'
+        : 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/build/pdf.worker.min.mjs';
       
-      // Use the local worker file from the public folder instead of CDN
-      // This prevents network failures and version mismatch errors
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs-worker/pdf.worker.min.mjs';
+      // Import pdfjs-dist and configure worker
+      const pdfjsLib = await import('pdfjs-dist');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl;
 
       const arrayBuffer = await pdfFile.arrayBuffer();
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });

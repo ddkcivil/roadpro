@@ -1,4 +1,3 @@
-api/utils/
 api/server.mjs
 api/tsconfig.json
 api/package.json

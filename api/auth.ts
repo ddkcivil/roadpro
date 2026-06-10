@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withErrorHandler } from './utils/errorHandler.js';
-import { mapUserFromDb } from './utils/mappers.js';
-import { getSupabasePublic, isSupabaseConfigured } from './utils/supabaseClient.js';
+import { withErrorHandler } from './_utils/errorHandler.js';
+import { mapUserFromDb } from './_utils/mappers.js';
+import { getSupabasePublic, isSupabaseConfigured } from './_utils/supabaseClient.js';
 
 // Debug: Log startup and env availability
 console.log('[Auth API] Server started. Env check:', {

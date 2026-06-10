@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin, getSupabasePublic, isSupabaseConfigured } from './utils/supabaseClient.js';
-import { withErrorHandler } from './utils/errorHandler.js';
-import { withAuth } from './utils/auth.js';
-import { v4 as uuidv4 } from 'uuid';
-import { hashPassword } from './utils/authUtils.js';
+import { getSupabaseAdmin, getSupabasePublic, isSupabaseConfigured } from './_utils/supabaseClient.js';
+import { withErrorHandler } from './_utils/errorHandler.js';
+import { withAuth } from './_utils/auth.js';
+import { generateUniqueId } from './_utils/uuidUtils.js';
+import { hashPassword } from './_utils/authUtils.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { id, action } = req.query;

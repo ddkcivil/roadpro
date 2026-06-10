@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin } from './utils/supabaseClient.js';
-import { withErrorHandler } from './utils/errorHandler.js';
-import { withAuth } from './utils/auth.js';
-import { mapAuditLogFromDb, mapAuditLogToDb } from './utils/mappers.js';
+import { getSupabaseAdmin } from './_utils/supabaseClient.js';
+import { withErrorHandler } from './_utils/errorHandler.js';
+import { withAuth } from './_utils/auth.js';
+import { mapAuditLogFromDb, mapAuditLogToDb } from './_utils/mappers.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const supabaseAdmin = getSupabaseAdmin();
