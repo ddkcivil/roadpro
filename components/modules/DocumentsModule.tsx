@@ -1,11 +1,10 @@
-
 import React, { useState, useMemo, useEffect, useCallback, ChangeEvent, useRef } from 'react';
 import { Project, UserRole, ProjectDocument, DocumentVersion } from '../../types';
 import { 
     Sparkles, FileText, Loader2, 
     UploadCloud, Plus, Search, Folder, MoreVertical, Trash2, 
     ExternalLink, Image as ImageIcon, CheckCircle,
-    X, ArrowDownLeft, Pencil
+    X, ArrowDownLeft, Pencil, Eye, Maximize2, ChevronRight, ChevronLeft
 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardHeader } from '~/components/ui/card';
@@ -91,7 +90,9 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
     recipient: '',
     subId: ''
   });
+  
   const [previewDoc, setPreviewDoc] = useState<ProjectDocument | null>(null);
+  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
   const [newTagInput, setNewTagInput] = useState('');
   
   const [editingDoc, setEditingDoc] = useState<ProjectDocument | null>(null);
@@ -193,12 +194,16 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
   const [pdfComponents, setPdfComponents] = useState<PdfComponents | null>(null);
   const [currentPageState, setCurrentPageState] = useState(1);
   const [numPagesState, setNumPagesState] = useState<number | null>(null);
-  const [scaleState, setScaleState] = useState(1.0);
+  const [scaleState, setScaleState] = useState(0.8); // Adjusted for side preview
 
   useEffect(() => {
     const loadPdfComponents = async () => {
       try {
         const pdfModule = await import('react-pdf');
+        // Configure worker for the imported pdfjs instance
+        if (pdfModule.pdfjs) {
+          pdfModule.pdfjs.GlobalWorkerOptions.workerSrc = `/pdfjs-worker/pdf.worker.min.mjs`;
+        }
         setPdfComponents({
           Document: pdfModule.Document,
           Page: pdfModule.Page,
@@ -221,7 +226,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
   const goToPrevPage = () => setCurrentPageState(prev => Math.max(1, prev - 1));
   const goToNextPage = () => setCurrentPageState(prev => Math.min(numPagesState || 1, prev + 1));
   const zoomIn = () => setScaleState(prev => Math.min(2, prev + 0.2));
-  const zoomOut = () => setScaleState(prev => Math.max(0.5, prev - 0.2));
+  const zoomOut = () => setScaleState(prev => Math.max(0.4, prev - 0.2));
 
   const getFileUrl = (doc: ProjectDocument): string => {
     return doc.fileUrl || '';
@@ -707,9 +712,95 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
   const folderSelectRef = useRef<HTMLButtonElement>(null); // Ref for Select Trigger
   const subcontractorSelectRef = useRef<HTMLButtonElement>(null); // Ref for Select Trigger
 
+  const DocumentPreview = ({ doc, isDialog = false }: { doc: ProjectDocument, isDialog?: boolean }) => {
+    const isPdf = (doc.type?.toLowerCase().includes('pdf') || doc.fileUrl?.toLowerCase().endsWith('.pdf'));
+    const isImage = (doc.type === 'IMAGE' || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => doc.fileUrl && doc.fileUrl.toLowerCase().endsWith(ext)));
+
+    return (
+      <div className="w-full h-full flex flex-col">
+        {doc.fileUrl ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-0 overflow-hidden">
+            {isPdf ? (
+              <div className="w-full h-full flex flex-col">
+                <div className="flex-1 flex items-center justify-center bg-muted/30 overflow-auto">
+                  {Document ? (
+                    <Document
+                      file={getFileUrl(doc)}
+                      httpHeaders={pdfHttpHeaders}
+                      loading={<div className="text-center text-muted-foreground"><Loader2 className="animate-spin mx-auto mb-2" /> Loading PDF...</div>}
+                      error={
+                        <div className="flex flex-col items-center justify-center p-4 text-destructive">
+                          <FileText className="h-12 w-12 mb-2" />
+                          <p>Failed to load PDF</p>
+                          <p className="text-sm text-muted-foreground mt-1 text-center">
+                            This document may have an expired link or permission issue.
+                          </p>
+                        </div>
+                      }
+                      onLoadSuccess={onDocumentLoadSuccess}
+                      onError={(error: Error) => console.error('PDF Load Error:', error)}
+                    >
+                      <Page pageNumber={currentPageState} scale={isDialog ? scaleState * 1.5 : scaleState} renderTextLayer={false} renderAnnotationLayer={false} />
+                    </Document>
+                  ) : (
+                    <div className="text-center p-4 text-muted-foreground">
+                      <Loader2 className="animate-spin mx-auto mb-2" />
+                      <p>Initializing PDF viewer...</p>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center justify-center gap-2 p-2 bg-background border-t">
+                  <Button variant="outline" size="sm" className="h-7 px-2" onClick={goToPrevPage} disabled={currentPageState <= 1}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest whitespace-nowrap">
+                    Page {currentPageState} / {numPagesState || '?'}
+                  </span>
+                  <Button variant="outline" size="sm" className="h-7 px-2" onClick={goToNextPage} disabled={currentPageState >= (numPagesState || 1)}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Separator orientation="vertical" className="h-4 mx-1" />
+                  <Button variant="outline" size="sm" className="h-7 px-2" onClick={zoomOut}>-</Button>
+                  <span className="text-[10px] font-bold w-10 text-center">{Math.round(scaleState * (isDialog ? 150 : 100))}%</span>
+                  <Button variant="outline" size="sm" className="h-7 px-2" onClick={zoomIn}>+</Button>
+                </div>
+              </div>
+            ) : isImage ? (
+              <div className="flex-1 w-full h-full flex items-center justify-center p-4 bg-muted/10">
+                <img
+                  src={getFileUrl(doc)}
+                  alt="Document Preview"
+                  className="max-w-full max-h-full object-contain rounded shadow-sm"
+                />
+              </div>
+            ) : (
+              <div className="text-center p-8 text-muted-foreground">
+                <FileText className="mx-auto h-16 w-16 mb-4 opacity-20" />
+                <p className="font-bold">Preview not available</p>
+                <p className="text-xs mt-1 mb-4">This file type ({doc.type}) cannot be previewed directly.</p>
+                <Button variant="outline" size="sm" asChild>
+                  <a href={getFileUrl(doc)} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="mr-2 h-4 w-4" /> Open in New Tab
+                  </a>
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-muted-foreground bg-muted/5">
+            <AlertTriangle className="h-12 w-12 mb-4 text-amber-500 opacity-50" />
+            <p className="font-bold">{doc.status === 'Unavailable' ? 'File Missing' : 'No URL Available'}</p>
+            <p className="text-xs text-center mt-2">The document file could not be located in cloud storage.</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="flex h-[calc(100vh-140px)] gap-4 p-4">
-      <Card className="w-60 flex flex-col">
+    <div className="flex h-[calc(100vh-140px)] gap-4 p-4 overflow-hidden">
+      {/* Folder Sidebar */}
+      <Card className="w-60 flex flex-col shrink-0">
         <CardHeader className="border-b px-4 py-3">
           <Button onClick={() => setUploadModalOpen(true)} className="w-full">
             <Plus className="mr-2 h-4 w-4" /> New Upload
@@ -738,7 +829,8 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
         </ScrollArea>
       </Card>
 
-      <div className="flex-1 flex flex-col gap-4">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col gap-4 min-w-0">
         <div className="flex justify-between items-center">
           <div className="text-sm text-muted-foreground flex items-center gap-1">
             <Folder className="h-4 w-4" /> <span>Project Storage</span> <span className="mx-1">/</span> <span className="font-semibold text-foreground">{activeFolder}</span>
@@ -768,96 +860,174 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
           </div>
         </div>
 
-        <Card className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full w-full rounded-md border">
-            <Table>
-              <TableHeader className="bg-muted">
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Reference / Subject</TableHead>
-                  <TableHead>Tags</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Size</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
+        <div className="flex-1 flex gap-4 min-h-0">
+          {/* Document Table */}
+          <Card className={cn("flex-1 overflow-hidden flex flex-col transition-all duration-300", previewDoc ? "flex-[0.6]" : "flex-1")}>
+            <ScrollArea className="flex-1 w-full rounded-md border">
+              <Table>
+                <TableHeader className="bg-muted sticky top-0 z-10">
                   <TableRow>
-                    <TableCell colSpan={6} className="h-60 text-center">
-                      <Loader2 className="mx-auto h-8 w-8 text-primary animate-spin mb-2" />
-                      <p className="text-muted-foreground">Synchronizing documents...</p>
-                    </TableCell>
+                    <TableHead className="w-[40%]">Name</TableHead>
+                    <TableHead className="w-[30%]">Ref / Subject</TableHead>
+                    <TableHead className="w-[15%]">Date</TableHead>
+                    <TableHead className="text-right w-[15%]">Actions</TableHead>
                   </TableRow>
-                ) : filteredDocuments.length > 0 ? filteredDocuments.map(doc => (
-                  <TableRow key={doc.id} className="cursor-pointer" onClick={() => setPreviewDoc(doc)}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {doc.status === 'Unavailable' ? (
-                            <FileText className="h-4 w-4 text-gray-400"/>
-                        ) : doc.type === 'IMAGE' ? (
-                            <ImageIcon className="h-4 w-4 text-blue-500"/>
-                        ) : (
-                            <FileText className="h-4 w-4 text-rose-500"/>
-                        )}
-                        <span className={cn("font-medium", (doc.status ?? 'Active') === 'Unavailable' && "line-through text-muted-foreground")}>
-                            {doc.name} {doc.status === 'Unavailable' && ' (Unavailable)'}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-semibold text-sm">{doc.refNo || '-'}</p>
-                      <p className="text-xs text-muted-foreground truncate w-[200px]">{doc.subject || 'No subject'}</p>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 flex-wrap max-w-[200px]">
-                          {doc.tags?.map((t, idx) => <Badge key={idx} variant="outline" className="h-4 text-xs">{t}</Badge>)}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{doc.date}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{doc.size}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
-                            <span className="sr-only">Open menu</span>
-                            <MoreVertical className="h-4 w-4" />
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-60 text-center">
+                        <Loader2 className="mx-auto h-8 w-8 text-primary animate-spin mb-2" />
+                        <p className="text-muted-foreground">Synchronizing documents...</p>
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredDocuments.length > 0 ? filteredDocuments.map(doc => (
+                    <TableRow 
+                      key={doc.id} 
+                      className={cn(
+                        "cursor-pointer group hover:bg-muted/50 transition-colors",
+                        previewDoc?.id === doc.id ? "bg-primary/5 border-l-2 border-l-primary" : ""
+                      )} 
+                      onClick={() => {
+                        setPreviewDoc(doc);
+                        setCurrentPageState(1);
+                      }}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {doc.status === 'Unavailable' ? (
+                              <FileText className="h-4 w-4 text-gray-400"/>
+                          ) : doc.type === 'IMAGE' ? (
+                              <ImageIcon className="h-4 w-4 text-blue-500"/>
+                          ) : (
+                              <FileText className="h-4 w-4 text-rose-500"/>
+                          )}
+                          <div className="flex flex-col min-w-0">
+                            <span className={cn("font-medium truncate", (doc.status ?? 'Active') === 'Unavailable' && "line-through text-muted-foreground")}>
+                                {doc.name}
+                            </span>
+                            <div className="flex gap-1 flex-wrap mt-0.5">
+                              {doc.tags?.slice(0, 2).map((t, idx) => <span key={idx} className="text-[9px] uppercase font-bold text-muted-foreground/70">{t}</span>)}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <p className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">{doc.refNo || '-'}</p>
+                        <p className="text-xs truncate w-full">{doc.subject || 'No subject'}</p>
+                      </TableCell>
+                      <TableCell className="text-[11px] font-medium text-muted-foreground">{doc.date}</TableCell>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setPreviewDoc(doc); setIsPreviewDialogOpen(true); }}>
+                            <Maximize2 className="h-3.5 w-3.5" />
                           </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenEdit(doc); }}>
-                            <Pencil className="mr-2 h-4 w-4" /> Edit Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDownloadDocument(doc); }}>
-                            <ArrowDownLeft className="mr-2 h-4 w-4" /> Download
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteDoc(doc.id); }}>
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                )) : (
-                                    <TableRow>
-                    <TableCell colSpan={6} className="h-60 text-center">
-                      <FileText className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
-                      <p className="text-xl font-semibold mb-1">No documents found</p>
-                      <p className="text-muted-foreground mb-4">Upload a document to get started or try reloading.</p>
-                      {onRefresh && (
-                        <Button variant="outline" onClick={() => onRefresh()} disabled={isLoading}>
-                          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                          Try Reloading
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </ScrollArea>
-        </Card>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-7 w-7 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => handleOpenEdit(doc)}>
+                                <Pencil className="mr-2 h-4 w-4" /> Edit Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDownloadDocument(doc)}>
+                                <ArrowDownLeft className="mr-2 h-4 w-4" /> Download
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDeleteDoc(doc.id)} className="text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-60 text-center">
+                        <FileText className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
+                        <p className="text-xl font-semibold mb-1">No documents found</p>
+                        <p className="text-muted-foreground mb-4">Upload a document to get started.</p>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </Card>
+
+          {/* Integrated Side Preview */}
+          {previewDoc && (
+            <Card className="flex-1 flex flex-col overflow-hidden animate-in slide-in-from-right-4 duration-300">
+              <div className="p-3 border-b flex items-center justify-between bg-muted/20">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="p-1.5 bg-primary/10 rounded">
+                    {previewDoc.type === 'IMAGE' ? <ImageIcon className="h-3.5 w-3.5 text-primary" /> : <FileText className="h-3.5 w-3.5 text-primary" />}
+                  </div>
+                  <h3 className="text-xs font-bold truncate">{previewDoc.name}</h3>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsPreviewDialogOpen(true)} title="Full Screen">
+                    <Maximize2 className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPreviewDoc(null)}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="flex-1 min-h-0 bg-muted/5 relative">
+                <DocumentPreview doc={previewDoc} />
+              </div>
+
+              <div className="p-4 border-t bg-background overflow-y-auto max-h-[35%] shrink-0">
+                <div className="flex justify-between items-start mb-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Metadata</h4>
+                  <Button variant="ghost" size="sm" className="h-6 text-[10px] font-bold" onClick={() => handleOpenEdit(previewDoc)}>
+                    <Pencil className="h-3 w-3 mr-1" /> Edit
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black uppercase text-muted-foreground">Subject</p>
+                    <p className="text-xs font-bold truncate" title={previewDoc.subject}>{previewDoc.subject || 'Not specified'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black uppercase text-muted-foreground">Reference</p>
+                    <p className="text-xs font-bold truncate">{previewDoc.refNo || 'N/A'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black uppercase text-muted-foreground">Type / Date</p>
+                    <p className="text-xs font-bold">{previewDoc.type} — {previewDoc.date}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black uppercase text-muted-foreground">Uploaded By</p>
+                    <p className="text-xs font-bold">{previewDoc.createdBy || 'Unknown'}</p>
+                  </div>
+                </div>
+                
+                <Separator className="my-3" />
+                
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="text-[9px] font-black uppercase text-muted-foreground">Tags</p>
+                    <Plus className="h-3 w-3 text-primary cursor-pointer" />
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {previewDoc.tags?.map(t => (
+                      <Badge key={t} variant="secondary" className="h-5 text-[9px] font-black uppercase tracking-tighter">
+                        {t}
+                      </Badge>
+                    ))}
+                    {(!previewDoc.tags || previewDoc.tags.length === 0) && <p className="text-[10px] italic text-muted-foreground">No tags</p>}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+        </div>
       </div>
 
       <Dialog open={uploadModalOpen} onOpenChange={setUploadModalOpen}>
@@ -1034,12 +1204,11 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
         </DialogContent>
       </Dialog>
 
-      {/* Preview Document Dialog */}
-      <Dialog open={!!previewDoc} onOpenChange={() => setPreviewDoc(null)}>
+      {/* Full Screen Preview Dialog */}
+      <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
         {previewDoc && (
-          <DialogContent className="max-w-[calc(100vw-6rem)] h-[calc(100vh-6rem)] flex flex-col p-0">
-            <DialogDescription className="sr-only">Viewing document: {previewDoc.name}</DialogDescription>
-            <DialogHeader className="flex flex-row items-center justify-between px-6 py-4 border-b">
+          <DialogContent className="max-w-[calc(100vw-4rem)] h-[calc(100vh-4rem)] flex flex-col p-0">
+            <DialogHeader className="px-6 py-4 border-b flex flex-row items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
                 <DialogTitle className="text-lg font-bold">{previewDoc.name}</DialogTitle>
@@ -1047,189 +1216,16 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" asChild>
                   <a href={getFileUrl(previewDoc)} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="mr-2 h-4 w-4" /> Open Full
+                    <ExternalLink className="mr-2 h-4 w-4" /> Open Original
                   </a>
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => setPreviewDoc(null)}>
+                <Button variant="ghost" size="icon" onClick={() => setIsPreviewDialogOpen(false)}>
                   <X className="h-5 w-5" />
                 </Button>
               </div>
             </DialogHeader>
-            <div className="flex flex-1 overflow-hidden bg-muted/20">
-              <div className="flex-1 flex items-center justify-center p-4">
-                {previewDoc.fileUrl ? (
-                  <div className="w-full h-full flex flex-col">
-                    {(previewDoc.type?.toLowerCase().includes('pdf') || previewDoc.fileUrl?.toLowerCase().endsWith('.pdf')) ? (
-                      <div className="flex-1 flex items-center justify-center">
-                        {Document ? (
-                          <Document
-                            file={getFileUrl(previewDoc)}
-                            httpHeaders={pdfHttpHeaders}
-                            loading={<div className="text-center text-muted-foreground">Loading PDF...</div>}
-                            error={
-                              <div className="flex flex-col items-center justify-center p-4 text-destructive">
-                                <FileText className="h-12 w-12 mb-2" />
-                                <p>Failed to load PDF</p>
-                                <p className="text-sm text-muted-foreground mt-1 text-center">
-                                  This document may have an expired link. Please re-upload the file.
-                                </p>
-                              </div>
-                            }
-                            onLoadSuccess={onDocumentLoadSuccess}
-                            onError={(error: Error) => console.error('PDF Load Error:', error)}
-                          >
-                            <Page pageNumber={currentPageState} scale={scaleState} renderTextLayer={false} renderAnnotationLayer={false} />
-                          </Document>
-                        ) : (
-                          <div className="text-center p-4 text-muted-foreground">
-                            <Loader2 className="animate-spin mx-auto mb-2" />
-                            <p>Initializing PDF viewer...</p>
-                          </div>
-                        )}
-                      </div>
-                    ) : (previewDoc.type === 'IMAGE' || ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => previewDoc.fileUrl && previewDoc.fileUrl.toLowerCase().endsWith(ext))) ? (
-                      <img
-                        src={getFileUrl(previewDoc)}
-                        alt="Document Preview"
-                        className="max-w-full max-h-full object-contain rounded-lg"
-                      />
-                    ) : (
-                      <div className="text-center p-4 text-muted-foreground">
-                        <FileText className="mx-auto h-12 w-12 mb-2" />
-                        <p>Preview not available for this file type</p>
-                        <p className="text-sm">{previewDoc.name}</p>
-                        <Button variant="outline" size="sm" className="mt-4" asChild>
-                          <a href={getFileUrl(previewDoc)} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="mr-2 h-4 w-4" /> Download File
-                          </a>
-                        </Button>
-                      </div>
-                    )}
-                    {(previewDoc.type === 'PDF' || (previewDoc.fileUrl && previewDoc.fileUrl.toLowerCase().endsWith('.pdf'))) && (
-                        <div className="flex items-center justify-center gap-2 p-2 bg-background/50 border-t">
-                            <Button variant="outline" size="sm" onClick={goToPrevPage} disabled={currentPageState <= 1}>Prev</Button>
-                            <span className="text-sm text-muted-foreground">Page {currentPageState} of {numPagesState}</span>
-                            <Button variant="outline" size="sm" onClick={goToNextPage} disabled={currentPageState >= (numPagesState || 1)}>Next</Button>
-                            <Separator orientation="vertical" className="h-6 mx-2" />
-                            <Button variant="outline" size="sm" onClick={zoomOut}>-</Button>
-                            <span className="text-sm text-muted-foreground">{Math.round(scaleState * 100)}%</span>
-                            <Button variant="outline" size="sm" onClick={zoomIn}>+</Button>
-                        </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center p-4 text-muted-foreground">
-                    <FileText className="mx-auto h-12 w-12 mb-2" />
-                    <p>{previewDoc.status === 'Unavailable' ? 'This document is no longer available. Please re-upload the file.' : 'No preview available'}</p>
-                    <p className="text-sm">{previewDoc.name}</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="w-80 border-l bg-background p-4 overflow-y-auto">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Document Metadata</h3>
-                <div className="grid gap-4">
-                  {/* Subject */}
-                  <div>
-                    <Label htmlFor="preview-subject" className="text-xs text-muted-foreground">Subject</Label>
-                    <div className="relative">
-                      <Input 
-                        id="preview-subject"
-                        className="h-9 font-medium border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                        value={previewDoc.subject || 'Not specified'} 
-                        onChange={(e) => {
-                          setPreviewDoc(prev => prev ? {...prev, subject: e.target.value} : null);
-                          subjectHistory.updateSuggestions(e.target.value);
-                        }}
-                        onBlur={() => previewDoc && subjectHistory.saveEntry(previewDoc.subject || '')}
-                        ref={subjectInputRef}
-                      />
-                      {renderSuggestions(subjectHistory, subjectInputRef, (value) => setPreviewDoc(prev => prev ? {...prev, subject: value} : null))}
-                    </div>
-                  </div>
-                  {/* Reference Number */}
-                  <div>
-                    <Label htmlFor="preview-refNo" className="text-xs text-muted-foreground">Reference Number</Label>
-                    <div className="relative">
-                      <Input
-                        id="preview-refNo"
-                        className="h-9 font-medium border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                        value={previewDoc.refNo || 'N/A'} 
-                        onChange={(e) => {
-                          setPreviewDoc(prev => prev ? {...prev, refNo: e.target.value} : null);
-                          refNoHistory.updateSuggestions(e.target.value);
-                        }}
-                        onBlur={() => previewDoc && refNoHistory.saveEntry(previewDoc.refNo || '')}
-                        ref={refNoInputRef}
-                      />
-                      {renderSuggestions(refNoHistory, refNoInputRef, (value) => setPreviewDoc(prev => prev ? {...prev, refNo: value} : null))}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Organization Tags</p>
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {previewDoc.tags?.map(t => (
-                        <Badge key={t} variant="secondary" className="h-5 text-xs flex items-center">
-                          {t}
-                          <button 
-                            onClick={() => handleRemoveTag(previewDoc.id, t)} 
-                            className="ml-1 focus:outline-none"
-                            title="Remove tag"
-                            aria-label={`Remove tag ${t}`}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                      {(!previewDoc.tags || previewDoc.tags.length === 0) && (
-                        <p className="text-xs text-muted-foreground italic">No tags added</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        placeholder="Add custom tag..."
-                        value={newTagInput}
-                        onChange={e => setNewTagInput(e.target.value)}
-                        onKeyPress={e => e.key === 'Enter' && handleAddTag(previewDoc.id, newTagInput)}
-                        className="h-9"
-                        aria-label="New tag name"
-                      />
-                      <Button size="icon" onClick={() => handleAddTag(previewDoc.id, newTagInput)}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <Separator />
-                  <div>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Version History</h4>
-                    <Card className="p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-medium">Current Version: {previewDoc.currentVersion}</p>
-                        <Input
-                          type="file"
-                          className="w-40 text-xs"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              await handleUploadNewVersion(previewDoc.id, file);
-                            }
-                          }}
-                          aria-label="Upload new version"
-                        />
-                      </div>
-                      <div className="space-y-1 max-h-40 overflow-y-auto">
-                        {previewDoc.versions?.sort((a, b) => b.version - a.version).map(v => (
-                          <div key={v.id} className="flex items-center justify-between text-xs py-1 px-2 rounded hover:bg-muted cursor-pointer" onClick={() => v.version !== previewDoc.currentVersion && handleRevertToVersion(previewDoc.id, v.id)} title={v.version !== previewDoc.currentVersion ? `Revert to version ${v.version}` : 'Current version'}>
-                            <span className="text-muted-foreground">v{v.version} — {v.date}</span>
-                            <span className="text-muted-foreground">{v.size}</span>
-                            {v.version === previewDoc.currentVersion && <CheckCircle className="h-3 w-3 ml-2 text-green-500" />}
-                          </div>
-                        ))}
-                      </div>
-                    </Card>
-                  </div>
-                </div>
-              </div>
+            <div className="flex-1 min-h-0 bg-muted/20">
+              <DocumentPreview doc={previewDoc} isDialog={true} />
             </div>
           </DialogContent>
         )}
