@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-import { sqliteService } from '../../services/database/sqliteService';
+import { sqliteService } from '../../../services/database/sqliteService';
 import { DataSyncService } from '../../services/database/dataSyncService';
 
 import { Button } from '~/components/ui/button';
