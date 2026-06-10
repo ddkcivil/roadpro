@@ -27,7 +27,11 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
   const purchaseOrders = project.purchaseOrders || [];
 
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [isPOOpen, setIsPOOpen] = useState(false);
+  const [isTransactionOpen, setIsTransactionOpen] = useState(false);
   const [newMaterial, setNewMaterial] = useState({ name: '', category: '', unit: '', quantity: 0 });
+  const [newPO, setNewPO] = useState({ poNumber: '', vendor: '', date: new Date().toISOString().split('T')[0], totalAmount: 0 });
+  const [transaction, setTransaction] = useState<{materialId: string, quantity: number, type: 'In' | 'Out'}>({ materialId: '', quantity: 0, type: 'In' });
 
   const handleRegisterMaterial = () => {
     if (!newMaterial.name || !newMaterial.unit) {
@@ -47,7 +51,7 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
       ...newMaterial,
       location: 'Main Store',
       lastUpdated: new Date().toISOString(),
-      availableQuantity: newMaterial.quantity,
+      quantity: newMaterial.quantity,
       status: 'Available'
     };
 
@@ -59,6 +63,51 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
     setNewMaterial({ name: '', category: '', unit: '', quantity: 0 });
     setIsRegisterOpen(false);
     toast.success("Material Registered Successfully");
+  };
+
+  const handleCreatePO = () => {
+    if (!newPO.poNumber || !newPO.vendor) {
+      toast.error("PO Number and Vendor are required");
+      return;
+    }
+
+    const po: PurchaseOrder = {
+      id: generateUniqueId(),
+      ...newPO,
+      status: 'Draft'
+    };
+
+    onProjectUpdate({
+      ...project,
+      purchaseOrders: [...purchaseOrders, po]
+    });
+
+    setNewPO({ poNumber: '', vendor: '', date: new Date().toISOString().split('T')[0], totalAmount: 0 });
+    setIsPOOpen(false);
+    toast.success("Purchase Order Created");
+  };
+
+  const handleStockTransaction = () => {
+    if (!transaction.materialId || transaction.quantity <= 0) {
+      toast.error("Invalid transaction details");
+      return;
+    }
+
+    const updatedMaterials = materials.map(m => {
+      if (m.id === transaction.materialId) {
+        const newQty = transaction.type === 'In' ? m.quantity + transaction.quantity : m.quantity - transaction.quantity;
+        if (newQty < 0) {
+          toast.error("Insufficient inventory");
+          return m;
+        }
+        return { ...m, quantity: newQty, status: newQty === 0 ? 'Out of Stock' : (newQty < 10 ? 'Low Stock' : 'Available') };
+      }
+      return m;
+    });
+
+    onProjectUpdate({ ...project, materials: updatedMaterials });
+    setIsTransactionOpen(false);
+    toast.success(`Stock ${transaction.type} processed`);
   };
 
   const handleNameChange = (name: string) => {
