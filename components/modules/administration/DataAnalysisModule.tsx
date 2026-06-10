@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 import { sqliteService } from '../../../services/database/sqliteService';
-import { DataSyncService } from '../../services/database/dataSyncService';
+import { DataSyncService } from '../../../services/database/dataSyncService';
 
 import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';

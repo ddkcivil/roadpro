@@ -142,7 +142,6 @@ self.addEventListener('fetch', (event) => {
   // Strategy for Map Tile Servers: Network First, then fallback to Cache
   // This handles Stadia Maps, CARTO, Esri, OpenTopoMap, and other tile providers
   const tileDomains = [
-    'tiles.stadiamaps.com',
     'cartodb-basemaps-a.global.ssl.fastly.net',
     'cartodb-basemaps-b.global.ssl.fastly.net',
     'server.arcgisonline.com',
