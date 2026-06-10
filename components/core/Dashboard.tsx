@@ -14,7 +14,7 @@ import {
   FileDown, Settings, GripVertical, ShieldCheck, AlertTriangle, Info,
   ChevronRight, CloudLightning,
   HardHat, Building2, Users, Calendar, Award, Globe, MapPin,
-  Mail, Phone, Send
+  Mail, Phone, Send, Bot
 } from 'lucide-react';
 
 import { Button } from '~/components/ui/button';

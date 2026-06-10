@@ -1177,7 +1177,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
                     }}
                 >
                     <SelectTrigger aria-label="Correspondence Type">
-                        <SelectValue placeholder="Correspondence Type" />
+                        <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="none">Not Specified</SelectItem>
@@ -1243,13 +1243,13 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
                 {/* Name */}
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="edit-name" className="text-right">Name</Label>
-                  <Input id="edit-name" value={editFormData.name || ''} onChange={e => setEditFormData({...editFormData, name: e.target.value})} className="col-span-3" />
+                  <Input id="edit-name" value={editFormData.name || ''} onChange={e => setEditFormData({...editFormData, name: e.target.value})} placeholder="e.g. MyDocument.pdf" className="col-span-3" />
                 </div>
                 {/* Subject */}
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="edit-subject" className="text-right">Subject</Label>
                   <div className="relative col-span-3">
-                    <Input id="edit-subject" value={editFormData.subject || ''} onChange={handleEditSubjectChange} onBlur={() => editFormData.subject && subjectHistory.saveEntry(editFormData.subject)} ref={subjectInputRef} className="col-span-3" />
+                    <Input id="edit-subject" value={editFormData.subject || ''} onChange={handleEditSubjectChange} onBlur={() => editFormData.subject && subjectHistory.saveEntry(editFormData.subject)} placeholder="e.g. Site Inspection Report" ref={subjectInputRef} className="col-span-3" />
                     {renderSuggestions(subjectHistory, subjectInputRef, (value) => setEditFormData({...editFormData, subject: value}))}
                   </div>
                 </div>
@@ -1257,7 +1257,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="edit-ref" className="text-right">Ref No.</Label>
                   <div className="relative col-span-3">
-                    <Input id="edit-ref" value={editFormData.refNo || ''} onChange={handleEditRefNoChange} onBlur={() => editFormData.refNo && refNoHistory.saveEntry(editFormData.refNo)} ref={refNoInputRef} className="col-span-3" />
+                    <Input id="edit-ref" value={editFormData.refNo || ''} onChange={handleEditRefNoChange} onBlur={() => editFormData.refNo && refNoHistory.saveEntry(editFormData.refNo)} placeholder="e.g. SIR-2023-001" ref={refNoInputRef} className="col-span-3" />
                     {renderSuggestions(refNoHistory, refNoInputRef, (value) => setEditFormData({...editFormData, refNo: value}))}
                   </div>
                 </div>

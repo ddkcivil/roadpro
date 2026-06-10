@@ -718,11 +718,11 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                     <div className="grid gap-4 py-4">
                         <div className="space-y-2">
                             <Label htmlFor="vo-title">VO Title</Label>
-                            <Input id="vo-title" placeholder="VO Title" value={newVO.title || ''} onChange={e => setNewVO({...newVO, title: e.target.value})} />
+                            <Input id="vo-title" placeholder="e.g. Design Change - Foundation" value={newVO.title || ''} onChange={e => setNewVO({...newVO, title: e.target.value})} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="vo-reason">Reason</Label>
-                            <Textarea id="vo-reason" placeholder="Reason" value={newVO.reason || ''} onChange={e => setNewVO({...newVO, reason: e.target.value})} />
+                            <Textarea id="vo-reason" placeholder="e.g. Due to unsuitable soil condition" value={newVO.reason || ''} onChange={e => setNewVO({...newVO, reason: e.target.value})} />
                         </div>
                     </div>
                     <DialogFooter>

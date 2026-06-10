@@ -462,6 +462,7 @@ const handleSaveResource = () => {
                 id="name-input"
                 value={editingResource.name}
                 onChange={(e) => setEditingResource({...editingResource, name: e.target.value})}
+                placeholder="e.g. OPC Cement"
               />
             </div>
             <div>
@@ -484,6 +485,7 @@ const handleSaveResource = () => {
                 id="category-input"
                 value={editingResource.category}
                 onChange={(e) => setEditingResource({...editingResource, category: e.target.value})}
+                placeholder="e.g. Construction Materials"
               />
             </div>
             <div>

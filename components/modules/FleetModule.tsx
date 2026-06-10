@@ -419,6 +419,8 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                         onChange={(e) => setNewVehicle({...newVehicle, driver: e.target.value})}
                         placeholder="e.g. Ram Bahadur"
                     />
+                        placeholder="e.g. Ram Bahadur"
+                    />
                     <Label htmlFor="new-type">Type</Label>
                     <Select value={newVehicle.type} onValueChange={(value) => setNewVehicle({...newVehicle, type: value as any})}>
                         <SelectTrigger id="new-type">
@@ -491,6 +493,8 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                         id="edit-driver"
                         value={editingVehicle?.driver || ''}
                         onChange={(e) => setEditingVehicle({...editingVehicle, driver: e.target.value})}
+                        placeholder="e.g. Ram Bahadur"
+                    />
                         placeholder="e.g. Ram Bahadur"
                     />
                     <Label htmlFor="edit-type">Type</Label>

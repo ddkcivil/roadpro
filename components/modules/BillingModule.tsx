@@ -801,7 +801,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <Label htmlFor="bill-number">Bill Number</Label>
-                                        <Input id="bill-number" value={subcontractorBillForm.billNumber} onChange={e => setSubcontractorBillForm({...subcontractorBillForm, billNumber: e.target.value})} />
+                                        <Input id="bill-number" value={subcontractorBillForm.billNumber} onChange={e => setSubcontractorBillForm({...subcontractorBillForm, billNumber: e.target.value})} placeholder="e.g. SCB-2024-001" />
                                     </div>
                                     <div>
                                         <Label htmlFor="bill-date">Bill Date</Label>

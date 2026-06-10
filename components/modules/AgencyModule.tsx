@@ -459,23 +459,23 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">Name</Label>
-              <Input id="name" value={agencyForm.name} onChange={e => setAgencyForm({...agencyForm, name: e.target.value})} className="col-span-3" />
+              <Input id="name" value={agencyForm.name} onChange={e => setAgencyForm({...agencyForm, name: e.target.value})} placeholder="e.g. Acme Corp" className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="trade" className="text-right">Trade</Label>
-              <Input id="trade" value={agencyForm.trade} onChange={e => setAgencyForm({...agencyForm, trade: e.target.value})} className="col-span-3" />
+              <Input id="trade" value={agencyForm.trade} onChange={e => setAgencyForm({...agencyForm, trade: e.target.value})} placeholder="e.g. Supplier, Subcontractor" className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="contact" className="text-right">Contact</Label>
-              <Input id="contact" value={agencyForm.contactPerson} onChange={e => setAgencyForm({...agencyForm, contactPerson: e.target.value})} className="col-span-3" />
+              <Input id="contact" value={agencyForm.contactPerson} onChange={e => setAgencyForm({...agencyForm, contactPerson: e.target.value})} placeholder="e.g. John Doe" className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="phone" className="text-right">Phone</Label>
-              <Input id="phone" value={agencyForm.phone} onChange={e => setAgencyForm({...agencyForm, phone: e.target.value})} className="col-span-3" />
+              <Input id="phone" value={agencyForm.phone} onChange={e => setAgencyForm({...agencyForm, phone: e.target.value})} placeholder="e.g. +977 9800000000" className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="email" className="text-right">Email</Label>
-              <Input id="email" value={agencyForm.email} onChange={e => setAgencyForm({...agencyForm, email: e.target.value})} className="col-span-3" />
+              <Input id="email" value={agencyForm.email} onChange={e => setAgencyForm({...agencyForm, email: e.target.value})} placeholder="e.g. info@acme.com" className="col-span-3" />
             </div>
           </div>
           <DialogFooter>
@@ -495,23 +495,23 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-name" className="text-right">Name</Label>
-              <Input id="edit-name" value={agencyForm.name} onChange={e => setAgencyForm({...agencyForm, name: e.target.value})} className="col-span-3" />
+              <Input id="edit-name" value={agencyForm.name} onChange={e => setAgencyForm({...agencyForm, name: e.target.value})} placeholder="e.g. Acme Corp" className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-trade" className="text-right">Trade</Label>
-              <Input id="edit-trade" value={agencyForm.trade} onChange={e => setAgencyForm({...agencyForm, trade: e.target.value})} className="col-span-3" />
+              <Input id="edit-trade" value={agencyForm.trade} onChange={e => setAgencyForm({...agencyForm, trade: e.target.value})} placeholder="e.g. Supplier, Subcontractor" className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-contact" className="text-right">Contact</Label>
-              <Input id="edit-contact" value={agencyForm.contactPerson} onChange={e => setAgencyForm({...agencyForm, contactPerson: e.target.value})} className="col-span-3" />
+              <Input id="edit-contact" value={agencyForm.contactPerson} onChange={e => setAgencyForm({...agencyForm, contactPerson: e.target.value})} placeholder="e.g. John Doe" className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-phone" className="text-right">Phone</Label>
-              <Input id="edit-phone" value={agencyForm.phone} onChange={e => setAgencyForm({...agencyForm, phone: e.target.value})} className="col-span-3" />
+              <Input id="edit-phone" value={agencyForm.phone} onChange={e => setAgencyForm({...agencyForm, phone: e.target.value})} placeholder="e.g. +977 9800000000" className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-email" className="text-right">Email</Label>
-              <Input id="edit-email" value={agencyForm.email} onChange={e => setAgencyForm({...agencyForm, email: e.target.value})} className="col-span-3" />
+              <Input id="edit-email" value={agencyForm.email} onChange={e => setAgencyForm({...agencyForm, email: e.target.value})} placeholder="e.g. info@acme.com" className="col-span-3" />
             </div>
           </div>
           <DialogFooter>
@@ -548,11 +548,11 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="payment-amount" className="text-right">Amount</Label>
-              <Input id="payment-amount" type="number" value={paymentForm.amount} onChange={e => setPaymentForm({...paymentForm, amount: Number(e.target.value)})} className="col-span-3" />
+              <Input id="payment-amount" type="number" value={paymentForm.amount} onChange={e => setPaymentForm({...paymentForm, amount: Number(e.target.value)})} placeholder="0.00" className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="payment-reference" className="text-right">Reference</Label>
-              <Input id="payment-reference" value={paymentForm.reference} onChange={e => setPaymentForm({...paymentForm, reference: e.target.value})} className="col-span-3" />
+              <Input id="payment-reference" value={paymentForm.reference} onChange={e => setPaymentForm({...paymentForm, reference: e.target.value})} placeholder="e.g. V-2024-001" className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="payment-type" className="text-right">Type</Label>

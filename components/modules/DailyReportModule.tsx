@@ -204,7 +204,7 @@ const DailyReportModule: React.FC<Props> = ({
                 <div className="flex justify-between items-center mb-4">
                     <div className="relative w-64">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Search reports..." className="pl-8" />
+                        <Input placeholder="Search reports by ID or date..." className="pl-8" />
                     </div>
                     <Button onClick={() => setView('create')}>
                         <Plus className="mr-2 h-4 w-4" /> New Report
@@ -475,6 +475,7 @@ const DailyReportModule: React.FC<Props> = ({
                                         <Label className="font-black text-[10px] uppercase text-slate-500">Name</Label>
                                         <Input
                                             value={visitor.name}
+                                            placeholder="e.g. John Doe"
                                             className="rounded-xl border-2 font-bold"
                                             onChange={e => {
                                                 const updated = [...visitors];
@@ -487,6 +488,7 @@ const DailyReportModule: React.FC<Props> = ({
                                         <Label className="font-black text-[10px] uppercase text-slate-500">Organization</Label>
                                         <Input
                                             value={visitor.organization}
+                                            placeholder="e.g. DoR, ADB"
                                             className="rounded-xl border-2 font-bold"
                                             onChange={e => {
                                                 const updated = [...visitors];
@@ -590,6 +592,7 @@ const DailyReportModule: React.FC<Props> = ({
                                                         <Label className={`font-black text-[10px] uppercase text-slate-500 ${errors.workItems[i]?.description ? "text-destructive" : ""}`}>Work Description</Label>
                                                         <Textarea
                                                             value={item.description}
+                                                            placeholder="e.g. Completed excavation of foundation"
                                                             className={`rounded-xl border-2 font-medium bg-white ${errors.workItems[i]?.description ? "border-destructive" : ""}`}
                                                             onChange={e => updateWorkToday(i, 'description', e.target.value)}
                                                         />
@@ -600,6 +603,7 @@ const DailyReportModule: React.FC<Props> = ({
                                                             <Input
                                                                 type="number"
                                                                 value={item.quantity}
+                                                                placeholder="0"
                                                                 className={`rounded-xl border-2 font-bold bg-white ${errors.workItems[i]?.quantity ? "border-destructive" : ""}`}
                                                                 onChange={e => updateWorkToday(i, 'quantity', Number(e.target.value))}
                                                             />
@@ -608,6 +612,7 @@ const DailyReportModule: React.FC<Props> = ({
                                                             <Label className="font-black text-[10px] uppercase text-slate-500">Chainage</Label>
                                                             <Input
                                                                 value={item.location}
+                                                                placeholder="e.g. 12+500"
                                                                 className="rounded-xl border-2 font-bold bg-white"
                                                                 onChange={e => updateWorkToday(i, 'location', e.target.value)}
                                                             />
@@ -686,6 +691,7 @@ const DailyReportModule: React.FC<Props> = ({
                                         <Label className={`font-black text-[10px] uppercase tracking-widest text-slate-500 ${errors.submittedBy ? "text-destructive" : ""}`}>Submitted By (Contractor)</Label>
                                         <Input
                                             value={submittedBy}
+                                            placeholder="e.g. John Smith"
                                             className={`rounded-xl border-2 font-bold ${errors.submittedBy ? "border-destructive" : ""}`}
                                             onChange={e => setSubmittedBy(e.target.value)}
                                         />
@@ -694,6 +700,7 @@ const DailyReportModule: React.FC<Props> = ({
                                         <Label className={`font-black text-[10px] uppercase tracking-widest text-slate-500 ${errors.receivedBy ? "text-destructive" : ""}`}>Received By (Engineer)</Label>
                                         <Input
                                             value={receivedBy}
+                                            placeholder="e.g. Jane Doe"
                                             className={`rounded-xl border-2 font-bold ${errors.receivedBy ? "border-destructive" : ""}`}
                                             onChange={e => setReceivedBy(e.target.value)}
                                         />

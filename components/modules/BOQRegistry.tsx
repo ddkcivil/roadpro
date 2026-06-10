@@ -341,31 +341,31 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="itemNo" className="text-right">Item No</Label>
-                <Input id="itemNo" name="itemNo" value={editingItem.itemNo} onChange={handleEditChange} className="col-span-3" />
+                <Input id="itemNo" name="itemNo" value={editingItem.itemNo} onChange={handleEditChange} placeholder="e.g. 1.1" className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="description" className="text-right">Description</Label>
-                <Input id="description" name="description" value={editingItem.description} onChange={handleEditChange} className="col-span-3" />
+                <Input id="description" name="description" value={editingItem.description} onChange={handleEditChange} placeholder="e.g. Earthwork in excavation" className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="unit" className="text-right">Unit</Label>
-                <Input id="unit" name="unit" value={editingItem.unit} onChange={handleEditChange} className="col-span-3" />
+                <Input id="unit" name="unit" value={editingItem.unit} onChange={handleEditChange} placeholder="e.g. m3" className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="quantity" className="text-right">Quantity</Label>
-                <Input id="quantity" name="quantity" type="number" value={editingItem.quantity} onChange={handleEditChange} className="col-span-3" />
+                <Input id="quantity" name="quantity" type="number" value={editingItem.quantity} onChange={handleEditChange} placeholder="0" className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="rate" className="text-right">Rate</Label>
-                <Input id="rate" name="rate" type="number" value={editingItem.rate} onChange={handleEditChange} className="col-span-3" />
+                <Input id="rate" name="rate" type="number" value={editingItem.rate} onChange={handleEditChange} placeholder="0.00" className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="completedQuantity" className="text-right">Completed Quantity</Label>
-                <Input id="completedQuantity" name="completedQuantity" type="number" value={editingItem.completedQuantity || 0} onChange={handleEditChange} className="col-span-3" />
+                <Label htmlFor="completedQuantity" className="text-right">Completed Qty</Label>
+                <Input id="completedQuantity" name="completedQuantity" type="number" value={editingItem.completedQuantity || 0} onChange={handleEditChange} placeholder="0" className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="variationQuantity" className="text-right">Variation Quantity</Label>
-                <Input id="variationQuantity" name="variationQuantity" type="number" value={editingItem.variationQuantity || 0} onChange={handleEditChange} className="col-span-3" />
+                <Label htmlFor="variationQuantity" className="text-right">Variation Qty</Label>
+                <Input id="variationQuantity" name="variationQuantity" type="number" value={editingItem.variationQuantity || 0} onChange={handleEditChange} placeholder="0" className="col-span-3" />
               </div>
             </div>
           )}
@@ -383,34 +383,34 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
             <DialogTitle>Add New BOQ Item</DialogTitle>
             <DialogDescription>Enter details for the new BOQ item.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+            <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="newItemNo" className="text-right">Item No</Label>
-              <Input id="newItemNo" name="itemNo" value={newItem.itemNo} onChange={handleNewItemChange} className="col-span-3" />
+              <Input id="newItemNo" name="itemNo" value={newItem.itemNo} onChange={handleNewItemChange} placeholder="e.g. 1.1" className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="newDescription" className="text-right">Description</Label>
-              <Input id="newDescription" name="description" value={newItem.description} onChange={handleNewItemChange} className="col-span-3" required />
+              <Input id="newDescription" name="description" value={newItem.description} onChange={handleNewItemChange} placeholder="e.g. Earthwork in excavation" className="col-span-3" required />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="newUnit" className="text-right">Unit</Label>
-              <Input id="newUnit" name="unit" value={newItem.unit} onChange={handleNewItemChange} className="col-span-3" />
+              <Input id="newUnit" name="unit" value={newItem.unit} onChange={handleNewItemChange} placeholder="e.g. m3" className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="newQuantity" className="text-right">Quantity</Label>
-              <Input id="newQuantity" name="quantity" type="number" value={newItem.quantity} onChange={handleNewItemChange} className="col-span-3" required />
+              <Input id="newQuantity" name="quantity" type="number" value={newItem.quantity} onChange={handleNewItemChange} placeholder="0" className="col-span-3" required />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="newRate" className="text-right">Rate</Label>
-              <Input id="newRate" name="rate" type="number" value={newItem.rate} onChange={handleNewItemChange} className="col-span-3" required />
+              <Input id="newRate" name="rate" type="number" value={newItem.rate} onChange={handleNewItemChange} placeholder="0.00" className="col-span-3" required />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="newLocation" className="text-right">Location</Label>
-              <Input id="newLocation" name="location" value={newItem.location} onChange={handleNewItemChange} className="col-span-3" />
+              <Input id="newLocation" name="location" value={newItem.location} onChange={handleNewItemChange} placeholder="e.g. Ch. 0+000 to 1+000" className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="newCategory" className="text-right">Category</Label>
-              <Input id="newCategory" name="category" value={newItem.category} onChange={handleNewItemChange} className="col-span-3" />
+              <Input id="newCategory" name="category" value={newItem.category} onChange={handleNewItemChange} placeholder="e.g. Pavement" className="col-span-3" />
             </div>
           </div>
           <DialogFooter>

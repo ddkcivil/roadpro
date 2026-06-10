@@ -337,26 +337,26 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="startKm">Start Chainage (Km)</Label>
-                            <Input id="startKm" type="number" step="0.001" value={newLog.startChainage} onChange={e => setNewLog({...newLog, startChainage: Number(e.target.value)})} />
+                            <Input id="startKm" type="number" step="0.001" placeholder="e.g. 0.000" value={newLog.startChainage} onChange={e => setNewLog({...newLog, startChainage: Number(e.target.value)})} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="endKm">End Chainage (Km)</Label>
-                            <Input id="endKm" type="number" step="0.001" value={newLog.endChainage} onChange={e => setNewLog({...newLog, endChainage: Number(e.target.value)})} />
+                            <Input id="endKm" type="number" step="0.001" placeholder="e.g. 1.000" value={newLog.endChainage} onChange={e => setNewLog({...newLog, endChainage: Number(e.target.value)})} />
                         </div>
                     </div>
 
                     <div className="grid grid-cols-3 gap-4 bg-muted/30 p-4 rounded-lg border">
                         <div className="space-y-2">
                             <Label htmlFor="plannedQty" className="text-[10px] font-black uppercase">Planned Qty</Label>
-                            <Input id="plannedQty" type="number" value={newLog.plannedQuantity} onChange={e => setNewLog({...newLog, plannedQuantity: Number(e.target.value)})} />
+                            <Input id="plannedQty" type="number" placeholder="0" value={newLog.plannedQuantity} onChange={e => setNewLog({...newLog, plannedQuantity: Number(e.target.value)})} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="actualQty" className="text-[10px] font-black uppercase">Actual Qty</Label>
-                            <Input id="actualQty" type="number" value={newLog.quantity} onChange={e => setNewLog({...newLog, quantity: Number(e.target.value)})} />
+                            <Input id="actualQty" type="number" placeholder="0" value={newLog.quantity} onChange={e => setNewLog({...newLog, quantity: Number(e.target.value)})} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="unit" className="text-[10px] font-black uppercase">Unit</Label>
-                            <Input id="unit" placeholder="m3, t, sqm" value={newLog.quantityUnit} onChange={e => setNewLog({...newLog, quantityUnit: e.target.value})} />
+                            <Input id="unit" placeholder="e.g. m3, t, sqm" value={newLog.quantityUnit} onChange={e => setNewLog({...newLog, quantityUnit: e.target.value})} />
                         </div>
                     </div>
 

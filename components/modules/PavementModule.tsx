@@ -102,11 +102,11 @@ const PavementModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="start-km" className="text-right">Start Km</Label>
-                        <Input id="start-km" type="number" value={newLog.startChainage} onChange={e => setNewLog({...newLog, startChainage: Number(e.target.value)})} className="col-span-3" />
+                        <Input id="start-km" type="number" value={newLog.startChainage} onChange={e => setNewLog({...newLog, startChainage: Number(e.target.value)})} placeholder="e.g. 0.000" className="col-span-3" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="end-km" className="text-right">End Km</Label>
-                        <Input id="end-km" type="number" value={newLog.endChainage} onChange={e => setNewLog({...newLog, endChainage: Number(e.target.value)})} className="col-span-3" />
+                        <Input id="end-km" type="number" value={newLog.endChainage} onChange={e => setNewLog({...newLog, endChainage: Number(e.target.value)})} placeholder="e.g. 1.000" className="col-span-3" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="date" className="text-right">Date</Label>

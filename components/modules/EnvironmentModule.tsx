@@ -238,15 +238,15 @@ const handleSaveTree = (e: React.FormEvent<HTMLFormElement>) => {
                     <form onSubmit={handleSaveTree} className="grid gap-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="chainage" className="text-right">Location (Ch)</Label>
-                            <Input id="chainage" name="chainage" className="col-span-3" required />
+                            <Input id="chainage" name="chainage" placeholder="e.g. 10+500" className="col-span-3" required />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="species" className="text-right">Tree Species</Label>
-                            <Input id="species" name="species" className="col-span-3" required />
+                            <Input id="species" name="species" placeholder="e.g. Sal, Pine" className="col-span-3" required />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="removed" className="text-right">Trees Removed</Label>
-                            <Input id="removed" name="removed" type="number" min="0" className="col-span-3" required />
+                            <Input id="removed" name="removed" type="number" min="0" placeholder="0" className="col-span-3" required />
                             <p className="col-span-4 text-sm text-muted-foreground text-right">System will auto-calculate 1:10 target.</p>
                         </div>
                         <DialogFooter>
@@ -277,15 +277,15 @@ const handleSaveTree = (e: React.FormEvent<HTMLFormElement>) => {
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="location" className="text-right">Section Covered</Label>
-                            <Input id="location" name="location" className="col-span-3" required />
+                            <Input id="location" name="location" placeholder="e.g. Ch. 0+000 - 5+000" className="col-span-3" required />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="volume" className="text-right">Volume (Liters)</Label>
-                            <Input id="volume" name="volume" type="number" min="0" className="col-span-3" required />
+                            <Input id="volume" name="volume" type="number" min="0" placeholder="e.g. 5000" className="col-span-3" required />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="operator" className="text-right">Operator</Label>
-                            <Input id="operator" name="operator" className="col-span-3" required />
+                            <Input id="operator" name="operator" placeholder="e.g. Ram Bahadur" className="col-span-3" required />
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setIsSprinkleModalOpen(false)}>

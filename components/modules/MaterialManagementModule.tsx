@@ -7,7 +7,22 @@ import { Package, FileText, ShoppingCart, BarChart3, Plus } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Button } from '~/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
-import { Input } from '~/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
+
+const CATEGORIES = [
+  'Cement',
+  'Aggregate',
+  'Steel',
+  'Sand',
+  'Bricks',
+  'Concrete',
+  'Timber',
+  'Bitumen',
+  'Electrical',
+  'Plumbing',
+  'Finishing',
+  'Other'
+];
 import { Label } from '~/components/ui/label';
 import { generateUniqueId } from '../../utils/uuidUtils';
 import { toast } from 'sonner';
@@ -192,16 +207,25 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
                       <Label>Material Name</Label>
-                      <Input value={newMaterial.name} onChange={e => handleNameChange(e.target.value)} />
+                      <Input value={newMaterial.name} onChange={e => handleNameChange(e.target.value)} placeholder="e.g. Cement, Steel Bar" />
                     </div>
                     <div className="grid gap-2">
                       <Label>Category</Label>
-                      <Input value={newMaterial.category} onChange={e => setNewMaterial({...newMaterial, category: e.target.value})} />
+                      <Select value={newMaterial.category} onValueChange={value => setNewMaterial({...newMaterial, category: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CATEGORIES.map(category => (
+                            <SelectItem key={category} value={category}>{category}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label>Quantity</Label>
-                        <Input type="number" value={newMaterial.quantity} onChange={e => setNewMaterial({...newMaterial, quantity: Number(e.target.value)})} />
+                        <Input type="number" value={newMaterial.quantity} onChange={e => setNewMaterial({...newMaterial, quantity: Number(e.target.value)})} placeholder="0" />
                       </div>
                       <div className="grid gap-2">
                         <Label>Unit</Label>

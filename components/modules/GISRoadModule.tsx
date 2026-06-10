@@ -857,6 +857,7 @@ setIsProcessing(true);
               <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-primary">Road Name</Label>
               <Input 
                 className="rounded-2xl border-none bg-muted/50 h-11 font-bold focus-visible:ring-primary/20"
+                placeholder="e.g. Butwal - Bhairahawa Main Highway"
                 value={editRoadData.name || ''}
                 onChange={e => setEditRoadData({...editRoadData, name: e.target.value})}
               />
@@ -870,6 +871,7 @@ setIsProcessing(true);
                 onChange={e => setEditRoadData({...editRoadData, category: e.target.value})}
                 aria-label="Road Category"
               >
+                <option value="">Select Category</option>
                 <option value="National Highway">National Highway</option>
                 <option value="Provincial Road">Provincial Road</option>
                 <option value="Urban Road">Urban Road</option>
@@ -886,6 +888,7 @@ setIsProcessing(true);
                 onChange={e => setEditRoadData({...editRoadData, surfaceType: e.target.value})}
                 aria-label="Surface Type"
               >
+                <option value="">Select Surface</option>
                 <option value="Asphalt">Asphalt (Flexible)</option>
                 <option value="Concrete">Concrete (Rigid)</option>
                 <option value="Gravel">Gravel/WBM</option>
@@ -898,7 +901,8 @@ setIsProcessing(true);
               <Input 
                 type="number"
                 className="rounded-2xl border-none bg-muted/50 h-11 font-bold focus-visible:ring-primary/20"
-                value={editRoadData.lanes || 2}
+                placeholder="e.g. 2"
+                value={editRoadData.lanes || ''}
                 onChange={e => setEditRoadData({...editRoadData, lanes: parseInt(e.target.value)})}
               />
             </div>
@@ -908,7 +912,8 @@ setIsProcessing(true);
               <Input 
                 type="number"
                 className="rounded-2xl border-none bg-muted/50 h-11 font-bold focus-visible:ring-primary/20"
-                value={editRoadData.chainageOffset || 0}
+                placeholder="e.g. 0"
+                value={editRoadData.chainageOffset ?? ''}
                 onChange={e => setEditRoadData({...editRoadData, chainageOffset: parseInt(e.target.value)})}
               />
             </div>
@@ -955,12 +960,13 @@ setIsProcessing(true);
               <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-primary">Alignment Name</Label>
               <Input 
                 className="rounded-2xl border-none bg-muted/50 h-11 font-bold focus-visible:ring-primary/20"
+                placeholder="e.g. Layer 1 Alignment"
                 value={editAlignmentData.name || ''}
                 onChange={e => setEditAlignmentData({...editAlignmentData, name: e.target.value})}
               />
             </div>
             
-<div className="space-y-2">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-primary">Alignment Type</Label>
               <select 
                 className="w-full rounded-2xl border-none bg-muted/50 h-11 font-bold px-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer"
@@ -968,6 +974,7 @@ setIsProcessing(true);
                 onChange={e => setEditAlignmentData({...editAlignmentData, type: e.target.value as Alignment['type']})}
                 aria-label="Alignment Type"
               >
+                <option value="">Select Type</option>
                 <option value="pavement">Pavement</option>
                 <option value="subgrade">Subgrade</option>
                 <option value="sub-base">Sub-base</option>
@@ -988,6 +995,7 @@ setIsProcessing(true);
                 onChange={e => setEditAlignmentData({...editAlignmentData, status: e.target.value as Alignment['status']})}
                 aria-label="Status"
               >
+                <option value="">Select Status</option>
                 <option value="Planned">Planned</option>
                 <option value="In Progress">In Progress</option>
                 <option value="Completed">Completed</option>
@@ -1002,8 +1010,9 @@ setIsProcessing(true);
                 type="number"
                 min="0"
                 max="100"
+                placeholder="0-100"
                 className="rounded-2xl border-none bg-muted/50 h-11 font-bold focus-visible:ring-primary/20"
-                value={editAlignmentData.progress || 0}
+                value={editAlignmentData.progress ?? ''}
                 onChange={e => setEditAlignmentData({...editAlignmentData, progress: parseInt(e.target.value)})}
               />
             </div>

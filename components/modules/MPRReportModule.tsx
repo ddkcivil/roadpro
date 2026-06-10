@@ -323,6 +323,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, hideStats }) => {
               <Label htmlFor="report-num">Report #</Label>
               <Input
                 id="report-num"
+                placeholder="e.g. 02"
                 value={reportDetails.reportNumber}
                 onChange={(e) => setReportDetails({...reportDetails, reportNumber: e.target.value})}
               />
@@ -358,7 +359,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, hideStats }) => {
               <textarea 
                 id="challenges"
                 className="w-full text-xs p-2 rounded-lg border bg-background h-20 resize-none"
-                placeholder="Enter key challenges..."
+                placeholder="Enter key challenges encountered..."
                 value={reportDetails.challenges}
                 onChange={(e) => setReportDetails({...reportDetails, challenges: e.target.value})}
               />

@@ -556,7 +556,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
                 value={logForm.description || ''}
                 onChange={(e) => setLogForm({ ...logForm, description: e.target.value })}
                 className="col-span-3"
-                placeholder="Work done details"
+                placeholder="e.g. Engine oil change"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -567,6 +567,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
                 value={logForm.cost}
                 onChange={(e) => setLogForm({ ...logForm, cost: parseFloat(e.target.value) })}
                 className="col-span-3"
+                placeholder="0.00"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">

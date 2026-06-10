@@ -296,7 +296,7 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                 <h2 className="text-2xl font-bold text-foreground mb-3">Messages</h2>
                 <div className="relative">
                      <Input 
-                        placeholder="Search people..." 
+                        placeholder="Search for people..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-9"
@@ -544,7 +544,7 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                  </div>
                  <form onSubmit={handleSend} className="flex gap-2">
                      <Textarea 
-                         placeholder={`Message ${activeChatId === 'general' ? '#general' : activeUser?.name.split(' ')[0]}...`}
+                         placeholder={`Message ${activeChatId === 'general' ? '#general' : activeUser?.name.split(' ')[0] || 'chat'}...`}
                          value={inputText}
                          onChange={(e) => setInputText(e.target.value)}
                          className="flex-1 resize-none min-h-[48px] rounded-lg p-3 bg-muted/60 border-0 focus-visible:ring-offset-0 focus-visible:ring-transparent"

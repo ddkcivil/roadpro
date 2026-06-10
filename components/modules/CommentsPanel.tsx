@@ -73,7 +73,7 @@ const CommentsPanel: React.FC<CommentsPanelProps> = ({
         <Textarea
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Write a comment..."
+          placeholder="Type your comment here..."
           rows={3}
           className="resize-none"
         />

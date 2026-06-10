@@ -253,7 +253,7 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="location">Chainage / GPS Location</Label>
-                        <Input id="location" value={testForm.location} onChange={e => setTestForm({...testForm, location: e.target.value})} />
+                        <Input id="location" placeholder="e.g. 10+500 or 27.6°N, 85.3°E" value={testForm.location} onChange={e => setTestForm({...testForm, location: e.target.value})} />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="asset">Target Asset</Label>
@@ -491,7 +491,7 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
             </Alert>
             <div className="space-y-2">
               <Label htmlFor="ncr-description">Deviation Description</Label>
-              <Textarea id="ncr-description" value={ncrForm.description} onChange={e => setNcrForm({...ncrForm, description: e.target.value})} />
+              <Textarea id="ncr-description" placeholder="e.g. Failed compaction test at Ch 10+500" value={ncrForm.description} onChange={e => setNcrForm({...ncrForm, description: e.target.value})} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="ncr-severity">Risk Severity</Label>

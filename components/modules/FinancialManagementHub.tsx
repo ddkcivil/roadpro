@@ -373,7 +373,7 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, userRole, 
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
+            <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="bill-number">Bill Number</Label>
@@ -381,7 +381,7 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, userRole, 
                   id="bill-number"
                   value={ipcForm.billNumber}
                   onChange={(e) => setIpcForm({...ipcForm, billNumber: e.target.value})}
-                  placeholder="IPC-001"
+                  placeholder="e.g. IPC-001"
                 />
               </div>
               <div className="space-y-2">
@@ -412,6 +412,7 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, userRole, 
                   type="number"
                   value={ipcForm.orderOfBill}
                   onChange={(e) => setIpcForm({...ipcForm, orderOfBill: Number(e.target.value)})}
+                  placeholder="e.g. 1"
                 />
               </div>
             </div>
