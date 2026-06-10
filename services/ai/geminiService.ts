@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { BOQItem, RFI, ScheduleTask } from '../../types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
