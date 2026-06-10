@@ -122,9 +122,16 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       } catch (e) {}
 
       const buffer = Buffer.from(await fileBlob.arrayBuffer());
+      
+      const rawFileName = fileName || latestVersion.name || 'document';
+      // Strip non-ASCII characters and quotes for the standard filename parameter
+      const asciiFileName = rawFileName.replace(/[^\x20-\x7E]/g, '_').replace(/"/g, "'");
+      // Use RFC 5987 encoded filename* for UTF-8 support
+      const encodedFileName = encodeURIComponent(rawFileName).replace(/['()]/g, escape).replace(/\*/g, '%2A');
+
       res.setHeader('Content-Type', contentType);
       res.setHeader('Content-Length', buffer.length.toString());
-      res.setHeader('Content-Disposition', `inline; filename="${fileName || latestVersion.name || 'document'}"`);
+      res.setHeader('Content-Disposition', `inline; filename="${asciiFileName}"; filename*=UTF-8''${encodedFileName}`);
       return res.send(buffer);
 
 
