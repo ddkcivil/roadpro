@@ -159,7 +159,11 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       const buffer = Buffer.from(base64Content, 'base64');
       
       // Sanitize filename to be safe for Supabase Storage path
-      const safeName = name.replace(/[\/\?*:"<>|]/g, '_').replace(/\s+/g, '_'); // Replace disallowed chars and spaces with underscores
+      // Replace disallowed chars, non-ASCII characters, and spaces with underscores
+      const safeName = name
+        .replace(/[^\x00-\x7F]/g, '_') // Replace non-ASCII characters (like –)
+        .replace(/[\/\?*:"<>|]/g, '_')  // Replace common disallowed filename characters
+        .replace(/\s+/g, '_');           // Replace spaces
       
 // Get the appropriate bucket for this project
       const bucketName = await getProjectBucket(supabaseAdmin, projectId);
