@@ -31,6 +31,7 @@ import { Textarea } from '~/components/ui/textarea';
 import { motion } from 'framer-motion';
 import { cn } from '~/lib/utils';
 import WeatherWidget from './WeatherWidget';
+import AIChatModal from '~/components/utilities/AIChatModal';
 
 interface Props {
   project: Project;
@@ -45,6 +46,7 @@ const Dashboard: React.FC<Props> = React.memo(({ project, settings, onUpdateSett
   const [activeChart, setActiveChart] = useState<'periodic' | 'scumulative'>('scumulative');
   const [hasMounted, setHasMounted] = useState(false);
   const [contactForm, setContactForm] = useState({ name: '', email: '', subject: '', message: '' });
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
     setHasMounted(true);
@@ -787,6 +789,13 @@ const financialChartData = useMemo(() => {
           )}
         </div>
       </div>
+      {isChatOpen && <AIChatModal project={project} onClose={() => setIsChatOpen(false)} />}
+      <Button
+        className="fixed bottom-8 right-8 z-50 rounded-full h-14 w-14 shadow-xl grad-primary border-none"
+        onClick={() => setIsChatOpen(true)}
+      >
+        <Bot size={28} className="text-white" />
+      </Button>
     </TooltipProvider>
   );
 });

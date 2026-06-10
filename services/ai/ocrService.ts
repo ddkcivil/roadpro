@@ -98,9 +98,12 @@ class OCRService {
             
             const imageFile = new File([blob], `page-${i}.png`, { type: 'image/png' });
             
-            const tesseractResult = await Tesseract.recognize(imageFile, 'eng', {
-              logger: (m) => console.log(`[OCR Page ${i}]`, m.status, m.progress),
-            });
+            // Use local worker to avoid CSP issues
+            const tesseractConfig = {
+              logger: (m: any) => console.log(`[OCR Page ${i}]`, m.status, m.progress),
+              workerPath: '/tesseract-worker/worker.min.js',
+            };
+            const tesseractResult = await Tesseract.recognize(imageFile, 'eng', tesseractConfig);
             
             fullText += `--- Page ${i} (OCR) ---\n${tesseractResult.data.text}\n\n`;
             console.log(`Page ${i} OCR completed. Text length: ${tesseractResult.data.text.length}`);

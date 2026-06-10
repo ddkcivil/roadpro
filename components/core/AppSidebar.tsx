@@ -67,8 +67,8 @@ const AppSidebar: React.FC<AppSidebarProps> = React.memo(({
               {navGroups.map(group => (
                 <div key={group.title} className="mb-6">
                   <h3 className={cn(
-                    "text-[11px] font-black uppercase tracking-[0.25em] mb-3 px-3 opacity-60", 
-                    groupColors[group.title] || "text-muted-foreground"
+                    "text-[11px] font-black uppercase tracking-[0.25em] mb-3 px-3 opacity-80", 
+                    groupColors[group.title] || "text-foreground/70"
                   )}>
                     {group.title}
                   </h3>
