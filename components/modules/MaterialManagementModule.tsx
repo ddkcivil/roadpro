@@ -3,8 +3,14 @@ import { Project, Material, PurchaseOrder } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 import { Badge } from '~/components/ui/badge';
-import { Package, FileText, ShoppingCart, BarChart3 } from 'lucide-react';
+import { Package, FileText, ShoppingCart, BarChart3, Plus } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
+import { Button } from '~/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
+import { Input } from '~/components/ui/input';
+import { Label } from '~/components/ui/label';
+import { generateUniqueId } from '../../utils/uuidUtils';
+import { toast } from 'sonner';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
   ResponsiveContainer, Legend
@@ -19,6 +25,34 @@ interface MaterialManagementModuleProps {
 const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ project, userRole, onProjectUpdate }) => {
   const materials = project.materials || [];
   const purchaseOrders = project.purchaseOrders || [];
+
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [newMaterial, setNewMaterial] = useState({ name: '', category: '', unit: '', quantity: 0, reorderLevel: 0 });
+
+  const handleRegisterMaterial = () => {
+    if (!newMaterial.name || !newMaterial.unit) {
+      toast.error("Name and Unit are required");
+      return;
+    }
+
+    const material: Material = {
+      id: generateUniqueId(),
+      ...newMaterial,
+      location: 'Main Store',
+      lastUpdated: new Date().toISOString(),
+      availableQuantity: newMaterial.quantity,
+      status: 'Available'
+    };
+
+    onProjectUpdate({
+      ...project,
+      materials: [...materials, material]
+    });
+
+    setNewMaterial({ name: '', category: '', unit: '', quantity: 0, reorderLevel: 0 });
+    setIsRegisterOpen(false);
+    toast.success("Material Registered Successfully");
+  };
 
   // Prepare analytics data
   const chartData = useMemo(() => {
@@ -72,8 +106,44 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
 
         <TabsContent value="inventory">
           <Card className="rounded-3xl border-none shadow-xl glass">
-            <CardHeader>
+            <CardHeader className="flex flex-row justify-between items-center">
               <CardTitle className="text-sm font-black uppercase tracking-widest opacity-70">Current Stock Levels</CardTitle>
+              <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="rounded-xl font-black uppercase tracking-widest text-[10px]">
+                    <Plus className="mr-2 h-4 w-4" /> Register Material
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="rounded-3xl">
+                  <DialogHeader>
+                    <DialogTitle>Register New Material</DialogTitle>
+                    <DialogDescription>Add a new material to the project inventory.</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label>Material Name</Label>
+                      <Input value={newMaterial.name} onChange={e => setNewMaterial({...newMaterial, name: e.target.value})} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Category</Label>
+                      <Input value={newMaterial.category} onChange={e => setNewMaterial({...newMaterial, category: e.target.value})} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label>Quantity</Label>
+                        <Input type="number" value={newMaterial.quantity} onChange={e => setNewMaterial({...newMaterial, quantity: Number(e.target.value)})} />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Unit</Label>
+                        <Input value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} placeholder="e.g. m3" />
+                      </div>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={handleRegisterMaterial} className="rounded-xl">Save Material</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
