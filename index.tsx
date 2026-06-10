@@ -7,14 +7,14 @@ import ErrorBoundary from './components/core/ErrorBoundary';
 import './index.css';
 
 // Configure PDF.js worker.
-// Use CDN worker for reliable loading - avoids MIME type issues with local files
+// Use locally served worker from the public/ directory for reliable loading
 import { GlobalWorkerOptions, version } from 'pdfjs-dist';
 
-// Use the reliable CDN version to prevent MIME type errors
-// The CDN worker is served from unpkg with proper MIME types
-GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.mjs`;
+// Serve the worker locally from /pdfjs-worker/ directory
+// This avoids CDN dependency and ensures consistent MIME types
+GlobalWorkerOptions.workerSrc = `/pdfjs-worker/pdf.worker.min.mjs`;
 
-console.log(`PDF.js version ${version} initialized with CDN worker: ${GlobalWorkerOptions.workerSrc}`);
+console.log(`PDF.js version ${version} initialized with local worker: ${GlobalWorkerOptions.workerSrc}`);
 
 // Initialize and render
 const rootElement = document.getElementById('root');

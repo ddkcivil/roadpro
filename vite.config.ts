@@ -80,11 +80,6 @@ export default defineConfig(({ mode }) => {
       ],
     },
     build: {
-      // Workaround for: vite:html-inline-proxy failing on production builds.
-      // This flag exists in some Vite versions; if unsupported it will be ignored.
-      // @ts-ignore
-      htmlInlineProxy: false,
-
       // FIX: Completely disable manual chunk splitting to prevent forwardRef errors
       // The previous manualChunks function was causing React namespace resolution issues
       // where React.forwardRef wasn't properly accessible in separate chunks.

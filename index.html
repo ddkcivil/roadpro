@@ -1,10 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <style data-vite-inline-proxy-style="index">
-      /* Workaround: disable vite:html-inline-proxy during production build. */
-    </style>
-
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -63,46 +59,7 @@
     
 
 
-        <style>
-          :root {
-            --primary-glow: conic-gradient(from 180deg at 50% 50%, #4f46e5 0deg, #818cf8 55deg, #c084fc 120deg, #818cf8 160deg, #4f46e5 360deg);
-            --glass-bg: rgba(255, 255, 255, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.3);
-          }
-    
-          .desktop-titlebar {
-            height: 38px;
-            background: rgba(0, 0, 0, 0.8);
-            -webkit-backdrop-filter: blur(12px);
-            backdrop-filter: blur(12px);
-            display: flex;
-            align-items: center;
-            padding: 0 16px;
-            color: #ffffff;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            z-index: 9999;
-          }
-
-          @media (max-width: 1023px) {
-            .desktop-titlebar {
-              display: none;
-            }
-          }
-    
-          ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-          }
-          ::-webkit-scrollbar-track { background: transparent; }
-          ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-          }
-        </style>
+        <link rel="stylesheet" href="/inline-styles.css">
     </head>
       <body class="font-sans antialiased">
         <div class="desktop-titlebar">
