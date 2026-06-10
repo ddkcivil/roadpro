@@ -120,7 +120,30 @@ class OCRService {
   async extractStructuredData(text: string): Promise<any> {
     // Enhanced extraction using pattern matching and NLP-like techniques
     const structuredData: any = {};
-  
+
+    // Normalize whitespace for better pattern matching across line breaks
+    const normalizedText = text.replace(/\n+/g, ' ').replace(/\s+/g, ' ');
+
+    // Extract Reference Number (e.g. SIR-2023-001)
+    const refNoMatch = normalizedText.match(/(?:Reference\s+No\.?\s*|Ref\.?\s*No\.?\s*|Reference\s*Number)\s*:\s*([A-Z0-9]{2,4}[-][0-9]{4}[-][0-9]+)/i);
+    if (refNoMatch && refNoMatch[1]) {
+      structuredData.referenceNumber = refNoMatch[1].trim();
+    }
+
+    // Extract Letter Date (e.g. YYYY-mm-dd)
+    const letterDateMatch = normalizedText.match(/(?:Letter\s+Date|Date\s+of\s+Letter|Document\s+Date|LetterDate)[:\s]*["']?(\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{4})/i);
+    if (letterDateMatch && letterDateMatch[1]) {
+      let dateStr = letterDateMatch[1];
+      // Normalize to YYYY-MM-DD
+      if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
+        const parts = dateStr.split('/');
+        dateStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      } else if (/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(dateStr)) {
+        dateStr = dateStr.replace(/\//g, '-');
+      }
+      structuredData.letterDate = dateStr;
+    }
+
     // Extract document subject/title
     const subjectPatterns = [
       /(?:Subject:|SUBJECT|Title:|TITLE)[:\s]*([\w\s\-&(),.'"/]+)/i,
