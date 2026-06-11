@@ -480,7 +480,7 @@ try {
               {features.map((feature, index) => (
                 <div 
                   key={index}
-                  className="group p-6 bg-slate-900/60 border border-white/5 rounded-[2.5rem] hover:border-primary/50 hover:bg-slate-800/50 transition-all duration-300"
+                  className="group p-6 bg-slate-900/60 border border-white/5 rounded-[2.5rem] hover:border-primary/50 hover:bg-slate-800/50 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300"
                 >
                   <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-indigo-600/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                     <feature.icon className="h-6 w-6 text-primary" />
@@ -489,6 +489,43 @@ try {
                   <p className="text-sm text-slate-400">{feature.description}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Project Showcase Section */}
+      {!showLogin && (
+        <section className="relative z-10 px-6 lg:px-12 pb-20">
+          <div className="max-w-6xl mx-auto bg-slate-900/40 border border-white/5 rounded-[3rem] p-12">
+            <div className="text-center mb-12">
+              <h3 className="text-3xl font-black mb-4">Project Showcase</h3>
+              <p className="text-slate-400">See how RoadMaster Pro drives infrastructure success.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <Card className="bg-slate-950/50 border border-white/10 rounded-[2rem] p-6 hover:border-primary/50 transition-colors">
+                <h4 className="text-xl font-bold mb-2">Tilottama Municipality Bypass</h4>
+                <p className="text-slate-400 text-sm mb-4">Comprehensive drainage, road, and footpath works.</p>
+                <Button variant="outline" size="sm">View Case Study</Button>
+              </Card>
+              <Card className="bg-slate-950/50 border border-white/10 rounded-[2rem] p-6 hover:border-primary/50 transition-colors">
+                <h4 className="text-xl font-bold mb-2">Mountain Connectivity Project</h4>
+                <p className="text-slate-400 text-sm mb-4">Complex terrain road construction and stabilization.</p>
+                <Button variant="outline" size="sm">View Case Study</Button>
+              </Card>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Testimonials Section */}
+      {!showLogin && (
+        <section className="relative z-10 px-6 lg:px-12 pb-20">
+          <div className="max-w-4xl mx-auto text-center">
+            <h3 className="text-3xl font-black mb-12">What Our Clients Say</h3>
+            <div className="bg-slate-900/60 border border-white/5 rounded-[2.5rem] p-10">
+              <p className="text-lg text-slate-300 italic mb-6">"RoadMaster Pro transformed our workflow. We delivered our last project 2 weeks ahead of schedule."</p>
+              <p className="font-bold">- Project Manager, Leading Construction Firm</p>
             </div>
           </div>
         </section>
