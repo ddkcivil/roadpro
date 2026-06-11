@@ -319,7 +319,7 @@ if (!isAuthenticated) {
         />
 
         <div id="main-content" className="flex-1 flex flex-col min-w-0 relative lg:m-4 lg:ml-0 m-0 rounded-none lg:rounded-[2rem] glass overflow-hidden border-none shadow-2xl safe-pb">
-          <AppHeader 
+<AppHeader 
             setSidebarOpen={(open) => startTransition(() => setSidebarOpen(open))}
             currentProject={currentProject}
             onProjectUpdate={handleSaveProject}
@@ -331,6 +331,7 @@ if (!isAuthenticated) {
             currentUser={currentUser}
             onLogout={logout}
             setActiveTab={handleTabChange}
+            style={{ display: 'none' }}
           />
 
           <main className="flex-1 overflow-auto bg-transparent custom-scrollbar">
