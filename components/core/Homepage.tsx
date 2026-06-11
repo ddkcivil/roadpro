@@ -215,339 +215,78 @@ try {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white overflow-x-hidden">
+    <div className="h-screen bg-slate-950 text-white overflow-hidden flex flex-col">
       {/* Animated Background */}
       <div className="fixed inset-0 z-0">
-        <Waves 
-          backgroundColor="transparent" 
-          strokeColor="rgba(255,255,255,0.03)" 
-          className="opacity-50"
-        />
-        
-        {/* neon blobs */}
+        <Waves backgroundColor="transparent" strokeColor="rgba(255,255,255,0.03)" className="opacity-50" />
         <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
         <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-violet-500/5 rounded-full blur-[150px]" />
-
-        {/* subtle grid + scanlines */}
         <div className="absolute inset-0 opacity-[0.16] bg-[linear-gradient(to_right,rgba(255,255,255,0.25)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.25)_1px,transparent_1px)] bg-[size:44px_44px]" />
-        <div className="absolute inset-0 opacity-[0.10] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.25),rgba(255,255,255,0.25)_1px,transparent_1px,transparent_6px)]" />
       </div>
 
-
-{/* Header */}
-      <header className="relative z-10 flex items-center justify-between px-6 lg:px-12 py-6">
+      {/* Header */}
+      <header className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-white/10 bg-slate-950/50 backdrop-blur">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-primary to-indigo-600 rounded-xl flex items-center justify-center">
-            <Fingerprint className="h-6 w-6 text-white" />
+          <div className="w-8 h-8 bg-gradient-to-br from-primary to-indigo-600 rounded-lg flex items-center justify-center">
+            <Fingerprint className="h-5 w-5 text-white" />
           </div>
-          <div>
-            <h1 className="text-xl font-black tracking-tight">
-              RoadMaster <span className="text-primary">Pro</span>
-            </h1>
-            <p className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">
-              Infrastructure Management
-            </p>
-          </div>
+          <h1 className="text-lg font-black tracking-tight">RoadMaster <span className="text-primary">Pro</span></h1>
         </div>
-
-        {/* Date and Weather Display */}
         {!showLogin && (
-          <div className="hidden lg:flex items-center gap-4 mx-4">
-            {/* Date Display */}
-            <div className="flex flex-col items-end border-r border-slate-700 pr-4">
-              <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                {currentDate.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}
-              </span>
-              <span className="text-[10px] font-medium text-slate-500">
-                {currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            </div>
-
-            {/* Weather Display */}
-            {weatherLoading ? (
-              <div className="flex items-center gap-2 text-slate-500">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-xs">Loading...</span>
-              </div>
-            ) : weatherError || !weather ? (
-              <div className="flex items-center gap-2 text-slate-500">
-                <Cloud className="h-4 w-4" />
-                <span className="text-xs">--°C</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3 py-1.5">
-                <WeatherIcon icon={weather.icon} className="w-4 h-4" />
-                <span className="text-sm font-bold">{weather.temp}°C</span>
-                <span className="text-xs text-slate-400 hidden xl:inline">{weather.condition}</span>
-              </div>
-            )}
-          </div>
-        )}
-        
-        {!showLogin && (
-          <Button 
-            onClick={() => setShowLogin(true)}
-            className="hidden lg:flex items-center gap-2 bg-primary hover:bg-primary/90 px-6"
-          >
-            Sign In
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        )}
-        
-        {!showLogin && (
-          <Button 
-            onClick={() => setShowLogin(true)}
-            className="lg:hidden flex items-center gap-2 bg-primary hover:bg-primary/90"
-          >
-            Sign In
+          <Button onClick={() => setShowLogin(true)} size="sm" className="bg-primary hover:bg-primary/90">
+            Sign In <ArrowRight className="ml-2 h-3 w-3" />
           </Button>
         )}
       </header>
 
-      {/* Hero Section */}
-      <section className="relative z-10 px-6 lg:px-12 py-12 lg:py-20">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10 mb-8">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-sm font-medium text-slate-300">Advanced Infrastructure Solutions</span>
-          </div>
-          
-          <h2 className="text-4xl lg:text-6xl font-black tracking-tight mb-6">
-            Build Smarter with{' '}
-            <span className="bg-gradient-to-r from-primary via-indigo-500 to-violet-500 bg-clip-text text-transparent">
-              RoadMaster Pro
-            </span>
-          </h2>
-          
-          <p className="text-lg lg:text-xl text-slate-400 max-w-2xl mx-auto mb-10">
-            The complete infrastructure management system for road construction projects. 
-            Track progress, manage resources, and deliver on time.
-          </p>
-
-          {!showLogin ? (
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button 
-                onClick={() => setShowLogin(true)}
-                size="lg"
-                className="bg-primary hover:bg-primary/90 text-white px-8 h-14 text-lg font-bold"
-              >
-                Get Started
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white px-8 h-14 text-lg font-bold"
-                onClick={onShowRegistration}
-              >
-                Create Account
-              </Button>
-            </div>
-          ) : (
-            <div className="flex justify-center gap-4">
-              <Button 
-                variant="ghost"
-                onClick={() => setShowLogin(false)}
-                className="text-slate-400 hover:text-white"
-              >
-                <ArrowRight className="mr-2 h-4 w-4 rotate-180" />
-                Back to Home
-              </Button>
-            </div>
-          )}
-        </div>
-      </section>
-
-{/* Login Form */}
-      {showLogin && (
-        <section className="relative z-10 px-6 pb-20">
-          <div className="max-w-md mx-auto">
-            <Card className="bg-slate-900/60 border border-white/5 backdrop-blur-xl rounded-[2.5rem] animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <CardContent className="p-8">
-                <div className="text-center mb-8">
-                  <div className="w-14 h-14 bg-gradient-to-br from-primary to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <Fingerprint className="h-8 w-8 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-black">Sign In</h3>
-                  <p className="text-slate-400">Enter your credentials to continue</p>
-                </div>
-
-                {message && (
-                  <div className="animate-in fade-in slide-in-from-left-2 duration-300">
-                    <AlertUI variant={message.type} className="mb-4">
-                      <AlertDescriptionUI>{message.text}</AlertDescriptionUI>
-                    </AlertUI>
-                  </div>
-                )}
-
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-slate-300">Email</Label>
-                    <div className="relative group">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-primary transition-colors" />
-                      <Input 
-                        id="email" 
-                        type="email" 
-                        placeholder="email@example.com" 
-                        value={email} 
-                        onChange={e => setEmail(e.target.value)} 
-                        className="bg-slate-800/50 border-slate-700 text-white pl-10 transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:scale-[1.01]"
-                      />
-                    </div>
-                    {errors.email && (
-                      <p className="text-red-400 text-xs animate-in fade-in slide-in-from-right-2 duration-300">{errors.email}</p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password" className="text-slate-300">Password</Label>
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          setMessage({ type: 'default', text: 'Password reset is currently unavailable. Please contact your administrator.' });
-                          toast.info("Password reset requested.");
-                        }}
-                        className="text-xs font-semibold text-primary hover:text-primary/80"
-                      >
-                        Forgot Password?
-                      </button>
-                    </div>
-                    <div className="relative group">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-primary transition-colors" />
-                      <Input 
-                        id="password" 
-                        type={showPassword ? "text" : "password"} 
-                        value={password} 
-                        onChange={e => setPassword(e.target.value)} 
-                        className="bg-slate-800/50 border-slate-700 text-white pl-10 pr-10 transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:scale-[1.01]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-all duration-200 hover:scale-110"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                    {errors.password && (
-                      <p className="text-red-400 text-xs animate-in fade-in slide-in-from-right-2 duration-300">{errors.password}</p>
-                    )}
-                  </div>
-
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-primary hover:bg-primary/90 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]" 
-                    disabled={loading || isLocked}
-                  >
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isLocked ? `Locked (${Math.ceil(remainingTime)}s)` : 'Sign In'}
-                  </Button>
+      {/* Main Content Area */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 overflow-hidden">
+        {showLogin ? (
+          <div className="w-full max-w-sm animate-in fade-in zoom-in duration-300">
+            {/* Minimal Login Form */}
+            <Card className="bg-slate-900/60 border border-white/5 backdrop-blur-xl rounded-2xl shadow-2xl">
+              <CardContent className="p-6">
+                <h3 className="text-xl font-black text-center mb-4">Sign In</h3>
+                {message && <AlertUI variant={message.type} className="mb-4 text-xs p-2"><AlertDescriptionUI>{message.text}</AlertDescriptionUI></AlertUI>}
+                <form onSubmit={handleLogin} className="space-y-3">
+                  <Input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} className="bg-slate-800/50 border-slate-700 text-sm" />
+                  <Input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} className="bg-slate-800/50 border-slate-700 text-sm" />
+                  <Button type="submit" className="w-full bg-primary" disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : 'Sign In'}</Button>
                 </form>
-
-                <div className="mt-6 text-center">
-                  <p className="text-slate-400 text-sm">
-                    Don't have an account?{' '}
-                    <button 
-                      onClick={onShowRegistration}
-                      className="text-primary hover:text-primary/80 font-semibold transition-colors"
-                    >
-                      Create Account
-                    </button>
-                  </p>
-                </div>
+                <button onClick={() => setShowLogin(false)} className="text-xs text-slate-400 mt-4 w-full text-center hover:text-primary">Back to Home</button>
               </CardContent>
             </Card>
           </div>
-        </section>
-      )}
-
-      {/* Features Grid */}
-      {!showLogin && (
-        <section className="relative z-10 px-6 lg:px-12 pb-20">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12">
-              <h3 className="text-2xl lg:text-3xl font-black mb-4">
-                Everything You Need to Manage Infrastructure Projects
-              </h3>
-              <p className="text-slate-400 max-w-2xl mx-auto">
-                Comprehensive tools designed specifically for road construction and infrastructure management.
-              </p>
+        ) : (
+          <div className="w-full max-w-4xl flex items-center justify-between gap-8">
+            <div className="max-w-md">
+              <h2 className="text-4xl font-black mb-4">Infrastructure Made <span className="text-primary">Simple</span></h2>
+              <p className="text-slate-400 mb-6">Complete construction management in one place.</p>
+              <div className="flex gap-3">
+                <Button onClick={() => setShowLogin(true)} size="lg">Get Started</Button>
+                <Button variant="outline" onClick={onShowRegistration}>Sign Up</Button>
+              </div>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-              {features.map((feature, index) => (
-                <div 
-                  key={index}
-                  className="group p-6 bg-slate-900/60 border border-white/5 rounded-[2.5rem] hover:border-primary/50 hover:bg-slate-800/50 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300"
-                >
-                  <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-indigo-600/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <feature.icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <h4 className="font-bold mb-2">{feature.title}</h4>
-                  <p className="text-sm text-slate-400">{feature.description}</p>
+            
+            {/* Compact Features Grid */}
+            <div className="grid grid-cols-2 gap-3 w-1/2">
+              {features.slice(0, 6).map((f, i) => (
+                <div key={i} className="p-3 bg-slate-900/40 border border-white/5 rounded-xl hover:bg-slate-800/50 transition">
+                  <f.icon className="h-5 w-5 text-primary mb-1" />
+                  <h4 className="text-xs font-bold">{f.title}</h4>
                 </div>
               ))}
             </div>
           </div>
-        </section>
-      )}
-
-      {/* Project Showcase Section */}
-      {!showLogin && (
-        <section className="relative z-10 px-6 lg:px-12 pb-20">
-          <div className="max-w-6xl mx-auto bg-slate-900/40 border border-white/5 rounded-[3rem] p-12">
-            <div className="text-center mb-12">
-              <h3 className="text-3xl font-black mb-4">Project Showcase</h3>
-              <p className="text-slate-400">See how RoadMaster Pro drives infrastructure success.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <Card className="bg-slate-950/50 border border-white/10 rounded-[2rem] p-6 hover:border-primary/50 transition-colors">
-                <h4 className="text-xl font-bold mb-2">Tilottama Municipality Bypass</h4>
-                <p className="text-slate-400 text-sm mb-4">Comprehensive drainage, road, and footpath works.</p>
-                <Button variant="outline" size="sm">View Case Study</Button>
-              </Card>
-              <Card className="bg-slate-950/50 border border-white/10 rounded-[2rem] p-6 hover:border-primary/50 transition-colors">
-                <h4 className="text-xl font-bold mb-2">Mountain Connectivity Project</h4>
-                <p className="text-slate-400 text-sm mb-4">Complex terrain road construction and stabilization.</p>
-                <Button variant="outline" size="sm">View Case Study</Button>
-              </Card>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Testimonials Section */}
-      {!showLogin && (
-        <section className="relative z-10 px-6 lg:px-12 pb-20">
-          <div className="max-w-4xl mx-auto text-center">
-            <h3 className="text-3xl font-black mb-12">What Our Clients Say</h3>
-            <div className="bg-slate-900/60 border border-white/5 rounded-[2.5rem] p-10">
-              <p className="text-lg text-slate-300 italic mb-6">"RoadMaster Pro transformed our workflow. We delivered our last project 2 weeks ahead of schedule."</p>
-              <p className="font-bold">- Project Manager, Leading Construction Firm</p>
-            </div>
-          </div>
-        </section>
-      )}
+        )}
+      </main>
 
       {/* Footer */}
-      <footer className="relative z-10 px-6 lg:px-12 py-8 border-t border-slate-800">
-        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-slate-500">
-            © {new Date().getFullYear()} RoadMaster Pro. Advanced Infrastructure Solutions.
-          </p>
-          <div className="flex items-center gap-6">
-            <button className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
-              About
-            </button>
-            <button className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
-              Privacy
-            </button>
-            <button className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
-              Contact
-            </button>
-          </div>
+      <footer className="relative z-10 px-6 py-3 border-t border-white/10 text-[10px] text-slate-500 flex justify-between">
+        <p>© {new Date().getFullYear()} RoadMaster Pro.</p>
+        <div className="flex gap-4">
+          <button>About</button>
+          <button>Contact</button>
         </div>
       </footer>
     </div>
