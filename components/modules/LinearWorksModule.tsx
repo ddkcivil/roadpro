@@ -329,12 +329,15 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="boqLink">Link to BOQ Item</Label>
-                            <Select value={newLog.boqItemId} onValueChange={value => setNewLog({...newLog, boqItemId: value})}>
+                            <Select 
+                                value={newLog.boqItemId || "no-link"} 
+                                onValueChange={value => setNewLog({...newLog, boqItemId: value === "no-link" ? undefined : value})}
+                            >
                                 <SelectTrigger id="boqLink">
                                     <SelectValue placeholder="Select BOQ item" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">-- No Link --</SelectItem>
+                                    <SelectItem value="no-link">-- No Link --</SelectItem>
                                     {boqOptions.map(b => (<SelectItem key={b.id} value={b.id}>{b.itemNo} - {b.description}</SelectItem>))}
                                 </SelectContent>
                             </Select>
