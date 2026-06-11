@@ -47,6 +47,9 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
   const [viewingHistoryId, setViewingHistoryId] = useState<string | null>(null);
   
+  // BOQ options mapping
+  const boqOptions = useMemo(() => project.boq || [], [project.boq]);
+  
   const [newLog, setNewLog] = useState<Partial<LinearWorkLog>>({ 
       category: 'Pavement', 
       date: new Date().toISOString().split('T')[0],
