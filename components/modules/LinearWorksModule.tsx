@@ -220,6 +220,7 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                             <TableRow className="hover:bg-transparent">
                                                 <TableHead className="w-[120px] px-4">Date</TableHead>
                                                 <TableHead>Layer</TableHead>
+                                                <TableHead>BOQ Item</TableHead>
                                                 <TableHead>Chainage (Km)</TableHead>
                                                 <TableHead>Progress (Qty)</TableHead>
                                                 <TableHead>Side</TableHead>
@@ -231,6 +232,7 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                                 const progress = log.plannedQuantity && log.plannedQuantity > 0 
                                                     ? Math.min(100, ((log.quantity || 0) / log.plannedQuantity) * 100)
                                                     : 0;
+                                                const linkedBoq = boqOptions.find(b => b.id === log.boqItemId);
                                                 
                                                 return (
                                                     <TableRow key={log.id} className="group hover:bg-muted/20">
@@ -247,6 +249,9 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                                                     </button>
                                                                 )}
                                                             </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-xs">
+                                                            {linkedBoq ? `${linkedBoq.itemNo} - ${linkedBoq.description.substring(0, 30)}...` : <span className="text-muted-foreground italic">No Link</span>}
                                                         </TableCell>
                                                         <TableCell>
                                                             <code className="text-[11px] bg-muted/80 px-1.5 py-0.5 rounded font-mono border">
@@ -320,15 +325,14 @@ const LinearWorksModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="side">Working Side</Label>
-                            <Select value={newLog.side} onValueChange={value => setNewLog({...newLog, side: value as any})}>
-                                <SelectTrigger id="side">
-                                    <SelectValue />
+                            <Label htmlFor="boqLink">Link to BOQ Item</Label>
+                            <Select value={newLog.boqItemId} onValueChange={value => setNewLog({...newLog, boqItemId: value})}>
+                                <SelectTrigger id="boqLink">
+                                    <SelectValue placeholder="Select BOQ item" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="LHS">LHS (Left)</SelectItem>
-                                    <SelectItem value="RHS (Right)">RHS (Right)</SelectItem>
-                                    <SelectItem value="Both">Both Sides</SelectItem>
+                                    <SelectItem value="">-- No Link --</SelectItem>
+                                    {boqOptions.map(b => (<SelectItem key={b.id} value={b.id}>{b.itemNo} - {b.description}</SelectItem>))}
                                 </SelectContent>
                             </Select>
                         </div>

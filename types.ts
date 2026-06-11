@@ -635,6 +635,7 @@ export interface LinearWorkLog {
   plannedQuantity?: number; // Added: Planned quantity for this stretch
   quantityUnit?: string; // Added: Unit of measurement for quantity (e.g., 'm3', 'tons', 'sqm')
   status: 'In Progress' | 'Completed';
+  boqItemId?: string; // Added: Link to BOQ item
   changeLog?: {
     date: string;
     userId: string;
