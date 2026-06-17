@@ -3,7 +3,7 @@ import { Project, UserRole, ProjectDocument, DocumentVersion } from '../../types
 import { 
     Sparkles, FileText, Loader2, 
     UploadCloud, Plus, Search, Folder, MoreVertical, Trash2, 
-    ExternalLink, Image as ImageIcon, CheckCircle,
+    ExternalLink, Image as ImageIcon, CheckCircle, AlertTriangle,
     X, ArrowDownLeft, Pencil, Eye, Maximize2, ChevronRight, ChevronLeft
 } from 'lucide-react';
 import { Button } from '~/components/ui/button';

@@ -204,8 +204,10 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                 itemNo: boqItem.itemNo,
                 description: boqItem.description,
                 unit: boqItem.unit,
-                contractQuantity: boqItem.quantity,
+                quantity: currentQuantity,
                 rate: rate,
+                amount: currentQuantity * rate,
+                contractQuantity: boqItem.quantity,
                 previousQuantity: 0, // For subcontractor bills, we start fresh
                 currentQuantity: currentQuantity,
                 uptoDateQuantity: currentQuantity,
@@ -349,8 +351,10 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                 itemNo: boq.itemNo,
                 description: boq.description,
                 unit: boq.unit,
-                contractQuantity: boq.quantity,
+                quantity: currentQty,
                 rate: boq.rate,
+                amount: currentQty * boq.rate,
+                contractQuantity: boq.quantity,
                 previousQuantity: prevQty,
                 currentQuantity: currentQty,
                 uptoDateQuantity: uptoDateQty,
@@ -717,13 +721,13 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {(ipcForm.items || []).filter(item => item.uptoDateQuantity > 0 || item.currentQuantity > 0).map((item) => (
+                                            {(ipcForm.items || []).filter(item => (item.uptoDateQuantity || 0) > 0 || (item.currentQuantity || 0) > 0).map((item) => (
                                                 <TableRow key={item.id}>
                                                     <TableCell className="font-bold text-xs">{item.itemNo}</TableCell>
                                                     <TableCell className="text-xs">{item.description.slice(0, 60)}...</TableCell>
                                                     <TableCell>{item.unit}</TableCell>
                                                     <TableCell className="text-right">{item.rate.toLocaleString() || '0'}</TableCell>
-                                                    <TableCell className="text-right bg-muted/30">{item.previousQuantity.toLocaleString() || '0'}</TableCell>
+                                                    <TableCell className="text-right bg-muted/30">{(item.previousQuantity || 0).toLocaleString() || '0'}</TableCell>
                                                     <TableCell className="text-right bg-indigo-50/30">
                                                         <Input 
                                                             type="number"
@@ -733,11 +737,11 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                                                         />
                                                     </TableCell>
                                                     <TableCell className="text-right">
-                                                        <p className={`font-bold ${item.uptoDateQuantity > item.contractQuantity ? 'text-red-500' : ''}`}>
-                                                            {item.uptoDateQuantity.toLocaleString() || '0'}
+                                                        <p className={`font-bold ${(item.uptoDateQuantity || 0) > (item.contractQuantity || 0) ? 'text-red-500' : ''}`}>
+                                                            {(item.uptoDateQuantity || 0).toLocaleString() || '0'}
                                                         </p>
                                                     </TableCell>
-                                                    <TableCell className="text-right font-bold">{item.currentAmount.toLocaleString() || '0'}</TableCell>
+                                                    <TableCell className="text-right font-bold">{(item.currentAmount || 0).toLocaleString() || '0'}</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
@@ -957,7 +961,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                                                             className="w-[90px] text-right text-amber-700 font-bold"
                                                         />
                                                     </TableCell>
-                                                    <TableCell className="text-right font-bold">{item.currentAmount.toLocaleString() || '0'}</TableCell>
+                                                    <TableCell className="text-right font-bold">{(item.currentAmount || 0).toLocaleString() || '0'}</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
@@ -1055,7 +1059,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                                             <td className="border border-black p-2 text-xs">{item.description}</td>
                                             <td className="border border-black p-2 text-right">{item.currentQuantity}</td>
                                             <td className="border border-black p-2 text-right">{item.rate.toLocaleString()}</td>
-                                            <td className="border border-black p-2 text-right">{item.currentAmount.toLocaleString()}</td>
+                                            <td className="border border-black p-2 text-right">{(item.currentAmount || 0).toLocaleString()}</td>
                                         </tr>
                                     ))}
                                 </tbody>

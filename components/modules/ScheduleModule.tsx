@@ -24,6 +24,7 @@ import { cn } from '~/lib/utils';
 import { Switch } from '~/components/ui/switch';
 import { Progress } from '~/components/ui/progress';
 import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs'; // Shadcn Tabs
+import { toast } from 'sonner';
 
 interface Props {
     project: Project;

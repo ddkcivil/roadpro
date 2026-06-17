@@ -246,13 +246,17 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
 
   const [isLogWorkOpen, setIsLogWorkOpen] = useState(false);
   const [currentLogComponent, setCurrentLogComponent] = useState<StructureComponent | null>(null);
-  const [logForm, setLogForm] = useState({ 
-    date: new Date().toISOString().split('T')[0], 
-    quantity: 0, 
-    remarks: '', 
-    boqItemId: '', 
+  const [logForm, setLogForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    quantity: 0,
+    remarks: '',
+    boqItemId: '',
     subcontractorId: '',
-    materials: [] as { materialId: string; quantity: number; unit: string }[]
+    materials: [] as { materialId: string; quantity: number; unit: string }[],
+    estimatedLength: 0,
+    estimatedQuantity: 0,
+    doneLength: 0,
+    layer: ''
   });
   const [isMbRecordsOpen, setIsMbRecordsOpen] = useState(false);
   

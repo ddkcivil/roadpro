@@ -84,14 +84,14 @@ const FinancialsCommercialHub: React.FC<Props> = ({ project, onProjectUpdate, us
     };
     const handleEditBill = (bill: ContractBill | SubcontractorBill, type: 'contract' | 'subcontractor') => {
         // Ensure the status is explicitly set to one of the allowed types
-        const validStatuses: BillStatus[] = ['Draft', 'Submitted', 'Approved', 'Paid'];
+        const validStatuses: BillStatus[] = [BillStatus.DRAFT, BillStatus.SUBMITTED, BillStatus.APPROVED, BillStatus.PAID];
         const currentStatus = bill.status;
 
         // Check if currentStatus is a valid BillStatus or a string that can be cast to it.
         // If not, default to 'Draft'.
         const safeStatus: BillStatus = (currentStatus && validStatuses.includes(currentStatus as BillStatus))
             ? currentStatus as BillStatus
-            : 'Draft';
+            : BillStatus.DRAFT;
 
         setEditingBill({
             ...bill,

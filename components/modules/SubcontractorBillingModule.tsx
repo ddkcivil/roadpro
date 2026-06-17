@@ -193,8 +193,10 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
       itemNo: boqItem.itemNo,
       description: boqItem.description,
       unit: boqItem.unit,
-      contractQuantity: boqItem.quantity,
+      quantity: 0,
       rate: subRate,
+      amount: 0,
+      contractQuantity: boqItem.quantity,
       previousQuantity: 0,
       currentQuantity: 0,
       uptoDateQuantity: 0,
@@ -403,9 +405,9 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
                             <TableCell className="font-bold">{item.itemNo}</TableCell>
                             <TableCell className="max-w-md truncate">{item.description}</TableCell>
                             <TableCell className="text-right">{item.unit}</TableCell>
-                            <TableCell className="text-right font-medium">{item.currentQuantity.toLocaleString()}</TableCell>
+                            <TableCell className="text-right font-medium">{(item.currentQuantity || 0).toLocaleString()}</TableCell>
                             <TableCell className="text-right">{formatCurrency(item.rate, settings)}</TableCell>
-                            <TableCell className="text-right font-black text-amber-700">{formatCurrency(item.currentAmount, settings)}</TableCell>
+                            <TableCell className="text-right font-black text-amber-700">{formatCurrency(item.currentAmount || 0, settings)}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -772,9 +774,9 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
                                       <td className="border border-black p-2 text-xs">{item.itemNo}</td>
                                       <td className="border border-black p-2 text-[10px] leading-tight">{item.description}</td>
                                       <td className="border border-black p-2 text-right text-xs">{item.unit}</td>
-                                      <td className="border border-black p-2 text-right text-xs">{item.currentQuantity.toLocaleString()}</td>
+                                      <td className="border border-black p-2 text-right text-xs">{(item.currentQuantity || 0).toLocaleString()}</td>
                                       <td className="border border-black p-2 text-right text-xs">{item.rate.toLocaleString()}</td>
-                                      <td className="border border-black p-2 text-right text-xs font-bold">{item.currentAmount.toLocaleString()}</td>
+                                      <td className="border border-black p-2 text-right text-xs font-bold">{(item.currentAmount || 0).toLocaleString()}</td>
                                   </tr>
                               ))}
                           </tbody>
