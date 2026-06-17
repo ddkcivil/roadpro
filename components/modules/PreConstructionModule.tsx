@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
     Plus, Calendar, Target, Trash2, AlertTriangle, 
     CheckCircle2, X
