@@ -84,13 +84,6 @@ export default defineConfig(({ mode }) => {
       ],
     },
     build: {
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            charts: ['recharts'],
-          },
-        },
-      },
       chunkSizeWarningLimit: 1000,
     },
     css: {
