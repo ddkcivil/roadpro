@@ -44,6 +44,28 @@ const UserManagement: React.FC = () => {
   const emailHistory = useHistoryAutoFill('userEmails');
   const nameHistory = useHistoryAutoFill('userNames'); // Assuming names might also benefit from history
 
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        const [usersData, pendingData] = await Promise.all([
+          apiService.getUsers(),
+          apiService.getPendingRegistrations()
+        ]);
+        setUsers(usersData);
+        setPendingUsers(pendingData);
+        setError(null);
+      } catch (err: any) {
+        console.error('Error fetching users:', err);
+        setError(err.message || 'Failed to load user data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
   const {
     avatarFile,
     previewUrl,
