@@ -68,6 +68,8 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
       location: 'Main Store',
       lastUpdated: new Date().toISOString(),
       quantity: newMaterial.quantity,
+      availableQuantity: newMaterial.quantity,
+      reorderLevel: 10,
       status: 'Available'
     };
 
@@ -90,6 +92,7 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
     const po: PurchaseOrder = {
       id: generateUniqueId(),
       ...newPO,
+      items: [],
       status: 'Draft'
     };
 
@@ -116,7 +119,7 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
           toast.error("Insufficient inventory");
           return m;
         }
-        return { ...m, quantity: newQty, status: newQty === 0 ? 'Out of Stock' : (newQty < 10 ? 'Low Stock' : 'Available') };
+        return { ...m, quantity: newQty, status: (newQty === 0 ? 'Out of Stock' : (newQty < 10 ? 'Low Stock' : 'Available')) as 'Available' | 'Low Stock' | 'Out of Stock' | 'Discontinued' };
       }
       return m;
     });

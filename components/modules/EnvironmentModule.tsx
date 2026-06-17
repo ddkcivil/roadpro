@@ -39,9 +39,10 @@ const EnvironmentModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
     const [isSprinkleModalOpen, setIsSprinkleModalOpen] = useState(false);
 
     const registry = project.environmentRegistry || { treesRemoved: 0, treesPlanted: 0, treeLogs: [], sprinklingLogs: [], airQualityLogs: [] };
+    const treeLogs = registry.treeLogs ?? [];
     
     const treeStats = { removed: 0, planted: 0, target: 0 };
-    for (const log of registry.treeLogs) {
+    for (const log of treeLogs) {
         treeStats.removed += (log.removedCount || 0);
         treeStats.planted += (log.plantedCount || 0);
         treeStats.target += (log.targetPlant || 0);
@@ -65,7 +66,7 @@ const handleSaveTree = (e: React.FormEvent<HTMLFormElement>) => {
 
         onProjectUpdate({
             ...project,
-            environmentRegistry: { ...registry, treeLogs: [...registry.treeLogs, newLog] }
+            environmentRegistry: { ...registry, treeLogs: [...treeLogs, newLog] }
         });
         setIsTreeModalOpen(false);
     };
@@ -83,7 +84,7 @@ const handleSaveTree = (e: React.FormEvent<HTMLFormElement>) => {
         };
         onProjectUpdate({
             ...project,
-            environmentRegistry: { ...registry, sprinklingLogs: [...registry.sprinklingLogs, newLog] }
+            environmentRegistry: { ...registry, sprinklingLogs: [...(registry.sprinklingLogs ?? []), newLog] }
         });
         setIsSprinkleModalOpen(false);
     };
@@ -146,7 +147,7 @@ const handleSaveTree = (e: React.FormEvent<HTMLFormElement>) => {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {registry.treeLogs.length > 0 ? registry.treeLogs.map(log => (
+                                    {treeLogs.length > 0 ? treeLogs.map(log => (
                                         <TableRow key={log.id}>
                                             <TableCell>{log.date}</TableCell>
                                             <TableCell className="font-bold">{log.chainage}</TableCell>
@@ -205,7 +206,7 @@ const handleSaveTree = (e: React.FormEvent<HTMLFormElement>) => {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {registry.sprinklingLogs.length > 0 ? registry.sprinklingLogs.map(log => (
+                                    {(registry.sprinklingLogs ?? []).length > 0 ? (registry.sprinklingLogs ?? []).map(log => (
                                         <TableRow key={log.id}>
                                             <TableCell>{log.date}</TableCell>
                                             <TableCell><Badge variant="outline">{log.time || 'N/A'}</Badge></TableCell>
