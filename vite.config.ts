@@ -53,6 +53,10 @@ export default defineConfig(({ mode }) => {
         '~': path.resolve(__dirname, '.'),
         'lib': path.resolve(__dirname, './lib'),
         'warning': path.resolve(__dirname, 'node_modules/warning/warning.js'),
+        // CRITICAL: Force React to resolve to the same instance to prevent useRef undefined errors
+        'react': path.resolve(__dirname, 'node_modules/react'),
+        'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+        'react-dom/client': path.resolve(__dirname, 'node_modules/react-dom/client'),
       }
     },
     // Ensure React and React-DOM are pre-bundled correctly
@@ -80,14 +84,10 @@ export default defineConfig(({ mode }) => {
       ],
     },
     build: {
-      // FIX: Completely disable manual chunk splitting to prevent forwardRef errors
-      // The previous manualChunks function was causing React namespace resolution issues
-      // where React.forwardRef wasn't properly accessible in separate chunks.
-      // Let Vite handle all chunking naturally to ensure correct module loading.
       rollupOptions: {
         output: {
           manualChunks: {
-            vendor: ['react', 'react-dom', 'recharts'],
+            charts: ['recharts'],
           },
         },
       },
