@@ -19,6 +19,7 @@ function normalizeRole(role: string): string {
     case 'HSE_OFFICER': return 'HSE Officer';
     case 'SUBCONTRACTOR': return 'Subcontractor';
     case 'SUPERVISOR': return 'Supervisor';
+    case 'GUEST': return 'Guest';
     default: return 'Site Engineer';
   }
 }
@@ -92,9 +93,18 @@ export function mapProjectFromDb(dbProj: any): any {
   mapped.preConstruction = dbProj.pre_construction || dbProj.preConstruction || [];
   mapped.landParcels = dbProj.land_parcels || dbProj.landParcels || [];
 mapped.mapOverlays = dbProj.map_overlays || dbProj.mapOverlays || [];
-  // Map KML data from either JSONB field (kml_data) or separate table (project_kml)
+// Map KML data from either JSONB field (kml_data) or separate table (project_kml)
   // The separate table is fetched separately in the GET handler
-  mapped.kmlData = dbProj.project_kml || dbProj.kml_data || dbProj.kmlData || [];
+  // Ensure kmlContent is preserved for frontend rendering
+  const rawKmlData = dbProj.project_kml || dbProj.kml_data || dbProj.kmlData || [];
+  mapped.kmlData = (Array.isArray(rawKmlData) ? rawKmlData : []).map((kml: any) => ({
+    id: kml.id,
+    name: kml.name,
+    kmlContent: kml.kmlContent || kml.kml_content || kml.content || '',  // Ensure kmlContent is preserved for frontend
+    timestamp: kml.timestamp || kml.created_at || Date.now(),
+    visible: kml.visible !== false,
+    color: kml.color || '#4f46e5'
+  }));
   mapped.ncrs = dbProj.ncrs || [];
   mapped.contractBills = dbProj.contract_bills || dbProj.contractBills || [];
   mapped.measurementSheets = dbProj.measurement_sheets || dbProj.measurementSheets || [];
@@ -232,6 +242,19 @@ export function mapProjectToDb(proj: any): any {
     if (proj[field] !== undefined) out[field] = proj[field];
     else if (proj[camel] !== undefined) out[field] = proj[camel];
   });
+
+  // Special handling for kmlData to ensure kmlContent is preserved in bidirectional sync
+  // Map camelCase kmlData to snake_case kml_data for database
+  if (proj.kmlData !== undefined) {
+    out.kml_data = (Array.isArray(proj.kmlData) ? proj.kmlData : []).map((kml: any) => ({
+      id: kml.id,
+      name: kml.name,
+      kml_content: kml.kmlContent || kml.kml_content || '',  // Preserve kmlContent for frontend rendering
+      timestamp: kml.timestamp || Date.now(),
+      visible: kml.visible !== false,
+      color: kml.color || '#4f46e5'
+    }));
+  }
 
   return out;
 }

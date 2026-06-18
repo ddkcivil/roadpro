@@ -1,8 +1,9 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { 
     Plus, Calendar, Target, Trash2, AlertTriangle, 
-    CheckCircle2, X
+    CheckCircle2, X, Search, Filter, Edit2, 
+    ChevronDown, ChevronUp, CheckSquare, Square
 } from 'lucide-react';
 import { Project, PreConstructionTask } from '../../types';
 import { Button } from '~/components/ui/button';
@@ -23,6 +24,11 @@ import { useHistoryAutoFill } from '~/lib/historyUtils';
 // Import dedup utility
 import { hasDuplicate } from '~/utils/validation/dedupUtils';
 
+// Filter and sort types
+type FilterStatus = 'all' | 'Pending' | 'In Progress' | 'Completed';
+type SortField = 'category' | 'description' | 'estEndDate' | 'progress' | 'status';
+type SortOrder = 'asc' | 'desc';
+
 interface Props {
   project: Project;
   onProjectUpdate: (project: Project) => void;
@@ -31,8 +37,18 @@ interface Props {
 const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedTaskForTrack, setSelectedTaskForTrack] = useState<string | null>(null);
+  const [editingTask, setEditingTask] = useState<PreConstructionTask | null>(null);
   
+  // Filter, sort, and search state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
+  const [sortField, setSortField] = useState<SortField>('estEndDate');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
+  const [showFilters, setShowFilters] = useState(false);
+
   // Forms
   const [newTask, setNewTask] = useState<Partial<PreConstructionTask>>({
     category: 'Survey',
@@ -50,9 +66,55 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
       description: ''
   });
 
+  const [editForm, setEditForm] = useState<Partial<PreConstructionTask>>({});
+
   // History auto-fill hooks
   const descriptionHistory = useHistoryAutoFill('preConstructionDescriptions');
-  const remarksHistory = useHistoryAutoFill('preConstructionRemarks'); // Optional, but remarks can be repetitive
+  const remarksHistory = useHistoryAutoFill('preConstructionRemarks');
+
+  // --- Filtered and Sorted Tasks ---
+  const filteredAndSortedTasks = useMemo(() => {
+    let tasks = [...project.preConstruction];
+    
+    // Filter by status
+    if (filterStatus !== 'all') {
+      tasks = tasks.filter(t => t.status === filterStatus);
+    }
+    
+    // Search filter
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      tasks = tasks.filter(t => 
+        t.description.toLowerCase().includes(term) ||
+        t.category.toLowerCase().includes(term) ||
+        t.remarks?.toLowerCase().includes(term)
+      );
+    }
+    
+    // Sort
+    tasks.sort((a, b) => {
+      let aVal: any = a[sortField] || '';
+      let bVal: any = b[sortField] || '';
+      
+      // Handle dates
+      if (sortField === 'estEndDate') {
+        aVal = a.estEndDate ? new Date(a.estEndDate).getTime() : 0;
+        bVal = b.estEndDate ? new Date(b.estEndDate).getTime() : 0;
+      }
+      
+      // Handle numbers
+      if (sortField === 'progress') {
+        aVal = a.progress || 0;
+        bVal = b.progress || 0;
+      }
+      
+      if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+    
+    return tasks;
+  }, [project.preConstruction, filterStatus, searchTerm, sortField, sortOrder]);
 
   // --- Handlers for New Task Modal Inputs ---
   const handleNewDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -64,21 +126,60 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
   const handleNewRemarksChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setNewTask({...newTask, remarks: value});
-    // Remarks might be longer, saving on blur might be better
-    // remarksHistory.updateSuggestions(value);
   };
 
   // --- Handlers for Track Progress Modal Inputs ---
   const handleTrackDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setTrackForm({...trackForm, description: value});
-    // For track description, maybe save history on submit
-    // descriptionHistory.updateSuggestions(value);
+  };
+
+  // --- Edit Form Handlers ---
+  const handleEditTask = (task: PreConstructionTask) => {
+    setEditingTask(task);
+    setEditForm({ ...task });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTask) return;
+
+    // Check for duplicate description (excluding current task)
+    const isDuplicate = editForm.description && hasDuplicate(project.preConstruction, 'description', editForm.description, editingTask.id);
+    if (isDuplicate) {
+        toast.error("Duplicate: An activity with this description already exists.");
+        return;
+    }
+
+    const updated = project.preConstruction.map(t => 
+      t.id === editingTask.id ? { ...t, ...editForm } : t
+    );
+
+    onProjectUpdate({ ...project, preConstruction: updated as any });
+    setIsEditModalOpen(false);
+    setEditingTask(null);
+    toast.success("Activity updated successfully");
   };
 
   // --- Logic ---
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Date validation - prevent past dates
+    const today = new Date().toISOString().split('T')[0];
+    if (newTask.estStartDate && newTask.estStartDate < today) {
+        toast.error("Start date cannot be in the past");
+        return;
+    }
+    if (newTask.estEndDate && newTask.estEndDate < today) {
+        toast.error("End date cannot be in the past");
+        return;
+    }
+    if (newTask.estStartDate && newTask.estEndDate && newTask.estStartDate > newTask.estEndDate) {
+        toast.error("Start date must be before end date");
+        return;
+    }
     
     // Check for duplicate description before saving
     const isDuplicate = newTask.description && hasDuplicate(project.preConstruction, 'description', newTask.description);
@@ -96,7 +197,7 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
         category: newTask.category as any,
         description: newTask.description || '',
         status: newTask.status as any,
-        targetDate: newTask.estEndDate || '', // Default target to end date
+        targetDate: newTask.estEndDate || '',
         estStartDate: newTask.estStartDate,
         estEndDate: newTask.estEndDate,
         progress: 0,
@@ -117,7 +218,24 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
               ...project,
               preConstruction: project.preConstruction.filter(t => t.id !== id)
           });
+          setSelectedTasks(prev => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
       }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedTasks.size === 0) return;
+    if (window.confirm(`Are you sure you want to delete ${selectedTasks.size} selected activity(s)? This action cannot be undone.`)) {
+        onProjectUpdate({
+            ...project,
+            preConstruction: project.preConstruction.filter(t => !selectedTasks.has(t.id))
+        });
+        setSelectedTasks(new Set());
+        toast.success(`${selectedTasks.size} activities deleted`);
+    }
   };
 
   const handleTrackSubmit = (e: React.FormEvent) => {
@@ -141,8 +259,28 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
       onProjectUpdate({ ...project, preConstruction: updated as any });
       setIsTrackModalOpen(false);
       setTrackForm({ date: new Date().toISOString().split('T')[0], progressAdded: 0, description: '' });
-      // Save the track progress description to history
       if (trackForm.description) descriptionHistory.saveEntry(trackForm.description);
+  };
+
+  // Toggle task selection for bulk operations
+  const toggleTaskSelection = (id: string) => {
+    setSelectedTasks(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedTasks.size === filteredAndSortedTasks.length) {
+      setSelectedTasks(new Set());
+    } else {
+      setSelectedTasks(new Set(filteredAndSortedTasks.map(t => t.id)));
+    }
   };
 
   const getStatusVariant = (status: string) => {
@@ -195,7 +333,7 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
   const newTaskRemarksRef = useRef<HTMLTextAreaElement>(null);
   const trackTaskDescriptionRef = useRef<HTMLInputElement>(null);
 
-  return (
+return (
     <div className="space-y-6">
        
        {/* Header with Notification */}
@@ -207,6 +345,72 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
         </div>
         <Button onClick={() => setIsModalOpen(true)}><Plus className="mr-2 h-4 w-4" />Add Activity</Button>
       </div>
+
+      {/* Search and Filter Bar */}
+      <div className="flex flex-wrap gap-2 items-center mb-4">
+        <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+                placeholder="Search activities..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+            />
+        </div>
+        <Button 
+            variant={showFilters ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+        >
+            <Filter className="mr-2 h-4 w-4" /> Filters
+        </Button>
+        {selectedTasks.size > 0 && (
+            <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
+                <Trash2 className="mr-2 h-4 w-4" /> Delete ({selectedTasks.size})
+            </Button>
+        )}
+      </div>
+
+      {/* Filter Panel */}
+      {showFilters && (
+        <div className="flex flex-wrap gap-4 p-4 bg-muted/30 rounded-lg mb-4">
+            <div className="flex gap-2 items-center">
+                <Label className="text-sm">Status:</Label>
+                <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as FilterStatus)}>
+                    <SelectTrigger className="w-[140px]">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="Pending">Pending</SelectItem>
+                        <SelectItem value="In Progress">In Progress</SelectItem>
+                        <SelectItem value="Completed">Completed</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+            <div className="flex gap-2 items-center">
+                <Label className="text-sm">Sort by:</Label>
+                <Select value={sortField} onValueChange={(v) => setSortField(v as SortField)}>
+                    <SelectTrigger className="w-[140px]">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="category">Category</SelectItem>
+                        <SelectItem value="description">Description</SelectItem>
+                        <SelectItem value="estEndDate">End Date</SelectItem>
+                        <SelectItem value="progress">Progress</SelectItem>
+                        <SelectItem value="status">Status</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}>
+                {sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+            <div className="text-sm text-muted-foreground flex items-center">
+                {filteredAndSortedTasks.length} of {project.preConstruction.length} tasks
+            </div>
+        </div>
+      )}
 
       {/* Daily Notification Banner */}
       {dueTasks.length > 0 && (
@@ -225,14 +429,32 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
 
       {/* Task Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {project.preConstruction.map(task => (
-              <Card key={task.id} className="flex flex-col">
+          {filteredAndSortedTasks.map(task => (
+              <Card key={task.id} className={`flex flex-col ${selectedTasks.has(task.id) ? 'ring-2 ring-primary' : ''}`}>
                   <CardContent className="flex-1 p-6">
                       <div className="flex justify-between items-center mb-2">
-                          <Badge variant={getStatusVariant(task.status || 'Pending')}>{task.status}</Badge>
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteTask(task.id)} title="Delete Activity">
-                              <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-5 w-5"
+                                onClick={() => toggleTaskSelection(task.id)}
+                            >
+                                {selectedTasks.has(task.id) ? 
+                                    <CheckSquare className="h-4 w-4" /> : 
+                                    <Square className="h-4 w-4" />
+                                }
+                            </Button>
+                            <Badge variant={getStatusVariant(task.status || 'Pending')}>{task.status}</Badge>
+                          </div>
+<div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => handleEditTask(task)} title="Edit Activity">
+                                <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteTask(task.id)} title="Delete Activity">
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                       </div>
                       
                       <p className="text-xs font-bold text-muted-foreground uppercase mb-1">
@@ -264,21 +486,32 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
                       )}
                   </CardContent>
                   
-                  <div className="p-4 border-t">
+                  <div className="p-4 border-t flex gap-2">
                       <Button 
-                         className="w-full"
+                         className="flex-1"
                          variant="outline"
                          onClick={() => { setSelectedTaskForTrack(task.id); setIsTrackModalOpen(true); }}
                       >
-                          <Target className="mr-2 h-4 w-4" /> Track Daily Progress
+                          <Target className="mr-2 h-4 w-4" /> Track
+                      </Button>
+                      <Button 
+                         variant="outline"
+                         size="sm"
+                         onClick={() => { setSelectedTaskForTrack(task.id); setIsTrackModalOpen(true); }}
+                      >
+                          {task.logs?.length || 0} logs
                       </Button>
                   </div>
               </Card>
           ))}
-          {project.preConstruction.length === 0 && (
+          {filteredAndSortedTasks.length === 0 && (
               <div className="lg:col-span-3">
                   <Card className="p-12 text-center border-dashed">
-                      <p className="text-muted-foreground italic">No pre-construction activities logged.</p>
+                      <p className="text-muted-foreground italic">
+                          {project.preConstruction.length === 0 
+                            ? "No pre-construction activities logged." 
+                            : "No activities match your filters."}
+                      </p>
                   </Card>
               </div>
           )}
@@ -410,13 +643,136 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
                     </div>
                 </div>
                 
-                <DialogFooter>
+<DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setIsTrackModalOpen(false)}><X className="mr-2 h-4 w-4" />Cancel</Button>
                     <Button type="submit"><CheckCircle2 className="mr-2 h-4 w-4" />Update Progress</Button>
                 </DialogFooter>
             </form>
          </DialogContent>
       </Dialog>
+
+      {/* Edit Activity Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                  <DialogTitle className="flex items-center text-lg font-bold text-primary">
+                      <Edit2 className="mr-2 h-5 w-5" /> Edit Pre-Construction Activity
+                  </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleEditSubmit} className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-category">Category</Label>
+                  <Select 
+                     value={editForm.category as string || 'Survey'}
+                     onValueChange={value => setEditForm({...editForm, category: value as any})}
+                  >
+                      <SelectTrigger id="edit-category">
+                          <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="Survey">Survey</SelectItem>
+                          <SelectItem value="Land Acquisition">Land Acquisition</SelectItem>
+                          <SelectItem value="Forest Clearance">Forest Clearance</SelectItem>
+                          <SelectItem value="Utility Shifting">Utility Shifting</SelectItem>
+                          <SelectItem value="Design">Design</SelectItem>
+                      </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-description">Description</Label>
+                  <Input 
+                    id="edit-description" required 
+                    value={editForm.description || ''} 
+                    onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-status">Status</Label>
+                  <Select 
+                    value={editForm.status as string || 'Pending'}
+                    onValueChange={value => setEditForm({...editForm, status: value as any})}
+                  >
+                      <SelectTrigger id="edit-status">
+                          <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="Pending">Pending</SelectItem>
+                          <SelectItem value="In Progress">In Progress</SelectItem>
+                          <SelectItem value="Completed">Completed</SelectItem>
+                      </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="edit-est-start">Est. Start</Label>
+                        <Input 
+                            id="edit-est-start" type="date" 
+                            value={editForm.estStartDate || ''} 
+                            onChange={e => setEditForm({...editForm, estStartDate: e.target.value})}
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="edit-est-end">Est. End</Label>
+                        <Input 
+                            id="edit-est-end" type="date" 
+                            value={editForm.estEndDate || ''} 
+                            onChange={e => setEditForm({...editForm, estEndDate: e.target.value})}
+                        />
+                    </div>
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor="edit-progress">Progress (%)</Label>
+                    <Input 
+                        id="edit-progress" type="number" 
+                        min="0" max="100"
+                        value={editForm.progress || 0} 
+                        onChange={e => setEditForm({...editForm, progress: Number(e.target.value)})}
+                    />
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-remarks">Remarks</Label>
+                  <Textarea 
+                    id="edit-remarks" 
+                    value={editForm.remarks || ''} 
+                    onChange={(e) => setEditForm({...editForm, remarks: e.target.value})}
+                    className="min-h-[100px]"
+                  />
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsEditModalOpen(false)}><X className="mr-2 h-4 w-4" />Cancel</Button>
+                    <Button type="submit"><CheckCircle2 className="mr-2 h-4 w-4" />Save Changes</Button>
+                </DialogFooter>
+              </form>
+          </DialogContent>
+       </Dialog>
+
+       {/* View Progress History - Shown in Track Modal when task has logs */}
+       {selectedTaskForTrack && (() => {
+         const taskWithLogs = project.preConstruction.find(t => t.id === selectedTaskForTrack);
+         if (taskWithLogs?.logs && taskWithLogs.logs.length > 0) {
+           return (
+             <div className="mt-4 p-4 bg-muted/30 rounded-lg">
+               <h4 className="font-semibold mb-2">Progress History</h4>
+               <div className="space-y-2 max-h-40 overflow-y-auto">
+                 {taskWithLogs.logs.slice().reverse().map((log: any, idx: number) => (
+                   <div key={idx} className="flex justify-between text-sm">
+                     <span className="text-muted-foreground">{log.date}</span>
+                     <span className="font-medium">+{log.progressAdded}%</span>
+                     <span className="text-muted-foreground truncate max-w-[200px]">{log.description}</span>
+                   </div>
+                 ))}
+               </div>
+             </div>
+           );
+         }
+         return null;
+       })()}
     </div>
   );
 };

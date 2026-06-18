@@ -228,14 +228,14 @@ let docsData: any[] = [];
               console.warn('[GET Project] Could not fetch project_kml:', kmlError.message);
             }
 
-            // Map KML data to expected format
+// Map KML data to expected format - ensure kmlContent is preserved for frontend rendering
             kmlData = (kmlRes || []).map((kml: any) => ({
               id: kml.id,
               name: kml.name,
-              kmlContent: kml.kml_content,  // Map kml_content to kmlContent
-              timestamp: kml.timestamp,
+              kmlContent: kml.kml_content || kml.content || '',  // Ensure kmlContent is preserved for frontend
+              timestamp: kml.timestamp || kml.created_at || Date.now(),
               visible: kml.visible !== false,
-              color: kml.color
+              color: kml.color || '#4f46e5'
             }));
             
             if (kmlData.length > 0) {
@@ -487,6 +487,7 @@ if (req.method === 'POST') {
       }
 
 // 3. Sync KML Data - Store in separate table only (skip JSONB field which may not exist in all schemas)
+      // Also try to store in kml_data JSONB field for redundancy
       if (req.body.kmlData && Array.isArray(req.body.kmlData)) {
         // Skip JSONB field update - it requires kml_data column which may not exist in all Supabase schemas
         // Only sync to separate table (optional - won't fail if table doesn't exist)
@@ -494,10 +495,10 @@ if (req.method === 'POST') {
           id: kml.id,
           project_id: id,
           name: kml.name,
-          kml_content: kml.kmlContent,
-          timestamp: kml.timestamp,
+          kml_content: kml.kmlContent || '',  // Ensure kmlContent is stored for frontend rendering
+          timestamp: kml.timestamp || Date.now(),
           visible: kml.visible !== false,
-          color: kml.color || null
+          color: kml.color || '#4f46e5'
         })).filter((kml: any) => kml.id);
 
         if (kmlToSync.length > 0) {
