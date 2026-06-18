@@ -31,6 +31,7 @@ import { Textarea } from '~/components/ui/textarea';
 import { motion } from 'framer-motion';
 import { cn } from '~/lib/utils';
 import WeatherWidget from './WeatherWidget';
+import { ResourceAnalyticsWidget } from './ResourceAnalyticsWidget';
 import AIChatModal from '~/components/utilities/AIChatModal';
 
 interface Props {
@@ -291,7 +292,48 @@ const financialChartData = useMemo(() => {
   return (
     <TooltipProvider>
       <div className="p-4 md:p-8 space-y-8 animate-in fade-in duration-700 min-h-full safe-pb">
-{/* Brand Header - Company Info Section */}
+        
+        {/* Project Summary Dashboard Widget */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="rounded-3xl glass-card border-none p-6 flex items-center justify-between shadow-lg">
+             <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Project Progress</p>
+                <h3 className="text-3xl font-black mt-1 text-primary">{Math.round(stats.physPercent)}%</h3>
+             </div>
+             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <TrendingUp size={24} />
+             </div>
+          </Card>
+          <Card className="rounded-3xl glass-card border-none p-6 flex items-center justify-between shadow-lg">
+             <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Active RFIs</p>
+                <h3 className="text-3xl font-black mt-1 text-blue-500">{stats.rfiOpen}</h3>
+             </div>
+             <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
+                <FileDown size={24} />
+             </div>
+          </Card>
+          <Card className="rounded-3xl glass-card border-none p-6 flex items-center justify-between shadow-lg">
+             <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">BOQ Items</p>
+                <h3 className="text-3xl font-black mt-1 text-indigo-500">{Array.isArray(project.boq) ? project.boq.length : 0}</h3>
+             </div>
+             <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+                <Layers size={24} />
+             </div>
+          </Card>
+          <Card className="rounded-3xl glass-card border-none p-6 flex items-center justify-between shadow-lg">
+             <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Site Photos</p>
+                <h3 className="text-3xl font-black mt-1 text-amber-500">{Array.isArray(project.sitePhotos) ? project.sitePhotos.length : 0}</h3>
+             </div>
+             <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
+                <CloudLightning size={24} />
+             </div>
+          </Card>
+        </div>
+        {/* End Widget */}
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <Card className="lg:col-span-4 rounded-[2.5rem] glass-card border-none overflow-hidden">
             <CardContent className="p-8">

@@ -1,5 +1,5 @@
-import type { UserLike } from './authUtils.js';
-import { isUuid } from './uuidUtils.js';
+import type { UserLike } from './authUtils.ts';
+import { isUuid } from './uuidUtils.ts';
 
 /**
  * Helper to normalize database roles to UserRole enum values

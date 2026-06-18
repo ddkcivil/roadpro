@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin, isSupabaseConfigured } from './supabaseClient.js';
+import { getSupabaseAdmin, isSupabaseConfigured } from './supabaseClient.ts';
 
 export const withAuth = (handler: Function, options: { ignoreExpiration?: boolean } = {}) => async (req: VercelRequest, res: VercelResponse) => {
   let token = null;

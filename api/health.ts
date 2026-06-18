@@ -1,7 +1,7 @@
 // api/health.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin, isSupabaseConfigured } from './_utils/supabaseClient.js';
-import { withErrorHandler } from './_utils/errorHandler.js';
+import { getSupabaseAdmin, isSupabaseConfigured } from './_utils/supabaseClient.ts';
+import { withErrorHandler } from './_utils/errorHandler.ts';
 
 export default withErrorHandler(async function (req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
