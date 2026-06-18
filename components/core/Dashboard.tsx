@@ -261,7 +261,8 @@ const financialChartData = useMemo(() => {
         { id: 'qa-matrix', title: 'Quality Assurance Matrix', visible: true, position: 4 },
         { id: 'distribution', title: 'Work Breakdown', visible: true, position: 5 },
         { id: 'project-info', title: 'Project Identity & Stakeholders', visible: true, position: 6 },
-        { id: 'weather', title: 'Site Weather', visible: true, position: 7 },
+        { id: 'resources', title: 'Resource Consumption', visible: true, position: 7 },
+        { id: 'weather', title: 'Site Weather', visible: true, position: 8 },
       ];
       onUpdateSettings({ ...settings, dashboardWidgets: defaultWidgets });
     }
@@ -496,6 +497,13 @@ const financialChartData = useMemo(() => {
 
         {/* Bento Grid Layout */}
         <div className="grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-6 auto-rows-min">
+          
+          {/* Resource Analytics */}
+          {isWidgetVisible('resources') && (
+            <div className="md:col-span-8 lg:col-span-12">
+              <ResourceAnalyticsWidget project={project} />
+            </div>
+          )}
           
           {/* Project Details / Metadata Bento Piece - MOVED TO TOP */}
           {isWidgetVisible('project-info') && (
