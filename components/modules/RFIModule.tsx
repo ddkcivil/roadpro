@@ -30,6 +30,8 @@ import { Textarea } from '~/components/ui/textarea';
 import { AuditService } from '~/services/analytics/auditService';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 
+import { VisualEmptyState } from '../common/VisualEmptyState';
+
 const rfiSchema = z.object({
   location: z.string().regex(/^\d+\+\d{3}\s+(LHS|RHS|Both|Both Sides|L|R)$/i, "Required format: 'Chainage + Side' (e.g., 12+400 RHS)"),
   description: z.string().min(5, "Work description must be at least 5 characters"),
@@ -586,6 +588,14 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                                         ))}
                                     </TableBody>
                                 </Table>
+                                {projectChecklists.length === 0 && (
+                                    <VisualEmptyState 
+                                        icon={ClipboardList}
+                                        title="No Checklists Found"
+                                        description="Quality checklists are essential for RFI verification. Create a master checklist to begin."
+                                        action={<Button variant="outline" size="sm">Create Checklist Master</Button>}
+                                    />
+                                )}
                             </div>
                         </Card>
                     </TabsContent>
@@ -601,7 +611,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                                             <TableHead className="font-black text-[10px] uppercase tracking-widest">Type</TableHead>
                                             <TableHead className="font-black text-[10px] uppercase tracking-widest">Activity</TableHead>
                                             <TableHead className="font-black text-[10px] uppercase tracking-widest">Status</TableHead>
-                                            <TableHead className="font-black text-[10px] uppercase tracking-widest">Download</TableHead> {/* New Header for Download Button */}
+                                            <TableHead className="font-black text-[10px] uppercase tracking-widest">Download</TableHead>
                                             <TableHead className="font-black text-[10px] uppercase tracking-widest text-right">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -621,7 +631,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                                                             </div>
                                                         ) : <span className="text-muted-foreground opacity-40">—</span>}
                                                     </TableCell>
-                                                    <TableCell> {/* Status Cell */}
+                                                    <TableCell>
                                                         <Badge className={cn(
                                                             "font-black text-[9px] h-5 uppercase tracking-widest px-2",
                                                             rfi.status === RFIStatus.APPROVED && 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
@@ -631,8 +641,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                                                             {rfi.status}
                                                         </Badge>
                                                     </TableCell>
-                                                    {/* --- INSERTED DOWNLOAD BUTTON CELL --- */}
-                                                    <TableCell className="text-center"> {/* Download Button */}
+                                                    <TableCell className="text-center">
                                                       <TooltipProvider>
                                                         <Tooltip>
                                                           <TooltipTrigger asChild>
@@ -650,7 +659,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                                                         </Tooltip>
                                                       </TooltipProvider>
                                                     </TableCell>
-                                                    <TableCell className="text-right"> {/* Actions Cell */}
+                                                    <TableCell className="text-right">
                                                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                             <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-amber-600" onClick={() => handleEdit(rfi)}><Edit2 size={14} className="text-amber-600" /></Button>
                                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-500/10" onClick={() => handleDelete(rfi.id)}><Trash2 size={14} /></Button>
@@ -661,6 +670,14 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                                         })}
                                     </TableBody>
                                 </Table>
+                                {filteredRFIs.length === 0 && (
+                                    <VisualEmptyState 
+                                        icon={FileText}
+                                        title="RFI Registry Empty"
+                                        description="No inspection requests have been filed yet. Submit an RFI to begin the quality verification process."
+                                        action={<Button onClick={handleCreate} size="sm"><Plus size={14} className="mr-2"/> Create First RFI</Button>}
+                                    />
+                                )}
                             </div>
                         </Card>
                     </TabsContent>

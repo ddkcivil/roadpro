@@ -38,6 +38,8 @@ interface MaterialManagementModuleProps {
   onProjectUpdate: (project: Project) => void;
 }
 
+import { isDuplicate } from '~/lib/utils';
+
 const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ project, userRole, onProjectUpdate }) => {
   const materials = project.materials || [];
   const purchaseOrders = project.purchaseOrders || [];
@@ -56,8 +58,7 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
     }
 
     // Check for duplicates
-    const isDuplicate = materials.some(m => m.name.toLowerCase() === newMaterial.name.toLowerCase());
-    if (isDuplicate) {
+    if (isDuplicate(materials, 'name', newMaterial.name)) {
       toast.error("Material with this name already exists");
       return;
     }

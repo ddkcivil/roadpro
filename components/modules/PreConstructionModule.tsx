@@ -20,6 +20,9 @@ import { Textarea } from '~/components/ui/textarea';
 // Import the history hook
 import { useHistoryAutoFill } from '~/lib/historyUtils';
 
+// Import dedup utility
+import { hasDuplicate } from '~/utils/validation/dedupUtils';
+
 interface Props {
   project: Project;
   onProjectUpdate: (project: Project) => void;
@@ -78,7 +81,7 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
     e.preventDefault();
     
     // Check for duplicate description before saving
-    const isDuplicate = project.preConstruction.some(t => t.description.toLowerCase() === newTask.description?.toLowerCase());
+    const isDuplicate = newTask.description && hasDuplicate(project.preConstruction, 'description', newTask.description);
     if (isDuplicate) {
         toast.error("Duplicate: An activity with this description already exists.");
         return;

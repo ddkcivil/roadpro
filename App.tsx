@@ -75,6 +75,7 @@ const MaterialManagementModule = lazy(() => import('./components/modules/Materia
 const MPRReportModule = lazy(() => import('./components/modules/MPRReportModule'));
 import ProjectsListSkeleton from './components/core/ProjectsListSkeleton';
 import DashboardSkeleton from './components/core/DashboardSkeleton';
+import ModuleSkeleton from './components/core/ModuleSkeleton';
 import { PageTransition } from './components/common/PageTransition';
 import { AnimatePresence } from 'framer-motion';
 import { ProtectedTab } from './components/common/ProtectedTab';
@@ -338,7 +339,7 @@ if (!isAuthenticated) {
             <ErrorBoundary>
               <AnimatePresence mode="wait">
                 <PageTransition key={activeTab}>
-                  <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin opacity-20" /></div>}>
+                  <Suspense fallback={<ModuleSkeleton />}>
                     <div className="min-h-full">
                       {activeTab === 'dashboard' && (
                         <ErrorBoundary>

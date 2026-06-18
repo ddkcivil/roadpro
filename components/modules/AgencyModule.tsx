@@ -26,6 +26,8 @@ interface Props {
   onProjectUpdate: (project: Project) => void;
 }
 
+import { hasDuplicate } from '~/utils/validation/dedupUtils';
+
 const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, settings }) => {
   const [activeTab, setActiveTab] = useState("vendors");
   const [isAgencyModalOpen, setIsAgencyModalOpen] = useState(false);
@@ -162,10 +164,9 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
     }
     
     // Duplicate Check
-    const isDuplicate = !agencyForm.id && project.agencies?.some(a => a.name.toLowerCase() === agencyForm.name?.toLowerCase());
-    const isEditDuplicate = agencyForm.id && project.agencies?.some(a => a.id !== agencyForm.id && a.name.toLowerCase() === agencyForm.name?.toLowerCase());
+    const isDuplicate = hasDuplicate(project.agencies || [], 'name', agencyForm.name!, agencyForm.id);
     
-    if (isDuplicate || isEditDuplicate) {
+    if (isDuplicate) {
         showSnackbar('An agency with this name already exists', 'error');
         return;
     }

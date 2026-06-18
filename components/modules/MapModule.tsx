@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, startTransition } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap, LayerGroup, CircleMarker, LayersControl, Tooltip as MapTooltip, SVGOverlay } from 'react-leaflet';
+import { TILE_LAYERS } from '~/config/tileLayers';
 
 const { BaseLayer } = LayersControl;
 import { parseKML, ParsedKML, getKMLBounds } from '~/utils/kmlParser';
@@ -20,7 +21,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "~/components/ui/accordion";
-import { 
+import {
   MapPin,
   Truck,
   Users,
@@ -132,7 +133,7 @@ export const KMLDataLayer: React.FC<{ kml: KMLData }> = ({ kml }) => {
         return bScore - aScore;
       })[0];
 
-parsedData.placemarks.forEach((placemark) => {
+      parsedData.placemarks.forEach((placemark) => {
         const { name, points } = placemark;
         
         if (points.length >= 2) {
@@ -419,6 +420,8 @@ const MapDrawingTool: React.FC<{
   );
 };
 // Layer visibility state
+import { VisualEmptyState } from '../common/VisualEmptyState';
+
 interface LayerVisibility {
   structures: boolean;
   vehicles: boolean;
@@ -428,8 +431,6 @@ interface LayerVisibility {
   sitePhotos: boolean;
   linearWorks: boolean;
   kml: boolean;
-  roadAlignments: boolean;
-  roadStructures: boolean;
   rfis: boolean;
   ncrs: boolean;
   labTests: boolean;
@@ -492,8 +493,6 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
     sitePhotos: true,
     linearWorks: true,
     kml: true,
-    roadAlignments: true,
-    roadStructures: true,
     rfis: true,
     ncrs: true,
     labTests: true,
@@ -681,8 +680,6 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
            project.mapOverlays.find(o => o.type === 'Alignment');
   }, [project.mapOverlays]);
 
-  
-
   /**
    * Helper to map a chainage range (start and end km) to geographic coordinates
    * by interpolating points along the reference road alignment.
@@ -832,7 +829,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
         </Marker>
       );
     }).filter(Boolean);
-  }, [project.structures, layerVisibility.structures]);
+  }, [project.structures, layerVisibility.structures, getNearestChainage]);
 
   // Vehicle markers
   const vehicleMarkers = useMemo(() => {
@@ -883,7 +880,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
         </Marker>
       );
     }).filter(Boolean);
-  }, [project.vehicles, layerVisibility.vehicles]);
+  }, [project.vehicles, layerVisibility.vehicles, getNearestChainage]);
 
   // Staff markers
   const staffMarkers = useMemo(() => {
@@ -1006,14 +1003,6 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
               <h3 className="font-bold text-lg border-b pb-1 mb-2">{overlay.name}</h3>
               <p className="text-sm"><span className="text-gray-500">Type:</span> {overlay.type}</p>
               
-              {/*
-                --- Status Display Placeholder ---
-                The MapOverlay type does not currently have a 'status' field.
-                To display status, the MapOverlay interface and its data source
-                would need to be updated to include a 'status' property.
-                This section assumes 'overlay.status' exists and displays it.
-                Example statuses and colors are provided.
-              */}
               {overlay.status && (
                 <p className="text-sm flex items-center gap-2 mt-2">
                   <span className="text-gray-500 font-medium">Status:</span>
@@ -1028,7 +1017,6 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                   </Badge>
                 </p>
               )}
-              {/* End Status Display Placeholder */}
 
             </div>
           </Popup>
@@ -1418,43 +1406,11 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
             preferCanvas={true}
           >
 <LayersControl position="topright">
-              <BaseLayer checked name="OpenStreetMap">
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-              </BaseLayer>
-              <BaseLayer name="Light">
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                  url="https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
-                />
-              </BaseLayer>
-              <BaseLayer name="Satellite">
-                <TileLayer
-                  attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
-                  url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                />
-              </BaseLayer>
-              <BaseLayer name="Terrain">
-                <TileLayer
-                  attribution='Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'
-                  url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
-                />
-              </BaseLayer>
-              {/* FREE TILE LAYERS ADDED FOR TASK 2 */}
-              <BaseLayer name="Railway">
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | &copy; <a href="https://openrailwaymap.org">OpenRailwayMap</a> (CC-BY-SA)'
-                  url="https://tiles.openrailway.org/{z}/{x}/{y}.png"
-                />
-              </BaseLayer>
-              <BaseLayer name="German Style">
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | Style: OpenStreetMap.de'
-                  url="https://tile.openstreetmap.de/{z}/{x}/{y}.png"
-                />
-              </BaseLayer>
+              {TILE_LAYERS.map((layer, index) => (
+                <BaseLayer key={layer.name} checked={index === 0} name={layer.name}>
+                  <TileLayer attribution={layer.attribution} url={layer.url} />
+                </BaseLayer>
+              ))}
             </LayersControl>
 
             <MapCenterUpdater center={mapCenter} zoom={defaultZoom} />
@@ -1590,18 +1546,18 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                             <Route size={16} />
                           </div>
                           <div>
-                            <Label className="font-bold text-sm text-slate-700">Road Alignments</Label>
-                            <p className="text-[10px] text-muted-foreground uppercase">Inventory Monitoring</p>
+                            <Label className="font-bold text-sm text-slate-700">Alignments</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Road Design Layers</p>
                           </div>
                         </div>
                         <Switch 
-                          checked={layerVisibility.roadAlignments} 
-                          onCheckedChange={() => toggleLayer('roadAlignments')} 
+                          checked={layerVisibility.overlays} 
+                          onCheckedChange={() => toggleLayer('overlays')} 
                         />
                       </div>
 
-                      {/* Road Alignments Listing */}
-                      {layerVisibility.roadAlignments && project.roads && project.roads.length > 0 && (
+                      {/* Alignments Listing */}
+                      {layerVisibility.overlays && project.roads && project.roads.length > 0 && (
                         <div className="pl-4 space-y-3 mt-2 border-l-2 border-indigo-100">
                           {(project.roads || []).flatMap(road => road.alignments || []).map((alignment) => (
                             <div key={alignment.id} className="flex items-center justify-between group">
@@ -1638,51 +1594,14 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                         </div>
                       )}
                       
-                      {layerVisibility.roadAlignments && (!project.roads || project.roads.length === 0) && (
-                        <div className="text-center p-4 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase">No Road Alignments Added</p>
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
-                            <Building size={16} />
-                          </div>
-                          <div>
-                            <Label className="font-bold text-sm text-slate-700">Road Structures</Label>
-                            <p className="text-[10px] text-muted-foreground uppercase">Inventory Monitoring</p>
-                          </div>
-                        </div>
-                        <Switch 
-                          checked={layerVisibility.roadStructures} 
-                          onCheckedChange={() => toggleLayer('roadStructures')} 
+                      {layerVisibility.overlays && (!project.roads || project.roads.length === 0) && (
+                        <VisualEmptyState 
+                          icon={Route}
+                          title="No Alignments"
+                          description="Upload road design data to visualize centerlines and geometry."
+                          className="py-6"
                         />
-                      </div>
-
-                      {/* Road Structures Listing */}
-                      {layerVisibility.roadStructures && project.structures && project.structures.length > 0 && (
-                        <div className="pl-4 space-y-3 mt-2 border-l-2 border-blue-100">
-                          {(project.structures || []).map((structure: StructureAsset) => (
-                            <div key={structure.id} className="flex flex-col min-w-0 pr-4">
-                              <span className="text-[11px] font-bold truncate leading-tight text-slate-600" title={structure.name}>
-                                {structure.name}
-                              </span>
-                              <span className="text-[9px] text-muted-foreground uppercase tracking-tighter font-medium">
-                                Type: {structure.type} | Chainage: {structure.chainage} | Status: {structure.status}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
                       )}
-                      
-                      {layerVisibility.roadStructures && (!project.structures || project.structures.length === 0) && (
-                        <div className="text-center p-4 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase">No Road Structures Added</p>
-                        </div>
-                      )}
-                      {/* End Road Structures Listing */}
-
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -1699,6 +1618,31 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                           onCheckedChange={() => toggleLayer('structures')} 
                         />
                       </div>
+
+                      {/* Structures Listing */}
+                      {layerVisibility.structures && project.structures && project.structures.length > 0 && (
+                        <div className="pl-4 space-y-3 mt-2 border-l-2 border-blue-100">
+                          {(project.structures || []).map((structure: StructureAsset) => (
+                            <div key={structure.id} className="flex flex-col min-w-0 pr-4">
+                              <span className="text-[11px] font-bold truncate leading-tight text-slate-600" title={structure.name}>
+                                {structure.name}
+                              </span>
+                              <span className="text-[9px] text-muted-foreground uppercase tracking-tighter font-medium">
+                                Type: {structure.type} | Chainage: {structure.chainage} | Status: {structure.status}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {layerVisibility.structures && (!project.structures || project.structures.length === 0) && (
+                        <VisualEmptyState 
+                          icon={Building}
+                          title="No Structures"
+                          description="Inventory data required for bridge and culvert monitoring."
+                          className="py-6"
+                        />
+                      )}
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -1948,22 +1892,6 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="p-2 bg-slate-100 text-slate-600 rounded-lg">
-                            <Route size={16} />
-                          </div>
-                          <div>
-                            <Label className="font-bold text-sm text-slate-700">Alignments</Label>
-                            <p className="text-[10px] text-muted-foreground uppercase">Road Design Layers</p>
-                          </div>
-                        </div>
-                        <Switch 
-                          checked={layerVisibility.overlays} 
-                          onCheckedChange={() => toggleLayer('overlays')} 
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
                           <div className="p-2 bg-cyan-100 text-cyan-600 rounded-lg">
                             <Route size={16} />
                           </div>
@@ -2078,9 +2006,12 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                       )}
                       
                       {!project.kmlData?.length && (
-                        <div className="text-center p-4 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase">No KML Files Uploaded</p>
-                        </div>
+                        <VisualEmptyState 
+                          icon={Route}
+                          title="No KML Files"
+                          description="Manage external design files and spatial alignments here."
+                          className="py-6"
+                        />
                       )}
                     </AccordionContent>
                   </AccordionItem>

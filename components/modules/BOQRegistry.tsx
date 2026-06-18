@@ -24,6 +24,8 @@ import { toast } from 'sonner';
 // The original logic has been temporarily removed to facilitate the UI migration.
 // It will be re-implemented in subsequent steps.
 
+import { hasDuplicate } from '~/utils/validation/dedupUtils';
+
 interface BOQManagerProps {
   project: Project;
   settings: AppSettings;
@@ -121,6 +123,12 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
 
   const handleSaveNewItem = () => {
     if (newItem.description && newItem.quantity !== undefined && newItem.rate !== undefined && project) {
+      // Check for duplicate item number
+      if (newItem.itemNo && hasDuplicate(project.boq || [], 'itemNo', newItem.itemNo)) {
+        toast.error("Duplicate Item", { description: `BOQ item ${newItem.itemNo} already exists.` });
+        return;
+      }
+
       const newBoqItem: BOQItem = {
         id: `boq-${Date.now()}`, // Simple unique ID generation
         itemNo: newItem.itemNo || `ITEM-${((project.boq || []).length || 0) + 1}`,

@@ -14,6 +14,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from '~/components/ui/badge';
 import { toast } from 'sonner';
 
+import { VisualEmptyState } from '../common/VisualEmptyState';
+import { ImagePlaceholder } from '../common/ImagePlaceholder';
+
 interface Props {
   project: Project;
   userRole: UserRole;
@@ -256,11 +259,12 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole,
 
             <div className="flex-1 overflow-y-auto">
                 {filteredPhotos.length === 0 ? (
-                    <div className="h-64 flex flex-col items-center justify-center border-2 border-dashed rounded-2xl text-muted-foreground">
-                        <Camera size={48} className="mb-4 opacity-20" />
-                        <p className="font-bold">No site photos found</p>
-                        <p className="text-sm">Upload your first field observation to begin AI analysis</p>
-                    </div>
+                    <VisualEmptyState 
+                        icon={Camera}
+                        title="No Site Photos Found"
+                        description="Capture field updates or upload observations to begin tracking site progress with AI intelligence."
+                        action={<Button onClick={() => setUploadModalOpen(true)} className="bg-indigo-600">Capture First Update</Button>}
+                    />
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-10">
                         {filteredPhotos.map(photo => (
@@ -270,11 +274,10 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole,
                                 onClick={() => setPreviewPhoto(photo)}
                             >
                                 <div className="aspect-video overflow-hidden relative">
-                                    <img
+                                    <ImagePlaceholder
                                         src={photo.url}
                                         alt={photo.caption || 'Site Photo'}
-                                        title={photo.caption || 'Site Photo'}
-                                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                        className="transition-transform group-hover:scale-105"
                                     />
                                     {photo.isAnalyzed && (
                                         <div className="absolute top-2 right-2 bg-indigo-600 text-white p-1 rounded-lg shadow-lg">
@@ -421,11 +424,11 @@ const SitePhotosModule: React.FC<Props> = ({ project, onProjectUpdate, userRole,
                     {previewPhoto && (
                         <div className="flex flex-col md:flex-row h-full">
                             <div className="flex-1 bg-slate-900 flex items-center justify-center p-4 relative group">
-                                <img
+                                <ImagePlaceholder
                                     src={previewPhoto.url}
                                     alt={previewPhoto.caption || 'Site Photo Preview'}
-                                    title={previewPhoto.caption || 'Site Photo Preview'}
-                                    className="max-w-full max-h-[70vh] object-contain rounded-2xl shadow-2xl"
+                                    aspectRatio="auto"
+                                    className="max-w-full max-h-[70vh] shadow-2xl"
                                 />
                                 <Button
                                     variant="secondary"

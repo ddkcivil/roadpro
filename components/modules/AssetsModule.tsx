@@ -24,6 +24,8 @@ interface Props {
   onProjectUpdate: (project: Project) => void;
 }
 
+import { isDuplicate } from '~/lib/utils';
+
 const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) => {
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
@@ -180,7 +182,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
     }
 
     // Duplicate Check
-    if (!editingAssetId && assets.some(a => a.plateNumber?.toLowerCase() === assetForm.plateNumber?.toLowerCase())) {
+    if (isDuplicate(assets, 'plateNumber', assetForm.plateNumber!, editingAssetId || undefined)) {
         alert('An asset with this plate number already exists.');
         return;
     }

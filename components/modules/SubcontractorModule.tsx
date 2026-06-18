@@ -22,6 +22,8 @@ import { formatCurrency } from '../../utils/formatting/exportUtils';
 import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
 import { cn } from '~/lib/utils';
 
+import { VisualEmptyState } from '../common/VisualEmptyState';
+
 interface Props {
   project: Project;
   settings?: AppSettings;
@@ -499,11 +501,16 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, settin
                   ))}
                   
                   {subcontractors.length === 0 && (
-                    <div className="py-6 text-center text-gray-500">
-                      <Briefcase size={48} className="opacity-20 mx-auto mb-3"/>
-                      <h3 className="text-lg">No subcontractors registered</h3>
-                      <p className="text-sm">Add your first subcontractor to get started</p>
-                    </div>
+                    <VisualEmptyState 
+                      icon={Briefcase}
+                      title="No Subcontractors Registered"
+                      description="You haven't added any subcontractors to this project yet. Register your partners to start tracking progress."
+                      action={
+                        <Button onClick={handleAddSubcontractor} variant="outline" className="border-primary/50 text-primary hover:bg-primary/5">
+                          <Plus size={16} className="mr-2" /> Add Your First Contractor
+                        </Button>
+                      }
+                    />
                   )}
                 </div>
               </div>
@@ -603,7 +610,7 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, settin
                             ))}
                           {project.boq.filter(item => item.subcontractorId === selectedSubcontractor.id).length === 0 && (
                             <TableRow>
-                              <td colSpan={6} className="text-center p-8 px-4"> {/* Increased colSpan */}
+                              <td colSpan={6} className="text-center p-8 px-4">
                                 <p className="text-sm text-muted-foreground">No BOQ items assigned to this subcontractor</p>
                               </td>
                             </TableRow>
@@ -613,11 +620,12 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, settin
                     </div>
                   </div>
                 ) : (
-                  <div className="py-10 text-center text-gray-500">
-                    <Briefcase size={60} className="opacity-10 mx-auto mb-4"/>
-                    <h3 className="text-lg">Select a subcontractor to view details</h3>
-                    <p className="text-sm">Choose from the list to see subcontractor information</p>
-                  </div>
+                  <VisualEmptyState 
+                    icon={TrendingUp}
+                    title="No Selection Made"
+                    description="Choose a subcontractor from the left panel to analyze their performance, financial ledger, and assigned works."
+                    className="py-20"
+                  />
                 )}
               </div>
             </div>
