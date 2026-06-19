@@ -40,44 +40,50 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ message: 'Heartbeat updated' });
   }
 
-  // --- GET USERS ---
+// --- GET USERS ---
   if (req.method === 'GET') {
     try {
       if (id && typeof id === 'string') {
-        // Get user from Supabase
+        // Get user from Supabase - specify columns explicitly to avoid missing column errors
         const { data: profile, error: sbError } = await supabaseAdmin
           .from('profiles')
-          .select('*')
+          .select('id, email, full_name, role, avatar_url, phone, last_seen, created_at, updated_at')
           .eq('id', id)
           .single();
 
-        if (sbError || !profile) {
+        if (sbError) {
+          console.error('[API Error] GET profile by ID error:', sbError.message, '| ID:', id);
+          return res.status(404).json({ error: 'User not found', details: sbError.message });
+        }
+
+        if (!profile) {
           return res.status(404).json({ error: 'User not found' });
         }
 
         const { mapUserFromDb } = await import('./_utils/mappers.ts');
         return res.status(200).json(mapUserFromDb(profile));
       } else {
-        // Fetch all users from Supabase
+        // Fetch all users from Supabase - specify columns explicitly
         const { data: profiles, error } = await supabaseAdmin
           .from('profiles')
-          .select('*');
+          .select('id, email, full_name, role, avatar_url, phone, last_seen, created_at, updated_at');
         
         if (error) {
-          console.error('[API Error] Supabase GET all profiles error:', error);
-          throw error;
+          console.error('[API Error] Supabase GET all profiles error:', error.message, error.code);
+          return res.status(500).json({ error: 'Failed to fetch users', details: error.message });
         }
         
+        console.log(`[API] GET /users - found ${profiles?.length || 0} profiles`);
         const { mapUserFromDb } = await import('./_utils/mappers.ts');
-        return res.status(200).json(profiles.map(mapUserFromDb));
+        return res.status(200).json((profiles || []).map(mapUserFromDb));
       }
     } catch (error: any) {
-      console.error('[API Error] GET users failed:', error);
+      console.error('[API Error] GET users failed:', error.message, error.stack);
       throw error;
     }
   }
 
-  // --- CREATE USER ---
+// --- CREATE USER ---
   if (req.method === 'POST') {
     if (userRole?.toUpperCase() !== 'ADMIN') {
       return res.status(403).json({ error: 'Only admins can create users' });
@@ -98,26 +104,30 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           id: newUserId,
           full_name: name,
           email: email,
-          phone: phone || '',
+          phone: phone || null,
           role: role || 'SITE_ENGINEER',
           avatar_url: avatar || generateAvatarUrl(name),
           last_seen: new Date().toISOString(),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }])
-        .select()
+        .select('id, email, full_name, role, avatar_url, phone, last_seen, created_at, updated_at')
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[API Error] CREATE user error:', error.message, error.code, error.details);
+        return res.status(500).json({ error: 'Failed to create user', details: error.message });
+      }
+      
       const { mapUserFromDb } = await import('./_utils/mappers.ts');
       return res.status(201).json(mapUserFromDb(profile));
     } catch (error: any) {
-      console.error('Failed to create user profile:', error);
+      console.error('[API Error] CREATE user exception:', error.message, error.stack);
       throw error;
     }
   }
 
-  // --- UPDATE USER ---
+// --- UPDATE USER ---
   if (req.method === 'PUT') {
     if (!id || typeof id !== 'string') {
       return res.status(400).json({ error: 'User ID is required for update' });
@@ -145,20 +155,24 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .from('profiles')
         .update(updateData)
         .eq('id', id)
-        .select()
+        .select('id, email, full_name, role, avatar_url, phone, last_seen, created_at, updated_at')
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[API Error] UPDATE user error:', error.message, error.code, error.details);
+        return res.status(500).json({ error: 'Failed to update user', details: error.message });
+      }
+      
       const { mapUserFromDb } = await import('./_utils/mappers.ts');
       return res.status(200).json(mapUserFromDb(updatedProfile));
 
     } catch (error: any) {
-      console.error('Failed to update user:', error);
+      console.error('[API Error] UPDATE user exception:', error.message, error.stack);
       throw error;
     }
   }
 
-  // --- DELETE USER ---
+// --- DELETE USER ---
   if (req.method === 'DELETE') {
     if (!id || typeof id !== 'string') {
       return res.status(400).json({ error: 'User ID is required for deletion' });
@@ -174,11 +188,14 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         .delete()
         .eq('id', id);
         
-      if (error) throw error;
+      if (error) {
+        console.error('[API Error] DELETE user error:', error.message, error.code, error.details);
+        return res.status(500).json({ error: 'Failed to delete user', details: error.message });
+      }
       
       return res.status(204).end();
     } catch (error: any) {
-      console.error('Failed to delete user profile:', error);
+      console.error('[API Error] DELETE user exception:', error.message, error.stack);
       throw error;
     }
   }
