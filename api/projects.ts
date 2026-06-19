@@ -77,7 +77,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     return res.status(503).json({ error: 'Database service not available' });
   }
 
-  if (req.method === 'GET') {
+if (req.method === 'GET') {
     try {
       // Check for search query parameter
       const searchQuery = req.query.search as string;
@@ -88,14 +88,14 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         // Fetch a single project by ID - use maybeSingle to avoid throwing on no results
         const { data: project, error } = await supabaseAdmin
           .from('projects')
-          .select('*')
+          .select('id, name, client, contract_no, location, status, budget, start_date, end_date, description, contractor, owner_id, metadata, created_at, updated_at')
           .eq('id', (id as string).trim())
           .maybeSingle();
 
-        // If there's an error, log it and treat as "not found" (common with non-UUID IDs)
+        // If there's an error, log it and return detailed error
         if (error) {
-          console.warn('[GET Project] Error fetching project (treating as not found):', error);
-          return res.status(404).json({ error: 'Project not found', details: error.message });
+          console.error('[GET Project] Error fetching project:', error.message, error.code, error.details);
+          return res.status(500).json({ error: 'Failed to fetch project', details: error.message, code: error.code });
         }
 
         // If project not found, return 404
@@ -297,21 +297,29 @@ let docsData: any[] = [];
       const limitVal = parseInt(limitParam) > 0 ? parseInt(limitParam) : limit;
       const skip = (page - 1) * limitVal;
 
-      // Fetch total count
+// Fetch total count
       const { count: total, error: countError } = await supabaseAdmin
         .from('projects')
-        .select('*', { count: 'exact', head: true });
+        .select('id', { count: 'exact', head: true });
 
-      if (countError) throw countError;
+      if (countError) {
+        console.error('[GET Projects] Count error:', countError.message, countError.code);
+        throw countError;
+      }
 
+      // Fetch paginated projects with explicit columns
       const { data: projects, error: fetchError } = await supabaseAdmin
         .from('projects')
-        .select('*')
+        .select('id, name, client, contract_no, location, status, budget, start_date, end_date, description, contractor, owner_id, metadata, created_at, updated_at')
         .range(skip, skip + limitVal - 1)
         .order('created_at', { ascending: false });
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('[GET Projects] Fetch error:', fetchError.message, fetchError.code);
+        return res.status(500).json({ error: 'Failed to fetch projects', details: fetchError.message, code: fetchError.code });
+      }
 
+      console.log(`[GET Projects] Found ${projects?.length || 0} projects (total: ${total || 0})`);
 
       return res.status(200).json({
         data: (projects || []).map(mapProjectFromDb),
@@ -323,7 +331,7 @@ let docsData: any[] = [];
         }
       });
     } catch (error: any) {
-      console.error('Failed to fetch projects:', error);
+      console.error('[GET Projects] Exception:', error.message, error.stack);
       return res.status(500).json({ error: 'Failed to fetch projects', details: error.message });
     }
   }
