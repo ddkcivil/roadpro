@@ -77,7 +77,7 @@ const supabaseConfigured = isSupabaseConfigured();
           const safeUser = mapUserFromDb({
             id: userId,
             email: authData.user.email,
-            ...profile
+            ...(profile || {})
           });
 
           return res.status(200).json({

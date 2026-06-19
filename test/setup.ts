@@ -1,5 +1,3 @@
-import '@testing-library/jest-dom';
-
 // Supabase is the primary database for the project.
 // MongoDB is no longer used.
 

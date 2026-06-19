@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import handler from '../api/auth';
-import * as supabaseClient from '../api/utils/supabaseClient.js';
+import { isSupabaseConfigured } from '../api/_utils/supabaseClient.ts';
 
 // Mock Supabase client
 const mockSupabaseAuth = {
@@ -19,18 +19,18 @@ const mockSupabase = {
 };
 
 // Mock error handler
-vi.mock('../api/utils/errorHandler.js', () => ({ 
+vi.mock('../api/_utils/errorHandler.ts', () => ({ 
   withErrorHandler: (h: any) => h 
 }));
 
 // Mock Supabase client
-vi.mock('../api/utils/supabaseClient.js', () => ({
+vi.mock('../api/_utils/supabaseClient.ts', () => ({
   getSupabasePublic: vi.fn(() => mockSupabase),
   isSupabaseConfigured: vi.fn(() => true)
 }));
 
 // Mock mappers
-vi.mock('../api/utils/mappers.js', () => ({
+vi.mock('../api/_utils/mappers.ts', () => ({
   mapUserFromDb: vi.fn((user: any) => user)
 }));
 
@@ -50,7 +50,7 @@ describe('api/auth handler', () => {
   });
 
   it('POST?action=login should return 503 if Supabase not configured', async () => {
-    vi.mocked(supabaseClient.isSupabaseConfigured).mockReturnValueOnce(false);
+    vi.mocked(isSupabaseConfigured).mockReturnValueOnce(false);
     
     mockReq.method = 'POST';
     mockReq.query.action = 'login';
