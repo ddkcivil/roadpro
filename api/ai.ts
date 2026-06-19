@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withErrorHandler } from './_utils/errorHandler.ts';
+import { withErrorHandler } from './_utils/errorHandler.js';
 import { getAIResponse, AIProvider } from '../services/ai/universalAIService';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
