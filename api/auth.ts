@@ -30,17 +30,18 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           return res.status(400).json({ error: 'Email and password are required' });
         }
 
-        const supabaseConfigured = isSupabaseConfigured();
+const supabaseConfigured = isSupabaseConfigured();
         if (!supabaseConfigured) {
-          console.error('[Auth API] Supabase not configured');
-          return res.status(503).json({ error: 'Authentication service not configured' });
+          console.error('[Auth API] Supabase not configured - check SUPABASE_URL and SUPABASE_ANON_KEY');
+          return res.status(503).json({ error: 'Authentication service not configured', hint: 'Set SUPABASE_URL and SUPABASE_ANON_KEY in Vercel env' });
         }
 
         let supabase = null;
         try {
           supabase = getSupabasePublic();
           if (!supabase) {
-            return res.status(503).json({ error: 'Authentication service not configured. Please contact administrator.' });
+            console.error('[Auth API] Public client null - check SUPABASE_ANON_KEY');
+            return res.status(503).json({ error: 'Authentication service not configured', hint: 'Verify SUPABASE_ANON_KEY is valid' });
           }
           
           const { data: authData, error: authError } = await supabase.auth.signInWithPassword({

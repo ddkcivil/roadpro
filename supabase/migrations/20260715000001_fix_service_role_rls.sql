@@ -25,5 +25,3 @@ GRANT ALL ON "public"."projects" TO "service_role";
 -- Ensure service_role has proper access
 ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."projects" ENABLE ROW LEVEL SECURITY;
-
-console.log('[Migration] RLS policies fixed for service_role');
