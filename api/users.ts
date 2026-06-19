@@ -11,11 +11,13 @@ function generateAvatarUrl(name: string): string {
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   // Get Supabase admin client using getter
   if (!isSupabaseConfigured()) {
-    return res.status(503).json({ error: 'Database service not configured' });
+    console.error('[API /users] Supabase not configured - check SUPABASE_URL and SUPABASE_ANON_KEY');
+    return res.status(503).json({ error: 'Database service not configured', hint: 'Set SUPABASE_URL and SUPABASE_ANON_KEY in Vercel env' });
   }
   const supabaseAdmin = getSupabaseAdmin();
   if (!supabaseAdmin) {
-    return res.status(503).json({ error: 'Database service not available' });
+    console.error('[API /users] Admin client null - check SUPABASE_SERVICE_ROLE_KEY');
+    return res.status(503).json({ error: 'Database service not available', hint: 'Set SUPABASE_SERVICE_ROLE_KEY in Vercel env' });
   }
   
   const { id, action } = req.query;

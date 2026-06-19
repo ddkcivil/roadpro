@@ -70,11 +70,13 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
   // Get Supabase admin client using getter
   if (!isSupabaseConfigured()) {
-    return res.status(503).json({ error: 'Database service not configured' });
+    console.error('[API /projects] Supabase not configured - check SUPABASE_URL and SUPABASE_ANON_KEY');
+    return res.status(503).json({ error: 'Database service not configured', hint: 'Set SUPABASE_URL and SUPABASE_ANON_KEY in Vercel env' });
   }
   const supabaseAdmin = getSupabaseAdmin();
   if (!supabaseAdmin) {
-    return res.status(503).json({ error: 'Database service not available' });
+    console.error('[API /projects] Admin client null - check SUPABASE_SERVICE_ROLE_KEY');
+    return res.status(503).json({ error: 'Database service not available', hint: 'Set SUPABASE_SERVICE_ROLE_KEY in Vercel env' });
   }
 
 if (req.method === 'GET') {
@@ -95,7 +97,7 @@ if (req.method === 'GET') {
         // If there's an error, log it and return detailed error
         if (error) {
           console.error('[GET Project] Error fetching project:', error.message, error.code, error.details);
-          return res.status(500).json({ error: 'Failed to fetch project', details: error.message, code: error.code });
+          return res.status(500).json({ error: 'Failed to fetch project', details: error.message });
         }
 
         // If project not found, return 404
