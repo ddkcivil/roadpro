@@ -6,7 +6,10 @@ import { realApiService } from './realApiService';
 export const apiService = {
   // Fetch all projects
   getProjects: async (page: number = 1, limit: number = 50): Promise<{ data: Project[], pagination: any }> => {
-    return realApiService.getProjects(page, limit);
+    // DEFENSIVE: Ensure page and limit are valid numbers before passing to realApiService
+    const safePage = typeof page === 'number' && !isNaN(page) && page > 0 ? page : 1;
+    const safeLimit = typeof limit === 'number' && !isNaN(limit) && limit > 0 ? limit : 50;
+    return realApiService.getProjects(safePage, safeLimit);
   },
 
   // Fetch a single project by ID

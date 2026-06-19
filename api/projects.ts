@@ -291,8 +291,11 @@ let docsData: any[] = [];
       }
 
       // Fetch paginated list of projects (default behavior)
-      const page = parseInt(req.query.page as string) || 1;
-      const skip = (page - 1) * limit;
+      const pageParam = req.query.page as string;
+      const page = parseInt(pageParam) > 0 ? parseInt(pageParam) : 1;
+      const limitParam = req.query.limit as string;
+      const limitVal = parseInt(limitParam) > 0 ? parseInt(limitParam) : limit;
+      const skip = (page - 1) * limitVal;
 
       // Fetch total count
       const { count: total, error: countError } = await supabaseAdmin
@@ -304,7 +307,7 @@ let docsData: any[] = [];
       const { data: projects, error: fetchError } = await supabaseAdmin
         .from('projects')
         .select('*')
-        .range(skip, skip + limit - 1)
+        .range(skip, skip + limitVal - 1)
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
@@ -315,8 +318,8 @@ let docsData: any[] = [];
         pagination: {
           total: total || 0,
           page,
-          limit,
-          totalPages: Math.ceil((total || 0) / limit)
+          limit: limitVal,
+          totalPages: Math.ceil((total || 0) / limitVal)
         }
       });
     } catch (error: any) {

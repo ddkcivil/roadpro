@@ -198,7 +198,10 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: User): Proje
     }
   }, [currentUser, dispatch]);
 
-  const fetchProjects = useCallback(async (page = 1) => {
+  const fetchProjects = useCallback(async (pageInput: any = 1) => {
+    // Ensure page is a valid number (defends against React events being passed as 'page')
+    const page = typeof pageInput === 'number' ? pageInput : 1;
+    
     startTransition(() => {
       dispatch({ type: 'FETCH_START' });
     });

@@ -329,8 +329,12 @@ private async fetchWithRetry<T>(endpoint: string, options?: RequestInit, retries
     return sanitized;
   }
 
-  async getProjects(page = 1, limit = 50): Promise<{ data: Project[], pagination: any }> {
-    return this.fetchApi<{ data: Project[], pagination: any }>(`/projects?page=${page}&limit=${limit}`, { method: 'GET' }, true);
+async getProjects(page = 1, limit = 50): Promise<{ data: Project[], pagination: any }> {
+    // DEFENSIVE: Ensure page and limit are always numbers
+    const safePage = typeof page === 'number' && !isNaN(page) ? page : 1;
+    const safeLimit = typeof limit === 'number' && !isNaN(limit) ? limit : 50;
+    
+    return this.fetchApi<{ data: Project[], pagination: any }>(`/projects?page=${safePage}&limit=${safeLimit}`, { method: 'GET' }, true);
   }
 
   async getProject(id: string, forceRefresh = false): Promise<Project> {

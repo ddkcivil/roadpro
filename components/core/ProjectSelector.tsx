@@ -77,7 +77,7 @@ const ProjectSelector: React.FC<Props> = memo(({
                 <Button 
                     variant="ghost" 
                     size="icon" 
-                    onClick={fetchProjects} 
+                    onClick={() => fetchProjects()} 
                     disabled={isLoadingProjects} 
                     className="h-11 w-11 rounded-2xl hover:bg-white/5 text-slate-400 hover:text-white transition-all"
                     title="Refresh Data"
@@ -107,7 +107,7 @@ const ProjectSelector: React.FC<Props> = memo(({
                 <p className="font-black uppercase text-xs tracking-widest mb-0.5">Database Link Failure</p>
                 <p className="text-sm text-rose-400/80 font-medium">{apiError}</p>
               </div>
-              <Button size="sm" variant="outline" className="bg-rose-500 text-white border-none font-bold rounded-xl h-10 px-6 hover:bg-rose-600 transition-colors" onClick={fetchProjects}>Synchronize Now</Button>
+              <Button size="sm" variant="outline" className="bg-rose-500 text-white border-none font-bold rounded-xl h-10 px-6 hover:bg-rose-600 transition-colors" onClick={() => fetchProjects()}>Synchronize Now</Button>
             </CardContent>
           </Card>
         )}
