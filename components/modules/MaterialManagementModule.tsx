@@ -58,7 +58,7 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
   const [importPage, setImportPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
 
-  // Fetch materials from inventory sync
+  // Fetch materials from inventory sync (summary view with actual stock quantities)
   const fetchSyncMaterials = async () => {
     setIsImporting(true);
     try {
@@ -67,7 +67,7 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      const response = await fetch('/api/inventorySync', {
+      const response = await fetch('/api/inventorySync?summary=true', {
         method: 'GET',
         headers,
         credentials: 'include',
@@ -76,20 +76,17 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
         throw new Error('Failed to fetch sync materials');
       }
       const data = await response.json();
-      // Get unique materials from transactions
-      const uniqueMaterials = new Map();
-      (data as any[]).forEach((tx) => {
-        if (tx.material_detail && !uniqueMaterials.has(tx.material_detail)) {
-          uniqueMaterials.set(tx.material_detail, {
-            id: tx.id,
-            name: tx.material_detail,
-            category: tx.category || '',
-            unit: tx.unit || '',
-            quantity: tx.recieved_qty || 0,
-          });
-        }
-      });
-      setSyncMaterials(Array.from(uniqueMaterials.values()));
+      // The summary endpoint returns { materials: [...], summary: {...} }
+      const materials = data.materials || data.data || (Array.isArray(data) ? data : []);
+      setSyncMaterials(materials.map((mat: any) => ({
+        id: mat.id,
+        name: mat.name || mat.material_detail,
+        category: mat.category || '',
+        unit: mat.unit || '',
+        total_quantity: mat.total_quantity || 0,
+        transaction_count: mat.transaction_count || 1,
+        latest_location: mat.latest_location || '',
+      })));
     } catch (err: any) {
       console.error('Error fetching sync materials:', err);
       toast.error('Failed to fetch sync materials');
@@ -98,6 +95,16 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
     }
   };
 
+  // Build dynamic category list from sync materials merged with predefined CATEGORIES
+  const syncCategories = useMemo(() => {
+    const syncCatSet = new Set<string>();
+    syncMaterials.forEach((m: any) => {
+      if (m.category) syncCatSet.add(m.category);
+    });
+    const merged = new Set([...CATEGORIES, ...Array.from(syncCatSet)]);
+    return Array.from(merged).sort();
+  }, [syncMaterials]);
+
   // Import selected materials to project
   const handleImportMaterials = () => {
     const newMaterials = [...materials];
@@ -105,17 +112,18 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
     selectedMaterials.forEach((id) => {
       const syncMat = syncMaterials.find((m: any) => m.id === id);
       if (syncMat && !isDuplicate(newMaterials, 'name', syncMat.name)) {
+        const importedQty = syncMat.total_quantity || 0;
         newMaterials.push({
           id: generateUniqueId(),
           name: syncMat.name,
           category: syncMat.category,
           unit: syncMat.unit,
-          quantity: 0,
-          location: 'Main Store',
+          quantity: importedQty,
+          location: syncMat.latest_location || 'Main Store',
           lastUpdated: new Date().toISOString(),
-          availableQuantity: 0,
+          availableQuantity: importedQty,
           reorderLevel: 10,
-          status: 'Available',
+          status: importedQty === 0 ? 'Out of Stock' : (importedQty < 10 ? 'Low Stock' : 'Available'),
         });
         imported++;
       }
@@ -123,7 +131,7 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
     onProjectUpdate({ ...project, materials: newMaterials });
     setIsImportOpen(false);
     setSelectedMaterials(new Set());
-    toast.success(`Imported ${imported} materials`);
+    toast.success(`Imported ${imported} materials with stock quantities`);
   };
 
   const toggleMaterialSelection = (id: number) => {
@@ -318,10 +326,10 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
                       Import from Sync
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="rounded-3xl max-w-2xl">
+                    <DialogContent className="rounded-3xl max-w-4xl">
                     <DialogHeader>
                       <DialogTitle>Import Materials from Sync</DialogTitle>
-                      <DialogDescription>Select materials to import from the synchronized inventory.</DialogDescription>
+                      <DialogDescription>Select materials to import from the synchronized inventory. Stock quantity will be carried over.</DialogDescription>
                     </DialogHeader>
 <div className="grid gap-4 py-4 max-h-[400px] overflow-y-auto">
                       {syncMaterials.length === 0 ? (
@@ -334,6 +342,8 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
                               <TableHead>Material</TableHead>
                               <TableHead>Category</TableHead>
                               <TableHead>Unit</TableHead>
+                              <TableHead className="text-right">Stock Qty</TableHead>
+                              <TableHead>Txn Count</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -353,6 +363,8 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
                                 <TableCell className="font-bold">{mat.name}</TableCell>
                                 <TableCell>{mat.category || 'N/A'}</TableCell>
                                 <TableCell>{mat.unit || 'N/A'}</TableCell>
+                                <TableCell className="text-right font-mono font-bold">{mat.total_quantity || 0}</TableCell>
+                                <TableCell className="text-center text-xs text-muted-foreground">{mat.transaction_count || 0}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -412,7 +424,7 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
                             <SelectValue placeholder="Select a category" />
                           </SelectTrigger>
                           <SelectContent>
-                            {CATEGORIES.map(category => (
+                            {(syncCategories.length > CATEGORIES.length ? syncCategories : CATEGORIES).map(category => (
                               <SelectItem key={category} value={category}>{category}</SelectItem>
                             ))}
                           </SelectContent>

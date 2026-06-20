@@ -52,7 +52,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
   }
 
   const allowedMethods = ['GET', 'POST', 'PUT', 'DELETE'];
-  if (!allowedMethods.includes(req.method)) {
+  if (req.method && !allowedMethods.includes(req.method)) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
@@ -66,6 +66,7 @@ if (!isSupabaseConfigured()) {
   }
 
   const id = req.query.id as string | undefined;
+  const summary = req.query.summary as string | undefined;
 
   // GET - Fetch all or single material
   if (req.method === 'GET') {
@@ -81,6 +82,84 @@ if (!isSupabaseConfigured()) {
       }
 
       return res.status(200).json(data);
+    }
+
+    // Summary view — aggregated unique materials with total stock quantity
+    if (summary === 'true') {
+      const { data, error } = await supabaseAdmin
+        .from('inventory_transactions')
+        .select('material_detail, category, unit, recieved_qty, id, location, created_at');
+
+      if (error) {
+        return res.status(500).json({ error: 'Failed to fetch inventory summary', details: error.message });
+      }
+
+      // Aggregate unique materials by material_detail
+      const materialMap = new Map<string, {
+        id: number;
+        name: string;
+        category: string;
+        unit: string;
+        total_quantity: number;
+        total_amount: number;
+        latest_location: string;
+        transaction_count: number;
+        created_at: string;
+      }>();
+
+      for (const tx of (data || [])) {
+        const key = tx.material_detail || `Unknown-${tx.id}`;
+        if (materialMap.has(key)) {
+          const existing = materialMap.get(key)!;
+          existing.total_quantity += (tx.recieved_qty || 0);
+          existing.transaction_count += 1;
+          existing.latest_location = tx.location || existing.latest_location;
+          if (new Date(tx.created_at) > new Date(existing.created_at)) {
+            existing.created_at = tx.created_at;
+            existing.id = tx.id;
+          }
+        } else {
+          materialMap.set(key, {
+            id: tx.id,
+            name: key,
+            category: tx.category || '',
+            unit: tx.unit || '',
+            total_quantity: tx.recieved_qty || 0,
+            total_amount: 0,
+            latest_location: tx.location || '',
+            transaction_count: 1,
+            created_at: tx.created_at || '',
+          });
+        }
+      }
+
+      const materials = Array.from(materialMap.values());
+
+      // Also compute stock in/out summary across all transactions
+      const { data: stockSummary, error: sumError } = await supabaseAdmin
+        .rpc('get_inventory_stock_summary' as any);
+
+      // If RPC doesn't exist, compute client-side
+      let totalStockIn = 0;
+      let totalStockOut = 0;
+      let totalCategories = 0;
+      const categorySet = new Set<string>();
+      for (const mat of materials) {
+        totalStockIn += mat.total_quantity;
+        if (mat.category) categorySet.add(mat.category);
+      }
+      totalCategories = categorySet.size;
+
+      return res.status(200).json({
+        materials,
+        summary: {
+          totalMaterials: materials.length,
+          totalCategories,
+          totalStockIn,
+          totalStockOut,
+          totalCurrentStock: totalStockIn,
+        },
+      });
     }
 
     // Return all transactions
