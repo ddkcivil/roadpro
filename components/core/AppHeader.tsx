@@ -94,18 +94,29 @@ const AppHeader: React.FC<AppHeaderProps> = React.memo(({
 
   // Get location name
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`);
-            const data = await res.json();
-            setLocation(data.address?.city || data.address?.town || data.address?.village || data.address?.county || 'Unknown');
-          } catch { setLocation('Unknown'); }
-        },
-        () => setLocation('Unknown')
-      );
+    if (!navigator.geolocation) {
+      return;
     }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const controller = new AbortController();
+          const id = setTimeout(() => controller.abort(), 8000);
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`, {
+            signal: controller.signal,
+            headers: { Accept: 'application/json' }
+          });
+          clearTimeout(id);
+          if (!res.ok) throw new Error(`Nominatim responded ${res.status}`);
+          const data = await res.json();
+          setLocation(data.address?.city || data.address?.town || data.address?.village || data.address?.county || 'Unknown');
+        } catch {
+          setLocation('Unknown');
+        }
+      },
+      () => setLocation('Unknown'),
+      { timeout: 10000, enableHighAccuracy: false, maximumAge: 60000 }
+    );
   }, []);
 
   // Use a ref for currentProject to avoid stale closures in watchPosition
