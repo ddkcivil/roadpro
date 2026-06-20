@@ -157,7 +157,7 @@ export const useInventorySync = (isAuthenticated: boolean, userRole?: string) =>
       return;
     }
 
-    // Initial fetch and sync
+    // Initial fetch and sync — await so the loading state is visible/blocks blank render
     const initialize = async () => {
       setIsLoading(true);
       await fetchTransactions();
@@ -165,7 +165,6 @@ export const useInventorySync = (isAuthenticated: boolean, userRole?: string) =>
       // await syncNow();
       setIsLoading(false);
     };
-
     initialize();
 
     // Optional: background polling every 5 minutes
