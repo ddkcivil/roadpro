@@ -141,8 +141,8 @@ const InventorySyncModule: React.FC<InventorySyncModuleProps> = ({ isAuthenticat
         </CardContent>
       </Card>
 
-      {/* Stock Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+{/* Stock Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <Card className="rounded-3xl border-none shadow-xl glass">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -165,6 +165,17 @@ const InventorySyncModule: React.FC<InventorySyncModuleProps> = ({ isAuthenticat
             </div>
           </CardContent>
         </Card>
+        <Card className="rounded-3xl border-none shadow-xl glass">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-widest">Current Stock</p>
+                <p className="text-2xl font-black text-emerald-500">{stockSummary?.totalCurrentStock || 0}</p>
+              </div>
+              <Package className="h-8 w-8 text-emerald-500" />
+            </div>
+          </CardContent>
+        </Card>
         <Card className={`rounded-3xl border-none shadow-xl ${lowStockCount > 0 ? 'glass bg-amber-500/10' : 'glass'}`}>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -173,6 +184,32 @@ const InventorySyncModule: React.FC<InventorySyncModuleProps> = ({ isAuthenticat
                 <p className={`text-2xl font-black ${lowStockCount > 0 ? 'text-amber-500' : ''}`}>{lowStockCount}</p>
               </div>
               <AlertTriangle className={`h-8 w-8 ${lowStockCount > 0 ? 'text-amber-500' : 'opacity-50'}`} />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Stock In/Out Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <Card className="rounded-3xl border-none shadow-xl glass">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-widest">Stock In</p>
+                <p className="text-2xl font-black text-emerald-500">{stockSummary?.totalStockIn || 0}</p>
+              </div>
+              <Package className="h-8 w-8 text-emerald-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="rounded-3xl border-none shadow-xl glass">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-widest">Stock Out</p>
+                <p className="text-2xl font-black text-red-500">{stockSummary?.totalStockOut || 0}</p>
+              </div>
+              <Package className="h-8 w-8 text-red-500" />
             </div>
           </CardContent>
         </Card>
