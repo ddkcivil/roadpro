@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin, isSupabaseConfigured } from './_utils/supabaseClient.js';
-import { withErrorHandler } from './_utils/errorHandler.js';
-import { withAuth } from './_utils/auth.js';
+import { getSupabaseAdmin, isSupabaseConfigured } from './_utils/supabaseClient';
+import { withErrorHandler } from './_utils/errorHandler';
+import { withAuth } from './_utils/auth';
 import { v4 as uuidv4 } from 'uuid';
 
 function generateAvatarUrl(name: string): string {
@@ -62,7 +62,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           return res.status(404).json({ error: 'User not found' });
         }
 
-        const { mapUserFromDb } = await import('./_utils/mappers.js');
+const { mapUserFromDb } = await import('./_utils/mappers');
         return res.status(200).json(mapUserFromDb(profile));
       } else {
         // Fetch all users from Supabase - specify columns explicitly
@@ -76,7 +76,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         }
         
         console.log(`[API] GET /users - found ${profiles?.length || 0} profiles`);
-        const { mapUserFromDb } = await import('./_utils/mappers.js');
+        const { mapUserFromDb } = await import('./_utils/mappers');
         return res.status(200).json((profiles || []).map(mapUserFromDb));
       }
     } catch (error: any) {
@@ -121,7 +121,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(500).json({ error: 'Failed to create user', details: error.message });
       }
       
-      const { mapUserFromDb } = await import('./_utils/mappers.js');
+const { mapUserFromDb } = await import('./_utils/mappers');
       return res.status(201).json(mapUserFromDb(profile));
     } catch (error: any) {
       console.error('[API Error] CREATE user exception:', error.message, error.stack);
@@ -165,7 +165,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(500).json({ error: 'Failed to update user', details: error.message });
       }
       
-      const { mapUserFromDb } = await import('./_utils/mappers.ts');
+const { mapUserFromDb } = await import('./_utils/mappers');
       return res.status(200).json(mapUserFromDb(updatedProfile));
 
     } catch (error: any) {

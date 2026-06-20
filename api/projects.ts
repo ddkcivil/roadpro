@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin, isSupabaseConfigured } from './_utils/supabaseClient.js';
-import { withErrorHandler } from './_utils/errorHandler.js';
-import { withAuth } from './_utils/auth.js';
-import { mapProjectDocumentToDb, mapProjectFromDb, mapProjectToDb } from './_utils/mappers.js';
+import { getSupabaseAdmin, isSupabaseConfigured } from './_utils/supabaseClient';
+import { withErrorHandler } from './_utils/errorHandler';
+import { withAuth } from './_utils/auth';
+import { mapProjectDocumentToDb, mapProjectFromDb, mapProjectToDb } from './_utils/mappers';
 import { v4 as randomUUID } from 'uuid'; // Import randomUUID for generating unique IDs
 
 // Default shared bucket for backward compatibility

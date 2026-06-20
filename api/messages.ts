@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin, isSupabaseConfigured } from './_utils/supabaseClient.js';
-import { withErrorHandler } from './_utils/errorHandler.js';
-import { withAuth } from './_utils/auth.js';
+import { getSupabaseAdmin, isSupabaseConfigured } from './_utils/supabaseClient';
+import { withErrorHandler } from './_utils/errorHandler';
+import { withAuth } from './_utils/auth';
 
 function mapMessageFromDb(dbMsg: any): any {
   if (!dbMsg) return dbMsg;

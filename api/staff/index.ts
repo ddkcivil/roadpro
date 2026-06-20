@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin, isSupabaseConfigured } from '../_utils/supabaseClient.js';
-import { withErrorHandler } from '../_utils/errorHandler.js';
-import { withAuth } from '../_utils/auth.js';
-import { mapProjectToDb } from '../_utils/mappers.js';
+import { getSupabaseAdmin, isSupabaseConfigured } from '../_utils/supabaseClient';
+import { withErrorHandler } from '../_utils/errorHandler';
+import { withAuth } from '../_utils/auth';
+import { mapProjectToDb } from '../_utils/mappers';
 
 const STAFF_PROJECT_ID = 'ce0387a7-f9d6-48e2-aacb-1347d3394f75';
 
