@@ -191,7 +191,7 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
     return (
       <div 
         style={{ ...style, position: 'absolute' }} 
-        className={cn("px-6", isFirstInGroup || isNewDay ? "pt-4" : "pt-1")}
+        className={cn("px-3", isFirstInGroup || isNewDay ? "pt-4" : "pt-1")}
         ref={rowRef}
       >
         {isNewDay && (
@@ -568,7 +568,7 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                                 itemSize={getItemSize} 
                                 className="scrollbar-hide"
                                 onScroll={onScroll}
-                                style={{ padding: '16px 0' }}
+                                style={{ padding: '4px 0' }}
                             >
                                 {MessageRow}
                             </List>
