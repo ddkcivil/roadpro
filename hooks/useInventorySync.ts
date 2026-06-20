@@ -49,7 +49,7 @@ export interface InventoryState {
   error: string | null;
 }
 
-export const useInventorySync = (isAuthenticated: boolean) => {
+export const useInventorySync = (isAuthenticated: boolean, userRole?: string) => {
   const [transactions, setTransactions] = useState<InventoryTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({ isSyncing: false });
@@ -92,6 +92,12 @@ export const useInventorySync = (isAuthenticated: boolean) => {
   const syncNow = useCallback(async () => {
     if (!isAuthenticated) {
       console.warn('[useInventorySync] Cannot sync: Not authenticated');
+      return;
+    }
+
+    if (userRole !== 'Admin') {
+      console.warn('[useInventorySync] Cannot sync: Insufficient permissions');
+      setError('Only admins can trigger inventory sync');
       return;
     }
 
