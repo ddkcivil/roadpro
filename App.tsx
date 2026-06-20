@@ -186,6 +186,11 @@ useEffect(() => {
 
   const fetchUsers = useCallback(async () => {
     if (!isAuthenticated) return;
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('roadmaster-token') : null;
+    if (!token) {
+      console.warn('[App] fetchUsers aborted: no token in localStorage yet');
+      return;
+    }
     try {
       const fetchedUsers = await apiService.getUsers();
       setUsers(fetchedUsers || []);

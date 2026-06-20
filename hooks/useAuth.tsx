@@ -11,6 +11,24 @@ import { supabase } from '../lib/supabase';
 
 const AUTH_TOKEN_KEY = 'roadmaster-token';
 const AUTH_USER_KEY = 'roadmaster-user';
+const COOKIE_TOKEN_KEY = 'roadmaster-access';
+
+// Helper: write a cookie so the server middleware (withAuth) can read it on every API request
+const setTokenCookie = (token: string) => {
+  try {
+    document.cookie = `${COOKIE_TOKEN_KEY}=${encodeURIComponent(token)}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`;
+  } catch {
+    // defensive: ignore if document is not available (e.g. SSR)
+  }
+};
+
+const clearTokenCookie = () => {
+  try {
+    document.cookie = `${COOKIE_TOKEN_KEY}=; Path=/; SameSite=Lax; Max-Age=0`;
+  } catch {
+    // noop
+  }
+};
 
 export const useAuth = () => {
   console.log('[useAuth] Hook initialized.');
@@ -71,6 +89,7 @@ export const useAuth = () => {
       setUser(null);
       setIsAuthenticated(false);
       setLoading(false);
+      clearTokenCookie();
       
       // Clear Supabase session
       supabase.auth.signOut();
@@ -83,6 +102,7 @@ export const useAuth = () => {
     if (token) {
       localStorage.setItem(AUTH_TOKEN_KEY, token);
       setToken(token);
+      setTokenCookie(token);
       
       // Synchronize Supabase client session
       await supabase.auth.setSession({

@@ -8,43 +8,19 @@ export const useMessages = (currentUser: UserWithPermissions | null, projectId: 
   const [isLoading, setIsLoading] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-const fetchMessages = useCallback(async (isInitial = false) => {
-    // STRICT GUARD: Check authentication and context before ANY fetch
-    // This is the primary gate - useEffect should not call this if not authenticated
-    
-    // Enhanced auth debugging
+  const fetchMessages = useCallback(async (isInitial = false) => {
+    if (!isAuthenticated || !projectId || !currentUser) {
+      return;
+    }
+
     const tokenCheck = localStorage.getItem('roadmaster-token');
-    console.log('[useMessages] Auth state check:', {
-      isAuthenticated,
-      projectId,
-      hasCurrentUser: !!currentUser,
-      userId: currentUser?.id,
-      hasToken: !!tokenCheck,
-      tokenLength: tokenCheck?.length || 0,
-      timestamp: new Date().toISOString()
-    });
-    
-if (!isAuthenticated) {
-      console.warn('[useMessages] ⚠ fetchMessages aborted: Not authenticated');
-      return;
-    }
-    // Only skip with verbose logging for debugging purposes
-    // The actual fetch should proceed once we have a valid projectId
-    if (!projectId) {
-      // Silently skip - no valid project selected yet, this is expected during initial load
-      return;
-    }
-    // Note: Removed the 'general' check as 'general' is a valid receiverId for messages, not a projectId
-    if (!currentUser) {
-      console.warn('[useMessages] ⚠ fetchMessages aborted: No currentUser');
-      return;
-    }
-
     if (!tokenCheck) {
-      console.error('[useMessages] ⚠⚠ CRITICAL: isAuthenticated=true but NO token in localStorage!');
+      console.error('[useMessages] ⚠ No token in localStorage — aborting fetch despite isAuthenticated=true. Auth state may still be initializing.');
+      if (isInitial) setIsLoading(false);
+      return;
     }
 
-    console.log('[useMessages] ✓ fetchMessages proceeding (authenticated):', { projectId, currentUser: currentUser.id, isAuthenticated });
+    console.log('[useMessages] ✓ fetchMessages proceeding:', { projectId, currentUser: currentUser.id });
     try {
       if (isInitial) setIsLoading(true);
 
