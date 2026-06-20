@@ -3,7 +3,7 @@ import { Project, Material, PurchaseOrder } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 import { Badge } from '~/components/ui/badge';
-import { Package, FileText, ShoppingCart, BarChart3, Plus } from 'lucide-react';
+import { Package, FileText, ShoppingCart, BarChart3, Plus, AlertTriangle, History } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Button } from '~/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
@@ -46,10 +46,11 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
 
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isPOOpen, setIsPOOpen] = useState(false);
-  const [isTransactionOpen, setIsTransactionOpen] = useState(false);
+  const [isStockTransactionOpen, setIsStockTransactionOpen] = useState(false);
   const [newMaterial, setNewMaterial] = useState({ name: '', category: '', unit: '', quantity: 0 });
   const [newPO, setNewPO] = useState({ poNumber: '', vendor: '', date: new Date().toISOString().split('T')[0], totalAmount: 0 });
   const [transaction, setTransaction] = useState<{materialId: string, quantity: number, type: 'In' | 'Out'}>({ materialId: '', quantity: 0, type: 'In' });
+  const [stockHistory, setStockHistory] = useState<any[]>([]);
 
   const handleRegisterMaterial = () => {
     if (!newMaterial.name || !newMaterial.unit) {
@@ -125,8 +126,18 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
       return m;
     });
 
+    const historyEntry = {
+      id: generateUniqueId(),
+      materialName: materials.find(m => m.id === transaction.materialId)?.name || '',
+      type: transaction.type,
+      quantity: transaction.quantity,
+      date: new Date().toISOString(),
+      balance: updatedMaterials.find(m => m.id === transaction.materialId)?.quantity || 0
+    };
+
     onProjectUpdate({ ...project, materials: updatedMaterials });
-    setIsTransactionOpen(false);
+    setStockHistory(prev => [historyEntry, ...prev]);
+    setIsStockTransactionOpen(false);
     toast.success(`Stock ${transaction.type} processed`);
   };
 
@@ -145,6 +156,10 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
   };
 
   // Prepare analytics data
+  const lowStockAlerts = useMemo(() => {
+    return materials.filter(m => m.quantity <= (m.reorderLevel || 10));
+  }, [materials]);
+
   const chartData = useMemo(() => {
     return materials.map(m => ({
       name: m.name,
@@ -182,7 +197,7 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
       </div>
 
       <Tabs defaultValue="inventory">
-        <TabsList className="mb-8 h-12 bg-muted/50 p-1 rounded-2xl w-fit">
+        <TabsList className="mb-8 h-12 bg-muted/50 p-1 rounded-2xl w-fit flex-wrap">
           <TabsTrigger value="inventory" className="rounded-xl font-black uppercase tracking-widest text-[10px] px-6">
             <Package className="mr-2 h-4 w-4" /> Inventory
           </TabsTrigger>
@@ -191,6 +206,12 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
           </TabsTrigger>
           <TabsTrigger value="analytics" className="rounded-xl font-black uppercase tracking-widest text-[10px] px-6">
             <BarChart3 className="mr-2 h-4 w-4" /> Analytics
+          </TabsTrigger>
+          <TabsTrigger value="alerts" className="rounded-xl font-black uppercase tracking-widest text-[10px] px-6">
+            <AlertTriangle className="mr-2 h-4 w-4" /> Alerts
+          </TabsTrigger>
+          <TabsTrigger value="history" className="rounded-xl font-black uppercase tracking-widest text-[10px] px-6">
+            <History className="mr-2 h-4 w-4" /> History
           </TabsTrigger>
         </TabsList>
 
@@ -243,6 +264,55 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              <Dialog open={isStockTransactionOpen} onOpenChange={setIsStockTransactionOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="rounded-xl font-black uppercase tracking-widest text-[10px]">
+                    <Plus className="mr-2 h-4 w-4" /> Stock In/Out
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="rounded-3xl">
+                  <DialogHeader>
+                    <DialogTitle>Stock Transaction</DialogTitle>
+                    <DialogDescription>Record a stock movement (IN or OUT).</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label>Material</Label>
+                      <Select value={transaction.materialId} onValueChange={value => setTransaction({...transaction, materialId: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a material" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {materials.map(m => (
+                            <SelectItem key={m.id} value={m.id}>{m.name} (Current: {m.quantity} {m.unit})</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label>Type</Label>
+                        <Select value={transaction.type} onValueChange={value => setTransaction({...transaction, type: value as 'In' | 'Out'})}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="In">Stock IN</SelectItem>
+                            <SelectItem value="Out">Stock OUT</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Quantity</Label>
+                        <Input type="number" value={transaction.quantity} onChange={e => setTransaction({...transaction, quantity: Number(e.target.value)})} placeholder="0" />
+                      </div>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={handleStockTransaction} className="rounded-xl">Process Transaction</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
@@ -271,6 +341,94 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
                       <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
                         <Package className="mx-auto mb-2 opacity-50" size={32} />
                         No materials registered in the inventory.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="alerts">
+          <Card className="rounded-3xl border-none shadow-xl glass">
+            <CardHeader>
+              <CardTitle className="text-sm font-black uppercase tracking-widest opacity-70">Low Stock Alerts</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/30">
+                    <TableHead>Material</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead className="text-right">Current Qty</TableHead>
+                    <TableHead className="text-right">Reorder Level</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {lowStockAlerts.length > 0 ? (
+                    lowStockAlerts.map((material) => (
+                      <TableRow key={material.id} className="hover:bg-muted/20">
+                        <TableCell className="font-bold">{material.name}</TableCell>
+                        <TableCell>{material.category || 'N/A'}</TableCell>
+                        <TableCell className="text-right font-mono font-bold">
+                          {material.quantity} <span className="text-muted-foreground">{material.unit}</span>
+                        </TableCell>
+                        <TableCell className="text-right font-mono">{material.reorderLevel || 10}</TableCell>
+                        <TableCell>{getStatusBadge(material.status)}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                        <AlertTriangle className="mx-auto mb-2 opacity-50" size={32} />
+                        No low stock alerts. All materials are above reorder levels.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history">
+          <Card className="rounded-3xl border-none shadow-xl glass">
+            <CardHeader>
+              <CardTitle className="text-sm font-black uppercase tracking-widest opacity-70">Stock Transaction History</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/30">
+                    <TableHead>Date</TableHead>
+                    <TableHead>Material</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead className="text-right">Qty</TableHead>
+                    <TableHead className="text-right">Balance</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stockHistory.length > 0 ? (
+                    stockHistory.map((entry) => (
+                      <TableRow key={entry.id} className="hover:bg-muted/20">
+                        <TableCell className="font-mono text-xs">{new Date(entry.date).toLocaleString()}</TableCell>
+                        <TableCell className="font-bold">{entry.materialName}</TableCell>
+                        <TableCell>
+                          <Badge variant={entry.type === 'In' ? 'default' : 'destructive'} className={entry.type === 'In' ? 'bg-emerald-500' : ''}>
+                            {entry.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-bold">{entry.quantity}</TableCell>
+                        <TableCell className="text-right font-mono font-bold">{entry.balance}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                        <History className="mx-auto mb-2 opacity-50" size={32} />
+                        No stock transactions recorded yet. Use Stock In/Out to begin tracking.
                       </TableCell>
                     </TableRow>
                   )}

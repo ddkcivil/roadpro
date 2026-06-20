@@ -1,53 +1,25 @@
-# Materials Management Module Enhancement Plan
+# Material Management Enhancement TODO
 
-## Task: Enhance Materials Management Module
+## Progress Tracker
 
-## Required Files to Edit:
-1. `components/modules/MaterialManagementModule.tsx` - Main module implementation
+- [x] 1. Rename navigation label from "Materials & Resources" to "Material Inventory" in config/navigation.ts
+- [x] 2. Enhance MaterialManagementModule.tsx:
+  - [x] 2a. Fix/enhance Inventory tab with working stock movement features (IN/OUT transactions)
+  - [x] 2b. Add Alerts tab for low stock warnings
+  - [x] 2c. Add History tab for stock transaction logs
+  - [x] 2d. Stock In/Out button and dialog in Inventory tab
+- [x] 3. Test the changes
 
-## Implementation Steps:
+## Implementation Notes
 
-### Step 1: Create Material Registry with CRUD operations
-- Add material inventory list with name, category, unit, quantity
-- Include reorder level tracking with visual alerts for low stock
-- Add edit/delete functionality with proper permissions
+### 1. Navigation Change
+- File: `config/navigation.ts`
+- Already labeled "Material Inventory" ✓
 
-### Step 2: Add Stock Dashboard
-- Total materials count
-- Low stock alerts count
-- Total inventory value
-- Out of stock count
-
-### Step 3: Implement Transaction Log (IN/OUT)
-- Track material receipts (IN)
-- Track material issues/consumption (OUT)
-- Show transaction history with date, quantity, type
-
-### Step 4: Supplier/Rate Management
-- Link materials to suppliers
-- Store rate history
-- Show current supplier rates
-
-### Step 5: Excel Import Functionality
-- Import materials from Excel files
-- Support common column formats
-- Follow BOQModule import pattern
-
-### Step 6: Search and Filter
-- Filter by category
-- Filter by status (Available, Low Stock, Out of Stock)
-- Filter by location
-- Search by name
-
-### Step 7: Add UI Components
-- StatCard components for dashboard
-- Table for material list
-- Dialogs for add/edit forms
-- Tabs for organized content
-
-## Follow-up Steps:
-- Test module functionality
-- Verify permissions work correctly
-- Ensure Excel import works with sample data
-
-## Status: IN PROGRESS
+### 2. MaterialManagementModule Enhancements
+- File: `components/modules/MaterialManagementModule.tsx`
+- Added new Tabs: "Alerts" and "History"
+- Added Stock In/Out dialog accessible from Inventory tab
+- Stock transactions now update material quantities and record history entries
+- Low stock alert logic based on reorderLevel
+- Transaction history tracking with date, type, quantity, and balance

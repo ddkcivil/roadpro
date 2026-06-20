@@ -622,7 +622,7 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                              </TooltipTrigger>
                              <TooltipContent>Attach Media/File</TooltipContent>
                          </Tooltip>
-                         <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} />
+                         <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} aria-label="Attach media or file" />
                          
                          <Tooltip>
                              <TooltipTrigger asChild>

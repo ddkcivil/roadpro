@@ -89,9 +89,9 @@ export const getNavigationGroups = (currentUser: User | UserWithPermissions): Na
         { id: 'reports-analytics', label: 'Reports & Analytics', icon: BarChart3 },
         { id: 'mpr-report', label: 'Monthly Reports', icon: FileText }
     ]},
-    { title: 'Quality & Engineering', items: [
+{ title: 'Quality & Engineering', items: [
         { id: 'rfis', label: 'Inspections', icon: ClipboardCheck },
-        { id: 'materials-hub', label: 'Materials & Resources', icon: Package },
+        { id: 'materials-hub', label: 'Material Inventory', icon: Package },
         { id: 'assets', label: 'Assets & Equipment', icon: PackageSearch },
         { id: 'resource-matrix', label: 'Resource Matrix', icon: Layers },
         { id: 'fleet', label: 'Telemetry', icon: Truck },
