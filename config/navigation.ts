@@ -91,7 +91,8 @@ export const getNavigationGroups = (currentUser: User | UserWithPermissions): Na
     ]},
 { title: 'Quality & Engineering', items: [
         { id: 'rfis', label: 'Inspections', icon: ClipboardCheck },
-        { id: 'materials-hub', label: 'Material Inventory', icon: Package },
+        { id: 'materials-hub', label: 'Project Materials', icon: Package },
+        { id: 'inventory-sync', label: 'Inventory Sync', icon: Package },
         { id: 'assets', label: 'Assets & Equipment', icon: PackageSearch },
         { id: 'resource-matrix', label: 'Resource Matrix', icon: Layers },
         { id: 'fleet', label: 'Telemetry', icon: Truck },

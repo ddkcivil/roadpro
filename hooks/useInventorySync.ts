@@ -76,11 +76,12 @@ export const useInventorySync = (isAuthenticated: boolean, userRole?: string) =>
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch inventory transactions');
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody?.error || `Failed to fetch inventory transactions (${response.status})`);
       }
 
       const data = await response.json();
-      setTransactions(data || []);
+      setTransactions(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err: any) {
       console.error('[useInventorySync] Fetch error:', err);
@@ -161,8 +162,8 @@ export const useInventorySync = (isAuthenticated: boolean, userRole?: string) =>
     const initialize = async () => {
       setIsLoading(true);
       await fetchTransactions();
-      // Optionally auto-sync on mount — comment out if you want manual sync only
-      // await syncNow();
+      // Only hide loading if we successfully fetched something OR there is an explicit error
+      // This prevents the blank-screen flash where loading disappears before data arrives
       setIsLoading(false);
     };
     initialize();
@@ -180,10 +181,17 @@ export const useInventorySync = (isAuthenticated: boolean, userRole?: string) =>
     };
   }, [isAuthenticated, fetchTransactions]);
 
-  // Compute derived state
+// Compute derived state
   const stockLevels = computeStockLevels(transactions);
-  const stockSummary = computeStockSummary(transactions);
-  const lowStockMaterials = getLowStockMaterials(transactions, 0);
+  const stockSummary = computeStockSummary(transactions) || {
+    totalCategories: 0,
+    totalMaterials: 0,
+    totalStockIn: 0,
+    totalStockOut: 0,
+    totalCurrentStock: 0,
+    materials: []
+  };
+  const lowStockMaterials = getLowStockMaterials(transactions, 0) || [];
 
   return {
     transactions,

@@ -31,6 +31,7 @@ export interface StockLevel {
 }
 
 export interface StockSummary {
+  totalCategories: number;
   totalMaterials: number;
   totalStockIn: number;
   totalStockOut: number;
@@ -91,6 +92,7 @@ export function computeStockLevels(transactions: Transaction[]): StockLevel[] {
 export function computeStockSummary(transactions: Transaction[]): StockSummary {
   if (!transactions || transactions.length === 0) {
     return {
+      totalCategories: 0,
       totalMaterials: 0,
       totalStockIn: 0,
       totalStockOut: 0,
@@ -104,7 +106,12 @@ export function computeStockSummary(transactions: Transaction[]): StockSummary {
   const totalStockIn = materials.reduce((sum, m) => sum + m.totalReceived, 0);
   const totalStockOut = materials.reduce((sum, m) => sum + m.totalConsumed, 0);
 
+  // Count unique categories
+  const categories = new Set(materials.map(m => m.category).filter(c => c));
+  const totalCategories = categories.size;
+
   return {
+    totalCategories,
     totalMaterials: materials.length,
     totalStockIn,
     totalStockOut,
