@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withErrorHandler } from './_utils/errorHandler';
-import { getAIResponse, AIProvider } from '../services/ai/universalAIService';
+import { withErrorHandler } from './_utils/errorHandler.js';
+import { getAIResponse, AIProvider } from '../services/ai/universalAIService.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
