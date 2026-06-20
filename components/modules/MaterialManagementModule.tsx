@@ -55,6 +55,8 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
   const [isImporting, setIsImporting] = useState(false);
   const [syncMaterials, setSyncMaterials] = useState<any[]>([]);
   const [selectedMaterials, setSelectedMaterials] = useState<Set<number>>(new Set());
+  const [importPage, setImportPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
 
   // Fetch materials from inventory sync
   const fetchSyncMaterials = async () => {
@@ -237,10 +239,17 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
     }
   };
 
-  // Prepare analytics data
+// Prepare analytics data
   const lowStockAlerts = useMemo(() => {
     return materials.filter(m => m.quantity <= (m.reorderLevel || 10));
   }, [materials]);
+
+  // Pagination for import dialog
+  const totalImportPages = Math.ceil(syncMaterials.length / ITEMS_PER_PAGE);
+  const paginatedMaterials = useMemo(() => {
+    const start = (importPage - 1) * ITEMS_PER_PAGE;
+    return syncMaterials.slice(start, start + ITEMS_PER_PAGE);
+  }, [syncMaterials, importPage]);
 
   const chartData = useMemo(() => {
     return materials.map(m => ({
@@ -314,7 +323,7 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
                       <DialogTitle>Import Materials from Sync</DialogTitle>
                       <DialogDescription>Select materials to import from the synchronized inventory.</DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4 max-h-[400px] overflow-y-auto">
+<div className="grid gap-4 py-4 max-h-[400px] overflow-y-auto">
                       {syncMaterials.length === 0 ? (
                         <p className="text-center text-muted-foreground py-8">No synchronized materials found. Run inventory sync first.</p>
                       ) : (
@@ -328,7 +337,7 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {syncMaterials.map((mat: any) => (
+                            {paginatedMaterials.map((mat: any) => (
                               <TableRow key={mat.id} className="hover:bg-muted/20">
 <TableCell>
                                   <label className="flex items-center cursor-pointer">
@@ -350,6 +359,29 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
                         </Table>
                       )}
                     </div>
+                    {totalImportPages > 1 && (
+                      <div className="flex items-center justify-between py-2 border-t">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setImportPage(p => Math.max(1, p - 1))}
+                          disabled={importPage === 1}
+                        >
+                          Previous
+                        </Button>
+                        <span className="text-sm text-muted-foreground">
+                          Page {importPage} of {totalImportPages} ({syncMaterials.length} materials)
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setImportPage(p => Math.min(totalImportPages, p + 1))}
+                          disabled={importPage === totalImportPages}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    )}
                     <DialogFooter>
                       <Button onClick={handleImportMaterials} disabled={selectedMaterials.size === 0} className="rounded-xl">
                         <Check className="mr-2 h-4 w-4" /> Import Selected ({selectedMaterials.size})

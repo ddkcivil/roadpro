@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useInventorySync } from '../../hooks/useInventorySync';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
@@ -14,6 +14,8 @@ interface InventorySyncModuleProps {
 }
 
 const InventorySyncModule: React.FC<InventorySyncModuleProps> = ({ isAuthenticated, userRole }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
   const {
     transactions,
     stockLevels,
@@ -71,8 +73,15 @@ const InventorySyncModule: React.FC<InventorySyncModuleProps> = ({ isAuthenticat
     }
   };
 
-  // Low stock materials count
+// Low stock materials count
   const lowStockCount = lowStockMaterials?.length || 0;
+
+  // Pagination for transactions table
+  const totalPages = Math.ceil(transactions.length / ITEMS_PER_PAGE);
+  const paginatedTransactions = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return transactions.slice(start, start + ITEMS_PER_PAGE);
+  }, [transactions, currentPage]);
 
   return (
     <div className="p-8 animate-in fade-in duration-500">
@@ -253,8 +262,8 @@ const InventorySyncModule: React.FC<InventorySyncModuleProps> = ({ isAuthenticat
                   <TableHead>Location</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {transactions.slice(0, 100).map((tx) => (
+<TableBody>
+                {paginatedTransactions.map((tx) => (
                   <TableRow key={tx.id} className="hover:bg-muted/20">
                     <TableCell className="font-mono text-xs">{tx.id}</TableCell>
                     <TableCell className="font-mono text-xs">{formatDate(tx.created_at)}</TableCell>
@@ -278,9 +287,29 @@ const InventorySyncModule: React.FC<InventorySyncModuleProps> = ({ isAuthenticat
               </TableBody>
             </Table>
           )}
-          {transactions.length > 100 && (
-            <div className="p-4 text-center text-muted-foreground text-xs">
-              Showing first 100 of {transactions.length} records
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between p-4 border-t">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="rounded-xl font-black uppercase tracking-widest text-[10px]"
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages} ({transactions.length} records)
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="rounded-xl font-black uppercase tracking-widest text-[10px]"
+              >
+                Next
+              </Button>
             </div>
           )}
         </CardContent>
