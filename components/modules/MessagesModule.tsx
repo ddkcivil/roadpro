@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { User, Message } from '../../types';
-import { Send, MoreVertical, Hash, Check, CheckCheck, MessageCircle, Mail, Phone, Paperclip, FileText, HardHat, Loader2, X, Download, File } from 'lucide-react';
+import { Send, MoreVertical, Hash, Check, CheckCheck, MessageCircle, Mail, Phone, Paperclip, FileText, HardHat, Loader2, X, Download, File, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
 import { Button } from '~/components/ui/button';
