@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin, isSupabaseConfigured } from './_utils/supabaseClient.js';
 import { withErrorHandler } from './_utils/errorHandler.js';
 import { withAuth } from './_utils/auth.js';
+import { mapUserFromDb } from './_utils/mappers.js';
 import { v4 as uuidv4 } from 'uuid';
 
 function generateAvatarUrl(name: string): string {
@@ -58,11 +59,10 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           return res.status(404).json({ error: 'User not found', details: sbError.message });
         }
 
-        if (!profile) {
+if (!profile) {
           return res.status(404).json({ error: 'User not found' });
         }
 
-const { mapUserFromDb } = await import('./_utils/mappers');
         return res.status(200).json(mapUserFromDb(profile));
       } else {
         // Fetch all users from Supabase - specify columns explicitly
@@ -75,8 +75,7 @@ const { mapUserFromDb } = await import('./_utils/mappers');
           return res.status(500).json({ error: 'Failed to fetch users', details: error.message });
         }
         
-        console.log(`[API] GET /users - found ${profiles?.length || 0} profiles`);
-        const { mapUserFromDb } = await import('./_utils/mappers');
+console.log(`[API] GET /users - found ${profiles?.length || 0} profiles`);
         return res.status(200).json((profiles || []).map(mapUserFromDb));
       }
     } catch (error: any) {
@@ -118,10 +117,9 @@ const { mapUserFromDb } = await import('./_utils/mappers');
 
       if (error) {
         console.error('[API Error] CREATE user error:', error.message, error.code, error.details);
-        return res.status(500).json({ error: 'Failed to create user', details: error.message });
+return res.status(500).json({ error: 'Failed to create user', details: error.message });
       }
       
-const { mapUserFromDb } = await import('./_utils/mappers');
       return res.status(201).json(mapUserFromDb(profile));
     } catch (error: any) {
       console.error('[API Error] CREATE user exception:', error.message, error.stack);
@@ -165,8 +163,7 @@ const { mapUserFromDb } = await import('./_utils/mappers');
         return res.status(500).json({ error: 'Failed to update user', details: error.message });
       }
       
-const { mapUserFromDb } = await import('./_utils/mappers');
-      return res.status(200).json(mapUserFromDb(updatedProfile));
+return res.status(200).json(mapUserFromDb(updatedProfile));
 
     } catch (error: any) {
       console.error('[API Error] UPDATE user exception:', error.message, error.stack);
