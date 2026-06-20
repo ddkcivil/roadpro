@@ -3,7 +3,7 @@ import { Project, Material, PurchaseOrder } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 import { Badge } from '~/components/ui/badge';
-import { Package, FileText, ShoppingCart, BarChart3, Plus, AlertTriangle, History } from 'lucide-react';
+import { Package, FileText, ShoppingCart, BarChart3, Plus, AlertTriangle, History, Download, Loader2, Check } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Button } from '~/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
@@ -47,10 +47,92 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isPOOpen, setIsPOOpen] = useState(false);
   const [isStockTransactionOpen, setIsStockTransactionOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [newMaterial, setNewMaterial] = useState({ name: '', category: '', unit: '', quantity: 0 });
   const [newPO, setNewPO] = useState({ poNumber: '', vendor: '', date: new Date().toISOString().split('T')[0], totalAmount: 0 });
   const [transaction, setTransaction] = useState<{materialId: string, quantity: number, type: 'In' | 'Out'}>({ materialId: '', quantity: 0, type: 'In' });
   const [stockHistory, setStockHistory] = useState<any[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
+  const [syncMaterials, setSyncMaterials] = useState<any[]>([]);
+  const [selectedMaterials, setSelectedMaterials] = useState<Set<number>>(new Set());
+
+  // Fetch materials from inventory sync
+  const fetchSyncMaterials = async () => {
+    setIsImporting(true);
+    try {
+      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('roadmaster-token') : null;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const response = await fetch('/api/inventorySync', {
+        method: 'GET',
+        headers,
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch sync materials');
+      }
+      const data = await response.json();
+      // Get unique materials from transactions
+      const uniqueMaterials = new Map();
+      (data as any[]).forEach((tx) => {
+        if (tx.material_detail && !uniqueMaterials.has(tx.material_detail)) {
+          uniqueMaterials.set(tx.material_detail, {
+            id: tx.id,
+            name: tx.material_detail,
+            category: tx.category || '',
+            unit: tx.unit || '',
+            quantity: tx.recieved_qty || 0,
+          });
+        }
+      });
+      setSyncMaterials(Array.from(uniqueMaterials.values()));
+    } catch (err: any) {
+      console.error('Error fetching sync materials:', err);
+      toast.error('Failed to fetch sync materials');
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  // Import selected materials to project
+  const handleImportMaterials = () => {
+    const newMaterials = [...materials];
+    let imported = 0;
+    selectedMaterials.forEach((id) => {
+      const syncMat = syncMaterials.find((m: any) => m.id === id);
+      if (syncMat && !isDuplicate(newMaterials, 'name', syncMat.name)) {
+        newMaterials.push({
+          id: generateUniqueId(),
+          name: syncMat.name,
+          category: syncMat.category,
+          unit: syncMat.unit,
+          quantity: 0,
+          location: 'Main Store',
+          lastUpdated: new Date().toISOString(),
+          availableQuantity: 0,
+          reorderLevel: 10,
+          status: 'Available',
+        });
+        imported++;
+      }
+    });
+    onProjectUpdate({ ...project, materials: newMaterials });
+    setIsImportOpen(false);
+    setSelectedMaterials(new Set());
+    toast.success(`Imported ${imported} materials`);
+  };
+
+  const toggleMaterialSelection = (id: number) => {
+    const newSelected = new Set(selectedMaterials);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedMaterials(newSelected);
+  };
 
   const handleRegisterMaterial = () => {
     if (!newMaterial.name || !newMaterial.unit) {
@@ -217,102 +299,159 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
 
         <TabsContent value="inventory">
           <Card className="rounded-3xl border-none shadow-xl glass">
-            <CardHeader className="flex flex-row justify-between items-center">
+<CardHeader className="flex flex-row justify-between items-center">
               <CardTitle className="text-sm font-black uppercase tracking-widest opacity-70">Current Stock Levels</CardTitle>
-              <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="rounded-xl font-black uppercase tracking-widest text-[10px]">
-                    <Plus className="mr-2 h-4 w-4" /> Register Material
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="rounded-3xl">
-                  <DialogHeader>
-                    <DialogTitle>Register New Material</DialogTitle>
-                    <DialogDescription>Add a new material to the project inventory.</DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label>Material Name</Label>
-                      <Input value={newMaterial.name} onChange={e => handleNameChange(e.target.value)} placeholder="e.g. Cement, Steel Bar" />
+              <div className="flex gap-2">
+                <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="rounded-xl font-black uppercase tracking-widest text-[10px]" onClick={fetchSyncMaterials}>
+                      {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                      Import from Sync
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="rounded-3xl max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Import Materials from Sync</DialogTitle>
+                      <DialogDescription>Select materials to import from the synchronized inventory.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4 max-h-[400px] overflow-y-auto">
+                      {syncMaterials.length === 0 ? (
+                        <p className="text-center text-muted-foreground py-8">No synchronized materials found. Run inventory sync first.</p>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/30">
+                              <TableHead>Select</TableHead>
+                              <TableHead>Material</TableHead>
+                              <TableHead>Category</TableHead>
+                              <TableHead>Unit</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {syncMaterials.map((mat: any) => (
+                              <TableRow key={mat.id} className="hover:bg-muted/20">
+<TableCell>
+                                  <label className="flex items-center cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedMaterials.has(mat.id)}
+                                      onChange={() => toggleMaterialSelection(mat.id)}
+                                      className="h-4 w-4"
+                                      title={`Select ${mat.name}`}
+                                    />
+                                  </label>
+                                </TableCell>
+                                <TableCell className="font-bold">{mat.name}</TableCell>
+                                <TableCell>{mat.category || 'N/A'}</TableCell>
+                                <TableCell>{mat.unit || 'N/A'}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      )}
                     </div>
-                    <div className="grid gap-2">
-                      <Label>Category</Label>
-                      <Select value={newMaterial.category} onValueChange={value => setNewMaterial({...newMaterial, category: value})}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {CATEGORIES.map(category => (
-                            <SelectItem key={category} value={category}>{category}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <DialogFooter>
+                      <Button onClick={handleImportMaterials} disabled={selectedMaterials.size === 0} className="rounded-xl">
+                        <Check className="mr-2 h-4 w-4" /> Import Selected ({selectedMaterials.size})
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="rounded-xl font-black uppercase tracking-widest text-[10px]">
+                      <Plus className="mr-2 h-4 w-4" /> Register Material
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="rounded-3xl">
+                    <DialogHeader>
+                      <DialogTitle>Register New Material</DialogTitle>
+                      <DialogDescription>Add a new material to the project inventory.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
                       <div className="grid gap-2">
-                        <Label>Quantity</Label>
-                        <Input type="number" value={newMaterial.quantity} onChange={e => setNewMaterial({...newMaterial, quantity: Number(e.target.value)})} placeholder="0" />
+                        <Label>Material Name</Label>
+                        <Input value={newMaterial.name} onChange={e => handleNameChange(e.target.value)} placeholder="e.g. Cement, Steel Bar" />
                       </div>
                       <div className="grid gap-2">
-                        <Label>Unit</Label>
-                        <Input value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} placeholder="e.g. m3" />
-                      </div>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button onClick={handleRegisterMaterial} className="rounded-xl">Save Material</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-              <Dialog open={isStockTransactionOpen} onOpenChange={setIsStockTransactionOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" variant="outline" className="rounded-xl font-black uppercase tracking-widest text-[10px]">
-                    <Plus className="mr-2 h-4 w-4" /> Stock In/Out
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="rounded-3xl">
-                  <DialogHeader>
-                    <DialogTitle>Stock Transaction</DialogTitle>
-                    <DialogDescription>Record a stock movement (IN or OUT).</DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label>Material</Label>
-                      <Select value={transaction.materialId} onValueChange={value => setTransaction({...transaction, materialId: value})}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a material" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {materials.map(m => (
-                            <SelectItem key={m.id} value={m.id}>{m.name} (Current: {m.quantity} {m.unit})</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label>Type</Label>
-                        <Select value={transaction.type} onValueChange={value => setTransaction({...transaction, type: value as 'In' | 'Out'})}>
+                        <Label>Category</Label>
+                        <Select value={newMaterial.category} onValueChange={value => setNewMaterial({...newMaterial, category: value})}>
                           <SelectTrigger>
-                            <SelectValue />
+                            <SelectValue placeholder="Select a category" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="In">Stock IN</SelectItem>
-                            <SelectItem value="Out">Stock OUT</SelectItem>
+                            {CATEGORIES.map(category => (
+                              <SelectItem key={category} value={category}>{category}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="grid gap-2">
-                        <Label>Quantity</Label>
-                        <Input type="number" value={transaction.quantity} onChange={e => setTransaction({...transaction, quantity: Number(e.target.value)})} placeholder="0" />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label>Quantity</Label>
+                          <Input type="number" value={newMaterial.quantity} onChange={e => setNewMaterial({...newMaterial, quantity: Number(e.target.value)})} placeholder="0" />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label>Unit</Label>
+                          <Input value={newMaterial.unit} onChange={e => setNewMaterial({...newMaterial, unit: e.target.value})} placeholder="e.g. m3" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <DialogFooter>
-                    <Button onClick={handleStockTransaction} className="rounded-xl">Process Transaction</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                    <DialogFooter>
+                      <Button onClick={handleRegisterMaterial} className="rounded-xl">Save Material</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                <Dialog open={isStockTransactionOpen} onOpenChange={setIsStockTransactionOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="rounded-xl font-black uppercase tracking-widest text-[10px]">
+                      <Plus className="mr-2 h-4 w-4" /> Stock In/Out
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="rounded-3xl">
+                    <DialogHeader>
+                      <DialogTitle>Stock Transaction</DialogTitle>
+                      <DialogDescription>Record a stock movement (IN or OUT).</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label>Material</Label>
+                        <Select value={transaction.materialId} onValueChange={value => setTransaction({...transaction, materialId: value})}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a material" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {materials.map(m => (
+                              <SelectItem key={m.id} value={m.id}>{m.name} (Current: {m.quantity} {m.unit})</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label>Type</Label>
+                          <Select value={transaction.type} onValueChange={value => setTransaction({...transaction, type: value as 'In' | 'Out'})}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="In">Stock IN</SelectItem>
+                              <SelectItem value="Out">Stock OUT</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid gap-2">
+                          <Label>Quantity</Label>
+                          <Input type="number" value={transaction.quantity} onChange={e => setTransaction({...transaction, quantity: Number(e.target.value)})} placeholder="0" />
+                        </div>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handleStockTransaction} className="rounded-xl">Process Transaction</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
