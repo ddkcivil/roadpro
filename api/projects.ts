@@ -87,10 +87,11 @@ if (req.method === 'GET') {
       const limit = parseInt(req.query.limit as string) || 50;
 
       if (id) {
-        // Fetch a single project by ID - use maybeSingle to avoid throwing on no results
+// Fetch a single project by ID - use maybeSingle to avoid throwing on no results
+        // Use select('*') to get ALL columns including JSONB fields (boq, agencies, etc.)
         const { data: project, error } = await supabaseAdmin
           .from('projects')
-          .select('id, name, client, contract_no, location, status, budget, start_date, end_date, description, contractor, owner_id, metadata, created_at, updated_at')
+          .select('*')
           .eq('id', (id as string).trim())
           .maybeSingle();
 
