@@ -79,9 +79,11 @@ export function mapProjectFromDb(dbProj: any): any {
   mapped.schedule = dbProj.schedule || [];
   mapped.structures = dbProj.structures || [];
   mapped.agencies = dbProj.agencies || [];
-  mapped.agencyPayments = dbProj.agency_payments || dbProj.agencyPayments || [];
+mapped.agencyPayments = dbProj.agency_payments || dbProj.agencyPayments || [];
   mapped.agencyMaterials = dbProj.agency_materials || dbProj.agencyMaterials || [];
   mapped.agencyBills = dbProj.agency_bills || dbProj.agencyBills || [];
+  // Subcontractor payments (legacy - separate from agency payments)
+  mapped.subcontractorPayments = dbProj.subcontractor_payments || dbProj.subcontractorPayments || [];
   mapped.materials = dbProj.materials || [];
   mapped.linearWorks = dbProj.linear_works || dbProj.linearWorks || [];
   mapped.inventory = dbProj.inventory || [];
@@ -118,10 +120,13 @@ mapped.mapOverlays = dbProj.map_overlays || dbProj.mapOverlays || [];
   mapped.structureTemplates = dbProj.structuretemplates || dbProj.structure_templates || dbProj.structureTemplates || [];
 mapped.auditLogs = dbProj.auditlogs || dbProj.audit_logs || dbProj.auditLogs || [];
 
-  // Map Resource & Material Matrix data
+// Map Resource & Material Matrix data
   mapped.resources = dbProj.resources || dbProj.resources || [];
   mapped.resourceAllocations = dbProj.resource_allocations || dbProj.resourceAllocations || [];
   mapped.milestones = dbProj.milestones || dbProj.milestones || [];
+  
+  // Map personnel (staff management - used by staff API)
+  mapped.personnel = dbProj.personnel || {};
 
   // Map joined documents and photos if they exist
   mapped.documents = (dbProj.project_documents || dbProj.documents || []).map((d: any) => ({
@@ -234,7 +239,9 @@ export function mapProjectToDb(proj: any): any {
     'vehicle_logs', 'daily_reports', 'pre_construction', 
     'land_parcels', 'map_overlays', 'kml_data', 'ncrs', 'contract_bills',
     'staff_locations', 'environment_registry',
-    'resources', 'resource_allocations', 'milestones'
+    'resources', 'resource_allocations', 'milestones',
+    'subcontractor_payments', // Added: Legacy subcontractor payments
+    'personnel' // Added: Staff management
   ];
   
   jsonbFields.forEach(field => {
