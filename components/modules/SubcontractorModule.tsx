@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Project, Agency, Subcontractor, SubcontractorPayment, SubcontractorRateEntry, AppSettings, UserRole } from '../../types';
+import React, { useState, useMemo } from 'react';
+import { Project, Agency, Subcontractor, SubcontractorPayment, SubcontractorRateEntry, AppSettings, UserRole, StructureAsset, StructureComponent } from '../../types';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Avatar } from '~/components/ui/avatar';
@@ -71,16 +71,35 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, settin
     description: ''
   });
 
-  const [rateForm, setRateForm] = useState<Partial<SubcontractorRateEntry>>({
+const [rateForm, setRateForm] = useState<Partial<SubcontractorRateEntry>>({
     boqItemId: '',
+    structureComponentId: '',
     rate: 0,
     effectiveDate: new Date().toISOString().split('T')[0],
     status: 'Active',
     description: ''
   });
 
-  const selectedSubcontractor = subcontractors.find(s => s.id === selectedSubId);
+const selectedSubcontractor = subcontractors.find(s => s.id === selectedSubId);
   const selectedSubcontractorRates = selectedSubcontractor?.rates || [];
+  
+  // Get all structure components from project structures
+  const allStructureComponents = useMemo(() => {
+    const components: { component: StructureComponent; structureName: string; structureType: string }[] = [];
+    (project.structures || []).forEach((structure: StructureAsset) => {
+      (structure.components || []).forEach((comp: StructureComponent) => {
+        components.push({
+          component: comp,
+          structureName: structure.name,
+          structureType: structure.type
+        });
+      });
+    });
+    return components;
+  }, [project.structures]);
+  
+  // State for selecting rate type (BOQ vs Structure Component)
+  const [rateType, setRateType] = useState<'boq' | 'structure'>('boq');
 
   // Replaced showSnackbar with toast from sonner
   const showToast = (message: string) => {
@@ -323,14 +342,20 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, settin
     });
   };
 
-  const handleSaveRate = () => {
+const handleSaveRate = () => {
     if (!selectedSubId) {
       showToast('Please select a subcontractor first');
       return;
     }
 
-    if (!rateForm.boqItemId) {
+    // Validate based on rate type
+    if (rateType === 'boq' && !rateForm.boqItemId) {
       showToast('Please select a BOQ item');
+      return;
+    }
+
+    if (rateType === 'structure' && !rateForm.structureComponentId) {
+      showToast('Please select a structure component');
       return;
     }
 
@@ -339,21 +364,32 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, settin
       return;
     }
 
+    // Get the display name for the item
+    let itemDescription = '';
+    if (rateType === 'boq') {
+      const boqItem = project.boq.find(b => b.id === rateForm.boqItemId);
+      itemDescription = boqItem ? `${boqItem.itemNo}: ${boqItem.description}` : '';
+    } else {
+      const sc = allStructureComponents.find(s => s.component.id === rateForm.structureComponentId);
+      itemDescription = sc ? `${sc.structureName} (${sc.structureType}) - ${sc.component.name}` : '';
+    }
+
     const newRate: SubcontractorRateEntry = {
       id: `rate-${Date.now()}`,
       subcontractorId: selectedSubId,
-      boqItemId: rateForm.boqItemId,
+      boqItemId: rateType === 'boq' ? rateForm.boqItemId : undefined,
+      structureComponentId: rateType === 'structure' ? rateForm.structureComponentId : undefined,
       rate: Number(rateForm.rate),
       effectiveDate: rateForm.effectiveDate || new Date().toISOString().split('T')[0],
       status: rateForm.status || 'Active',
-      description: rateForm.description || ''
+      description: rateForm.description || itemDescription
     };
 
     const updatedAgencies = project.agencies?.map(a => {
       if (a.id === selectedSubId) {
         return {
           ...a,
-          rates: [...(a.rates || []), newRate as any] // Cast to any because Agency uses AgencyRateEntry which is similar
+          rates: [...(a.rates || []), newRate as any]
         };
       }
       return a;
@@ -367,6 +403,7 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, settin
     setIsRatesModalOpen(false);
     setRateForm({
       boqItemId: '',
+      structureComponentId: '',
       rate: 0,
       effectiveDate: new Date().toISOString().split('T')[0],
       status: 'Active',
@@ -1014,7 +1051,7 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, settin
         </DialogContent>
       </Dialog>
 
-      {/* Add Rate Modal */}
+{/* Add Rate Modal */}
       <Dialog open={isRatesModalOpen} onOpenChange={() => setIsRatesModalOpen(false)}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogDescription className="sr-only">Manage item rates for subcontractors</DialogDescription>
@@ -1025,22 +1062,74 @@ const SubcontractorModule: React.FC<Props> = ({ project, onProjectUpdate, settin
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="flex flex-col gap-3 mt-1">
-              <Label htmlFor="boq-item">Select BOQ Item</Label>
-              <Select 
-                value={rateForm.boqItemId} 
-                onValueChange={value => setRateForm({...rateForm, boqItemId: value})}
-              >
-                <SelectTrigger id="boq-item">
-                  <SelectValue placeholder="Select item from BOQ" />
-                </SelectTrigger>
-                <SelectContent>
-                  {project.boq.map(item => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.itemNo}: {item.description}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Rate Type Toggle */}
+              <div className="flex gap-2 mb-2">
+                <Button
+                  variant={rateType === 'boq' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    setRateType('boq');
+                    setRateForm({ ...rateForm, boqItemId: '', structureComponentId: undefined });
+                  }}
+                  className="flex-1"
+                >
+                  BOQ Item
+                </Button>
+                <Button
+                  variant={rateType === 'structure' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    setRateType('structure');
+                    setRateForm({ ...rateForm, boqItemId: '', structureComponentId: undefined });
+                  }}
+                  className="flex-1"
+                >
+                  Structure Component
+                </Button>
+              </div>
+              
+              {rateType === 'boq' ? (
+                <>
+                  <Label htmlFor="boq-item">Select BOQ Item</Label>
+                  <Select 
+                    value={rateForm.boqItemId || ''} 
+                    onValueChange={value => setRateForm({...rateForm, boqItemId: value})}
+                  >
+                    <SelectTrigger id="boq-item">
+                      <SelectValue placeholder="Select item from BOQ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {project.boq.map(item => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {item.itemNo}: {item.description}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              ) : (
+                <>
+                  <Label htmlFor="structure-component">Select Structure Component</Label>
+                  <Select 
+                    value={rateForm.structureComponentId || ''} 
+                    onValueChange={value => setRateForm({...rateForm, structureComponentId: value})}
+                  >
+                    <SelectTrigger id="structure-component">
+                      <SelectValue placeholder="Select structure component" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allStructureComponents.map((sc) => (
+                        <SelectItem key={sc.component.id} value={sc.component.id}>
+                          {sc.structureName} ({sc.structureType}) - {sc.component.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {allStructureComponents.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No structure components found. Add structures first.</p>
+                  )}
+                </>
+              )}
 
               <Label htmlFor="rate-value">Agreed Rate</Label>
               <div className="relative">
