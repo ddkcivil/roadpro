@@ -15,19 +15,19 @@ export enum BillStatus {
 // BoqItem type alias for backward compatibility
 export type BoqItem = BOQItem;
 
-// BOQ Categories - predefined categories for Bill of Quantity items
+// Predefined BOQ Categories
 export const BOQ_CATEGORIES = [
-  'Provisional Sum',
-  'General Items',
-  'Site Clearance',
-  'Earthwork',
-  'Structure Work',
-  'Cross and Side Drainage Works',
-  'Road Works',
-  'Footpath',
-  'Road Furnitures',
-  'Junction Improvement',
-  'Day Works'
+  "Provisional Sum",
+  "General Items",
+  "Site Clearance",
+  "Earthwork",
+  "Structure Work",
+  "Cross and Side Drainage Works",
+  "Road Works",
+  "Footpath",
+  "Road Furnitures",
+  "Junction Improvement",
+  "Day Works"
 ] as const;
 
 export type BOQCategory = typeof BOQ_CATEGORIES[number];

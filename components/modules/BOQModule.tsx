@@ -523,7 +523,7 @@ const amount = quantity * rate;
                 </div>
             </div>
 
-            <div className={cn("grid gap-4 mb-4", compactView ? "grid-cols-2" : "grid-cols-1 md:grid-cols-3")}>
+<div className={cn("grid gap-4 mb-4", compactView ? "grid-cols-2" : "grid-cols-1 md:grid-cols-3")}>
                 <StatCard 
                     title="Contract Value" 
                     value={`${currencySymbol}${(financialSummary.contractValueWithVAT || 0).toLocaleString()}`} 
@@ -536,6 +536,46 @@ const amount = quantity * rate;
                     <StatCard title="Overall Progress" value={`${(financialSummary.percent || 0).toFixed(2)}%`} icon={BarChart4} color="violet" />
                 )}
             </div>
+
+            {/* Category Progress Summary */}
+            {!compactView && (
+                <div className="mb-4">
+                    <h3 className="text-lg font-bold mb-2">Progress by Category</h3>
+                    <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                        {Object.entries(
+                            project.boq.reduce((acc, item) => {
+                                const cat = item.category || 'General Items';
+                                if (!acc[cat]) {
+                                    acc[cat] = { contractValue: 0, completedValue: 0 };
+                                }
+                                acc[cat].contractValue += item.amount || 0;
+                                acc[cat].completedValue += (item.completedQuantity || 0) * item.rate;
+                                return acc;
+                            }, {} as Record<string, { contractValue: number; completedValue: number }>)
+                        ).map(([category, values]) => {
+                            const progress = values.contractValue > 0 ? (values.completedValue / values.contractValue) * 100 : 0;
+                            return (
+                                <Card key={category} className="p-3">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="font-medium text-sm">{category}</span>
+                                        <span className="text-xs text-muted-foreground">{progress.toFixed(1)}%</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                                        <div 
+                                            className="bg-primary h-2 rounded-full transition-all" 
+                                            style={{ width: `${Math.min(progress, 100)}%` }}
+                                        />
+                                    </div>
+                                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                                        <span>Contract: {currencySymbol}{values.contractValue.toLocaleString()}</span>
+                                        <span>Done: {currencySymbol}{values.completedValue.toLocaleString()}</span>
+                                    </div>
+                                </Card>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsContent value="registry">
