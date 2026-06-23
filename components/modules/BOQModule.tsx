@@ -3,7 +3,7 @@ import {
     Plus, TrendingUp, Receipt, FileDiff, X, BarChart4, FileSpreadsheet, Upload,
     Maximize2, Minimize2, AlertTriangle, CheckCircle2, Trash2, Pencil
 } from 'lucide-react';
-import { Project, UserRole, AppSettings, BOQItem, VariationOrder, MeasurementSheet, MeasurementSheetEntry } from '../../types';
+import { Project, UserRole, AppSettings, BOQItem, VariationOrder, MeasurementSheet, MeasurementSheetEntry, BOQ_CATEGORIES, normalizeBOQCategory } from '../../types';
 import * as XLSX from 'xlsx';
 import StatCard from '../core/StatCard';
 import BOQRegistry from './BOQRegistry';
@@ -315,7 +315,9 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                     return; // Skip this row
                 }
                 
-                const amount = quantity * rate;
+const amount = quantity * rate;
+                // Normalize category to predefined list
+                const normalizedCategory = normalizeBOQCategory(category);
                     
                 importedBoqItems.push({
                     id: `boq-${Date.now()}-${index}`,
@@ -326,7 +328,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
                     rate,
                     amount,
                     location: String(location || 'N/A'),
-                    category: String(category || 'General'),
+                    category: normalizedCategory,
                     completedQuantity: 0,
                     variationQuantity: 0
                 });

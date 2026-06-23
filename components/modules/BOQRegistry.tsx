@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useTransition } from 'react';
 import { Edit, Trash2, Plus, Search, CheckCircle2 } from 'lucide-react';
-import { Project, AppSettings, UserRole, BOQItem } from '../../types';
+import { Project, AppSettings, UserRole, BOQItem, BOQ_CATEGORIES } from '../../types';
 import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
 
 import { Button } from '~/components/ui/button';
@@ -8,6 +8,7 @@ import { Card, CardContent } from '~/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import {
   Table,
   TableBody,
@@ -51,13 +52,12 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
   const [editingItem, setEditingItem] = useState<BOQItem | null>(null);
 
   const [isNewItemModalOpen, setIsNewItemModalOpen] = useState(false);
-  const [newItem, setNewItem] = useState<Partial<BOQItem>>({
+const [newItem, setNewItem] = useState<Partial<BOQItem>>({
     itemNo: '',
     description: '',
     unit: '',
     quantity: 0,
     rate: 0,
-    location: '',
     category: '',
     completedQuantity: 0,
     variationQuantity: 0,
@@ -76,12 +76,21 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
     setIsEditModalOpen(true);
   };
 
-  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (editingItem) {
       const { name, value } = e.target;
       setEditingItem(prev => ({
         ...(prev as BOQItem),
         [name]: (name === 'quantity' || name === 'rate' || name === 'completedQuantity' || name === 'variationQuantity') ? Number(value) : value,
+      }));
+    }
+  };
+
+  const handleEditCategoryChange = (value: string) => {
+    if (editingItem) {
+      setEditingItem(prev => ({
+        ...(prev as BOQItem),
+        category: value,
       }));
     }
   };
@@ -113,11 +122,18 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
     setIsNewItemModalOpen(true);
   };
 
-  const handleNewItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+const handleNewItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setNewItem(prev => ({
       ...prev,
       [name]: (name === 'quantity' || name === 'rate') ? Number(value) : value,
+    }));
+  };
+
+  const handleNewItemCategoryChange = (value: string) => {
+    setNewItem(prev => ({
+      ...prev,
+      category: value,
     }));
   };
 
@@ -346,7 +362,7 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
             <DialogDescription>Make changes to the BOQ item here.</DialogDescription>
           </DialogHeader>
           {editingItem && (
-            <div className="grid gap-4 py-4">
+<div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="itemNo" className="text-right">Item No</Label>
                 <Input id="itemNo" name="itemNo" value={editingItem.itemNo} onChange={handleEditChange} placeholder="e.g. 1.1" className="col-span-3" />
@@ -375,6 +391,19 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
                 <Label htmlFor="variationQuantity" className="text-right">Variation Qty</Label>
                 <Input id="variationQuantity" name="variationQuantity" type="number" value={editingItem.variationQuantity || 0} onChange={handleEditChange} placeholder="0" className="col-span-3" />
               </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="editCategory" className="text-right">Category</Label>
+                <Select value={editingItem.category} onValueChange={handleEditCategoryChange}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BOQ_CATEGORIES.map((cat) => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
           <DialogFooter>
@@ -391,7 +420,7 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
             <DialogTitle>Add New BOQ Item</DialogTitle>
             <DialogDescription>Enter details for the new BOQ item.</DialogDescription>
           </DialogHeader>
-            <div className="grid gap-4 py-4">
+<div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="newItemNo" className="text-right">Item No</Label>
               <Input id="newItemNo" name="itemNo" value={newItem.itemNo} onChange={handleNewItemChange} placeholder="e.g. 1.1" className="col-span-3" />
@@ -413,12 +442,17 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
               <Input id="newRate" name="rate" type="number" value={newItem.rate} onChange={handleNewItemChange} placeholder="0.00" className="col-span-3" required />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="newLocation" className="text-right">Location</Label>
-              <Input id="newLocation" name="location" value={newItem.location} onChange={handleNewItemChange} placeholder="e.g. Ch. 0+000 to 1+000" className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="newCategory" className="text-right">Category</Label>
-              <Input id="newCategory" name="category" value={newItem.category} onChange={handleNewItemChange} placeholder="e.g. Pavement" className="col-span-3" />
+              <Select value={newItem.category} onValueChange={handleNewItemCategoryChange}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BOQ_CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

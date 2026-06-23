@@ -15,6 +15,79 @@ export enum BillStatus {
 // BoqItem type alias for backward compatibility
 export type BoqItem = BOQItem;
 
+// BOQ Categories - predefined categories for Bill of Quantity items
+export const BOQ_CATEGORIES = [
+  'Provisional Sum',
+  'General Items',
+  'Site Clearance',
+  'Earthwork',
+  'Structure Work',
+  'Cross and Side Drainage Works',
+  'Road Works',
+  'Footpath',
+  'Road Furnitures',
+  'Junction Improvement',
+  'Day Works'
+] as const;
+
+export type BOQCategory = typeof BOQ_CATEGORIES[number];
+
+// Helper function to normalize category value to predefined list
+export function normalizeBOQCategory(category: string | undefined | null): BOQCategory {
+  if (!category) return 'General Items' as BOQCategory;
+  
+  const normalized = category.trim();
+  
+  // Direct match
+  if (BOQ_CATEGORIES.includes(normalized as BOQCategory)) {
+    return normalized as BOQCategory;
+  }
+  
+  // Case-insensitive match
+  const found = BOQ_CATEGORIES.find(c => c.toLowerCase() === normalized.toLowerCase());
+  if (found) return found as BOQCategory;
+  
+  // Partial match for common variations
+  const lowerNormalized = normalized.toLowerCase();
+  
+  if (lowerNormalized.includes('provisional') || lowerNormalized.includes('ps')) {
+    return 'Provisional Sum' as BOQCategory;
+  }
+  if (lowerNormalized.includes('general')) {
+    return 'General Items' as BOQCategory;
+  }
+  if (lowerNormalized.includes('clearance')) {
+    return 'Site Clearance' as BOQCategory;
+  }
+  if (lowerNormalized.includes('earthwork') || lowerNormalized.includes('earth') || lowerNormalized.includes('excavation')) {
+    return 'Earthwork' as BOQCategory;
+  }
+  if (lowerNormalized.includes('structure') || lowerNormalized.includes('concrete') || lowerNormalized.includes('bridge') || lowerNormalized.includes('culvert')) {
+    return 'Structure Work' as BOQCategory;
+  }
+  if (lowerNormalized.includes('drainage') || lowerNormalized.includes('cross') || lowerNormalized.includes('side')) {
+    return 'Cross and Side Drainage Works' as BOQCategory;
+  }
+  if (lowerNormalized.includes('road') || lowerNormalized.includes('pavement') || lowerNormalized.includes('asphalt')) {
+    return 'Road Works' as BOQCategory;
+  }
+  if (lowerNormalized.includes('footpath') || lowerNormalized.includes('pedestrian')) {
+    return 'Footpath' as BOQCategory;
+  }
+  if (lowerNormalized.includes('furniture') || lowerNormalized.includes('sign') || lowerNormalized.includes('marker')) {
+    return 'Road Furnitures' as BOQCategory;
+  }
+  if (lowerNormalized.includes('junction') || lowerNormalized.includes('intersection')) {
+    return 'Junction Improvement' as BOQCategory;
+  }
+  if (lowerNormalized.includes('day')) {
+    return 'Day Works' as BOQCategory;
+  }
+  
+  // Default fallback
+  return 'General Items' as BOQCategory;
+}
+
 export enum RFIStatus {
   OPEN = 'Open',
   APPROVED = 'Approved',
