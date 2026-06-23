@@ -255,9 +255,42 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                         <Label htmlFor="location">Chainage / GPS Location</Label>
                         <Input id="location" placeholder="e.g. 10+500 or 27.6°N, 85.3°E" value={testForm.location} onChange={e => setTestForm({...testForm, location: e.target.value})} />
                       </div>
-                      <div className="space-y-2">
+<div className="space-y-2">
                         <Label htmlFor="asset">Target Asset</Label>
-                        <Select value={testForm.assetId || 'none'} onValueChange={value => setTestForm({...testForm, assetId: value === 'none' ? '' : value})}>
+                        <Select 
+                          value={testForm.assetId || 'none'} 
+                          onValueChange={value => {
+                            const newAssetId = value === 'none' ? '' : value;
+                            // Auto-populate Chainage/GPS Location when asset is selected
+                            if (newAssetId) {
+                              const selectedStructure = (project.structures || []).find(s => s.id === newAssetId);
+                              if (selectedStructure) {
+                                const parts: string[] = [];
+                                if (selectedStructure.chainage) {
+                                  parts.push(`Ch ${selectedStructure.chainage}`);
+                                }
+                                if (selectedStructure.coordinates) {
+                                  // Parse coordinates like "27.6, 85.3" and format nicely
+                                  const coords = selectedStructure.coordinates.split(',');
+                                  if (coords.length >= 2) {
+                                    parts.push(`${coords[0].trim()}°N, ${coords[1].trim()}°E`);
+                                  } else {
+                                    parts.push(selectedStructure.coordinates);
+                                  }
+                                }
+                                if (parts.length > 0) {
+                                  setTestForm({
+                                    ...testForm, 
+                                    assetId: newAssetId,
+                                    location: parts.join(' | ')
+                                  });
+                                  return;
+                                }
+                              }
+                            }
+                            setTestForm({...testForm, assetId: newAssetId});
+                          }}
+                        >
                           <SelectTrigger id="asset">
                             <SelectValue placeholder="Target Asset" />
                           </SelectTrigger>
