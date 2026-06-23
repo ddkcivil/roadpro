@@ -1,23 +1,40 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { LocalStorageUtils } from '../utils/data/localStorageUtils';
 import { sqliteService } from '../services/database/sqliteService';
 import { DataSyncService } from '../services/database/dataSyncService';
 import { SyncService } from '../services/api/syncService';
 import { addSkipLink } from '../utils/accessibility/a11yUtils';
 
+// Performance: Abort controller for cancelling initialization
+let abortController: AbortController | null = null;
+
 export const useAppInitialization = (setLoadingStatus: (status: string) => void, setSystemReady: (ready: boolean) => void, setIsInitialLoading: (loading: boolean) => void) => {
+  // Track if already initialized to prevent duplicate work
+  const isInitializedRef = useRef(false);
+  
   useEffect(() => {
+    if (isInitializedRef.current) return;
+    isInitializedRef.current = true;
+    
     LocalStorageUtils.initializeEmptyData();
     
     const initApp = async () => {
+      // Performance: Reduced timeout - if initialization takes longer, proceed anyway
       const loadingTimeout = setTimeout(() => {
+        console.warn('[AppInit] Initialization timed out, proceeding anyway...');
+        setSystemReady(true);
         setIsInitialLoading(false);
-        console.warn('App initialization timed out, forcing load...');
-      }, 8000);
+      }, 3000); // Reduced from 8s to 3s
 
       try {
         setLoadingStatus('Initializing Local Storage...');
-        await sqliteService.initialize();
+        
+        // Performance: Initialize SQLite with error handling - don't block if it fails
+        try {
+          await sqliteService.initialize();
+        } catch (sqliteErr) {
+          console.warn('[AppInit] SQLite init failed, using localStorage fallback:', sqliteErr);
+        }
         
         setLoadingStatus('Checking Storage Quota...');
         // Check if we have storage quota available
@@ -33,27 +50,41 @@ export const useAppInitialization = (setLoadingStatus: (status: string) => void,
         setLoadingStatus('Ready for Operation');
         setSystemReady(true);
         
-        // Background sync - non-blocking
-        setTimeout(async () => {
+        // Performance: Background sync with proper error handling - don't block UI
+        // Use requestIdleCallback if available, otherwise setTimeout
+        const scheduleBackgroundSync = () => {
+          if ('requestIdleCallback' in window) {
+            (window as any).requestIdleCallback(() => {
+              performBackgroundSync();
+            }, { timeout: 5000 });
+          } else {
+            setTimeout(performBackgroundSync, 1000);
+          }
+        };
+        
+        const performBackgroundSync = async () => {
           console.log('[AppInit] Starting background data sync...');
           try {
             await DataSyncService.syncAllToSQLite();
             console.log('[AppInit] Background sync completed successfully');
           } catch (syncErr: any) {
-            if (syncErr.name === 'QuotaExceededError' || syncErr.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+            if (syncErr?.name === 'QuotaExceededError' || syncErr?.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
               console.warn('[AppInit] Background sync skipped due to quota - using existing data');
             } else {
-              console.error('[AppInit] Background sync failed:', syncErr);
+              console.warn('[AppInit] Background sync failed silently:', syncErr);
             }
           }
-        }, 100);
+        };
+        
+        scheduleBackgroundSync();
       } catch (err) {
-        console.error('Failed to initialize SQLite service:', err);
+        console.error('[AppInit] Critical failure:', err);
         setLoadingStatus('Initialization Error - Falling back to Legacy Storage');
         setSystemReady(true);
       } finally {
         clearTimeout(loadingTimeout);
-        setTimeout(() => setIsInitialLoading(false), 800);
+        // Performance: Faster loading - set false as soon as possible
+        setTimeout(() => setIsInitialLoading(false), 300);
       }
     };
     

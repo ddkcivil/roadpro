@@ -1048,7 +1048,7 @@ const newTask: ScheduleTask = {
                                 <SelectValue placeholder="Select Category" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value=""><em>No Category</em></SelectItem>
+<SelectItem value="none"><em>No Category</em></SelectItem>
                                 {BOQ_CATEGORIES.map((cat) => (
                                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                                 ))}

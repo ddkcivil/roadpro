@@ -11,6 +11,11 @@ import { sanitizationUtils } from '../utils/validation/sanitizationUtils';
 import { useAsyncPersistedReducer } from './usePersistence';
 import { generateUniqueId } from '../utils/uuidUtils';
 
+// Performance: Cache TTL for projects (5 minutes)
+const PROJECTS_CACHE_TTL = 5 * 60 * 1000;
+// Performance: Project detail refresh throttle (30 seconds)
+const PROJECT_REFRESH_THROTTLE = 30 * 1000;
+
 interface ProjectsReturn {
   projects: Project[];
   selectedProjectId: string | null;
@@ -125,8 +130,18 @@ export const useProjects = (isAuthenticated: boolean, currentUser?: User): Proje
     DataCache.set(getCacheKey('projects'), updatedProjects, { ttl: 10 * 60 * 1000 });
   }, 1000);
 
+const lastRefreshTimeRef = useRef<number>(0);
+
   const refreshCurrentProject = useCallback(async () => {
     if (!state.selectedProjectId) return;
+    
+    // Performance: Throttle refreshes to prevent too many network calls
+    const now = Date.now();
+    if (now - lastRefreshTimeRef.current < PROJECT_REFRESH_THROTTLE) {
+      console.log('[SYNC] Skipping refresh - throttled');
+      return;
+    }
+    lastRefreshTimeRef.current = now;
     
     setIsRefreshingDetail(true);
     try {

@@ -83,8 +83,44 @@ export default defineConfig(({ mode }) => {
         'd3-time-format',
       ],
     },
-    build: {
+build: {
       chunkSizeWarningLimit: 1000,
+      // Performance: Manual chunking for better caching and parallel loading
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // React core - loaded first
+            'react-vendor': ['react', 'react-dom'],
+            // Data visualization - heavy, loaded on demand
+            'charts': ['recharts', 'd3-array', 'd3-color', 'd3-scale', 'd3-shape', 'd3-time', 'd3-time-format'],
+            // Maps and GIS - heaviest, only when needed
+            'gis': ['leaflet', 'react-leaflet', '@turf/turf'],
+            // PDF handling - lazy load only when needed
+            'pdf': ['pdfjs-dist', 'react-pdf'],
+            // OCR - lazy load only when needed
+            'ocr': ['tesseract.js'],
+            // UI components - shared across modules
+            'ui': [
+              '@radix-ui/react-dialog',
+              '@radix-ui/react-dropdown-menu',
+              '@radix-ui/react-select',
+              '@radix-ui/react-tabs',
+              '@radix-ui/react-tooltip',
+              'sonner',
+              'framer-motion'
+            ],
+            // Supabase - loaded separately
+            'supabase': ['@supabase/supabase-js'],
+            // Utilities
+            'utils': ['date-fns', 'uuid', 'crypto-js', 'xlsx', 'xml2js', 'jspdf']
+          }
+        }
+      },
+// Performance: Generate sourcemaps only in dev
+      sourcemap: process.env.NODE_ENV === 'development',
+      // Performance: Use esbuild for minification (default, no extra install needed)
+      minify: 'esbuild',
+      // Skip manual terser - using esbuild instead for better compatibility
     },
     css: {
       modules: {

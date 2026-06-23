@@ -12,6 +12,8 @@ import { supabase } from '../lib/supabase';
 const AUTH_TOKEN_KEY = 'roadmaster-token';
 const AUTH_USER_KEY = 'roadmaster-user';
 const COOKIE_TOKEN_KEY = 'roadmaster-access';
+// Performance: Auth timeout in ms
+const AUTH_TIMEOUT_MS = 3000;
 
 // Helper: write a cookie so the server middleware (withAuth) can read it on every API request
 const setTokenCookie = (token: string) => {
@@ -32,7 +34,13 @@ const clearTokenCookie = () => {
 
 export const useAuth = () => {
   console.log('[useAuth] Hook initialized.');
-  const [token, setToken] = useState<string | null>(localStorage.getItem(AUTH_TOKEN_KEY));
+  const [token, setToken] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(AUTH_TOKEN_KEY);
+    } catch {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -49,32 +57,64 @@ export const useAuth = () => {
         timestamp: new Date().toISOString()
       });
 
+      // Performance: Optimistic auth restore - immediately set auth state from localStorage
+      // This makes the app feel faster by not waiting for network
       if (storedToken && storedUser) {
         try {
           const parsedUser = JSON.parse(storedUser);
+          // Optimistic: Set auth state immediately (don't wait for Supabase)
           setToken(storedToken);
           setUser(parsedUser);
           setIsAuthenticated(true);
           
-          // Only synchronize if the session is missing or different
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session || session.access_token !== storedToken) {
-            await supabase.auth.setSession({
-              access_token: storedToken,
-              refresh_token: ''
-            });
-            console.log('[useAuth] ✓ Supabase session synchronized');
-          }
-          
-          console.log('[useAuth] ✓ Auth restored for:', parsedUser?.full_name);
+          console.log('[useAuth] ✓ Auth restored (optimistic):', parsedUser?.full_name);
         } catch (e) {
-          console.error('[useAuth] ⚠ Failed to restore auth state:', e);
-          clearAuthState();
+          console.error('[useAuth] ⚠ Failed to parse stored user:', e);
         }
       } else {
         console.log('[useAuth] No stored credentials found');
       }
-      setLoading(false);
+      
+      // Non-blocking: Try to sync with Supabase in background with timeout
+      const syncWithSupabase = async () => {
+        try {
+          // Performance: Wrap Supabase call in timeout
+          const syncPromise = supabase.auth.getSession();
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Auth timeout')), AUTH_TIMEOUT_MS)
+          );
+          
+          const { data: { session } } = await Promise.race([syncPromise, timeoutPromise]) as any;
+          
+          if (!session || session?.access_token !== storedToken) {
+            try {
+              await supabase.auth.setSession({
+                access_token: storedToken,
+                refresh_token: ''
+              });
+              console.log('[useAuth] ✓ Supabase session synchronized');
+            } catch (setSessionErr) {
+              console.warn('[useAuth] ⚠ Session sync failed:', setSessionErr);
+            }
+          }
+        } catch (syncErr: any) {
+          // Non-critical: Don't block UI if Supabase sync fails
+          console.warn('[useAuth] ⚠ Supabase sync failed (non-blocking):', syncErr?.message || syncErr);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      // Fire and forget - don't await
+      syncWithSupabase();
+      
+      // Performance: Also set loading to false after timeout as fallback
+      setTimeout(() => {
+        if (loading) {
+          console.log('[useAuth] Forcing loading=false after timeout');
+          setLoading(false);
+        }
+      }, AUTH_TIMEOUT_MS + 500);
     };
 
     initializeAuth();
