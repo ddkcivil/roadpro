@@ -373,6 +373,7 @@ export interface ScheduleTask {
   dependencies: TaskDependency[];
   isCritical?: boolean;
   boqItemId?: string;
+  category?: string; // BOQ Category from predefined list
 }
 
 export interface InventoryTransaction {

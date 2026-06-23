@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Project, ScheduleTask, UserRole, TaskDependency, ResourceAllocation, Milestone, RFI, AppSettings } from '../../types';
+import { Project, ScheduleTask, UserRole, TaskDependency, ResourceAllocation, Milestone, RFI, AppSettings, BOQ_CATEGORIES } from '../../types';
 import {
     Plus, Edit2, Trash2, Search, LayoutList,
     BarChartHorizontal, Save, Calendar,
@@ -248,7 +248,7 @@ const ScheduleModule: React.FC<Props> = ({ project, settings, userRole, onProjec
       if (editingTask.id) {
           updatedSchedule = project.schedule.map(t => t.id === editingTask.id ? { ...t, ...editingTask } as ScheduleTask : t);
       } else {
-          const newTask: ScheduleTask = {
+const newTask: ScheduleTask = {
               id: `task-${Date.now()}`,
               name: editingTask.name!,
               startDate: editingTask.startDate!,
@@ -257,7 +257,8 @@ const ScheduleModule: React.FC<Props> = ({ project, settings, userRole, onProjec
               status: editingTask.status as any || 'On Track',
               dependencies: [],
               isCritical: editingTask.isCritical || false,
-              boqItemId: editingTask.boqItemId
+              boqItemId: editingTask.boqItemId,
+              category: editingTask.category
           };
           updatedSchedule = [...project.schedule, newTask];
       }
@@ -1023,7 +1024,7 @@ const ScheduleModule: React.FC<Props> = ({ project, settings, userRole, onProjec
                     </TabsList>
                 </Tabs>
                 
-                {dependencyTab === "0" && (
+{dependencyTab === "0" && (
                     <div className="flex flex-col gap-3"> {/* Stack */}
                         <Label htmlFor="task-name">Name</Label>
                         <Input id="task-name" value={editingTask.name || ''} onChange={e => setEditingTask({...editingTask, name: e.target.value})} /> {/* TextField */}
@@ -1041,6 +1042,18 @@ const ScheduleModule: React.FC<Props> = ({ project, settings, userRole, onProjec
                           <Label>Progress ({editingTask.progress || 0}%)</Label> {/* Typography */}
                           <Slider value={[editingTask.progress || 0]} onValueChange={(v) => setEditingTask({...editingTask, progress: v[0]})} max={100} step={1} /> {/* Slider */}
                         </div>
+                        <Label htmlFor="category">BOQ Category</Label> {/* InputLabel */}
+                        <Select value={editingTask.category || ''} onValueChange={value => setEditingTask({...editingTask, category: value})}> {/* FormControl, Select */}
+                            <SelectTrigger id="category">
+                                <SelectValue placeholder="Select Category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value=""><em>No Category</em></SelectItem>
+                                {BOQ_CATEGORIES.map((cat) => (
+                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                         <div className="flex items-center space-x-2"> {/* FormControlLabel */}
                           <Switch id="critical-path" checked={editingTask.isCritical || false} onCheckedChange={checked => setEditingTask({...editingTask, isCritical: checked})} />
                           <Label htmlFor="critical-path">Critical Path</Label>
