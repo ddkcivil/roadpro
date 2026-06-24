@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Project, Vehicle, VehicleLog } from '../../types';
+import { Project, Vehicle, VehicleLog, MaintenanceLog, BOQItem } from '../../types';
 
 import { Button } from '~/components/ui/button';
 import { Card } from '~/components/ui/card';
@@ -17,7 +17,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import { 
     Truck, Gauge, Droplets, Clock, Signal, Plus, 
     ShieldCheck, MapPin, History, Save, X, Navigation,
-    Fuel, Calendar, HardHat, CheckCircle2, Trash2, Edit
+    Fuel, Calendar, HardHat, CheckCircle2, Trash2, Edit,
+    Wrench, AlertTriangle, Link, BarChart3
 } from 'lucide-react';
 
 interface Props {
@@ -31,15 +32,25 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
   const [selectedId, setSelectedId] = useState<string | null>(vehicles[0]?.id || null);
   const [activeDetailTab, setActiveDetailTab] = useState<string>('0');
   
-  const [isRegModalOpen, setIsRegModalOpen] = useState(false);
+const [isRegModalOpen, setIsRegModalOpen] = useState(false);
   const [isLogTripModalOpen, setIsLogTripModalOpen] = useState(false);
   const [isEditVehicleModalOpen, setIsEditVehicleModalOpen] = useState(false);
+  const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
   
   const activeVehicle = vehicles.find(v => v.id === selectedId);
   const activeVehicleLogs = useMemo(() => 
     vehicleLogs.filter(log => log.vehicleId === selectedId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
     [vehicleLogs, selectedId]
   );
+  
+  // Maintenance form state
+  const [maintenanceForm, setMaintenanceForm] = useState<Partial<MaintenanceLog>>({
+    date: new Date().toISOString().split('T')[0],
+    type: 'Routine Service',
+    description: '',
+    cost: 0,
+    status: 'Completed'
+  });
 
   const [newVehicle, setNewVehicle] = useState<Partial<Vehicle>>({
       plateNumber: '',
@@ -204,7 +215,7 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
       }
   };
 
-  const handleOpenTripLog = () => {
+const handleOpenTripLog = () => {
     const lastLog = activeVehicleLogs[0];
     setTripForm({
         ...tripForm,
@@ -212,6 +223,72 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
         endKm: lastLog ? lastLog.endKm : 0
     });
     setIsLogTripModalOpen(true);
+  };
+
+  // Get maintenance logs for active vehicle
+  const activeMaintenanceLogs = useMemo(() => 
+    activeVehicle?.maintenanceLogs || [],
+    [activeVehicle]
+  );
+
+  const handleOpenMaintenance = () => {
+    setMaintenanceForm({
+      date: new Date().toISOString().split('T')[0],
+      type: 'Routine Service',
+      description: '',
+      cost: 0,
+      status: 'Completed'
+    });
+    setIsMaintenanceModalOpen(true);
+  };
+
+  const handleSaveMaintenance = () => {
+    if (!activeVehicle || !maintenanceForm.description?.trim()) {
+      alert('Description is required');
+      return;
+    }
+
+    const newLog: MaintenanceLog = {
+      id: `ml-${Date.now()}`,
+      vehicleId: activeVehicle.id,
+      date: maintenanceForm.date!,
+      type: maintenanceForm.type as any,
+      description: maintenanceForm.description!,
+      cost: Number(maintenanceForm.cost) || 0,
+      status: maintenanceForm.status as any,
+      technicianName: maintenanceForm.technicianName,
+      odometerReading: maintenanceForm.odometerReading,
+      partsReplaced: maintenanceForm.partsReplaced
+    };
+
+    // Update vehicle with new maintenance log
+    const updatedVehicles = vehicles.map(v => 
+      v.id === activeVehicle.id 
+        ? { 
+            ...v, 
+            maintenanceLogs: [...(v.maintenanceLogs || []), newLog],
+            status: maintenanceForm.status === 'In Progress' ? 'Maintenance' : v.status
+          } as Vehicle
+        : v
+    );
+    
+    onProjectUpdate({ ...project, vehicles: updatedVehicles });
+    setIsMaintenanceModalOpen(false);
+  };
+
+  const handleDeleteMaintenanceLog = (logId: string) => {
+    if (!activeVehicle || !window.confirm('Are you sure you want to delete this maintenance record?')) return;
+
+    const updatedVehicles = vehicles.map(v => 
+      v.id === activeVehicle.id 
+        ? { 
+            ...v, 
+            maintenanceLogs: (v.maintenanceLogs || []).filter((l: MaintenanceLog) => l.id !== logId)
+          } as Vehicle
+        : v
+    );
+    
+    onProjectUpdate({ ...project, vehicles: updatedVehicles });
   };
 
   return (
@@ -285,13 +362,16 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                 </Button>
                             </div>
                             
-                            <Tabs value={activeDetailTab} onValueChange={setActiveDetailTab} className="mb-6 border-b">
+<Tabs value={activeDetailTab} onValueChange={setActiveDetailTab} className="mb-6 border-b">
                                 <TabsList>
                                     <TabsTrigger value="0" className="flex items-center gap-2">
                                       <Gauge size={18}/> Summary
                                     </TabsTrigger>
                                     <TabsTrigger value="1" className="flex items-center gap-2">
                                       <History size={18}/> Trip History
+                                    </TabsTrigger>
+                                    <TabsTrigger value="2" className="flex items-center gap-2">
+                                      <Wrench size={18}/> Maintenance
                                     </TabsTrigger>
                                 </TabsList>
                             </Tabs>
@@ -338,7 +418,7 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                 </>
                             )}
 
-                            {activeDetailTab === '1' && (
+{activeDetailTab === '1' && (
                                 <div>
                                     <Table>
                                         <TableHeader className="bg-muted">
@@ -378,6 +458,66 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                                                 <TableRow>
                                                     <TableCell colSpan={5} className="py-10 text-center">
                                                         <p className="text-gray-400">No logs found for this asset.</p>
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            )}
+
+                            {activeDetailTab === '2' && (
+                                <div>
+                                    <div className="flex justify-between items-center mb-4">
+                                        <p className="text-sm font-bold">Maintenance History</p>
+                                        <Button variant="outline" size="sm" onClick={handleOpenMaintenance}>
+                                            <Plus size={14} className="mr-1" /> Add Maintenance
+                                        </Button>
+                                    </div>
+                                    <Table>
+                                        <TableHeader className="bg-muted">
+                                            <TableRow>
+                                                <TableHead className="font-bold">Date</TableHead>
+                                                <TableHead className="font-bold">Type</TableHead>
+                                                <TableHead className="font-bold">Description</TableHead>
+                                                <TableHead className="font-bold">Cost</TableHead>
+                                                <TableHead className="font-bold">Status</TableHead>
+                                                <TableHead className="text-right font-bold">Actions</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {activeMaintenanceLogs.map(log => (
+                                                <TableRow key={log.id}>
+                                                    <TableCell className="whitespace-nowrap text-xs">{log.date}</TableCell>
+                                                    <TableCell>
+                                                        <Badge variant="outline" className="text-[10px]">{log.type}</Badge>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <p className="text-sm font-medium">{log.description}</p>
+                                                        {log.technicianName && <p className="text-[10px] text-gray-500">Tech: {log.technicianName}</p>}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <p className="text-sm font-bold">₹{log.cost?.toLocaleString()}</p>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge className={log.status === 'Completed' ? 'bg-green-100 text-green-700' : log.status === 'In Progress' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100'}>
+                                                            {log.status}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell align="right">
+                                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteMaintenanceLog(log.id)}>
+                                                            <Trash2 size={14} />
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                            {activeMaintenanceLogs.length === 0 && (
+                                                <TableRow>
+                                                    <TableCell colSpan={6} className="py-10 text-center">
+                                                        <p className="text-gray-400">No maintenance records found.</p>
+                                                        <Button variant="outline" size="sm" className="mt-2" onClick={handleOpenMaintenance}>
+                                                            <Plus size={14} className="mr-1" /> Add First Maintenance
+                                                        </Button>
                                                     </TableCell>
                                                 </TableRow>
                                             )}
@@ -554,7 +694,7 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
             </DialogContent>
         </Dialog>
 
-        {/* Log Trip Dialog */}
+{/* Log Trip Dialog */}
         <Dialog open={isLogTripModalOpen} onOpenChange={setIsLogTripModalOpen}>
             <DialogContent className="sm:max-w-xl p-0 rounded-xl">
                 <DialogHeader className="bg-primary text-white p-4 rounded-t-xl">
@@ -647,6 +787,109 @@ const FleetModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                     </Button>
                     <Button onClick={handleSaveTrip}>
                         <CheckCircle2 size={16} className="mr-2"/> Commit Trip Record
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* Maintenance Dialog */}
+        <Dialog open={isMaintenanceModalOpen} onOpenChange={setIsMaintenanceModalOpen}>
+            <DialogContent className="sm:max-w-lg p-0 rounded-xl">
+                <DialogHeader className="bg-amber-600 text-white p-4 rounded-t-xl">
+                    <DialogTitle className="text-white flex items-center gap-2">
+                        <Wrench size={20} /> Schedule Maintenance
+                    </DialogTitle>
+                </DialogHeader>
+                <div className="p-4 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="maint-date">Date</Label>
+                            <Input 
+                                id="maint-date"
+                                type="date"
+                                value={maintenanceForm.date} 
+                                onChange={e => setMaintenanceForm({...maintenanceForm, date: e.target.value})}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="maint-type">Maintenance Type</Label>
+                            <Select 
+                                value={maintenanceForm.type} 
+                                onValueChange={value => setMaintenanceForm({...maintenanceForm, type: value as any})}
+                            >
+                                <SelectTrigger id="maint-type">
+                                    <SelectValue placeholder="Select type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Routine Service">Routine Service</SelectItem>
+                                    <SelectItem value="Repair">Repair</SelectItem>
+                                    <SelectItem value="Inspection">Inspection</SelectItem>
+                                    <SelectItem value="Breakdown">Breakdown</SelectItem>
+                                    <SelectItem value="Tyre Change">Tyre Change</SelectItem>
+                                    <SelectItem value="Oil Change">Oil Change</SelectItem>
+                                    <SelectItem value="Other">Other</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="maint-description">Description <span className="text-red-500">*</span></Label>
+                        <textarea 
+                            id="maint-description"
+                            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            value={maintenanceForm.description} 
+                            onChange={e => setMaintenanceForm({...maintenanceForm, description: e.target.value})}
+                            placeholder="Describe the maintenance work required..."
+                        />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="maint-cost">Estimated Cost</Label>
+                            <Input 
+                                id="maint-cost"
+                                type="number"
+                                value={maintenanceForm.cost} 
+                                onChange={e => setMaintenanceForm({...maintenanceForm, cost: Number(e.target.value)})}
+                                placeholder="0"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="maint-status">Status</Label>
+                            <Select 
+                                value={maintenanceForm.status} 
+                                onValueChange={value => setMaintenanceForm({...maintenanceForm, status: value as any})}
+                            >
+                                <SelectTrigger id="maint-status">
+                                    <SelectValue placeholder="Select status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Scheduled">Scheduled</SelectItem>
+                                    <SelectItem value="In Progress">In Progress</SelectItem>
+                                    <SelectItem value="Completed">Completed</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="maint-technician">Technician Name</Label>
+                        <Input 
+                            id="maint-technician"
+                            value={maintenanceForm.technicianName || ''}
+                            onChange={e => setMaintenanceForm({...maintenanceForm, technicianName: e.target.value})}
+                            placeholder="e.g. John Doe"
+                        />
+                    </div>
+                    <Alert className="flex items-center gap-2 text-amber-800 bg-amber-50 border-amber-200">
+                        <AlertTriangle size={18}/>
+                        Recording maintenance helps track vehicle health and service history.
+                    </Alert>
+                </div>
+                <DialogFooter className="bg-gray-50 px-4 py-3 sm:px-6 rounded-b-xl flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setIsMaintenanceModalOpen(false)}>
+                        <X size={16} className="mr-2" /> Cancel
+                    </Button>
+                    <Button onClick={handleSaveMaintenance}>
+                        <Save size={16} className="mr-2" /> Save Record
                     </Button>
                 </DialogFooter>
             </DialogContent>
