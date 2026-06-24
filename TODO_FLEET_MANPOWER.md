@@ -2,12 +2,15 @@
 
 ## Status: In Development
 
-### Features to Implement
+### Features Implemented
 
 #### 1. ✅ Maintenance Tracking in FleetModule
-- **Status**: ✅ COMPLETED
+- **Status**: ✅ COMPLETED (2025-01-XX)
 - **Description**: Add maintenance log CRUD to existing FleetModule
 - **Files**: components/modules/FleetModule.tsx
+- **Details**: Full CRUD with maintenance types (Routine Service, Repair, Inspection, Breakdown, Tyre Change, Oil Change), cost tracking, technician name, status tracking
+
+### Features Still Pending
 
 #### 2. 🔶 Vehicle Expiry Alerts
 - **Status**: Pending

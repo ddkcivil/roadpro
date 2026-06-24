@@ -33,11 +33,18 @@ import {
   Thermometer,
   Wind,
   Droplets,
-  MapPin
+  MapPin,
+  HardHat,
+  Building2,
+  Calendar,
+  Send,
+  Phone
 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
-import { Card, CardContent } from '~/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { Separator } from '~/components/ui/separator';
 import { Input } from '~/components/ui/input';
+import { Textarea } from '~/components/ui/textarea';
 import { Label } from '~/components/ui/label';
 import { Alert as AlertUI, AlertDescription as AlertDescriptionUI } from '~/components/ui/alert';
 import { cn } from '~/lib/utils';
@@ -258,24 +265,136 @@ try {
             </Card>
           </div>
         ) : (
-          <div className="w-full max-w-4xl flex items-center justify-between gap-8">
-            <div className="max-w-md">
-              <h2 className="text-4xl font-black mb-4">Infrastructure Made <span className="text-primary">Simple</span></h2>
-              <p className="text-slate-400 mb-6">Complete construction management in one place.</p>
-              <div className="flex gap-3">
-                <Button onClick={() => setShowLogin(true)} size="lg">Get Started</Button>
-                <Button variant="outline" onClick={onShowRegistration}>Sign Up</Button>
+          <div className="w-full max-w-7xl space-y-12">
+            {/* Hero Section with Features */}
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
+              <div className="max-w-xl space-y-6">
+                <h2 className="text-5xl md:text-6xl font-black leading-tight">
+                  Infrastructure Made <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-indigo-500">Simple</span>
+                </h2>
+                <p className="text-lg text-slate-300 leading-relaxed">
+                  Complete construction and infrastructure management platform designed to streamline project execution, enhance collaboration, and optimize resource allocation.
+                </p>
+                <div className="flex flex-wrap gap-4">
+                  <Button onClick={() => setShowLogin(true)} size="lg" className="grad-primary text-white shadow-xl shadow-primary/30 border-none">
+                    Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="lg" onClick={onShowRegistration} className="border-white/20 hover:bg-white/10 hover:border-white/40">
+                    Sign Up
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Dynamic Features Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full lg:w-auto">
+                {features.map((f, i) => (
+                  <div 
+                    key={i} 
+                    className="group p-4 bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 hover:border-white/20 rounded-2xl hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1 transition-all duration-300"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-indigo-500/20 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <f.icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <h4 className="text-sm font-bold text-white mb-1">{f.title}</h4>
+                    <p className="text-xs text-slate-400 leading-relaxed">{f.description}</p>
+                  </div>
+                ))}
               </div>
             </div>
-            
-            {/* Compact Features Grid */}
-            <div className="grid grid-cols-2 gap-3 w-1/2">
-              {features.slice(0, 6).map((f, i) => (
-                <div key={i} className="p-3 bg-slate-900/40 border border-white/5 rounded-xl hover:bg-slate-800/50 transition">
-                  <f.icon className="h-5 w-5 text-primary mb-1" />
-                  <h4 className="text-xs font-bold">{f.title}</h4>
-                </div>
-              ))}
+
+            {/* Info Cards Section */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Brand Card */}
+              <Card className="rounded-[2.5rem] glass-card border-none overflow-hidden relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <CardContent className="p-8 relative">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-16 h-16 bg-gradient-to-br from-primary to-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-primary/40">
+                      <HardHat size={32} className="text-white" />
+                    </div>
+                    <div>
+                      <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+                        RoadMaster<span className="text-primary">.Pro</span>
+                      </h1>
+                      <p className="text-xs text-muted-foreground mt-1 font-medium">Infrastructure Management System</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Comprehensive construction and infrastructure management platform designed to streamline project execution, enhance collaboration, and optimize resource allocation.
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Mission Card */}
+              <Card className="rounded-[2.5rem] glass-card border-none overflow-hidden relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <CardHeader className="py-6 px-8 border-b border-white/5 relative">
+                  <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                    Our Mission
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-8 relative">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    To revolutionize the construction industry by providing an integrated platform that connects all stakeholders, simplifies complex workflows, and delivers real-time insights.
+                  </p>
+                  <Separator className="my-4 opacity-10" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center gap-2">
+                      <Calendar size={14} className="text-primary" />
+                      <span className="text-xs font-semibold text-foreground">Real-time Scheduling</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Building2 size={14} className="text-primary" />
+                      <span className="text-xs font-semibold text-foreground">Project Mgmt</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Contact Card */}
+              <Card className="rounded-[2.5rem] glass-card border-none overflow-hidden relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <CardHeader className="py-6 px-8 border-b border-white/5 relative">
+                  <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
+                    Contact Us
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-8 relative">
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <MapPin size={12} className="text-primary" />
+                      <span className="text-foreground">Global Platform</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Mail size={12} className="text-primary" />
+                      <span className="text-foreground">info@roadmasterpro.com</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Phone size={12} className="text-primary" />
+                      <span className="text-foreground">+1 (234) 567-8900</span>
+                    </div>
+                  </div>
+                  <form onSubmit={(e) => { e.preventDefault(); alert('Thank you for your message! We will get back to you soon.'); }} className="space-y-2">
+                    <Input
+                      placeholder="Your email"
+                      className="h-8 text-xs bg-white/5 border-white/10 text-foreground placeholder:text-muted-foreground"
+                      required
+                    />
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Quick message..."
+                        className="h-8 text-xs flex-1 bg-white/5 border-white/10 text-foreground placeholder:text-muted-foreground"
+                        required
+                      />
+                      <Button type="submit" size="sm" className="h-8 px-3 bg-primary hover:bg-primary/90">
+                        <Send size={12} />
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
             </div>
           </div>
         )}
