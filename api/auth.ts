@@ -30,7 +30,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           return res.status(400).json({ error: 'Email and password are required' });
         }
 
-const supabaseConfigured = isSupabaseConfigured();
+        const supabaseConfigured = isSupabaseConfigured();
         if (!supabaseConfigured) {
           console.error('[Auth API] Supabase not configured - check SUPABASE_URL and SUPABASE_ANON_KEY');
           return res.status(503).json({ error: 'Authentication service not configured', hint: 'Set SUPABASE_URL and SUPABASE_ANON_KEY in Vercel env' });

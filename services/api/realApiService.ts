@@ -134,8 +134,9 @@ private async fetchWithRetry<T>(endpoint: string, options?: RequestInit, retries
         credentials: (options as any)?.credentials ?? 'include',
       });
 
-      if (response.status === 401) {
-        // If we get 401, the session might be genuinely invalid
+if (response.status === 401 || response.status === 500) {
+        // If we get 401 or 500, the session might be genuinely invalid
+        // 500 errors on auth endpoints indicate server-side issues that may invalidate the session
         window.dispatchEvent(new CustomEvent('roadmaster-auth-failure'));
       }
 
