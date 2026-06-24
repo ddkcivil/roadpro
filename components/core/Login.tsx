@@ -97,9 +97,14 @@ console.log(`[Login] Attempting custom auth for ${email}`);
 
         const result = await response.json();
 
-        if (!response.ok) {
+if (!response.ok) {
             console.error('[Login] Auth error:', result.error);
-            setMessage({ type: 'destructive', text: result.error || 'Invalid email or password.' });
+            // Show helpful message based on error type
+            let errorMsg = result.error || 'Invalid email or password.';
+            if (result.hint) {
+              errorMsg = `${errorMsg} (${result.hint})`;
+            }
+            setMessage({ type: 'destructive', text: errorMsg });
             return;
         }
 

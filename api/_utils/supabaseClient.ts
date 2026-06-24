@@ -6,12 +6,25 @@ let supabaseAdmin: any = null;
 
 const isPlaceholder = (val: string | undefined) => !val || val.includes('your-project') || val.includes('your-anon') || val.length < 10;
 
-export const isSupabaseConfigured = (): boolean => {
-  const url = process.env.SUPABASE_URL;
+export const getSupabaseConfigStatus = () => {
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_ANON_KEY;
   
-  if (!url || !key || isPlaceholder(url) || isPlaceholder(key)) return false;
-  return url.startsWith('http');
+  const status = {
+    hasUrl: !!url,
+    hasKey: !!key,
+    urlIsPlaceholder: isPlaceholder(url),
+    keyIsPlaceholder: isPlaceholder(key),
+    urlValid: !!(url && url.startsWith('http')),
+    keyValid: !!(key && key.length >= 10 && !isPlaceholder(key)),
+  };
+  
+  return status;
+};
+
+export const isSupabaseConfigured = (): boolean => {
+  const status = getSupabaseConfigStatus();
+  return status.hasUrl && status.hasKey && status.urlValid && status.keyValid;
 };
 
 export function getSupabasePublic() {
