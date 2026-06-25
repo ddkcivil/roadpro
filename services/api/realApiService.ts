@@ -339,21 +339,70 @@ async getProjects(page = 1, limit = 50): Promise<{ data: Project[], pagination: 
   }
 
   async getProject(id: string, forceRefresh = false): Promise<Project> {
-    return this.fetchApi<Project>(`/projects?id=${id}`, { method: 'GET' }, true, forceRefresh);
+    const result = await this.fetchApi<Project>(`/projects?id=${id}`, { method: 'GET' }, true, forceRefresh);
+    console.log('[BOQ DEBUG] getProject response:', {
+      projectId: id,
+      boqCount: Array.isArray(result?.boq) ? result.boq.length : 0,
+      boqData: result?.boq,
+      timestamp: new Date().toISOString()
+    });
+    return result;
+  }
+
+  async getProjects(page: number = 1, limit: number = 50): Promise<{ data: Project[], pagination: any }> {
+    const result = await this.fetchApi<{ data: Project[], pagination: any }>(
+      `/projects?page=${page}&limit=${limit}`,
+      { method: 'GET' },
+      true
+    );
+    console.log('[BOQ DEBUG] getProjects response:', {
+      projectsCount: result?.data?.length || 0,
+      projectsWithBoq: result?.data?.filter((p: Project) => Array.isArray(p.boq) && p.boq.length > 0).length || 0,
+      sampleBoqCounts: result?.data?.slice(0, 3).map((p: Project) => ({
+        name: p.name,
+        boqCount: Array.isArray(p.boq) ? p.boq.length : 0
+      })) || [],
+      timestamp: new Date().toISOString()
+    });
+    return result;
   }
 
   async createProject(projectData: Partial<Project>): Promise<Project> {
-    return this.fetchApi<Project>('/projects', {
-      method: 'POST',
-      body: JSON.stringify(this.sanitizeProjectForApi(projectData)),
+    const sanitized = this.sanitizeProjectForApi(projectData);
+    console.log('[BOQ DEBUG] createProject - BOQ data:', {
+      boqCount: Array.isArray(sanitized.boq) ? sanitized.boq.length : 0,
+      boqData: sanitized.boq,
+      timestamp: new Date().toISOString()
     });
+    const result = await this.fetchApi<Project>('/projects', {
+      method: 'POST',
+      body: JSON.stringify(sanitized),
+    });
+    console.log('[BOQ DEBUG] createProject response - BOQ data:', {
+      boqCount: Array.isArray(result.boq) ? result.boq.length : 0,
+      boqData: result.boq,
+    });
+    return result;
   }
 
   async updateProject(id: string, projectData: Partial<Project>): Promise<Project> {
-    return this.fetchApi<Project>(`/projects?id=${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(this.sanitizeProjectForApi(projectData)),
+    const sanitized = this.sanitizeProjectForApi(projectData);
+    console.log('[BOQ DEBUG] updateProject - BOQ data:', {
+      projectId: id,
+      boqCount: Array.isArray(sanitized.boq) ? sanitized.boq.length : 0,
+      boqData: sanitized.boq,
+      timestamp: new Date().toISOString()
     });
+    const result = await this.fetchApi<Project>(`/projects?id=${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(sanitized),
+    });
+    console.log('[BOQ DEBUG] updateProject response - BOQ data:', {
+      projectId: id,
+      boqCount: Array.isArray(result.boq) ? result.boq.length : 0,
+      boqData: result.boq,
+    });
+    return result;
   }
 
   async patchProject(id: string, patchData: Partial<Project>): Promise<Project> {
