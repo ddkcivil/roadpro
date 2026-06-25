@@ -650,7 +650,7 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
                         <TableCell>{po.vendor}</TableCell>
                         <TableCell>{po.date}</TableCell>
 <TableCell className="text-right font-mono font-bold">
-                          {formatCurrency(po.totalAmount)}
+                          {formatCurrency(po.totalAmount, currencyCode)}
                         </TableCell>
                         <TableCell>{getStatusBadge(po.status)}</TableCell>
                       </TableRow>
