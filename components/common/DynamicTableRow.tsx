@@ -1,7 +1,6 @@
 import React from 'react';
 import { TableCell, TableRow } from '~/components/ui/table';
 import { DeleteButton } from './DeleteButton';
-import { LucideIcon } from 'lucide-react';
 
 interface DynamicTableRowProps<T> {
     item: T;
@@ -40,6 +39,7 @@ export function DynamicTableRow<T extends Record<string, any>>(props: DynamicTab
                             <select
                                 value={item[col.key] || ''}
                                 onChange={(e) => onUpdate(index, col.key, e.target.value)}
+                                title={col.input.placeholder || 'Select option'}
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 <option value="">{col.input.placeholder || 'Select...'}</option>
