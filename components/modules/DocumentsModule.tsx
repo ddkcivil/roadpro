@@ -125,7 +125,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
     });
   };
 
-  const handleScanAnalysis = async () => {
+const handleScanAnalysis = async () => {
     if (uploadFiles.length === 0) {
       toast.error('No file selected for analysis.');
       return;
@@ -139,56 +139,170 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
       await ocrService.initialize();
       const ocrResult = await ocrService.extractTextFromImage(file);
 
-          // Parse extracted text for metadata (simple heuristic parsing)
-    const text = ocrResult.text.toLowerCase();
-    const subjectMatch = text.match(/subject[:\-]?\s*(.{1,100})/i);
-    const refMatch = text.match(/ref(?:erence)?[:\-]?\s*(.{1,50})/i);
-    const dateMatch = text.match(/\b(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}|\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/);
+      // Parse extracted text for metadata
+      const text = ocrResult.text;
+      const textLower = text.toLowerCase();
+      
+      console.log('[handleScanAnalysis] OCR extracted text:', text.substring(0, 500));
 
-    // Improved regex for correspondenceType to be more specific
-    const finalCorrespondenceType = text.match(/\b(incoming|in|from)\b/i) ? 'incoming' : text.match(/\b(outgoing|out|to)\b/i) ? 'outgoing' : '';
+      // Look for subject after "Subject:" label
+      const subjectMatch = text.match(/subject[:\-]?\s*(.{1,100})/i);
+      
+      // Look for reference after "Ref:" or "Ref No:" or "Reference:" label
+      const refMatch = text.match(/(?:ref(?:\s|no)?[:\-]\s*|reference[:\-]\s*)(.{1,50})/i);
 
-    // Helper to normalize dates to yyyy-MM-dd
-    const normalizeDate = (dateStr: string) => {
-      if (!dateStr) return '';
-      // Try to parse dd-mm-yyyy or dd/mm/yyyy
-      const dmyMatch = dateStr.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})$/);
-      if (dmyMatch) {
-        let [_, d, m, y] = dmyMatch;
-        if (y.length === 2) y = `20${y}`;
-        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+// Look for date after "Date:" label specifically
+      // First try to find date that comes after "Date:" label
+      const dateAfterLabelMatch = text.match(/date[:\-]?\s*(\d{1,2}[-\/.]\d{1,2}[-\/.]\d{4})/i)
+        || text.match(/date[:\-]?\s*(\d{4}[-\/.]\d{1,2}[-\/.]\d{1,2})/i)
+        || text.match(/date[:\-]?\s*(\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{4})/i)
+        || text.match(/date[:\-]?\s*((?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2},?\s+\d{4})/i);
+
+      // Improved date matching regex - covers more formats
+      // Formats: dd-mm-yyyy, dd/mm/yyyy, dd.mm.yyyy, yyyy-mm-dd, yyyy/mm/dd
+      // Also handles month names: 15 Jan 2024, January 15 2024, etc.
+      const datePatterns: RegExp[] = [
+        // DD-MM-YYYY or DD.MM.YYYY (with optional time)
+        /\b(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})\b/,
+        // YYYY-MM-DD
+        /\b(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})\b/,
+        // DD-MMM-YYYY (e.g., 15-Jan-2024)
+        /\b(\d{1,2})[-\s](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[-\s](\d{4})\b/i,
+        // DD MMMM YYYY (e.g., 15 January 2024)
+        /\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/i,
+        // MMMM DD, YYYY (e.g., January 15, 2024)
+        /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})\b/i,
+      ];
+
+      let extractedDate = '';
+      
+      // First try to extract date after "Date:" label (takes priority)
+      if (dateAfterLabelMatch && dateAfterLabelMatch[1]) {
+        console.log('[handleScanAnalysis] Date match found after Date: label:', dateAfterLabelMatch[1]);
+        extractedDate = normalizeDate(dateAfterLabelMatch[1]);
       }
-      // If already yyyy-mm-dd or similar, try native parsing
-      try {
-        const d = new Date(dateStr);
-        if (!isNaN(d.getTime())) {
-          return d.toISOString().split('T')[0];
+      
+      // If no date found after label, try other patterns
+      if (!extractedDate) {
+        for (const pattern of datePatterns) {
+          const match = text.match(pattern);
+          if (match) {
+            console.log('[handleScanAnalysis] Date match found:', match[0], 'with pattern', pattern);
+            extractedDate = normalizeDate(match[0]);
+            if (extractedDate) break;
+          }
         }
-      } catch (e) {}
-      return dateStr;
+      }
+
+      // Improved regex for correspondenceType to be more specific
+      const finalCorrespondenceType = textLower.match(/\b(incoming|in|from)\b/i) ? 'incoming' : textLower.match(/\b(outgoing|out|to)\b/i) ? 'outgoing' : '';
+
+      setScannedMetadata(prev => ({
+        ...prev,
+        subject: subjectMatch ? subjectMatch[1].trim() : file.name.split('.')[0],
+        refNo: refMatch ? refMatch[1].trim() : '',
+        letterDate: extractedDate,
+        correspondenceType: finalCorrespondenceType,
+        sender: '',
+        recipient: '',
+        date: new Date().toISOString().split('T')[0]
+      }));
+
+      setScanStep('REVIEW');
+      toast.dismiss(analysisToast);
+      toast.success('Document analyzed! Review extracted metadata below.');
+    } catch (error) {
+      setScanStep('IDLE');
+      toast.dismiss(analysisToast);
+      toast.error('OCR analysis failed', { description: (error as Error).message });
+      console.error('OCR Error:', error);
+    }
+  };
+
+  // Improved normalizeDate function that handles multiple formats
+  const normalizeDate = (dateStr: string): string => {
+    if (!dateStr) return '';
+    
+    const trimmed = dateStr.trim();
+    console.log('[normalizeDate] Input:', trimmed);
+    
+    // Try to parse DD-MM-YYYY, DD.MM.YYYY, DD/MM/YYYY
+    let match = trimmed.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/);
+    if (match) {
+      const [, d, m, y] = match;
+      const result = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+      console.log('[normalizeDate] Parsed as DD-MM-YYYY:', result);
+      return result;
+    }
+    
+    // Try to parse YYYY-MM-DD
+    match = trimmed.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/);
+    if (match) {
+      const [, y, m, d] = match;
+      const result = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+      console.log('[normalizeDate] Parsed as YYYY-MM-DD:', result);
+      return result;
+    }
+    
+    // Try to parse DD-MMM-YYYY (e.g., 15-Jan-2024)
+    const monthNames: Record<string, string> = {
+      jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+      jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
     };
-
-    setScannedMetadata(prev => ({
-      ...prev,
-      subject: subjectMatch ? subjectMatch[1].trim() : file.name.split('.')[0],
-      refNo: refMatch ? refMatch[1].trim() : '',
-      letterDate: dateMatch ? normalizeDate(dateMatch[1]) : '',
-      correspondenceType: finalCorrespondenceType,
-      sender: '',
-      recipient: '',
-      date: new Date().toISOString().split('T')[0]
-    }));
-
-    setScanStep('REVIEW');
-    toast.dismiss(analysisToast);
-    toast.success('Document analyzed! Review extracted metadata below.');
-  } catch (error) {
-    setScanStep('IDLE');
-    toast.dismiss(analysisToast);
-    toast.error('OCR analysis failed', { description: (error as Error).message });
-    console.error('OCR Error:', error);
-  }
-};
+    match = trimmed.match(/^(\d{1,2})[-\s]([a-zA-Z]{3})[-\s](\d{4})$/);
+    if (match) {
+      const [, d, m, y] = match;
+      const month = monthNames[m.toLowerCase().substring(0, 3)];
+      if (month) {
+        const result = `${y}-${month}-${d.padStart(2, '0')}`;
+        console.log('[normalizeDate] Parsed as DD-MMM-YYYY:', result);
+        return result;
+      }
+    }
+    
+    // Try to parse DD MMMM YYYY (e.g., 15 January 2024)
+    const fullMonthNames: Record<string, string> = {
+      january: '01', february: '02', march: '03', april: '04', may: '05', june: '06',
+      july: '07', august: '08', september: '09', october: '10', november: '11', december: '12'
+    };
+    match = trimmed.match(/^(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})$/);
+    if (match) {
+      const [, d, m, y] = match;
+      const month = fullMonthNames[m.toLowerCase()];
+      if (month) {
+        const result = `${y}-${month}-${d.padStart(2, '0')}`;
+        console.log('[normalizeDate] Parsed as DD MMMM YYYY:', result);
+        return result;
+      }
+    }
+    
+    // Try to parse MMMM DD, YYYY (e.g., January 15, 2024)
+    match = trimmed.match(/^([a-zA-Z]+)\s+(\d{1,2}),?\s+(\d{4})$/);
+    if (match) {
+      const [, m, d, y] = match;
+      const month = fullMonthNames[m.toLowerCase()];
+      if (month) {
+        const result = `${y}-${month}-${d.padStart(2, '0')}`;
+        console.log('[normalizeDate] Parsed as MMMM DD, YYYY:', result);
+        return result;
+      }
+    }
+    
+    // Try native JavaScript Date parsing as fallback
+    try {
+      const d = new Date(trimmed);
+      if (!isNaN(d.getTime())) {
+        const result = d.toISOString().split('T')[0];
+        console.log('[normalizeDate] Parsed with native Date:', result);
+        return result;
+      }
+    } catch (e) {
+      console.log('[normalizeDate] Native Date parsing failed');
+    }
+    
+    console.log('[normalizeDate] Could not parse, returning original:', trimmed);
+    return trimmed;
+  };
 
   // PDF Preview State
   const [pdfComponents, setPdfComponents] = useState<PdfComponents | null>(null);
