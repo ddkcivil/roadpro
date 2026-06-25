@@ -33,11 +33,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/comp
 import { VisualEmptyState } from '../common/VisualEmptyState';
 
 const rfiSchema = z.object({
-  location: z.string().regex(/^\d+\+\d{3}\s+(LHS|RHS|Both|Both Sides|L|R)$/i, "Required format: 'Chainage + Side' (e.g., 12+400 RHS)"),
   description: z.string().min(5, "Work description must be at least 5 characters"),
-  date: z.string().min(1, "Request date is required"),
   inspectionType: z.string().min(2, "Inspection type is required"),
-  submittedBy: z.string().min(2, "Submitted by name is required"),
 });
 
 interface Props {
@@ -63,69 +60,14 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
     // Form fields based on the RFI document
     const [inspectionTime, setInspectionTime] = useState('');
     const [inspectionPurpose, setInspectionPurpose] = useState<'First' | 'Second' | 'Third' | 'Routine' | 'Special' | 'Other'>('First');
-    const [inspectionReport, setInspectionReport] = useState('');
-    const [engineerComments, setEngineerComments] = useState('');
-    const [areSignature, setAreSignature] = useState('');
-    const [iowSignature, setIowSignature] = useState('');
-    const [meSltSignature, setMeSltSignature] = useState('');
-    const [reSignature, setReSignature] = useState('');
-    const [requestNumber, setRequestNumber] = useState('');
-    const [workingDrawings, setWorkingDrawings] = useState<string[]>([]);
     const [inspectionType, setInspectionType] = useState('');
-    const [specificWorkDetails, setSpecificWorkDetails] = useState('');
-    const [inspectionDate, setInspectionDate] = useState('');
-    const [engineerRepresentativeComments, setEngineerRepresentativeComments] = useState('');
-    const [worksStatus, setWorksStatus] = useState<'Approved' | 'Approved as Noted' | 'Approved for Subsequent Work' | ''>('');
-    const [submittedBy, setSubmittedBy] = useState('');
-    const [receivedBy, setReceivedBy] = useState('');
-    
-    // Official RFI form fields
-    const [contractorName, setContractorName] = useState('');
-    const [contractorAddress, setContractorAddress] = useState('');
-    const [contractorDate, setContractorDate] = useState('');
-    const [engineerName, setEngineerName] = useState('');
-    const [engineerFirm, setEngineerFirm] = useState('');
-    const [siteOffice, setSiteOffice] = useState('');
-    const [boqItemNoOfficial, setBoqItemNoOfficial] = useState('');
-    const [inspectionPurposeOfficial, setInspectionPurposeOfficial] = useState('');
-    
-    // Approval authorities
-    const [engRepNotApproved, setEngRepNotApproved] = useState(false);
-    const [engRepApprovedWithComments, setEngRepApprovedWithComments] = useState(false);
-    const [engRepApproved, setEngRepApproved] = useState(false);
-    const [engRepRemarks, setEngRepRemarks] = useState('');
-    const [engRepName, setEngRepName] = useState('');
-    const [engRepDate, setEngRepDate] = useState('');
-    
-    const [surveyorNotApproved, setSurveyorNotApproved] = useState(false);
-    const [surveyorApprovedWithComments, setSurveyorApprovedWithComments] = useState(false);
-    const [surveyorApproved, setSurveyorApproved] = useState(false);
-    const [surveyorRemarks, setSurveyorRemarks] = useState('');
-    const [surveyorName, setSurveyorName] = useState('');
-    const [surveyorDate, setSurveyorDate] = useState('');
-    
-    const [geoNotApproved, setGeoNotApproved] = useState(false);
-    const [geoApprovedWithComments, setGeoApprovedWithComments] = useState(false);
-    const [geoApproved, setGeoApproved] = useState(false);
-    const [geoRemarks, setGeoRemarks] = useState('');
-    const [geoName, setGeoName] = useState('');
-    const [geoDate, setGeoDate] = useState('');
-    
-    const [areNotApproved, setAreNotApproved] = useState(false);
-    const [areApprovedWithComments, setAreApprovedWithComments] = useState(false);
-    const [areApproved, setAreApproved] = useState(false);
-    const [areRemarks, setAreRemarks] = useState('');
-    const [areName, setAreName] = useState('');
-    const [areDate, setAreDate] = useState('');
-    
-    const [infoName, setInfoName] = useState('');
-    const [infoSignature, setInfoSignature] = useState('');
-    const [infoDate, setInfoDate] = useState('');
-    
-    const [otherName, setOtherName] = useState('');
-    const [otherSignature, setOtherSignature] = useState('');
-    const [otherDate, setOtherDate] = useState('');
-    const [otherSpecify, setOtherSpecify] = useState('');
+
+    // PDF Form fields
+    const [chainageFrom, setChainageFrom] = useState('');
+    const [chainageTo, setChainageTo] = useState('');
+    const [approxQuantity, setApproxQuantity] = useState('');
+    const [workTypes, setWorkTypes] = useState<string[]>([]);
+    const [othersSpecify, setOthersSpecify] = useState('');
 
     if (!project) {
         return (
@@ -171,67 +113,37 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
         });
         setViewMode('UPDATE');
         
-        // Reset additional fields
+        // Reset all form fields
         setInspectionTime('');
         setInspectionPurpose('First');
-        setInspectionReport('');
-        setEngineerComments('');
-        setAreSignature('');
-        setIowSignature('');
-        setMeSltSignature('');
-        setReSignature('');
-        setRequestNumber('');
-        setWorkingDrawings([]);
         setInspectionType('');
-        setSpecificWorkDetails('');
-        setInspectionDate('');
-        setEngineerRepresentativeComments('');
-        setWorksStatus('');
-        setSubmittedBy('');
-        setReceivedBy('');
+        setChainageFrom('');
+        setChainageTo('');
+        setApproxQuantity('');
+        setWorkTypes([]);
+        setOthersSpecify('');
     };
 
     const handleEdit = (rfi: RFI) => {
         setFormData(rfi);
         setViewMode('UPDATE');
         
-        // Set additional fields
+        // Set form fields
         setInspectionTime(rfi.inspectionTime || '');
         setInspectionPurpose(rfi.inspectionPurpose || 'First');
-        setInspectionReport(rfi.inspectionReport || '');
-        setEngineerComments(rfi.engineerComments || '');
-        setAreSignature(rfi.areSignature || '');
-        setIowSignature(rfi.iowSignature || '');
-        setMeSltSignature(rfi.meSltSignature || '');
-        setReSignature(rfi.reSignature || '');
-        setRequestNumber(rfi.rfiNumber || '');
-        setWorkingDrawings(rfi.workingDrawings || []);
         setInspectionType(rfi.inspectionType || '');
-        setSpecificWorkDetails(rfi.specificWorkDetails || '');
-        setInspectionDate(rfi.inspectionDate || '');
-        setEngineerRepresentativeComments(rfi.engineerRepresentativeComments || '');
-        setWorksStatus(rfi.worksStatus || '');
-        setSubmittedBy(rfi.submittedBy || '');
-        setReceivedBy(rfi.receivedBy || '');
-        // Official RFI form fields
-        setContractorName(rfi.contractorName || '');
-        setContractorAddress(rfi.contractorAddress || '');
-        setContractorDate(rfi.contractorDate || '');
-        setEngineerName(rfi.engineerName || '');
-        setEngineerFirm(rfi.engineerFirm || '');
-        setSiteOffice(rfi.siteOffice || '');
-        setBoqItemNoOfficial(rfi.boqItemNoOfficial || '');
-        setInspectionPurposeOfficial(rfi.inspectionPurposeOfficial || '');
+        setChainageFrom((rfi as any).chainageFrom || '');
+        setChainageTo((rfi as any).chainageTo || '');
+        setApproxQuantity((rfi as any).approxQuantity || '');
+        setWorkTypes((rfi as any).workTypes || []);
+        setOthersSpecify((rfi as any).othersSpecify || '');
     };
 
     const handleSave = () => {
         try {
             rfiSchema.parse({
-                location: formData.location,
                 description: formData.description,
-                date: formData.date,
-                inspectionType: inspectionType,
-                submittedBy: submittedBy || formData.submittedBy
+                inspectionType: inspectionType
             });
         } catch (err) {
             if (err instanceof z.ZodError) {
@@ -247,11 +159,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
 
         const now = new Date().toISOString();
         
-        // Duplicate Check
-        if (!formData.id && project.rfis.some(r => r.rfiNumber.toLowerCase() === requestNumber.toLowerCase())) {
-            toast.error("Duplicate RFI", { description: "An RFI with this reference number already exists." });
-            return;
-        }
+        
 
         const existingRfi = project.rfis.find(r => r.id === formData.id);
         let updatedLog = [...(formData.workflowLog || [])];
@@ -268,89 +176,21 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
         const newRFI: RFI = {
             id: formData.id || `rfi-${Date.now()}`,
             rfiNumber: formData.rfiNumber || `RFI-${Date.now()}`,
-            date: formData.date!,
-            location: formData.location!,
+            date: formData.date || new Date().toISOString().split('T')[0],
+            location: `${chainageFrom}${chainageTo ? ' to ' + chainageTo : ''}`.trim(),
             description: formData.description!,
             status: (formData.status as any) || RFIStatus.OPEN,
             requestedBy: formData.requestedBy || userRole,
-            inspectionDate: formData.inspectionDate || inspectionDate,
             inspectionTime: inspectionTime,
-            inspectionPurpose: inspectionPurpose,
-            inspectionReport: inspectionReport,
-            engineerComments: engineerComments,
-            areSignature: areSignature,
-            iowSignature: iowSignature,
-            meSltSignature: meSltSignature,
-            reSignature: reSignature,
-            requestNumber: requestNumber,
-            workingDrawings: workingDrawings,
-            submittedBy: submittedBy || formData.submittedBy || '',
-            receivedBy: receivedBy || formData.receivedBy || '',
+            inspectionType: inspectionType,
+            chainageFrom,
+            chainageTo,
+            approxQuantity,
+            workTypes,
+            othersSpecify,
             workflowLog: updatedLog,
             linkedTaskId: formData.linkedTaskId,
-            linkedChecklistIds: formData.linkedChecklistIds || [],
-            inspectionType: inspectionType,
-            specificWorkDetails: specificWorkDetails,
-            engineerRepresentativeComments: engineerRepresentativeComments,
-            worksStatus: worksStatus as any,
-            // Added boqItemNo and contractNo fields from formData if they exist
-            boqItemNo: formData.boqItemNo,
-            contractNo: formData.contractNo,
-            // Official RFI form fields
-            contractorName: contractorName,
-            contractorAddress: contractorAddress,
-            contractorDate: contractorDate,
-            engineerName: engineerName,
-            engineerFirm: engineerFirm,
-            siteOffice: siteOffice,
-            requestNo: requestNumber,
-            contractNoOfficial: formData.contractNo,
-            boqItemNoOfficial: boqItemNoOfficial,
-            inspectionPurposeOfficial: inspectionPurposeOfficial,
-            // Approval authorities
-            engineersRepresentative: {
-                name: engRepName,
-                notApproved: engRepNotApproved,
-                approvedWithComments: engRepApprovedWithComments,
-                approved: engRepApproved,
-                remarks: engRepRemarks,
-                date: engRepDate
-            },
-            surveyor: {
-                name: surveyorName,
-                notApproved: surveyorNotApproved,
-                approvedWithComments: surveyorApprovedWithComments,
-                approved: surveyorApproved,
-                remarks: surveyorRemarks,
-                date: surveyorDate
-            },
-            geotechnicalGeologist: {
-                name: geoName,
-                notApproved: geoNotApproved,
-                approvedWithComments: geoApprovedWithComments,
-                approved: geoApproved,
-                remarks: geoRemarks,
-                date: geoDate
-            },
-            assistantResidentEngineer: {
-                name: areName,
-                notApproved: areNotApproved,
-                approvedWithComments: areApprovedWithComments,
-                approved: areApproved,
-                remarks: areRemarks,
-                date: areDate
-            },
-            information: {
-                name: infoName,
-                signature: infoSignature,
-                date: infoDate
-            },
-            other: {
-                name: otherName,
-                signature: otherSignature,
-                date: otherDate,
-                specify: otherSpecify
-            }
+            linkedChecklistIds: formData.linkedChecklistIds || []
         } as any;
 
         setPendingRFI(newRFI);
@@ -466,8 +306,9 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                                     <p className="text-sm font-bold mt-1">{pendingRFI?.submittedBy}</p>
                                 </div>
                                 <div className="border-t border-black pt-2">
-                                    <p className="text-[10px] uppercase font-bold">Received By (Engineer)</p>
+                                    <p className="text-[10px] uppercase font-bold">Signature</p>
                                     <p className="text-sm mt-1">________________________</p>
+                                    <p className="text-[10px] text-muted-foreground">Date: {pendingRFI?.date}</p>
                                 </div>
                             </div>
 
@@ -538,16 +379,63 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                     <ErrorSummary errors={errors} className="mb-6" onClear={() => setErrors({})} />
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="col-span-full space-y-3">
+                            <Label>Type of Works/Activities</Label>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                {['Footpath', 'Kerbs', 'Asphalt', 'Reinforcement', 'Stone Masonary', 'Soiling', 'PCC', 'RCC', 'Excavation', 'Setting out', 'Embankement', 'Formwork', 'Roads', 'Railing', 'Street Light', 'Sub-grade', 'Painting'].map(workType => (
+                                    <div key={workType} className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            id={`work-${workType}`}
+                                            checked={workTypes.includes(workType)}
+                                            onChange={e => {
+                                                if (e.target.checked) {
+                                                    setWorkTypes([...workTypes, workType]);
+                                                } else {
+                                                    setWorkTypes(workTypes.filter(w => w !== workType));
+                                                }
+                                            }}
+                                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                            aria-label={workType}
+                                        />
+                                        <Label htmlFor={`work-${workType}`} className="text-sm font-medium cursor-pointer">{workType}</Label>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
                         <div className="space-y-2">
-                            <Label htmlFor="rfi-location" className={cn(errors.location && "text-destructive")}>Location (Chainage + Side)</Label>
+                            <Label htmlFor="approx-quantity">Approx Quantity</Label>
+                            <Input
+                                id="approx-quantity"
+                                placeholder="e.g. 47.5 Sq.m"
+                                value={approxQuantity}
+                                onChange={e => setApproxQuantity(e.target.value)}
+                                className="h-11 shadow-sm"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="inspection-time">Inspection Time</Label>
+                            <Input
+                                id="inspection-time"
+                                placeholder="e.g. 9 A.M"
+                                value={inspectionTime}
+                                onChange={e => setInspectionTime(e.target.value)}
+                                className="h-11 shadow-sm"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="chainage-from" className={cn(errors.location && "text-destructive")}>Chainage From</Label>
                             <div className="relative">
                                 <MapPin size={18} className={cn("absolute left-3 top-1/2 -translate-y-1/2", errors.location ? "text-rose-500" : "text-primary")} />
                                 <Input
-                                    id="rfi-location"
-                                    placeholder="e.g. 12+400 RHS"
-                                    value={formData.location || ''} 
+                                    id="chainage-from"
+                                    placeholder="e.g. 3+800 R.H.S"
+                                    value={chainageFrom} 
                                     onChange={e => {
-                                        setFormData({...formData, location: e.target.value});
+                                        setChainageFrom(e.target.value);
                                         if (errors.location) setErrors(prev => {
                                             const next = {...prev};
                                             delete next.location;
@@ -557,7 +445,20 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                                     className={cn("pl-10 h-11 shadow-sm", errors.location && "border-destructive")}
                                 />
                             </div>
-                            {!errors.location && <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight ml-1">Format: [Km]+[Mtrs] [Side] e.g. 12+400 RHS</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="chainage-to" className={cn(errors.location && "text-destructive")}>Chainage To</Label>
+                            <div className="relative">
+                                <MapPin size={18} className={cn("absolute left-3 top-1/2 -translate-y-1/2", errors.location ? "text-rose-500" : "text-primary")} />
+                                <Input
+                                    id="chainage-to"
+                                    placeholder="e.g. 3+850 R.H.S"
+                                    value={chainageTo} 
+                                    onChange={e => setChainageTo(e.target.value)}
+                                    className={cn("pl-10 h-11 shadow-sm", errors.location && "border-destructive")}
+                                />
+                            </div>
                         </div>
 
                         <div className="space-y-2">
@@ -574,182 +475,29 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="request-date" className={cn(errors.date && "text-destructive")}>Request Date</Label>
-                            <Input
-                                id="request-date" 
-                                type="date" 
-                                value={formData.date || ''} 
-                                onChange={e => setFormData({...formData, date: e.target.value})} 
-                                className={cn("h-11 shadow-sm", errors.date && "border-destructive")}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="submitted-by" className={cn(errors.submittedBy && "text-destructive")}>Submitted By</Label>
-                            <div className="relative">
-                                <UserIcon size={18} className="text-primary absolute left-3 top-1/2 -translate-y-1/2" />
-                                <Input
-                                    id="submitted-by"
-                                    placeholder="Name of person submitting"
-                                    value={submittedBy || ''} 
-                                    onChange={e => setSubmittedBy(e.target.value)}
-                                    className={cn("pl-10 h-11 shadow-sm", errors.submittedBy && "border-destructive")}
-                                />
-                            </div>
-                        </div>
-                        
                         <div className="col-span-full space-y-2">
                             <Label htmlFor="work-description" className={cn(errors.description && "text-destructive")}>Work Description for Inspection</Label>
                             <Textarea
                                 id="work-description"
                                 className={cn("min-h-[100px] shadow-sm", errors.description && "border-destructive")}
-                                placeholder="Define scope for verification (e.g. Reinforcement, GSB Layer, BC Mix)..."
+                                placeholder="Describe the work being inspected..."
                                 value={formData.description || ''} 
                                 onChange={e => setFormData({...formData, description: e.target.value})} 
                             />
                         </div>
 
-                        <div className="col-span-full border-t border-border/50 my-2" />
-
-                        <div className="space-y-2">
-                            <Label htmlFor="inspection-purpose">Inspection Purpose</Label>
-                            <Select 
-                                value={inspectionPurpose} 
-                                onValueChange={value => setInspectionPurpose(value as any)}
-                            >
-                                <SelectTrigger id="inspection-purpose" className="h-11 shadow-sm">
-                                    <SelectValue placeholder="Select purpose" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="First">First Inspection</SelectItem>
-                                    <SelectItem value="Second">Second Inspection</SelectItem>
-                                    <SelectItem value="Routine">Routine Inspection</SelectItem>
-                                    <SelectItem value="Special">Special Inspection</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="inspection-time">Inspection Time</Label>
+                        <div className="col-span-full space-y-2">
+                            <Label htmlFor="others-specify">Others (specify)</Label>
                             <Input
-                                id="inspection-time"
-                                placeholder="e.g. 10 A.M"
-                                value={inspectionTime}
-                                onChange={e => setInspectionTime(e.target.value)}
-                                className="h-11 shadow-sm"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="boq-item-no">B.O.Q Item No</Label>
-                            <Input
-                                id="boq-item-no"
-                                placeholder="e.g. 51"
-                                value={boqItemNoOfficial}
-                                onChange={e => setBoqItemNoOfficial(e.target.value)}
-                                className="h-11 shadow-sm"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="contract-no">Contract No</Label>
-                            <Input
-                                id="contract-no"
-                                placeholder="e.g. URLIP/TT/CW01"
-                                value={formData.contractNo || ''}
-                                onChange={e => setFormData({...formData, contractNo: e.target.value})}
+                                id="others-specify"
+                                placeholder="Specify other work types..."
+                                value={othersSpecify}
+                                onChange={e => setOthersSpecify(e.target.value)}
                                 className="h-11 shadow-sm"
                             />
                         </div>
 
                         <div className="col-span-full border-t border-border/50 my-2" />
-
-                        <div className="space-y-2">
-                            <Label htmlFor="contractor-name">Contractor Name</Label>
-                            <Input
-                                id="contractor-name"
-                                placeholder="e.g. M/S LONGJIAN-SAGUN JV"
-                                value={contractorName}
-                                onChange={e => setContractorName(e.target.value)}
-                                className="h-11 shadow-sm"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="contractor-address">Contractor Address</Label>
-                            <Input
-                                id="contractor-address"
-                                placeholder="e.g. Butwal-13, Rupandehi, Nepal"
-                                value={contractorAddress}
-                                onChange={e => setContractorAddress(e.target.value)}
-                                className="h-11 shadow-sm"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="contractor-date">Contractor Date</Label>
-                            <Input
-                                id="contractor-date"
-                                type="date"
-                                value={contractorDate}
-                                onChange={e => setContractorDate(e.target.value)}
-                                className="h-11 shadow-sm"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="engineer-name">Engineer Name</Label>
-                            <Input
-                                id="engineer-name"
-                                placeholder="e.g. Engineer's Representative"
-                                value={engineerName}
-                                onChange={e => setEngineerName(e.target.value)}
-                                className="h-11 shadow-sm"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="engineer-firm">Engineer Firm</Label>
-                            <Input
-                                id="engineer-firm"
-                                placeholder="e.g. BDA-BN-UDAYA JV, Kathmandu"
-                                value={engineerFirm}
-                                onChange={e => setEngineerFirm(e.target.value)}
-                                className="h-11 shadow-sm"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="site-office">Site Office</Label>
-                            <Input
-                                id="site-office"
-                                placeholder="e.g. Manigram, Rupandehi"
-                                value={siteOffice}
-                                onChange={e => setSiteOffice(e.target.value)}
-                                className="h-11 shadow-sm"
-                            />
-                        </div>
-
-                        <div className="col-span-full border-t border-border/50 my-2" />
-
-                        <div className="space-y-2">
-                            <Label htmlFor="update-status">Current Status</Label>
-                            <Select 
-                                value={formData.status || RFIStatus.OPEN} 
-                                onValueChange={value => setFormData({...formData, status: value as RFIStatus})}
-                            >
-                                <SelectTrigger id="update-status" className="h-11 shadow-sm font-bold">
-                                    <SelectValue placeholder="Select status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value={RFIStatus.OPEN}>OPEN / PENDING</SelectItem>
-                                    <SelectItem value={RFIStatus.APPROVED}>APPROVED / VERIFIED</SelectItem>
-                                    <SelectItem value={RFIStatus.REJECTED}>REJECTED / RECTIFY</SelectItem>
-                                    <SelectItem value={RFIStatus.CLOSED}>CLOSED</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
                     </div>
 
                     <div className="mt-8 flex justify-end gap-3">
