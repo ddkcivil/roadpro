@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Project, UserRole, DailyWorkItem, DailyReport, PlantEquipment, MaterialEntry, PersonnelEntry, RoadWorkEntry } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
+import { useArrayUpdater } from '../../hooks/useArrayUpdater';
+import { useFormElements } from '../../hooks/useFormElements';
+import { DeleteButton } from '../common/DeleteButton';
+import { AddButton } from '../common/AddButton';
 import { 
     Activity, FileText, Trash2, Plus, Printer, CheckCircle, Info, 
     CloudSun, Wifi, User, Users, AlertCircle, Eye, ArrowLeft, 
@@ -64,20 +68,34 @@ const DailyReportModule: React.FC<Props> = ({
         { id: Date.now().toString(), roadName: '', description: '', chainage: '', estQty: '', manpower: '' }
     ]);
     
-    // Plant & Equipment
-    const [plantEquipment, setPlantEquipment] = useState<PlantEquipment[]>([
-        { id: Date.now().toString(), description: '', working: 0, standby: 0, breakdown: 0, total: 0 }
-    ]);
+// Plant & Equipment - refactored with useArrayUpdater hook
+    const { array: plantEquipment, setArray: setPlantEquipment, updateAt: updatePlantAt, removeAt: removePlantAt, addNew: addPlant } = useArrayUpdater<PlantEquipment>(
+        [{ id: Date.now().toString(), description: '', working: 0, standby: 0, breakdown: 0, total: 0 }],
+        () => ({ id: Date.now().toString(), description: '', working: 0, standby: 0, breakdown: 0, total: 0 })
+    );
+
+    // Helper to update plant equipment with auto-total calculation
+    const updatePlantEquipment = (index: number, field: keyof PlantEquipment, value: any) => {
+        const updated = [...plantEquipment];
+        updated[index] = { ...updated[index], [field]: value };
+        // Auto-calculate total
+        if (['working', 'standby', 'breakdown'].includes(field)) {
+            updated[index].total = updated[index].working + updated[index].standby + updated[index].breakdown;
+        }
+        setPlantEquipment(updated);
+    };
     
-    // Materials
-    const [materialsUsed, setMaterialsUsed] = useState<MaterialEntry[]>([
-        { id: Date.now().toString(), name: '', unit: '', quantity: 0 }
-    ]);
+// Materials - refactored with useArrayUpdater hook
+    const { array: materialsUsed, setArray: setMaterialsUsed, updateAt: updateMaterialAt, removeAt: removeMaterialAt, addNew: addMaterial } = useArrayUpdater<MaterialEntry>(
+        [{ id: Date.now().toString(), name: '', unit: '', quantity: 0 }],
+        () => ({ id: Date.now().toString(), name: '', unit: '', quantity: 0 })
+    );
     
-    // Personnel
-    const [personnelUsed, setPersonnelUsed] = useState<PersonnelEntry[]>([
-        { id: Date.now().toString(), designation: '', nos: 0, status: 'Present' }
-    ]);
+// Personnel - refactored with useArrayUpdater hook
+    const { array: personnelUsed, setArray: setPersonnelUsed, updateAt: updatePersonnelAt, removeAt: removePersonnelAt, addNew: addPersonnel } = useArrayUpdater<PersonnelEntry>(
+        [{ id: Date.now().toString(), designation: '', nos: 0, status: 'Present' }],
+        () => ({ id: Date.now().toString(), designation: '', nos: 0, status: 'Present' })
+    );
 
     // Create form states
     const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
@@ -85,9 +103,19 @@ const DailyReportModule: React.FC<Props> = ({
     const [activeTab, setActiveTab] = useState(0);
     const [printModalOpen, setPrintModalOpen] = useState(false);
     const [isFetchingWeather, setIsFetchingWeather] = useState(false);
-    const [workItemsToday, setWorkItemsToday] = useState<DailyWorkItem[]>([]);
-    const [visitors, setVisitors] = useState([{ id: Date.now().toString(), name: '', organization: '' }]);
-    const [remarks, setRemarks] = useState(['']);
+// Work Items - refactored with useArrayUpdater hook
+    const { array: workItemsToday, setArray: setWorkItemsToday, updateAt: updateWorkToday, removeAt: removeWorkToday, addNew: addWorkItem } = useArrayUpdater<DailyWorkItem>(
+        [],
+        () => ({ id: Date.now().toString(), location: '', quantity: 0, description: '' })
+    );
+    
+// Visitors section - refactored with useFormElements hook
+    const { items: visitors, setItems: setVisitors, updateField: updateVisitorField, removeItem: removeVisitor, addItem: addVisitor } = useFormElements<{ id: string; name: string; organization: string }>(
+        () => ({ id: Date.now().toString(), name: '', organization: '' })
+    );
+    
+// Remarks section - refactored with simple state (useFormElements needs object type)
+    const [remarks, setRemarks] = useState<string[]>(['']);
 const [submittedBy, setSubmittedBy] = useState(userName || '');
     const [receivedBy, setReceivedBy] = useState('');
 
@@ -109,10 +137,7 @@ const [submittedBy, setSubmittedBy] = useState(userName || '');
         }
     }, [userName, submittedBy]);
 
-    const handleAddWorkToday = () => {
-        const newWorkItem: DailyWorkItem = { id: Date.now().toString(), location: '', quantity: 0, description: '' };
-        setWorkItemsToday([...workItemsToday, newWorkItem]);
-    };
+// Use addWorkItem from hook instead of inline handler
 
 // Fetch weather from Open-Meteo API (Butwal, Nepal coordinates)
     const handleFetchWeather = async () => {
@@ -154,20 +179,15 @@ const [submittedBy, setSubmittedBy] = useState(userName || '');
         }
     };
 
-    const updateWorkToday = (index: number, field: keyof DailyWorkItem, value: any) => {
-        const updated = [...workItemsToday];
-        updated[index] = { ...updated[index], [field]: value };
-        setWorkItemsToday(updated);
-    };
+const canDelete = userRole === UserRole.ADMIN || userRole === UserRole.PROJECT_MANAGER;
 
-    const canDelete = userRole === UserRole.ADMIN || userRole === UserRole.PROJECT_MANAGER;
-
-    const removeWorkToday = (index: number) => {
+    // Wrapper for removeWorkToday with permission check
+    const handleRemoveWorkToday = (index: number) => {
         if (!canDelete) {
             alert('Only Admin and Project Manager can delete daily work entries');
             return;
         }
-        setWorkItemsToday(workItemsToday.filter((_, i) => i !== index));
+        removeWorkToday(index);
     };
 
     const handleFinalizeReport = (e?: React.FormEvent) => {
@@ -523,7 +543,7 @@ const [submittedBy, setSubmittedBy] = useState(userName || '');
                     </div>
                 </Card>
 
-                <Card className="p-6 mb-6 border-2">
+<Card className="p-6 mb-6 border-2">
                     <CardHeader className="px-0 pt-0">
                         <CardTitle className="flex items-center gap-2 text-sm uppercase tracking-widest font-black text-slate-400">
                             <User className="w-4 h-4" />
@@ -540,11 +560,7 @@ const [submittedBy, setSubmittedBy] = useState(userName || '');
                                             value={visitor.name}
                                             placeholder="e.g. John Doe"
                                             className="rounded-xl border-2 font-bold"
-                                            onChange={e => {
-                                                const updated = [...visitors];
-                                                updated[index] = { ...updated[index], name: e.target.value };
-                                                setVisitors(updated);
-                                            }}
+                                            onChange={e => updateVisitorField(index, 'name', e.target.value)}
                                         />
                                     </div>
                                     <div className="md:col-span-5">
@@ -553,11 +569,7 @@ const [submittedBy, setSubmittedBy] = useState(userName || '');
                                             value={visitor.organization}
                                             placeholder="e.g. DoR, ADB"
                                             className="rounded-xl border-2 font-bold"
-                                            onChange={e => {
-                                                const updated = [...visitors];
-                                                updated[index] = { ...updated[index], organization: e.target.value };
-                                                setVisitors(updated);
-                                            }}
+                                            onChange={e => updateVisitorField(index, 'organization', e.target.value)}
                                         />
                                     </div>
                                     <div className="md:col-span-2 flex items-end gap-2">
@@ -567,7 +579,7 @@ const [submittedBy, setSubmittedBy] = useState(userName || '');
                                                 variant="destructive"
                                                 size="icon"
                                                 className="rounded-xl h-10 w-10"
-                                                onClick={() => setVisitors(visitors.filter((_, i) => i !== index))}
+                                                onClick={() => removeVisitor(index)}
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </Button>
@@ -578,7 +590,7 @@ const [submittedBy, setSubmittedBy] = useState(userName || '');
                                                 variant="outline"
                                                 size="icon"
                                                 className="rounded-xl border-2 h-10 w-10"
-                                                onClick={() => setVisitors([...visitors, { id: Date.now().toString(), name: '', organization: '' }])}
+                                                onClick={() => addVisitor()}
                                             >
                                                 <Plus className="w-4 h-4" />
                                             </Button>
@@ -688,7 +700,7 @@ const [submittedBy, setSubmittedBy] = useState(userName || '');
                                                         variant="ghost"
                                                         size="icon"
                                                         className="text-destructive hover:bg-red-50"
-                                                        onClick={() => removeWorkToday(i)}
+onClick={() => handleRemoveWorkToday(i)}
                                                     >
                                                         <Trash2 className="w-5 h-5" />
                                                     </Button>
@@ -697,7 +709,7 @@ const [submittedBy, setSubmittedBy] = useState(userName || '');
                                         </Card>
                                     );
                                 })}
-                                <Button type="button" variant="outline" onClick={handleAddWorkToday} className="w-full border-dashed border-2 py-8 rounded-2xl hover:bg-slate-50 font-bold text-slate-500">
+<Button type="button" variant="outline" onClick={() => addWorkItem()} className="w-full border-dashed border-2 py-8 rounded-2xl hover:bg-slate-50 font-bold text-slate-500">
                                     <Plus className="w-4 h-4 mr-2" />
                                     Add Another Log Entry
                                 </Button>
@@ -801,13 +813,13 @@ const [submittedBy, setSubmittedBy] = useState(userName || '');
                                 </div>
                             </div>
 
-                            {/* MATERIAL SCHEDULE TAB */}
+{/* MATERIAL SCHEDULE TAB */}
                             <div className="mb-8">
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="font-black text-sm uppercase tracking-widest text-slate-400 flex items-center gap-2">
                                         <Package className="w-4 h-4" /> Material Schedule
                                     </h3>
-                                    <Button type="button" variant="outline" size="sm" onClick={() => setMaterialsUsed([...materialsUsed, { id: Date.now().toString(), name: '', unit: '', quantity: 0 }])} className="rounded-lg">
+                                    <Button type="button" variant="outline" size="sm" onClick={() => addMaterial()} className="rounded-lg">
                                         <Plus className="w-4 h-4 mr-1" /> Add Material
                                     </Button>
                                 </div>
@@ -829,11 +841,7 @@ const [submittedBy, setSubmittedBy] = useState(userName || '');
                                                             value={mat.name}
                                                             placeholder="e.g. Cement, Sand, Aggregate, Brick"
                                                             className="font-medium"
-                                                            onChange={(e) => {
-                                                                const updated = [...materialsUsed];
-                                                                updated[idx].name = e.target.value;
-                                                                setMaterialsUsed(updated);
-                                                            }}
+                                                            onChange={(e) => updateMaterialAt(idx, 'name', e.target.value)}
                                                         />
                                                     </TableCell>
                                                     <TableCell>
@@ -841,11 +849,7 @@ const [submittedBy, setSubmittedBy] = useState(userName || '');
                                                             value={mat.unit}
                                                             placeholder="e.g. bags, cum, nos"
                                                             className="font-medium"
-                                                            onChange={(e) => {
-                                                                const updated = [...materialsUsed];
-                                                                updated[idx].unit = e.target.value;
-                                                                setMaterialsUsed(updated);
-                                                            }}
+                                                            onChange={(e) => updateMaterialAt(idx, 'unit', e.target.value)}
                                                         />
                                                     </TableCell>
                                                     <TableCell>
@@ -853,15 +857,11 @@ const [submittedBy, setSubmittedBy] = useState(userName || '');
                                                             type="number"
                                                             value={mat.quantity}
                                                             className="text-center font-medium"
-                                                            onChange={(e) => {
-                                                                const updated = [...materialsUsed];
-                                                                updated[idx].quantity = parseFloat(e.target.value) || 0;
-                                                                setMaterialsUsed(updated);
-                                                            }}
+                                                            onChange={(e) => updateMaterialAt(idx, 'quantity', parseFloat(e.target.value) || 0)}
                                                         />
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setMaterialsUsed(materialsUsed.filter((_, i) => i !== idx))}>
+                                                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeMaterialAt(idx)}>
                                                             <Trash2 className="w-4 h-4" />
                                                         </Button>
                                                     </TableCell>
@@ -872,13 +872,13 @@ const [submittedBy, setSubmittedBy] = useState(userName || '');
                                 </div>
                             </div>
 
-                            {/* PERSONNEL MOBILIZATION TAB */}
+{/* PERSONNEL MOBILIZATION TAB */}
                             <div className="mb-6">
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="font-black text-sm uppercase tracking-widest text-slate-400 flex items-center gap-2">
                                         <Users className="w-4 h-4" /> Personnel Mobilization
                                     </h3>
-                                    <Button type="button" variant="outline" size="sm" onClick={() => setPersonnelUsed([...personnelUsed, { id: Date.now().toString(), designation: '', nos: 0, status: 'Present' }])} className="rounded-lg">
+                                    <Button type="button" variant="outline" size="sm" onClick={() => addPersonnel()} className="rounded-lg">
                                         <Plus className="w-4 h-4 mr-1" /> Add Personnel
                                     </Button>
                                 </div>
@@ -900,11 +900,7 @@ const [submittedBy, setSubmittedBy] = useState(userName || '');
                                                             value={person.designation}
                                                             placeholder="e.g. Site Engineer, Supervisor, Labor"
                                                             className="font-medium"
-                                                            onChange={(e) => {
-                                                                const updated = [...personnelUsed];
-                                                                updated[idx].designation = e.target.value;
-                                                                setPersonnelUsed(updated);
-                                                            }}
+                                                            onChange={(e) => updatePersonnelAt(idx, 'designation', e.target.value)}
                                                         />
                                                     </TableCell>
                                                     <TableCell>
@@ -912,21 +908,13 @@ const [submittedBy, setSubmittedBy] = useState(userName || '');
                                                             type="number"
                                                             value={person.nos}
                                                             className="text-center font-medium"
-                                                            onChange={(e) => {
-                                                                const updated = [...personnelUsed];
-                                                                updated[idx].nos = parseInt(e.target.value) || 0;
-                                                                setPersonnelUsed(updated);
-                                                            }}
+                                                            onChange={(e) => updatePersonnelAt(idx, 'nos', parseInt(e.target.value) || 0)}
                                                         />
                                                     </TableCell>
                                                     <TableCell>
                                                         <Select 
                                                             value={person.status}
-                                                            onValueChange={(val) => {
-                                                                const updated = [...personnelUsed];
-                                                                updated[idx].status = val as 'Present' | 'Absent';
-                                                                setPersonnelUsed(updated);
-                                                            }}
+                                                            onValueChange={(val) => updatePersonnelAt(idx, 'status', val as 'Present' | 'Absent')}
                                                         >
                                                             <SelectTrigger className="font-medium">
                                                                 <SelectValue />
@@ -938,7 +926,7 @@ const [submittedBy, setSubmittedBy] = useState(userName || '');
                                                         </Select>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setPersonnelUsed(personnelUsed.filter((_, i) => i !== idx))}>
+                                                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removePersonnelAt(idx)}>
                                                             <Trash2 className="w-4 h-4" />
                                                         </Button>
                                                     </TableCell>
