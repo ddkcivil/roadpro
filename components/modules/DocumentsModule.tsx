@@ -865,20 +865,22 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
           <Card className={cn("flex-1 overflow-hidden flex flex-col transition-all duration-300", previewDoc ? "flex-[0.6]" : "flex-1")}>
             <ScrollArea className="flex-1 w-full rounded-md border">
 <Table>
-                <TableHeader className="bg-muted sticky top-0 z-10">
+<TableHeader className="bg-muted sticky top-0 z-10">
                   <TableRow>
-                    <TableHead className="w-[30%]">Name</TableHead>
-                    <TableHead className="w-[20%]">Ref / Subject</TableHead>
-                    <TableHead className="w-[12%]">Type</TableHead>
-                    <TableHead className="w-[10%]">Letter Date</TableHead>
-                    <TableHead className="w-[10%]">Date</TableHead>
-                    <TableHead className="text-right w-[18%]">Actions</TableHead>
+                    <TableHead className="w-[25%]">Name</TableHead>
+                    <TableHead className="w-[15%]">Ref No</TableHead>
+                    <TableHead className="w-[18%]">Subject / Description</TableHead>
+                    <TableHead className="w-[8%]">Type</TableHead>
+                    <TableHead className="w-[8%]">Corr. Type</TableHead>
+                    <TableHead className="w-[8%]">Folder</TableHead>
+                    <TableHead className="w-[8%]">Letter Date</TableHead>
+                    <TableHead className="text-right w-[10%]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-60 text-center">
+                      <TableCell colSpan={8} className="h-60 text-center">
                         <Loader2 className="mx-auto h-8 w-8 text-primary animate-spin mb-2" />
                         <p className="text-muted-foreground">Synchronizing documents...</p>
                       </TableCell>
@@ -916,7 +918,14 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
                       </TableCell>
                       <TableCell>
                         <p className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">{doc.refNo || '-'}</p>
-                        <p className="text-xs truncate w-full">{doc.subject || 'No subject'}</p>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-xs truncate w-full" title={doc.subject}>{doc.subject || 'No subject'}</p>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={doc.type === 'IMAGE' ? 'default' : 'outline'} className="text-[10px] font-bold">
+                          {doc.type}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         {doc.correspondenceType ? (
@@ -925,8 +934,12 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
                           </Badge>
                         ) : <span className="text-[11px] text-muted-foreground">-</span>}
                       </TableCell>
+                      <TableCell>
+                        <span className="text-[10px] font-medium bg-muted px-2 py-0.5 rounded">
+                          {doc.folder || 'General'}
+                        </span>
+                      </TableCell>
                       <TableCell className="text-[11px] font-medium text-muted-foreground">{doc.letterDate || '-'}</TableCell>
-                      <TableCell className="text-[11px] font-medium text-muted-foreground">{doc.date}</TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setPreviewDoc(doc); setIsPreviewDialogOpen(true); }}>
@@ -956,7 +969,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
                     </TableRow>
                   )) : (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-60 text-center">
+                      <TableCell colSpan={8} className="h-60 text-center">
                         <FileText className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
                         <p className="text-xl font-semibold mb-1">No documents found</p>
                         <p className="text-muted-foreground mb-4">Upload a document to get started.</p>
@@ -1034,7 +1047,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2">
+<div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <p className="text-[9px] font-black uppercase text-muted-foreground">Letter Date</p>
                       <p className="text-xs font-medium">{previewDoc.letterDate || '-'}</p>
@@ -1046,6 +1059,25 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
                     <div className="space-y-1">
                       <p className="text-[9px] font-black uppercase text-muted-foreground">Uploaded By</p>
                       <p className="text-xs font-medium truncate">{previewDoc.createdBy || 'Unknown'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black uppercase text-muted-foreground">Last Modified</p>
+                      <p className="text-xs font-medium">{previewDoc.lastModified}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black uppercase text-muted-foreground">Status</p>
+                      <Badge variant={previewDoc.status === 'Active' ? 'default' : 'secondary'} className="text-[10px] font-bold">
+                        {previewDoc.status || 'Active'}
+                      </Badge>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black uppercase text-muted-foreground">Version</p>
+                      <span className="text-[10px] font-medium bg-muted px-2 py-0.5 rounded">
+                        v{previewDoc.currentVersion || 1}
+                      </span>
                     </div>
                   </div>
                 </div>
