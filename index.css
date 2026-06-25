@@ -138,6 +138,9 @@
 }
 
 @layer base {
+  html {
+    @apply overflow-x-auto;
+  }
   * {
     @apply border-border outline-ring/50;
   }
@@ -147,6 +150,8 @@
     /* Prevent overscroll on iOS */
     overscroll-behavior-y: none;
     -webkit-tap-highlight-color: transparent;
+    /* Allow horizontal scrollbar when content overflows */
+    @apply overflow-x-auto;
   }
 }
 

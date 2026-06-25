@@ -912,7 +912,7 @@ const handleScanAnalysis = async () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-140px)] gap-4 p-4 overflow-hidden">
+<div className="flex h-[calc(100vh-160px)] gap-2 p-2 overflow-hidden">
       {/* Folder Sidebar */}
       <Card className="w-60 flex flex-col shrink-0">
         <CardHeader className="border-b px-4 py-3">
