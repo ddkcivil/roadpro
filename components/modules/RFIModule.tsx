@@ -78,6 +78,54 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
     const [worksStatus, setWorksStatus] = useState<'Approved' | 'Approved as Noted' | 'Approved for Subsequent Work' | ''>('');
     const [submittedBy, setSubmittedBy] = useState('');
     const [receivedBy, setReceivedBy] = useState('');
+    
+    // Official RFI form fields
+    const [contractorName, setContractorName] = useState('');
+    const [contractorAddress, setContractorAddress] = useState('');
+    const [contractorDate, setContractorDate] = useState('');
+    const [engineerName, setEngineerName] = useState('');
+    const [engineerFirm, setEngineerFirm] = useState('');
+    const [siteOffice, setSiteOffice] = useState('');
+    const [boqItemNoOfficial, setBoqItemNoOfficial] = useState('');
+    const [inspectionPurposeOfficial, setInspectionPurposeOfficial] = useState('');
+    
+    // Approval authorities
+    const [engRepNotApproved, setEngRepNotApproved] = useState(false);
+    const [engRepApprovedWithComments, setEngRepApprovedWithComments] = useState(false);
+    const [engRepApproved, setEngRepApproved] = useState(false);
+    const [engRepRemarks, setEngRepRemarks] = useState('');
+    const [engRepName, setEngRepName] = useState('');
+    const [engRepDate, setEngRepDate] = useState('');
+    
+    const [surveyorNotApproved, setSurveyorNotApproved] = useState(false);
+    const [surveyorApprovedWithComments, setSurveyorApprovedWithComments] = useState(false);
+    const [surveyorApproved, setSurveyorApproved] = useState(false);
+    const [surveyorRemarks, setSurveyorRemarks] = useState('');
+    const [surveyorName, setSurveyorName] = useState('');
+    const [surveyorDate, setSurveyorDate] = useState('');
+    
+    const [geoNotApproved, setGeoNotApproved] = useState(false);
+    const [geoApprovedWithComments, setGeoApprovedWithComments] = useState(false);
+    const [geoApproved, setGeoApproved] = useState(false);
+    const [geoRemarks, setGeoRemarks] = useState('');
+    const [geoName, setGeoName] = useState('');
+    const [geoDate, setGeoDate] = useState('');
+    
+    const [areNotApproved, setAreNotApproved] = useState(false);
+    const [areApprovedWithComments, setAreApprovedWithComments] = useState(false);
+    const [areApproved, setAreApproved] = useState(false);
+    const [areRemarks, setAreRemarks] = useState('');
+    const [areName, setAreName] = useState('');
+    const [areDate, setAreDate] = useState('');
+    
+    const [infoName, setInfoName] = useState('');
+    const [infoSignature, setInfoSignature] = useState('');
+    const [infoDate, setInfoDate] = useState('');
+    
+    const [otherName, setOtherName] = useState('');
+    const [otherSignature, setOtherSignature] = useState('');
+    const [otherDate, setOtherDate] = useState('');
+    const [otherSpecify, setOtherSpecify] = useState('');
 
     if (!project) {
         return (
@@ -238,8 +286,63 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
             worksStatus: worksStatus as any,
             // Added boqItemNo and contractNo fields from formData if they exist
             boqItemNo: formData.boqItemNo,
-            contractNo: formData.contractNo
-        };
+            contractNo: formData.contractNo,
+            // Official RFI form fields
+            contractorName: contractorName,
+            contractorAddress: contractorAddress,
+            contractorDate: contractorDate,
+            engineerName: engineerName,
+            engineerFirm: engineerFirm,
+            siteOffice: siteOffice,
+            requestNo: requestNumber,
+            contractNoOfficial: formData.contractNo,
+            boqItemNoOfficial: boqItemNoOfficial,
+            inspectionPurposeOfficial: inspectionPurposeOfficial,
+            // Approval authorities
+            engineersRepresentative: {
+                name: engRepName,
+                notApproved: engRepNotApproved,
+                approvedWithComments: engRepApprovedWithComments,
+                approved: engRepApproved,
+                remarks: engRepRemarks,
+                date: engRepDate
+            },
+            surveyor: {
+                name: surveyorName,
+                notApproved: surveyorNotApproved,
+                approvedWithComments: surveyorApprovedWithComments,
+                approved: surveyorApproved,
+                remarks: surveyorRemarks,
+                date: surveyorDate
+            },
+            geotechnicalGeologist: {
+                name: geoName,
+                notApproved: geoNotApproved,
+                approvedWithComments: geoApprovedWithComments,
+                approved: geoApproved,
+                remarks: geoRemarks,
+                date: geoDate
+            },
+            assistantResidentEngineer: {
+                name: areName,
+                notApproved: areNotApproved,
+                approvedWithComments: areApprovedWithComments,
+                approved: areApproved,
+                remarks: areRemarks,
+                date: areDate
+            },
+            information: {
+                name: infoName,
+                signature: infoSignature,
+                date: infoDate
+            },
+            other: {
+                name: otherName,
+                signature: otherSignature,
+                date: otherDate,
+                specify: otherSpecify
+            }
+        } as any;
 
         setPendingRFI(newRFI);
         setIsPreviewOpen(true);

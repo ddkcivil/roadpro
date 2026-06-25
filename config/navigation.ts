@@ -46,10 +46,11 @@ export const getNavigationGroups = (currentUser: User | UserWithPermissions): Na
   const isAdmin = userRole === 'admin';
   const isManager = userRole === 'manager' || userRole === 'project manager' || userRole === 'project_manager';
   
-  const overviewItems: NavItem[] = [
+const overviewItems: NavItem[] = [
     { id: 'dashboard', label: 'Command Center', icon: LayoutDashboard }, 
     { id: 'gis-road', label: 'GIS-Road', icon: Navigation },
-    { id: 'messages', label: 'Messages', icon: MessageSquare } // Added Messages item
+    { id: 'messages', label: 'Messages', icon: MessageSquare },
+    { id: 'purchase-orders', label: 'Purchase Orders', icon: Package }
   ];
   
   const adminItems: NavItem[] = [];

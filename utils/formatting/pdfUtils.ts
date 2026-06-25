@@ -459,85 +459,292 @@ export const generateResourcePDF = async (project: Project) => {
   doc.save(`${project.code}_Resource_Report.pdf`);
 };
 
-// Function to generate a single RFI report in PDF
+// Function to generate a single RFI report in PDF matching official format
 export const generateSingleRFIPDF = async (rfi: RFI, project: Project) => {
   const { jsPDF } = await import('jspdf');
   
-  const doc = new jsPDF();
+  // Type assertion to bypass strict TypeScript checking for jsPDF
+  const doc = new jsPDF() as any;
+  const pageWidth = doc.internal.pageSize.getWidth();
   
-  doc.setFontSize(22);
-  doc.text(`${project.name} - RFI Details`, 20, 30);
+  // Disable strict TypeScript checking for all doc operations
+  const docAny = doc as any;
   
-  doc.setFontSize(16);
-  doc.text(`RFI Number: ${rfi.rfiNumber}`, 20, 45);
-  doc.text(`Project: ${project.name}`, 20, 55);
-  doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 65);
+  // Title
+  docAny.setFontSize(18);
+  docAny.text(project.name, 20, 20);
   
-  // Add RFI details
-  doc.setFontSize(14);
-  doc.text('Inspection Details', 20, 85);
-  doc.setFontSize(12);
-  doc.text(`Date: ${rfi.date}`, 20, 95);
-  doc.text(`Time: ${rfi.inspectionTime || 'N/A'}`, 20, 105);
-  doc.text(`Location: ${rfi.location}`, 20, 115);
-  doc.text(`Inspection Type: ${rfi.inspectionType || 'N/A'}`, 20, 125);
-  doc.text(`Purpose: ${rfi.inspectionPurpose || 'First'}`, 20, 135);
+  docAny.setFontSize(16);
+  docAny.text('REQUEST FOR INSPECTION (RFI)', pageWidth / 2, 30, { align: 'center' });
   
-  doc.text(`Status: ${rfi.status}`, 150, 135);
-
-  // Add Description of Work
-  doc.setFontSize(14);
-  doc.text('Description of Work for Inspection', 20, 155);
-  doc.setFontSize(12);
-  const descriptionLines = doc.splitTextToSize(rfi.description || 'No description provided.', 180);
-  doc.text(descriptionLines, 20, 165);
-  let currentY = 165 + descriptionLines.length * 10 + 10; // Update yPos based on description height
-
-  // Add Engineer Representative Comments
-  if (rfi.engineerRepresentativeComments) {
-    if (currentY > doc.internal.pageSize.height - 40) { doc.addPage(); currentY = 20; }
-    doc.setFontSize(14);
-    doc.text('Engineer Representative Comments', 20, currentY);
-    currentY += 10;
-    doc.setFontSize(12);
-    const commentsLines = doc.splitTextToSize(rfi.engineerRepresentativeComments, 180);
-    doc.text(commentsLines, 20, currentY);
-    currentY += commentsLines.length * 10 + 10;
-  }
-
-  // Add Works Status
-  if (rfi.worksStatus) {
-    if (currentY > doc.internal.pageSize.height - 40) { doc.addPage(); currentY = 20; }
-    doc.setFontSize(14);
-    doc.text('Works Status', 20, currentY);
-    currentY += 10;
-    doc.setFontSize(12);
-    doc.text(rfi.worksStatus, 20, currentY);
-    currentY += 10;
-  }
-
-  // Add Signatures (if available)
-  if (rfi.submittedBy || rfi.receivedBy || rfi.areSignature || rfi.iowSignature || rfi.meSltSignature || rfi.reSignature) {
-    if (currentY > doc.internal.pageSize.height - 40) { doc.addPage(); currentY = 20; }
-    doc.setFontSize(14);
-    doc.text('Signatures', 20, currentY);
-    currentY += 10;
+  // Header Information Table
+  let yPos = 40;
+  docAny.setFontSize(10);
+  
+  // Row 1: Contractor and Engineer Info
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Contractor:', 20, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.contractorName || project.contractor || ''}`, 60, yPos);
+  
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Engineer:', 120, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.engineerName || project.engineer || ''}`, 160, yPos);
+  yPos += 6;
+  
+  // Row 2: Address and Firm
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Address:', 20, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${(rfi.contractorAddress || '').substring(0, 50)}`, 60, yPos);
+  
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Firm:', 120, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.engineerFirm || ''}`, 160, yPos);
+  yPos += 6;
+  
+  // Row 3: Date
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Date:', 20, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.contractorDate || rfi.date}`, 60, yPos);
+  yPos += 6;
+  
+  // Row 4: Site Office
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Site Office:', 20, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.siteOffice || ''}`, 60, yPos);
+  yPos += 6;
+  
+  // Divider
+  docAny.line(20, yPos, pageWidth - 20, yPos);
+  yPos += 8;
+  
+  // Details Section
+  docAny.setFontSize(11);
+  
+  // Row 1: Request No and Contract No
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Request No:', 20, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.requestNo || rfi.rfiNumber}`, 60, yPos);
+  
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Contract No:', 120, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.contractNoOfficial || rfi.contractNo || ''}`, 160, yPos);
+  yPos += 8;
+  
+  // Row 2: Date with two fields
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Date:', 20, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.date}`, 60, yPos);
+  yPos += 8;
+  
+  // Row 3: Location chainage range format from PDF
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Location:', 20, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.location}`, 60, yPos);
+  yPos += 8;
+  
+  // Row 4: B.O.Q Item No
+  docAny.setFont(undefined, 'bold');
+  docAny.text('B.O.Q Item No:', 20, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.boqItemNoOfficial || rfi.boqItemNo || ''}`, 60, yPos);
+  yPos += 8;
+  
+  // Row 5: Inspection Time
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Inspection Time:', 20, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.inspectionTime || ''}`, 60, yPos);
+  yPos += 8;
+  
+  // Row 6: Drafted By
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Drafted By:', 20, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.submittedBy || ''}`, 60, yPos);
+  yPos += 8;
+  
+  // Row 7: Inspector/Surveyor
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Inspector/Surveyor:', 20, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.receivedBy || ''}`, 60, yPos);
+  yPos += 8;
+  
+  // Row 8: Contract / Source
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Contract / Source:', 20, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.contractNo || ''}`, 60, yPos);
+  yPos += 8;
+  
+  // Row 9: Purpose of Inspection
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Purpose of Inspection:', 20, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.inspectionPurposeOfficial || rfi.inspectionPurpose || ''}`, 60, yPos);
+  yPos += 8;
+  
+  // Row 10: Works Status checkboxes (text description)
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Works Status:', 20, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.worksStatus || '_ _ _ _ _ _ _ _ _ _ _'}`, 60, yPos);
+  yPos += 10;
+  
+  // Divider
+  docAny.line(20, yPos, pageWidth - 20, yPos);
+  yPos += 8;
+  
+  // Particular Details Section
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Particular Details:', 20, yPos);
+  yPos += 6;
+  
+  const detailsText = String(rfi.description || rfi.specificWorkDetails || 'No details provided.');
+  const detailLines = docAny.splitTextToSize(detailsText, pageWidth - 40);
+  docAny.setFont(undefined, 'normal');
+  detailLines.forEach((line: string) => {
+    if (yPos > 270) { docAny.addPage(); yPos = 20; }
+    docAny.text(line, 20, yPos);
+    yPos += 5;
+  });
+  
+  yPos += 5;
+  
+  // IoW - Inspection of Works Section
+  docAny.setFont(undefined, 'bold');
+  docAny.text('IoW (Inspection of Works):', 20, yPos);
+  yPos += 6;
+  docAny.setFont(undefined, 'normal');
+  docAny.text('_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _', 20, yPos);
+  yPos += 15;
+  
+  // Divider
+  docAny.line(20, yPos, pageWidth - 20, yPos);
+  yPos += 8;
+  
+  // Signature/Approval Section - Two Column Layout
+  const col1X = 20;
+  const col2X = pageWidth / 2 + 10;
+  
+  function drawAuthorityBlock(x: number, title: string, authority: any, y: number) {
+    docAny.setFont(undefined, 'bold');
+    docAny.text(title, x, y);
+    y += 5;
     
-    doc.setFontSize(10);
-    if (rfi.submittedBy) doc.text(`Submitted By: ${rfi.submittedBy}`, 20, currentY); currentY += 7;
-    if (rfi.receivedBy) doc.text(`Received By: ${rfi.receivedBy}`, 20, currentY); currentY += 7;
-    if (rfi.areSignature) doc.text(`ARE Signature: (Provided)`, 20, currentY); currentY += 7;
-    if (rfi.iowSignature) doc.text(`IOW Signature: (Provided)`, 20, currentY); currentY += 7;
-    if (rfi.meSltSignature) doc.text(`ME/SLT Signature: (Provided)`, 20, currentY); currentY += 7;
-    if (rfi.reSignature) doc.text(`RE Signature: (Provided)`, 20, currentY); currentY += 7;
+    docAny.setFontSize(9);
+    docAny.setFont(undefined, 'normal');
+    
+    // Approval checkboxes
+    docAny.text('Not Approved: [ ]', x, y);
+    docAny.text('Approved with comments: [ ]', x + 60, y);
+    y += 4;
+    docAny.text('Approved: [ ]', x + 130, y);
+    y += 6;
+    
+    // Remarks
+    docAny.setFont(undefined, 'bold');
+    docAny.text('Remarks if any:', x, y);
+    y += 4;
+    docAny.setFont(undefined, 'normal');
+    docAny.text('_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _', x, y);
+    y += 4;
+    docAny.text('_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _', x, y);
+    y += 6;
+    
+    // Signature line
+    docAny.text('Signature: _________________________', x, y);
+    y += 4;
+    docAny.text(`Name: ${authority?.name || '_ _ _ _ _ _ _ _ _ _ _'}`, x, y);
+    y += 4;
+    docAny.text(`Date: ${authority?.date || '_ _ _ _ _ _ _ _ _ _ _'}`, x, y);
+    y += 8;
+    
+    return y;
   }
   
-  // Add footer
-  const pageCount = doc.getNumberOfPages();
+  // Engineer's Representative
+  yPos = drawAuthorityBlock(col1X, "Engineer's Representative:", rfi.engineersRepresentative, yPos);
+  
+  // Surveyor
+  if (yPos > 250) { docAny.addPage(); yPos = 20; }
+  yPos = drawAuthorityBlock(col2X, 'Surveyor:', rfi.surveyor, yPos);
+  
+  // Geotechnical/Geologist
+  if (yPos > 250) { docAny.addPage(); yPos = 20; }
+  yPos = drawAuthorityBlock(col1X, 'Geotechnical/Geologist:', rfi.geotechnicalGeologist, yPos);
+  
+  // Assistant Resident Engineer
+  if (yPos > 250) { docAny.addPage(); yPos = 20; }
+  yPos = drawAuthorityBlock(col2X, 'Assistant Resident Engineer:', rfi.assistantResidentEngineer, yPos);
+  
+  // Information
+  if (yPos > 250) { docAny.addPage(); yPos = 20; }
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Information:', col1X, yPos);
+  yPos += 5;
+  docAny.setFont(undefined, 'normal');
+  docAny.text('Signature: _________________________', col1X, yPos);
+  yPos += 4;
+  docAny.text(`Name: ${rfi.information?.name || '_ _ _ _ _ _ _ _ _ _ _'}`, col1X, yPos);
+  yPos += 4;
+  docAny.text(`Date: ${rfi.information?.date || '_ _ _ _ _ _ _ _ _ _ _'}`, col1X, yPos);
+  yPos += 10;
+  
+  // Other
+  if (yPos > 250) { docAny.addPage(); yPos = 20; }
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Other (Specify):', col1X, yPos);
+  yPos += 5;
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`Other: ${rfi.other?.specify || '_ _ _ _ _ _ _ _ _ _ _'}`, col1X, yPos);
+  yPos += 4;
+  docAny.text('Signature: _________________________', col1X, yPos);
+  yPos += 4;
+  docAny.text(`Name: ${rfi.other?.name || '_ _ _ _ _ _ _ _ _ _ _'}`, col1X, yPos);
+  yPos += 4;
+  docAny.text(`Date: ${rfi.other?.date || '_ _ _ _ _ _ _ _ _ _ _'}`, col1X, yPos);
+  yPos += 15;
+  
+  // Divider
+  docAny.line(20, yPos, pageWidth - 20, yPos);
+  yPos += 8;
+  
+  // Submitted and Received By
+  docAny.setFontSize(10);
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Submitted by:', 20, yPos);
+  yPos += 5;
+  docAny.setFont(undefined, 'normal');
+  docAny.text(String(rfi.submittedBy || '_ _ _ _ _ _ _ _ _ _ _'), 20, yPos);
+  yPos += 4;
+  docAny.text('Signature: _________________________', 20, yPos);
+  yPos += 15;
+  
+  if (yPos > 260) { docAny.addPage(); yPos = 20; }
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Received by:', 20, yPos);
+  yPos += 5;
+  docAny.setFont(undefined, 'normal');
+  docAny.text('(Signature)', 20, yPos);
+  yPos += 15;
+  
+  // Footer with page numbers
+  const pageCount = docAny.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.text(`Page ${i} of ${pageCount}`, 200, doc.internal.pageSize.height - 10, { align: 'right' });
+    docAny.setPage(i);
+    docAny.text(`Page ${i} of ${pageCount}`, pageWidth / 2, docAny.internal.pageSize.height - 10, { align: 'center' });
   }
   
-  doc.save(`${rfi.rfiNumber}_RFI_Report.pdf`);
+  docAny.save(`${rfi.rfiNumber}_RFI_Report.pdf`);
 };

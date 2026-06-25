@@ -74,6 +74,7 @@ const ChandraOCRAnalyzer = lazy(() => import('./components/utilities/ChandraOCRA
 const MaterialManagementModule = lazy(() => import('./components/modules/MaterialManagementModule'));
 const MPRReportModule = lazy(() => import('./components/modules/MPRReportModule'));
 const InventorySyncModule = lazy(() => import('./components/modules/InventorySyncModule'));
+const PurchaseOrdersModule = lazy(() => import('./components/modules/PurchaseOrdersModule'));
 import ProjectsListSkeleton from './components/core/ProjectsListSkeleton';
 import DashboardSkeleton from './components/core/DashboardSkeleton';
 import ModuleSkeleton from './components/core/ModuleSkeleton';
@@ -427,7 +428,7 @@ if (!isAuthenticated) {
                             isLoading={isLoadingMessages}
                           />
                         )}
-                        {activeTab === 'documentation-hub' && (
+{activeTab === 'documentation-hub' && (
                           <DocumentationHub
                             project={currentProject!}
                             onProjectUpdate={handleSaveProject as any}
@@ -437,7 +438,9 @@ if (!isAuthenticated) {
                             isLoading={isRefreshingDetail}
                             onRefresh={refreshCurrentProject}
                           />
-                        )}                        {activeTab === 'settings' && userRole === UserRole.ADMIN && (
+                        )}
+                        {activeTab === 'purchase-orders' && <PurchaseOrdersModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
+                        {activeTab === 'settings' && userRole === UserRole.ADMIN && (
                           <SettingsModule settings={appSettings} onUpdate={updateSettings} />
                         )}
                         {activeTab === 'staff-management' && (

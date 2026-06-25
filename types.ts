@@ -230,6 +230,67 @@ export interface BaseRFI {
   requestNumber?: string;
   boqItemNo?: string; // Added: Link to BOQ Item Number
   contractNo?: string; // Added: Link to Contract Number
+  
+  // Official RFI Form Fields matching PDF template
+  contractorName?: string;
+  contractorAddress?: string;
+  contractorDate?: string;
+  engineerName?: string;
+  engineerFirm?: string;
+  siteOffice?: string;
+  requestNo?: string;
+  contractNoOfficial?: string;
+  boqItemNoOfficial?: string;
+  inspectionPurposeOfficial?: string;
+  
+  // Approval authorities
+  engineersRepresentative?: {
+    name?: string;
+    notApproved: boolean;
+    approvedWithComments: boolean;
+    approved: boolean;
+    remarks?: string;
+    signature?: string;
+    date?: string;
+  };
+  surveyor?: {
+    name?: string;
+    notApproved: boolean;
+    approvedWithComments: boolean;
+    approved: boolean;
+    remarks?: string;
+    signature?: string;
+    date?: string;
+  };
+  geotechnicalGeologist?: {
+    name?: string;
+    notApproved: boolean;
+    approvedWithComments: boolean;
+    approved: boolean;
+    remarks?: string;
+    signature?: string;
+    date?: string;
+  };
+  assistantResidentEngineer?: {
+    name?: string;
+    notApproved: boolean;
+    approvedWithComments: boolean;
+    approved: boolean;
+    remarks?: string;
+    signature?: string;
+    date?: string;
+  };
+  information?: {
+    name?: string;
+    signature?: string;
+    date?: string;
+  };
+  other?: {
+    name?: string;
+    signature?: string;
+    date?: string;
+    specify?: string;
+  };
 }
 
 export interface OpenRFI extends BaseRFI {
@@ -1186,6 +1247,7 @@ export interface PurchaseOrder {
   totalAmount: number;
   status: 'Draft' | 'Issued' | 'Received' | 'Completed';
   deliveryDate?: string;
+  description?: string;
 }
 
 export interface SitePhoto {
