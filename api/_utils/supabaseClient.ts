@@ -4,11 +4,9 @@ import { createClient } from '@supabase/supabase-js'
 let supabasePublic: any = null;
 let supabaseAdmin: any = null;
 
-const isPlaceholder = (val: string | undefined) => !val || val.includes('your-project') || val.includes('your-anon') || val.length < 10;
-
 // Get Supabase URL - check multiple possible env var names for compatibility
 // Note: API runs in Node.js/Vercel, so we use process.env (not import.meta)
-function getSupabaseUrl(): string | undefined {
+export function getSupabaseUrl(): string | undefined {
   return (
     process.env.SUPABASE_URL || 
     process.env.NEXT_PUBLIC_SUPABASE_URL || 
@@ -18,7 +16,7 @@ function getSupabaseUrl(): string | undefined {
 }
 
 // Get Supabase Anon Key - check multiple possible env var names for compatibility
-function getSupabaseAnonKey(): string | undefined {
+export function getSupabaseAnonKey(): string | undefined {
   return (
     process.env.SUPABASE_ANON_KEY || 
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 
@@ -28,13 +26,15 @@ function getSupabaseAnonKey(): string | undefined {
 }
 
 // Get Supabase Service Role Key
-function getSupabaseServiceKey(): string | undefined {
+export function getSupabaseServiceKey(): string | undefined {
   return (
     process.env.SUPABASE_SERVICE_ROLE_KEY || 
     process.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_SERVICE_KEY
   );
 }
+
+const isPlaceholder = (val: string | undefined) => !val || val.includes('your-project') || val.includes('your-anon') || val.length < 10;
 
 export const getSupabaseConfigStatus = () => {
   const url = getSupabaseUrl();
