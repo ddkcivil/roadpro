@@ -84,7 +84,7 @@ export const generateMPRPDF = async (
     socialSafeguards: string;
   }
 ): Promise<void> => {
-  const doc = new jsPDF();
+  const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 20;
