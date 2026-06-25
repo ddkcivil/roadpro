@@ -1,17 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { withErrorHandler } from './_utils/errorHandler';
 import { mapUserFromDb } from './_utils/mappers';
-import { getSupabasePublic, isSupabaseConfigured } from './_utils/supabaseClient';
+import { getSupabasePublic, isSupabaseConfigured, getSupabaseConfigStatus } from './_utils/supabaseClient';
 
 // Debug: Log startup and env availability
-const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const configStatus = getSupabaseConfigStatus();
 
 console.log('[Auth API] Server started. Env check:', {
-  hasSupabaseUrl: !!supabaseUrl,
-  hasSupabaseKey: !!supabaseKey,
-  urlLength: supabaseUrl?.length || 0,
-  keyLength: supabaseKey?.length || 0,
+  hasSupabaseUrl: configStatus.hasUrl,
+  hasSupabaseKey: configStatus.hasKey,
+  urlValid: configStatus.urlValid,
+  keyValid: configStatus.keyValid,
   nodeEnv: process.env.NODE_ENV,
   vercelEnv: process.env.VERCEL,
   vercelEnvType: process.env.VERCEL_ENV,

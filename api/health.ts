@@ -1,6 +1,6 @@
 // api/health.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin, isSupabaseConfigured } from './_utils/supabaseClient.js';
+import { getSupabaseAdmin, isSupabaseConfigured, getSupabaseConfigStatus } from './_utils/supabaseClient.js';
 import { withErrorHandler } from './_utils/errorHandler.js';
 
 export default withErrorHandler(async function (req: VercelRequest, res: VercelResponse) {
@@ -9,31 +9,18 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
     return;
   }
 
-  try {
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+try {
+    const configStatus = getSupabaseConfigStatus();
     
-    const isPlaceholder = (val: string | undefined) => !val || val.includes('your-project') || val.includes('your-anon');
-    
-    const hasSupabaseUrl = !!supabaseUrl && !isPlaceholder(supabaseUrl) && supabaseUrl.startsWith('https://');
     const hasViteSupabaseUrl = !!process.env.VITE_SUPABASE_URL;
-    const hasSupabaseAnonKey = !!supabaseAnonKey && !isPlaceholder(supabaseAnonKey);
     const hasViteSupabaseAnonKey = !!process.env.VITE_SUPABASE_ANON_KEY;
-    const hasSupabaseServiceKey = !!supabaseServiceKey;
+    const hasSupabaseServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
     const hasGemini = !!process.env.VITE_GEMINI_API_KEY;
     
-    const supabaseReady = isSupabaseConfigured();
+    const supabaseReady = configStatus.hasUrl && configStatus.hasKey && configStatus.urlValid && configStatus.keyValid;
     
-    console.log('--- HEALTH CHECK RUNNING ---');
-    console.log('Supabase env check:', {
-      SUPABASE_URL: !!hasSupabaseUrl,
-      VITE_SUPABASE_URL: !!hasViteSupabaseUrl,
-      SUPABASE_ANON_KEY: !!hasSupabaseAnonKey,
-      VITE_SUPABASE_ANON_KEY: !!hasViteSupabaseAnonKey,
-      SUPABASE_SERVICE_ROLE_KEY: !!hasSupabaseServiceKey,
-      allSupabaseReady: supabaseReady
-    });
+console.log('--- HEALTH CHECK RUNNING ---');
+    console.log('Supabase env check:', configStatus);
     console.log('AI env check:', { hasGemini });
 
     let results: any = {};
@@ -70,17 +57,16 @@ export default withErrorHandler(async function (req: VercelRequest, res: VercelR
       results = { status: 'Supabase not configured' };
     }
 
-    res.status(200).json({
+res.status(200).json({
       status: 'ok',
       timestamp: new Date().toISOString(),
       database: supabaseReady ? 'connected (Supabase)' : 'not configured',
-      targetProject: supabaseUrl ? (supabaseUrl.substring(0, 25) + '...') : 'none',
+      targetProject: configStatus.hasUrl ? (configStatus.hasUrl ? 'https://hrampejpzsanbkrpzbod.supabase.co' : '') : 'none',
       tables: results,
       nodeVersion: process.version,
       envCheck: { 
-        SUPABASE_URL: !!hasSupabaseUrl,
+        ...configStatus,
         VITE_SUPABASE_URL: !!hasViteSupabaseUrl,
-        SUPABASE_ANON_KEY: !!hasSupabaseAnonKey,
         VITE_SUPABASE_ANON_KEY: !!hasViteSupabaseAnonKey,
         SUPABASE_SERVICE_ROLE_KEY: !!hasSupabaseServiceKey,
         allSupabaseReady: supabaseReady,

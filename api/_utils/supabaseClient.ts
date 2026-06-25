@@ -6,9 +6,39 @@ let supabaseAdmin: any = null;
 
 const isPlaceholder = (val: string | undefined) => !val || val.includes('your-project') || val.includes('your-anon') || val.length < 10;
 
+// Get Supabase URL - check multiple possible env var names for compatibility
+// Note: API runs in Node.js/Vercel, so we use process.env (not import.meta)
+function getSupabaseUrl(): string | undefined {
+  return (
+    process.env.SUPABASE_URL || 
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 
+    process.env.VITE_SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL
+  );
+}
+
+// Get Supabase Anon Key - check multiple possible env var names for compatibility
+function getSupabaseAnonKey(): string | undefined {
+  return (
+    process.env.SUPABASE_ANON_KEY || 
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+}
+
+// Get Supabase Service Role Key
+function getSupabaseServiceKey(): string | undefined {
+  return (
+    process.env.SUPABASE_SERVICE_ROLE_KEY || 
+    process.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_KEY
+  );
+}
+
 export const getSupabaseConfigStatus = () => {
-  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY;
+  const url = getSupabaseUrl();
+  const key = getSupabaseAnonKey();
   
   const status = {
     hasUrl: !!url,
@@ -19,6 +49,7 @@ export const getSupabaseConfigStatus = () => {
     keyValid: !!(key && key.length >= 10 && !isPlaceholder(key)),
   };
   
+  console.log('[Supabase] Config Status:', status);
   return status;
 };
 
@@ -31,11 +62,16 @@ export function getSupabasePublic() {
   if (supabasePublic) return supabasePublic;
   if (!isSupabaseConfigured()) return null;
 
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY;
+  const url = getSupabaseUrl();
+  const key = getSupabaseAnonKey();
 
-  console.log('[Supabase] Initializing Public Client');
-  supabasePublic = createClient(url!, key!, { auth: { persistSession: false } });
+  if (!url || !key) {
+    console.error('[Supabase] Cannot create public client - missing URL or key');
+    return null;
+  }
+
+  console.log('[Supabase] Initializing Public Client with URL:', url?.substring(0, 20) + '...');
+  supabasePublic = createClient(url, key, { auth: { persistSession: false } });
   return supabasePublic;
 }
 
@@ -43,11 +79,11 @@ export function getSupabaseAdmin() {
   if (supabaseAdmin) return supabaseAdmin;
   if (!isSupabaseConfigured()) return null;
 
-  const url = process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = getSupabaseUrl();
+  const serviceKey = getSupabaseServiceKey();
 
   if (!serviceKey) {
-    console.error('[Supabase] Admin client requested but SUPABASE_SERVICE_ROLE_KEY is missing');
+    console.error('[Supabase] Admin client requested but service key is missing');
     return null;
   }
 
