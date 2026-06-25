@@ -468,28 +468,27 @@ export const generateSingleRFIPDF = async (rfi: RFI, project: Project) => {
   const docAny = doc as any;
   
   // Title
-  docAny.setFontSize(14);
-  docAny.text(project.name, pageWidth / 2, 15, { align: 'center' });
-  
   docAny.setFontSize(12);
-  docAny.text('REQUEST FOR INSPECTION (RFI)', pageWidth / 2, 22, { align: 'center' });
+  docAny.text(`${project.name} - RFI Details`, 15, 15, { align: 'left' });
   
-  let yPos = 30;
+  let yPos = 22;
   docAny.setFontSize(10);
   
-  // RFI Number and Project
+  // RFI Number
   docAny.setFont(undefined, 'bold');
   docAny.text('RFI Number:', 15, yPos);
   docAny.setFont(undefined, 'normal');
-  docAny.text(`${rfi.rfiNumber}`, 50, yPos);
+  docAny.text(`${rfi.rfiNumber}`, 55, yPos);
   yPos += 5;
   
+  // Project
   docAny.setFont(undefined, 'bold');
   docAny.text('Project:', 15, yPos);
   docAny.setFont(undefined, 'normal');
   docAny.text(project.name, 40, yPos);
   yPos += 5;
   
+  // Generated on
   docAny.setFont(undefined, 'bold');
   docAny.text('Generated on:', 15, yPos);
   docAny.setFont(undefined, 'normal');
@@ -501,40 +500,46 @@ export const generateSingleRFIPDF = async (rfi: RFI, project: Project) => {
   docAny.text('Inspection Details', 15, yPos);
   yPos += 6;
   
+  // Date
   docAny.setFont(undefined, 'bold');
   docAny.text('Date:', 15, yPos);
   docAny.setFont(undefined, 'normal');
   docAny.text(`${rfi.date}`, 35, yPos);
   yPos += 5;
   
+  // Time
   docAny.setFont(undefined, 'bold');
   docAny.text('Time:', 15, yPos);
   docAny.setFont(undefined, 'normal');
   docAny.text(`${rfi.inspectionTime || 'N/A'}`, 30, yPos);
   yPos += 5;
   
+  // Location
   docAny.setFont(undefined, 'bold');
   docAny.text('Location:', 15, yPos);
   docAny.setFont(undefined, 'normal');
   docAny.text(`${rfi.location}`, 40, yPos);
   yPos += 5;
   
+  // Inspection Type
   docAny.setFont(undefined, 'bold');
   docAny.text('Inspection Type:', 15, yPos);
   docAny.setFont(undefined, 'normal');
-  docAny.text(`${rfi.inspectionType || 'N/A'}`, 55, yPos);
+  docAny.text(`${rfi.inspectionType || 'N/A'}`, 60, yPos);
   yPos += 5;
   
+  // Purpose
   docAny.setFont(undefined, 'bold');
   docAny.text('Purpose:', 15, yPos);
   docAny.setFont(undefined, 'normal');
   docAny.text(`${rfi.inspectionPurpose || 'N/A'}`, 35, yPos);
   yPos += 5;
   
+  // Status (inline with Purpose)
   docAny.setFont(undefined, 'bold');
-  docAny.text('Status:', 15, yPos);
+  docAny.text('Status:', 80, yPos);
   docAny.setFont(undefined, 'normal');
-  docAny.text(`${rfi.status}`, 30, yPos);
+  docAny.text(`${rfi.status}`, 100, yPos);
   yPos += 8;
   
   // Description of Work
@@ -558,6 +563,7 @@ export const generateSingleRFIPDF = async (rfi: RFI, project: Project) => {
   docAny.text('Signatures', 15, yPos);
   yPos += 6;
   
+  // Submitted By
   docAny.setFont(undefined, 'bold');
   docAny.text('Submitted By:', 15, yPos);
   yPos += 5;
@@ -566,6 +572,13 @@ export const generateSingleRFIPDF = async (rfi: RFI, project: Project) => {
   yPos += 5;
   docAny.text('Signature: _________________________', 15, yPos);
   yPos += 10;
+  
+  // Footer with page numbers
+  const pageCount = docAny.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    docAny.setPage(i);
+    docAny.text(`Page ${i} of ${pageCount}`, pageWidth / 2, docAny.internal.pageSize.height - 10, { align: 'center' });
+  }
   
   docAny.save(`${rfi.rfiNumber}_RFI_Report.pdf`);
 };
