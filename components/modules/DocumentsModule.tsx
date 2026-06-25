@@ -864,19 +864,21 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
           {/* Document Table */}
           <Card className={cn("flex-1 overflow-hidden flex flex-col transition-all duration-300", previewDoc ? "flex-[0.6]" : "flex-1")}>
             <ScrollArea className="flex-1 w-full rounded-md border">
-              <Table>
+<Table>
                 <TableHeader className="bg-muted sticky top-0 z-10">
                   <TableRow>
-                    <TableHead className="w-[40%]">Name</TableHead>
-                    <TableHead className="w-[30%]">Ref / Subject</TableHead>
-                    <TableHead className="w-[15%]">Date</TableHead>
-                    <TableHead className="text-right w-[15%]">Actions</TableHead>
+                    <TableHead className="w-[30%]">Name</TableHead>
+                    <TableHead className="w-[20%]">Ref / Subject</TableHead>
+                    <TableHead className="w-[12%]">Type</TableHead>
+                    <TableHead className="w-[10%]">Letter Date</TableHead>
+                    <TableHead className="w-[10%]">Date</TableHead>
+                    <TableHead className="text-right w-[18%]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+<TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="h-60 text-center">
+                      <TableCell colSpan={6} className="h-60 text-center">
                         <Loader2 className="mx-auto h-8 w-8 text-primary animate-spin mb-2" />
                         <p className="text-muted-foreground">Synchronizing documents...</p>
                       </TableCell>
@@ -916,6 +918,14 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
                         <p className="font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">{doc.refNo || '-'}</p>
                         <p className="text-xs truncate w-full">{doc.subject || 'No subject'}</p>
                       </TableCell>
+                      <TableCell>
+                        {doc.correspondenceType ? (
+                          <Badge variant={doc.correspondenceType === 'incoming' ? 'default' : 'secondary'} className="text-[10px] font-bold">
+                            {doc.correspondenceType}
+                          </Badge>
+                        ) : <span className="text-[11px] text-muted-foreground">-</span>}
+                      </TableCell>
+                      <TableCell className="text-[11px] font-medium text-muted-foreground">{doc.letterDate || '-'}</TableCell>
                       <TableCell className="text-[11px] font-medium text-muted-foreground">{doc.date}</TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -946,7 +956,7 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
                     </TableRow>
                   )) : (
                     <TableRow>
-                      <TableCell colSpan={4} className="h-60 text-center">
+                      <TableCell colSpan={6} className="h-60 text-center">
                         <FileText className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
                         <p className="text-xl font-semibold mb-1">No documents found</p>
                         <p className="text-muted-foreground mb-4">Upload a document to get started.</p>
@@ -982,29 +992,61 @@ const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, 
                 <DocumentPreview doc={previewDoc} />
               </div>
 
-              <div className="p-4 border-t bg-background overflow-y-auto max-h-[35%] shrink-0">
+<div className="p-4 border-t bg-background overflow-y-auto max-h-[35%] shrink-0">
                 <div className="flex justify-between items-start mb-3">
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Metadata</h4>
                   <Button variant="ghost" size="sm" className="h-6 text-[10px] font-bold" onClick={() => handleOpenEdit(previewDoc)}>
                     <Pencil className="h-3 w-3 mr-1" /> Edit
                   </Button>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <p className="text-[9px] font-black uppercase text-muted-foreground">Subject</p>
-                    <p className="text-xs font-bold truncate" title={previewDoc.subject}>{previewDoc.subject || 'Not specified'}</p>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black uppercase text-muted-foreground">Subject</p>
+                      <p className="text-xs font-bold truncate" title={previewDoc.subject}>{previewDoc.subject || 'Not specified'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black uppercase text-muted-foreground">Reference</p>
+                      <p className="text-xs font-bold truncate">{previewDoc.refNo || 'N/A'}</p>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-[9px] font-black uppercase text-muted-foreground">Reference</p>
-                    <p className="text-xs font-bold truncate">{previewDoc.refNo || 'N/A'}</p>
+                  
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black uppercase text-muted-foreground">Type</p>
+                      <Badge variant={previewDoc.type === 'IMAGE' ? 'default' : 'outline'} className="text-[10px] font-bold">
+                        {previewDoc.type}
+                      </Badge>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black uppercase text-muted-foreground">Corr. Type</p>
+                      {previewDoc.correspondenceType ? (
+                        <Badge variant={previewDoc.correspondenceType === 'incoming' ? 'default' : 'secondary'} className="text-[10px] font-bold">
+                          {previewDoc.correspondenceType}
+                        </Badge>
+                      ) : <span className="text-[10px] text-muted-foreground">-</span>}
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black uppercase text-muted-foreground">Folder</p>
+                      <span className="text-[10px] font-medium bg-muted px-2 py-0.5 rounded">
+                        {previewDoc.folder || 'General'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-[9px] font-black uppercase text-muted-foreground">Type / Date</p>
-                    <p className="text-xs font-bold">{previewDoc.type} — {previewDoc.date}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[9px] font-black uppercase text-muted-foreground">Uploaded By</p>
-                    <p className="text-xs font-bold">{previewDoc.createdBy || 'Unknown'}</p>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black uppercase text-muted-foreground">Letter Date</p>
+                      <p className="text-xs font-medium">{previewDoc.letterDate || '-'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black uppercase text-muted-foreground">Date</p>
+                      <p className="text-xs font-medium">{previewDoc.date}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black uppercase text-muted-foreground">Uploaded By</p>
+                      <p className="text-xs font-medium truncate">{previewDoc.createdBy || 'Unknown'}</p>
+                    </div>
                   </div>
                 </div>
                 
