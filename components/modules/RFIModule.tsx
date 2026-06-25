@@ -213,6 +213,15 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
         setWorksStatus(rfi.worksStatus || '');
         setSubmittedBy(rfi.submittedBy || '');
         setReceivedBy(rfi.receivedBy || '');
+        // Official RFI form fields
+        setContractorName(rfi.contractorName || '');
+        setContractorAddress(rfi.contractorAddress || '');
+        setContractorDate(rfi.contractorDate || '');
+        setEngineerName(rfi.engineerName || '');
+        setEngineerFirm(rfi.engineerFirm || '');
+        setSiteOffice(rfi.siteOffice || '');
+        setBoqItemNoOfficial(rfi.boqItemNoOfficial || '');
+        setInspectionPurposeOfficial(rfi.inspectionPurposeOfficial || '');
     };
 
     const handleSave = () => {
@@ -552,15 +561,15 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="inspection-type" className={cn(errors.inspectionType && "text-destructive")}>Inspection Type</Label>
+                            <Label htmlFor="inspection-type">Inspection Type</Label>
                             <div className="relative">
                                 <FileText size={18} className="text-primary absolute left-3 top-1/2 -translate-y-1/2" />
                                 <Input
                                     id="inspection-type"
-                                    placeholder="e.g. Box Culvert, Earthwork, etc."
+                                    placeholder="e.g. P.C.C Work, Box Culvert, Earthwork"
                                     value={inspectionType || ''} 
                                     onChange={e => setInspectionType(e.target.value)}
-                                    className={cn("pl-10 h-11 shadow-sm", errors.inspectionType && "border-destructive")}
+                                    className="pl-10 h-11 shadow-sm"
                                 />
                             </div>
                         </div>
@@ -582,7 +591,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                                 <UserIcon size={18} className="text-primary absolute left-3 top-1/2 -translate-y-1/2" />
                                 <Input
                                     id="submitted-by"
-                                    placeholder="Name of person submitting the RFI"
+                                    placeholder="Name of person submitting"
                                     value={submittedBy || ''} 
                                     onChange={e => setSubmittedBy(e.target.value)}
                                     className={cn("pl-10 h-11 shadow-sm", errors.submittedBy && "border-destructive")}
@@ -620,6 +629,109 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                                 </SelectContent>
                             </Select>
                         </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="inspection-time">Inspection Time</Label>
+                            <Input
+                                id="inspection-time"
+                                placeholder="e.g. 10 A.M"
+                                value={inspectionTime}
+                                onChange={e => setInspectionTime(e.target.value)}
+                                className="h-11 shadow-sm"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="boq-item-no">B.O.Q Item No</Label>
+                            <Input
+                                id="boq-item-no"
+                                placeholder="e.g. 51"
+                                value={boqItemNoOfficial}
+                                onChange={e => setBoqItemNoOfficial(e.target.value)}
+                                className="h-11 shadow-sm"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="contract-no">Contract No</Label>
+                            <Input
+                                id="contract-no"
+                                placeholder="e.g. URLIP/TT/CW01"
+                                value={formData.contractNo || ''}
+                                onChange={e => setFormData({...formData, contractNo: e.target.value})}
+                                className="h-11 shadow-sm"
+                            />
+                        </div>
+
+                        <div className="col-span-full border-t border-border/50 my-2" />
+
+                        <div className="space-y-2">
+                            <Label htmlFor="contractor-name">Contractor Name</Label>
+                            <Input
+                                id="contractor-name"
+                                placeholder="e.g. M/S LONGJIAN-SAGUN JV"
+                                value={contractorName}
+                                onChange={e => setContractorName(e.target.value)}
+                                className="h-11 shadow-sm"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="contractor-address">Contractor Address</Label>
+                            <Input
+                                id="contractor-address"
+                                placeholder="e.g. Butwal-13, Rupandehi, Nepal"
+                                value={contractorAddress}
+                                onChange={e => setContractorAddress(e.target.value)}
+                                className="h-11 shadow-sm"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="contractor-date">Contractor Date</Label>
+                            <Input
+                                id="contractor-date"
+                                type="date"
+                                value={contractorDate}
+                                onChange={e => setContractorDate(e.target.value)}
+                                className="h-11 shadow-sm"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="engineer-name">Engineer Name</Label>
+                            <Input
+                                id="engineer-name"
+                                placeholder="e.g. Engineer's Representative"
+                                value={engineerName}
+                                onChange={e => setEngineerName(e.target.value)}
+                                className="h-11 shadow-sm"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="engineer-firm">Engineer Firm</Label>
+                            <Input
+                                id="engineer-firm"
+                                placeholder="e.g. BDA-BN-UDAYA JV, Kathmandu"
+                                value={engineerFirm}
+                                onChange={e => setEngineerFirm(e.target.value)}
+                                className="h-11 shadow-sm"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="site-office">Site Office</Label>
+                            <Input
+                                id="site-office"
+                                placeholder="e.g. Manigram, Rupandehi"
+                                value={siteOffice}
+                                onChange={e => setSiteOffice(e.target.value)}
+                                className="h-11 shadow-sm"
+                            />
+                        </div>
+
+                        <div className="col-span-full border-t border-border/50 my-2" />
 
                         <div className="space-y-2">
                             <Label htmlFor="update-status">Current Status</Label>

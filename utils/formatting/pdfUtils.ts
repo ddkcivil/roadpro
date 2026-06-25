@@ -459,292 +459,113 @@ export const generateResourcePDF = async (project: Project) => {
   doc.save(`${project.code}_Resource_Report.pdf`);
 };
 
-// Function to generate a single RFI report in PDF matching official format
+// Function to generate a single RFI report in PDF
 export const generateSingleRFIPDF = async (rfi: RFI, project: Project) => {
   const { jsPDF } = await import('jspdf');
   
-  // Type assertion to bypass strict TypeScript checking for jsPDF
   const doc = new jsPDF() as any;
   const pageWidth = doc.internal.pageSize.getWidth();
-  
-  // Disable strict TypeScript checking for all doc operations
   const docAny = doc as any;
   
   // Title
-  docAny.setFontSize(18);
-  docAny.text(project.name, 20, 20);
+  docAny.setFontSize(14);
+  docAny.text(project.name, pageWidth / 2, 15, { align: 'center' });
   
-  docAny.setFontSize(16);
-  docAny.text('REQUEST FOR INSPECTION (RFI)', pageWidth / 2, 30, { align: 'center' });
+  docAny.setFontSize(12);
+  docAny.text('REQUEST FOR INSPECTION (RFI)', pageWidth / 2, 22, { align: 'center' });
   
-  // Header Information Table
-  let yPos = 40;
+  let yPos = 30;
   docAny.setFontSize(10);
   
-  // Row 1: Contractor and Engineer Info
+  // RFI Number and Project
   docAny.setFont(undefined, 'bold');
-  docAny.text('Contractor:', 20, yPos);
+  docAny.text('RFI Number:', 15, yPos);
   docAny.setFont(undefined, 'normal');
-  docAny.text(`${rfi.contractorName || project.contractor || ''}`, 60, yPos);
+  docAny.text(`${rfi.rfiNumber}`, 50, yPos);
+  yPos += 5;
   
   docAny.setFont(undefined, 'bold');
-  docAny.text('Engineer:', 120, yPos);
+  docAny.text('Project:', 15, yPos);
   docAny.setFont(undefined, 'normal');
-  docAny.text(`${rfi.engineerName || project.engineer || ''}`, 160, yPos);
+  docAny.text(project.name, 40, yPos);
+  yPos += 5;
+  
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Generated on:', 15, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(new Date().toLocaleDateString(), 55, yPos);
+  yPos += 8;
+  
+  // Inspection Details Section
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Inspection Details', 15, yPos);
   yPos += 6;
   
-  // Row 2: Address and Firm
   docAny.setFont(undefined, 'bold');
-  docAny.text('Address:', 20, yPos);
+  docAny.text('Date:', 15, yPos);
   docAny.setFont(undefined, 'normal');
-  docAny.text(`${(rfi.contractorAddress || '').substring(0, 50)}`, 60, yPos);
+  docAny.text(`${rfi.date}`, 35, yPos);
+  yPos += 5;
   
   docAny.setFont(undefined, 'bold');
-  docAny.text('Firm:', 120, yPos);
+  docAny.text('Time:', 15, yPos);
   docAny.setFont(undefined, 'normal');
-  docAny.text(`${rfi.engineerFirm || ''}`, 160, yPos);
+  docAny.text(`${rfi.inspectionTime || 'N/A'}`, 30, yPos);
+  yPos += 5;
+  
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Location:', 15, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.location}`, 40, yPos);
+  yPos += 5;
+  
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Inspection Type:', 15, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.inspectionType || 'N/A'}`, 55, yPos);
+  yPos += 5;
+  
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Purpose:', 15, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.inspectionPurpose || 'N/A'}`, 35, yPos);
+  yPos += 5;
+  
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Status:', 15, yPos);
+  docAny.setFont(undefined, 'normal');
+  docAny.text(`${rfi.status}`, 30, yPos);
+  yPos += 8;
+  
+  // Description of Work
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Description of Work for Inspection', 15, yPos);
   yPos += 6;
   
-  // Row 3: Date
-  docAny.setFont(undefined, 'bold');
-  docAny.text('Date:', 20, yPos);
   docAny.setFont(undefined, 'normal');
-  docAny.text(`${rfi.contractorDate || rfi.date}`, 60, yPos);
-  yPos += 6;
-  
-  // Row 4: Site Office
-  docAny.setFont(undefined, 'bold');
-  docAny.text('Site Office:', 20, yPos);
-  docAny.setFont(undefined, 'normal');
-  docAny.text(`${rfi.siteOffice || ''}`, 60, yPos);
-  yPos += 6;
-  
-  // Divider
-  docAny.line(20, yPos, pageWidth - 20, yPos);
-  yPos += 8;
-  
-  // Details Section
-  docAny.setFontSize(11);
-  
-  // Row 1: Request No and Contract No
-  docAny.setFont(undefined, 'bold');
-  docAny.text('Request No:', 20, yPos);
-  docAny.setFont(undefined, 'normal');
-  docAny.text(`${rfi.requestNo || rfi.rfiNumber}`, 60, yPos);
-  
-  docAny.setFont(undefined, 'bold');
-  docAny.text('Contract No:', 120, yPos);
-  docAny.setFont(undefined, 'normal');
-  docAny.text(`${rfi.contractNoOfficial || rfi.contractNo || ''}`, 160, yPos);
-  yPos += 8;
-  
-  // Row 2: Date with two fields
-  docAny.setFont(undefined, 'bold');
-  docAny.text('Date:', 20, yPos);
-  docAny.setFont(undefined, 'normal');
-  docAny.text(`${rfi.date}`, 60, yPos);
-  yPos += 8;
-  
-  // Row 3: Location chainage range format from PDF
-  docAny.setFont(undefined, 'bold');
-  docAny.text('Location:', 20, yPos);
-  docAny.setFont(undefined, 'normal');
-  docAny.text(`${rfi.location}`, 60, yPos);
-  yPos += 8;
-  
-  // Row 4: B.O.Q Item No
-  docAny.setFont(undefined, 'bold');
-  docAny.text('B.O.Q Item No:', 20, yPos);
-  docAny.setFont(undefined, 'normal');
-  docAny.text(`${rfi.boqItemNoOfficial || rfi.boqItemNo || ''}`, 60, yPos);
-  yPos += 8;
-  
-  // Row 5: Inspection Time
-  docAny.setFont(undefined, 'bold');
-  docAny.text('Inspection Time:', 20, yPos);
-  docAny.setFont(undefined, 'normal');
-  docAny.text(`${rfi.inspectionTime || ''}`, 60, yPos);
-  yPos += 8;
-  
-  // Row 6: Drafted By
-  docAny.setFont(undefined, 'bold');
-  docAny.text('Drafted By:', 20, yPos);
-  docAny.setFont(undefined, 'normal');
-  docAny.text(`${rfi.submittedBy || ''}`, 60, yPos);
-  yPos += 8;
-  
-  // Row 7: Inspector/Surveyor
-  docAny.setFont(undefined, 'bold');
-  docAny.text('Inspector/Surveyor:', 20, yPos);
-  docAny.setFont(undefined, 'normal');
-  docAny.text(`${rfi.receivedBy || ''}`, 60, yPos);
-  yPos += 8;
-  
-  // Row 8: Contract / Source
-  docAny.setFont(undefined, 'bold');
-  docAny.text('Contract / Source:', 20, yPos);
-  docAny.setFont(undefined, 'normal');
-  docAny.text(`${rfi.contractNo || ''}`, 60, yPos);
-  yPos += 8;
-  
-  // Row 9: Purpose of Inspection
-  docAny.setFont(undefined, 'bold');
-  docAny.text('Purpose of Inspection:', 20, yPos);
-  docAny.setFont(undefined, 'normal');
-  docAny.text(`${rfi.inspectionPurposeOfficial || rfi.inspectionPurpose || ''}`, 60, yPos);
-  yPos += 8;
-  
-  // Row 10: Works Status checkboxes (text description)
-  docAny.setFont(undefined, 'bold');
-  docAny.text('Works Status:', 20, yPos);
-  docAny.setFont(undefined, 'normal');
-  docAny.text(`${rfi.worksStatus || '_ _ _ _ _ _ _ _ _ _ _'}`, 60, yPos);
-  yPos += 10;
-  
-  // Divider
-  docAny.line(20, yPos, pageWidth - 20, yPos);
-  yPos += 8;
-  
-  // Particular Details Section
-  docAny.setFont(undefined, 'bold');
-  docAny.text('Particular Details:', 20, yPos);
-  yPos += 6;
-  
-  const detailsText = String(rfi.description || rfi.specificWorkDetails || 'No details provided.');
-  const detailLines = docAny.splitTextToSize(detailsText, pageWidth - 40);
-  docAny.setFont(undefined, 'normal');
-  detailLines.forEach((line: string) => {
+  const description = String(rfi.description || rfi.specificWorkDetails || 'No description provided.');
+  const descLines = docAny.splitTextToSize(description, pageWidth - 30);
+  descLines.forEach((line: string) => {
     if (yPos > 270) { docAny.addPage(); yPos = 20; }
-    docAny.text(line, 20, yPos);
+    docAny.text(line, 15, yPos);
     yPos += 5;
   });
-  
-  yPos += 5;
-  
-  // IoW - Inspection of Works Section
-  docAny.setFont(undefined, 'bold');
-  docAny.text('IoW (Inspection of Works):', 20, yPos);
   yPos += 6;
-  docAny.setFont(undefined, 'normal');
-  docAny.text('_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _', 20, yPos);
-  yPos += 15;
   
-  // Divider
-  docAny.line(20, yPos, pageWidth - 20, yPos);
-  yPos += 8;
-  
-  // Signature/Approval Section - Two Column Layout
-  const col1X = 20;
-  const col2X = pageWidth / 2 + 10;
-  
-  function drawAuthorityBlock(x: number, title: string, authority: any, y: number) {
-    docAny.setFont(undefined, 'bold');
-    docAny.text(title, x, y);
-    y += 5;
-    
-    docAny.setFontSize(9);
-    docAny.setFont(undefined, 'normal');
-    
-    // Approval checkboxes
-    docAny.text('Not Approved: [ ]', x, y);
-    docAny.text('Approved with comments: [ ]', x + 60, y);
-    y += 4;
-    docAny.text('Approved: [ ]', x + 130, y);
-    y += 6;
-    
-    // Remarks
-    docAny.setFont(undefined, 'bold');
-    docAny.text('Remarks if any:', x, y);
-    y += 4;
-    docAny.setFont(undefined, 'normal');
-    docAny.text('_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _', x, y);
-    y += 4;
-    docAny.text('_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _', x, y);
-    y += 6;
-    
-    // Signature line
-    docAny.text('Signature: _________________________', x, y);
-    y += 4;
-    docAny.text(`Name: ${authority?.name || '_ _ _ _ _ _ _ _ _ _ _'}`, x, y);
-    y += 4;
-    docAny.text(`Date: ${authority?.date || '_ _ _ _ _ _ _ _ _ _ _'}`, x, y);
-    y += 8;
-    
-    return y;
-  }
-  
-  // Engineer's Representative
-  yPos = drawAuthorityBlock(col1X, "Engineer's Representative:", rfi.engineersRepresentative, yPos);
-  
-  // Surveyor
-  if (yPos > 250) { docAny.addPage(); yPos = 20; }
-  yPos = drawAuthorityBlock(col2X, 'Surveyor:', rfi.surveyor, yPos);
-  
-  // Geotechnical/Geologist
-  if (yPos > 250) { docAny.addPage(); yPos = 20; }
-  yPos = drawAuthorityBlock(col1X, 'Geotechnical/Geologist:', rfi.geotechnicalGeologist, yPos);
-  
-  // Assistant Resident Engineer
-  if (yPos > 250) { docAny.addPage(); yPos = 20; }
-  yPos = drawAuthorityBlock(col2X, 'Assistant Resident Engineer:', rfi.assistantResidentEngineer, yPos);
-  
-  // Information
-  if (yPos > 250) { docAny.addPage(); yPos = 20; }
+  // Signatures Section
+  if (yPos > 240) { docAny.addPage(); yPos = 20; }
   docAny.setFont(undefined, 'bold');
-  docAny.text('Information:', col1X, yPos);
+  docAny.text('Signatures', 15, yPos);
+  yPos += 6;
+  
+  docAny.setFont(undefined, 'bold');
+  docAny.text('Submitted By:', 15, yPos);
   yPos += 5;
   docAny.setFont(undefined, 'normal');
-  docAny.text('Signature: _________________________', col1X, yPos);
-  yPos += 4;
-  docAny.text(`Name: ${rfi.information?.name || '_ _ _ _ _ _ _ _ _ _ _'}`, col1X, yPos);
-  yPos += 4;
-  docAny.text(`Date: ${rfi.information?.date || '_ _ _ _ _ _ _ _ _ _ _'}`, col1X, yPos);
+  docAny.text(`${rfi.submittedBy || '_ _ _ _ _ _ _ _ _ _ _'}`, 15, yPos);
+  yPos += 5;
+  docAny.text('Signature: _________________________', 15, yPos);
   yPos += 10;
-  
-  // Other
-  if (yPos > 250) { docAny.addPage(); yPos = 20; }
-  docAny.setFont(undefined, 'bold');
-  docAny.text('Other (Specify):', col1X, yPos);
-  yPos += 5;
-  docAny.setFont(undefined, 'normal');
-  docAny.text(`Other: ${rfi.other?.specify || '_ _ _ _ _ _ _ _ _ _ _'}`, col1X, yPos);
-  yPos += 4;
-  docAny.text('Signature: _________________________', col1X, yPos);
-  yPos += 4;
-  docAny.text(`Name: ${rfi.other?.name || '_ _ _ _ _ _ _ _ _ _ _'}`, col1X, yPos);
-  yPos += 4;
-  docAny.text(`Date: ${rfi.other?.date || '_ _ _ _ _ _ _ _ _ _ _'}`, col1X, yPos);
-  yPos += 15;
-  
-  // Divider
-  docAny.line(20, yPos, pageWidth - 20, yPos);
-  yPos += 8;
-  
-  // Submitted and Received By
-  docAny.setFontSize(10);
-  docAny.setFont(undefined, 'bold');
-  docAny.text('Submitted by:', 20, yPos);
-  yPos += 5;
-  docAny.setFont(undefined, 'normal');
-  docAny.text(String(rfi.submittedBy || '_ _ _ _ _ _ _ _ _ _ _'), 20, yPos);
-  yPos += 4;
-  docAny.text('Signature: _________________________', 20, yPos);
-  yPos += 15;
-  
-  if (yPos > 260) { docAny.addPage(); yPos = 20; }
-  docAny.setFont(undefined, 'bold');
-  docAny.text('Received by:', 20, yPos);
-  yPos += 5;
-  docAny.setFont(undefined, 'normal');
-  docAny.text('(Signature)', 20, yPos);
-  yPos += 15;
-  
-  // Footer with page numbers
-  const pageCount = docAny.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    docAny.setPage(i);
-    docAny.text(`Page ${i} of ${pageCount}`, pageWidth / 2, docAny.internal.pageSize.height - 10, { align: 'center' });
-  }
   
   docAny.save(`${rfi.rfiNumber}_RFI_Report.pdf`);
 };
