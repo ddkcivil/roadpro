@@ -7,7 +7,7 @@ import { Project, UserRole, AppSettings, BOQItem, VariationOrder, MeasurementShe
 import * as XLSX from 'xlsx';
 import StatCard from '../core/StatCard';
 import BOQRegistry from './BOQRegistry';
-import { getCurrencySymbol } from '../../utils/formatting/currencyUtils';
+import { getCurrencySymbol, formatCurrency } from '../../utils/formatting/currencyUtils';
 import { toast } from 'sonner';
 
 import { Button } from '~/components/ui/button';

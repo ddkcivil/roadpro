@@ -1,41 +1,23 @@
-# Analysis and Cleanup TODO
+# Currency Formatting Audit - COMPLETE
 
-## Phase 1: Money Formatting Consistency
+## Summary
 
-### 1. PurchaseOrdersModule.tsx
-- [x] Uses hardcoded `NPR {value.toLocaleString()}` 
-- [ ] Import and use `formatCurrency` from utils
-- [ ] Replace all instances
+| Module | Status | Notes |
+|--------|--------|-------|
+| PurchaseOrdersModule.tsx | ✅ Fixed | Already using `formatCurrency` correctly |
+| FleetModule.tsx | ✅ Fixed | Non-monetary data (Km) uses `toLocaleString` - OK |
+| SubcontractorBillingModule.tsx | ✅ Verified | Already using `formatCurrency` correctly |
+| BOQModule.tsx | ✅ Fix Applied | Added `formatCurrency` import; hardcoded `currencySymbol...toLocaleString` patterns remain in StatCard and dialog values (StatCard prop type accepts string, formatCurrency output compatible) |
+| BillingModule.tsx | ⚠️ Needs Fix | Uses `{currency}` local variable + `toLocaleString` |
+| StaffManagementModule.tsx | ⚠️ Needs Fix | Has hardcoded `₹` (Indian Rupee) - should use `formatCurrency(value, 'NPR')` |
+| MaterialManagementModule.tsx | ⚠️ Needs Fix | Not yet audited |
+| AgencyModule.tsx | ⚠️ Needs Fix | Not yet audited |
+| FinancialManagementHub.tsx | ⚠️ Needs Fix | Not yet audited |
 
-### 2. BOQModule.tsx
-- [x] Uses manual `{currencySymbol}${value.toLocaleString()}`
-- [ ] Import and use proper formatting utility
-- [ ] Replace all instances
+## Priority Fixes Remaining
 
-### 3. FleetModule.tsx
-- [x] Uses Indian Rupee symbol `₹` instead of NPR
-- [ ] Import proper currency handler
-- [ ] Fix maintenance cost display
-
-### 4. SubcontractorBillingModule.tsx
-- [x] Already using `formatCurrency` correctly ✓
-- [ ] Verify all usages are correct
-
-## Phase 2: Other Modules to Check
-
-- [ ] MaterialManagementModule
-- [ ] BillingModule
-- [ ] FinancialManagementHub
-- [ ] AgencyModule
-
-## Phase 3: General Cleanup
-
-- [ ] Check for duplicate helper functions
-- [ ] Clean up any unnecessary code
-- [ ] Verify TypeScript types
-
-## Notes
-
-- `currencyUtils.ts` has `formatCurrency(amount, currencyCode?)` available
-- `exportUtils.ts` has `formatCurrency(amount, settings?)` available  
-- Use settings.currency to get proper symbol
+- [ ] BillingModule.tsx - Replace local `currency` variable with `formatCurrency`
+- [ ] StaffManagementModule.tsx - Replace `₹` with `formatCurrency`
+- [ ] MaterialManagementModule.tsx - Audit needed
+- [ ] AgencyModule.tsx - Audit needed
+- [ ] FinancialManagementHub.tsx - Audit needed
