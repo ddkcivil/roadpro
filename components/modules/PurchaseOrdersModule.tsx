@@ -140,16 +140,82 @@ const PurchaseOrdersModule: React.FC<PurchaseOrdersModuleProps> = ({ project, us
     toast.success("Purchase Order Deleted");
   };
 
-  const handleStatusChange = (po: PurchaseOrder, newStatus: string) => {
+const handleStatusChange = (po: PurchaseOrder, newStatus: string) => {
     const updatedPO = { ...po, status: newStatus as PurchaseOrder['status'] };
     const updatedPOs = purchaseOrders.map(p => 
       p.id === po.id ? updatedPO : p
     );
-    onProjectUpdate({
-      ...project,
-      purchaseOrders: updatedPOs
-    });
-    toast.success(`Status updated to ${newStatus}`);
+    
+    // Handle auto-receiving: when PO status changes to 'Received', add items to inventory
+    if (newStatus === 'Received' && po.status !== 'Received') {
+      const currentMaterials = project.materials || [];
+      const newMaterials = [...currentMaterials];
+      let materialsAdded = 0;
+      
+      po.items.forEach(poItem => {
+        // Check if material already exists
+        const existingIndex = newMaterials.findIndex(
+          m => m.name.toLowerCase() === poItem.itemName.toLowerCase()
+        );
+        
+        if (existingIndex >= 0) {
+          // Update existing material quantity
+          const existingMaterial = newMaterials[existingIndex];
+          newMaterials[existingIndex] = {
+            ...existingMaterial,
+            quantity: existingMaterial.quantity + poItem.quantity,
+            availableQuantity: (existingMaterial.availableQuantity || existingMaterial.quantity) + poItem.quantity,
+            lastUpdated: new Date().toISOString(),
+            status: 'Available' as const
+          };
+        } else {
+          // Create new material entry
+          newMaterials.push({
+            id: poItem.itemId,
+            name: poItem.itemName,
+            category: 'General',
+            unit: 'pcs', // Default unit - could be enhanced to store unit
+            quantity: poItem.quantity,
+            availableQuantity: poItem.quantity,
+            location: 'Main Store',
+            lastUpdated: new Date().toISOString(),
+            reorderLevel: 10,
+            status: 'Available' as const
+          });
+        }
+        materialsAdded++;
+      });
+      
+      // Record inventory transactions for audit
+      const inventoryTransactions = project.inventoryTransactions || [];
+      const newTransactions = [...inventoryTransactions];
+      po.items.forEach(poItem => {
+        newTransactions.push({
+          id: generateUniqueId(),
+          itemId: poItem.itemId,
+          itemName: poItem.itemName,
+          type: 'IN' as const,
+          date: new Date().toISOString(),
+          quantity: poItem.quantity,
+          vendorName: po.vendor
+        });
+      });
+      
+      onProjectUpdate({
+        ...project,
+        purchaseOrders: updatedPOs,
+        materials: newMaterials,
+        inventoryTransactions: newTransactions
+      });
+      
+      toast.success(`Status updated to ${newStatus} and ${materialsAdded} item(s) added to inventory`);
+    } else {
+      onProjectUpdate({
+        ...project,
+        purchaseOrders: updatedPOs
+      });
+      toast.success(`Status updated to ${newStatus}`);
+    }
   };
 
   const addItemToPO = () => {
