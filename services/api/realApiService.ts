@@ -307,6 +307,10 @@ if (response.status === 401 || response.status === 500) {
   private sanitizeProjectForApi(projectData: Partial<Project>): Partial<Project> {
     const sanitized = { ...projectData };
 
+    console.log('[BOQ DEBUG] sanitizeProjectForApi input - BOQ:', {
+      boqCount: Array.isArray(sanitized.boq) ? sanitized.boq.length : 0,
+    });
+
     if (sanitized.documents) {
       sanitized.documents = sanitized.documents.map((doc: any) => {
         if (doc.fileUrl && (doc.fileUrl.startsWith('data:') || doc.fileUrl.startsWith('blob:'))) {
@@ -326,6 +330,10 @@ if (response.status === 401 || response.status === 500) {
         return photo;
       });
     }
+
+    console.log('[BOQ DEBUG] sanitizeProjectForApi output - BOQ:', {
+      boqCount: Array.isArray(sanitized.boq) ? sanitized.boq.length : 0,
+    });
 
     return sanitized;
   }

@@ -45,6 +45,16 @@ const BOQRegistry: React.FC<BOQManagerProps> = ({
   const [, startTransition] = useTransition();
   const currencySymbol = getCurrencySymbol(settings.currency);
 
+  // DEBUG: Log BOQ data on component render
+  React.useEffect(() => {
+    console.log('[BOQ DEBUG] BOQRegistry component render:', {
+      projectId: project?.id,
+      boqCount: Array.isArray(project?.boq) ? project.boq.length : 0,
+      boqData: project?.boq,
+      timestamp: new Date().toISOString()
+    });
+  }, [project?.id, project?.boq]);
+
   const canEdit = [UserRole.ADMIN, UserRole.PROJECT_MANAGER, UserRole.SITE_ENGINEER].includes(userRole);
   const canDelete = [UserRole.ADMIN, UserRole.PROJECT_MANAGER].includes(userRole);
 
@@ -105,6 +115,11 @@ const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
           amount: quantity * rate 
         } : item
       );
+      console.log('[BOQ DEBUG] handleSaveEdit - saving to project:', {
+        itemsCount: updatedBoq.length,
+        projectId: project.id,
+        boqData: updatedBoq
+      });
       startTransition(() => {
         onProjectUpdate({ ...project, boq: updatedBoq });
       });
@@ -158,8 +173,14 @@ const handleNewItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         completedQuantity: 0,
         variationQuantity: 0,
       };
+      const updatedProject = { ...project, boq: [...(project.boq || []), newBoqItem] };
+      console.log('[BOQ DEBUG] handleSaveNewItem - saving to project:', {
+        newItemsCount: updatedProject.boq?.length,
+        projectId: updatedProject.id,
+        boqData: updatedProject.boq
+      });
       startTransition(() => {
-        onProjectUpdate({ ...project, boq: [...(project.boq || []), newBoqItem] });
+        onProjectUpdate(updatedProject);
       });
       setIsNewItemModalOpen(false);
       setNewItem({ // Reset form
