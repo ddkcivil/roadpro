@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Project, UserRole, DailyWorkItem, DailyReport, PlantEquipment, MaterialEntry, PersonnelEntry, RoadWorkEntry } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { 
     Activity, FileText, Trash2, Plus, Printer, CheckCircle, Info, 
     CloudSun, Wifi, User, Users, AlertCircle, Eye, ArrowLeft, 
-    Sun, Cloud, CloudRain, BookOpen, Search, Truck, Package, MapPin, Clock, AlertTriangle
+    Sun, Cloud, CloudRain, BookOpen, Search, Truck, Package, MapPin, Clock, AlertTriangle,
+    Thermometer, Droplets, Pen, Download, Calendar
 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
@@ -87,8 +88,12 @@ const DailyReportModule: React.FC<Props> = ({
     const [workItemsToday, setWorkItemsToday] = useState<DailyWorkItem[]>([]);
     const [visitors, setVisitors] = useState([{ id: Date.now().toString(), name: '', organization: '' }]);
     const [remarks, setRemarks] = useState(['']);
-    const [submittedBy, setSubmittedBy] = useState(userName || '');
+const [submittedBy, setSubmittedBy] = useState(userName || '');
     const [receivedBy, setReceivedBy] = useState('');
+
+    // Date filter for list view
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
 
     // Validation states
     const [errors, setErrors] = useState<ValidationError>({
@@ -109,10 +114,41 @@ const DailyReportModule: React.FC<Props> = ({
         setWorkItemsToday([...workItemsToday, newWorkItem]);
     };
 
+// Fetch weather from Open-Meteo API (Butwal, Nepal coordinates)
     const handleFetchWeather = async () => {
         setIsFetchingWeather(true);
         try {
-            setWeather('Sunny');
+            // Butwal coordinates: lat 27.7000, lng 83.4500
+            const latitude = project.lat || 27.7000;
+            const longitude = project.lng || 83.4500;
+            
+            const response = await fetch(
+                `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code`
+            );
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.current) {
+                    const temp = data.current.temperature_2m;
+                    const humidity = data.current.relative_humidity_2m;
+                    const code = data.current.weather_code;
+                    
+                    setTemperature(`${temp.toFixed(1)}°C`);
+                    setHumidity(`${humidity}%`);
+                    
+                    // Map weather code to weather condition
+                    if ([0, 1].includes(code)) {
+                        setWeather('Sunny');
+                    } else if ([2, 3, 45, 48].includes(code)) {
+                        setWeather('Cloudy');
+                    } else {
+                        setWeather('Rainy');
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Weather fetch error:', error);
+            setWeather('Sunny'); // fallback
         } finally {
             setIsFetchingWeather(false);
         }
