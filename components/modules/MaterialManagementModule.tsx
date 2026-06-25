@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Project, Material, PurchaseOrder } from '../../types';
+import { Project, Material, PurchaseOrder, AppSettings } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 import { Badge } from '~/components/ui/badge';
@@ -26,6 +26,7 @@ const CATEGORIES = [
 ];
 import { Label } from '~/components/ui/label';
 import { generateUniqueId } from '../../utils/uuidUtils';
+import { formatCurrency } from '../../utils/formatting/currencyUtils';
 import { toast } from 'sonner';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
@@ -35,14 +36,18 @@ import {
 interface MaterialManagementModuleProps {
   project: Project;
   userRole: any;
+  settings?: AppSettings;
   onProjectUpdate: (project: Project) => void;
 }
 
 import { isDuplicate } from '~/lib/utils';
 
-const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ project, userRole, onProjectUpdate }) => {
+const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ project, userRole, settings, onProjectUpdate }) => {
   const materials = project.materials || [];
   const purchaseOrders = project.purchaseOrders || [];
+  
+  // Get currency code from settings with fallback to NPR
+  const currencyCode = settings?.currency || 'NPR';
 
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isPOOpen, setIsPOOpen] = useState(false);
@@ -644,8 +649,8 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
                         <TableCell className="font-bold font-mono">{po.poNumber}</TableCell>
                         <TableCell>{po.vendor}</TableCell>
                         <TableCell>{po.date}</TableCell>
-                        <TableCell className="text-right font-mono font-bold">
-                          {po.totalAmount.toLocaleString()}
+<TableCell className="text-right font-mono font-bold">
+                          {formatCurrency(po.totalAmount)}
                         </TableCell>
                         <TableCell>{getStatusBadge(po.status)}</TableCell>
                       </TableRow>

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Project, Vehicle, VehicleLog, MaintenanceLog, BOQItem } from '../../types';
+import { Project, Vehicle, VehicleLog, MaintenanceLog, BOQItem, AppSettings } from '../../types';
+import { formatCurrency, getCurrencySymbol } from '../../utils/formatting/currencyUtils';
 
 import { Button } from '~/components/ui/button';
 import { Card } from '~/components/ui/card';
@@ -496,8 +497,8 @@ const handleOpenTripLog = () => {
                                                         <p className="text-sm font-medium">{log.description}</p>
                                                         {log.technicianName && <p className="text-[10px] text-gray-500">Tech: {log.technicianName}</p>}
                                                     </TableCell>
-                                                    <TableCell>
-                                                        <p className="text-sm font-bold">₹{log.cost?.toLocaleString()}</p>
+<TableCell>
+                                                        <p className="text-sm font-bold">{formatCurrency(log.cost || 0)}</p>
                                                     </TableCell>
                                                     <TableCell>
                                                         <Badge className={log.status === 'Completed' ? 'bg-green-100 text-green-700' : log.status === 'In Progress' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100'}>

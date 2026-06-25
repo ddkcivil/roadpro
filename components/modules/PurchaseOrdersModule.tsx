@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Project, PurchaseOrder, POItem } from '../../types';
+import { Project, PurchaseOrder, POItem, AppSettings } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 import { Badge } from '~/components/ui/badge';
@@ -11,15 +11,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import { Label } from '~/components/ui/label';
 import { Textarea } from '~/components/ui/textarea';
 import { generateUniqueId } from '../../utils/uuidUtils';
+import { formatCurrency } from '../../utils/formatting/currencyUtils';
 import { toast } from 'sonner';
 
 interface PurchaseOrdersModuleProps {
   project: Project;
   userRole: any;
+  settings?: AppSettings;
   onProjectUpdate: (project: Project) => void;
 }
 
-const PurchaseOrdersModule: React.FC<PurchaseOrdersModuleProps> = ({ project, userRole, onProjectUpdate }) => {
+const PurchaseOrdersModule: React.FC<PurchaseOrdersModuleProps> = ({ project, userRole, settings, onProjectUpdate }) => {
+  // Get currency code from settings, default to NPR for Nepal
+  const currencyCode = settings?.currency || 'NPR';
   const purchaseOrders = project.purchaseOrders || [];
   
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -28,7 +32,7 @@ const PurchaseOrdersModule: React.FC<PurchaseOrdersModuleProps> = ({ project, us
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
   
-  const [newPO, setNewPO] = useState({
+  const [newPO, setNewPO] = useState({ 
     poNumber: '',
     vendor: '',
     date: new Date().toISOString().split('T')[0],
@@ -346,8 +350,8 @@ const handleStatusChange = (po: PurchaseOrder, newStatus: string) => {
               <div className="border-t pt-4">
                 <div className="flex justify-between items-center mb-3">
                   <Label className="text-base font-bold">PO Items</Label>
-                  <span className="text-sm text-muted-foreground">
-                    Total: NPR {newPO.totalAmount.toLocaleString()}
+<span className="text-sm text-muted-foreground">
+                    Total: {formatCurrency(newPO.totalAmount, currencyCode)}
                   </span>
                 </div>
                 
@@ -400,15 +404,15 @@ const handleStatusChange = (po: PurchaseOrder, newStatus: string) => {
                   <div className="mt-3 space-y-2">
                     {newPO.items.map((item, idx) => (
                       <div key={item.itemId} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
-                        <div className="flex-1">
+<div className="flex-1">
                           <span className="font-bold text-sm">{item.itemName}</span>
-                          <span className="text-xs text-muted-foreground ml-2">
-                            {item.quantity} x NPR {item.unitPrice.toLocaleString()}
+<span className="text-xs text-muted-foreground ml-2">
+                            {item.quantity} x {formatCurrency(item.unitPrice, currencyCode)}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="font-mono font-bold text-sm">
-                            NPR {(item.quantity * item.unitPrice).toLocaleString()}
+                            {formatCurrency(item.quantity * item.unitPrice, currencyCode)}
                           </span>
                           <Button 
                             variant="ghost" 
@@ -475,9 +479,9 @@ const handleStatusChange = (po: PurchaseOrder, newStatus: string) => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase">Total Value</p>
-                <p className="text-2xl font-black text-emerald-600">
-                  NPR {getTotalPOAmount().toLocaleString()}
+<p className="text-xs font-bold text-muted-foreground uppercase">Total Value</p>
+<p className="text-2xl font-black text-emerald-600">
+                  {formatCurrency(getTotalPOAmount(), currencyCode)}
                 </p>
               </div>
               <Package className="h-8 w-8 text-emerald-500 opacity-50" />
@@ -528,8 +532,8 @@ const handleStatusChange = (po: PurchaseOrder, newStatus: string) => {
                     <TableCell>{po.vendor}</TableCell>
                     <TableCell>{po.date}</TableCell>
                     <TableCell>{po.deliveryDate || '-'}</TableCell>
-                    <TableCell className="text-right font-mono font-bold">
-                      NPR {po.totalAmount.toLocaleString()}
+<TableCell className="text-right font-mono font-bold">
+                      {formatCurrency(po.totalAmount, currencyCode)}
                     </TableCell>
                     <TableCell>{getStatusBadge(po.status)}</TableCell>
                     <TableCell>
@@ -622,9 +626,9 @@ const handleStatusChange = (po: PurchaseOrder, newStatus: string) => {
                   </div>
                 )}
                 <div>
-                  <p className="text-xs font-bold text-muted-foreground uppercase">Total Amount</p>
-                  <p className="text-xl font-black text-emerald-600">
-                    NPR {selectedPO.totalAmount.toLocaleString()}
+<p className="text-xs font-bold text-muted-foreground uppercase">Total Amount</p>
+<p className="text-xl font-black text-emerald-600">
+                    {formatCurrency(selectedPO.totalAmount, currencyCode)}
                   </p>
                 </div>
               </div>
@@ -651,12 +655,12 @@ const handleStatusChange = (po: PurchaseOrder, newStatus: string) => {
                     {selectedPO.items.map((item) => (
                       <TableRow key={item.itemId}>
                         <TableCell className="font-bold">{item.itemName}</TableCell>
-                        <TableCell className="text-right">{item.quantity}</TableCell>
+<TableCell className="text-right">{item.quantity}</TableCell>
                         <TableCell className="text-right font-mono">
-                          NPR {item.unitPrice.toLocaleString()}
+                          {formatCurrency(item.unitPrice, currencyCode)}
                         </TableCell>
                         <TableCell className="text-right font-mono font-bold">
-                          NPR {(item.quantity * item.unitPrice).toLocaleString()}
+                          {formatCurrency(item.quantity * item.unitPrice, currencyCode)}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -726,10 +730,10 @@ const handleStatusChange = (po: PurchaseOrder, newStatus: string) => {
               </div>
 
               <div className="border-t pt-4">
-                <div className="flex justify-between items-center mb-3">
+<div className="flex justify-between items-center mb-3">
                   <Label className="text-base font-bold">PO Items</Label>
                   <span className="text-sm font-bold">
-                    Total: NPR {newPO.totalAmount.toLocaleString()}
+                    Total: {formatCurrency(newPO.totalAmount, currencyCode)}
                   </span>
                 </div>
                 
@@ -781,16 +785,16 @@ const handleStatusChange = (po: PurchaseOrder, newStatus: string) => {
                 {newPO.items.length > 0 && (
                   <div className="mt-3 space-y-2 max-h-[200px] overflow-y-auto">
                     {newPO.items.map((item) => (
-                      <div key={item.itemId} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
-                        <div className="flex-1">
+<div key={item.itemId} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+<div className="flex-1">
                           <span className="font-bold text-sm">{item.itemName}</span>
                           <span className="text-xs text-muted-foreground ml-2">
-                            {item.quantity} x NPR {item.unitPrice.toLocaleString()}
+                            {item.quantity} x {formatCurrency(item.unitPrice, currencyCode)}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="font-mono font-bold text-sm">
-                            NPR {(item.quantity * item.unitPrice).toLocaleString()}
+                            {formatCurrency(item.quantity * item.unitPrice, currencyCode)}
                           </span>
                           <Button 
                             variant="ghost" 

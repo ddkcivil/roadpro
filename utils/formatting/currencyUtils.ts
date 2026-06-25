@@ -32,18 +32,20 @@ export function getCurrencySymbol(currencyCode?: string): string {
 
 /**
  * Format currency amount with symbol
+ * Output format: "Rs. 1,000.00" or "$1,000.00"
  */
 export function formatCurrency(amount: number, currencyCode?: string): string {
   const symbol = getCurrencySymbol(currencyCode);
-  return `${symbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${symbol} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 /**
  * Format currency amount with symbol and decimal places
+ * Output format: "Rs. 1,000.00" or "$1,000.00"
  */
 export function formatCurrencyWithDecimals(amount: number, currencyCode?: string, decimals: number = 2): string {
   const symbol = getCurrencySymbol(currencyCode);
-  return `${symbol}${amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+  return `${symbol} ${amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
 }
 
 /**
