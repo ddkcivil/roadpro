@@ -12,6 +12,7 @@ import { Badge } from '~/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { Separator } from '~/components/ui/separator';
 import { cn } from '~/lib/utils';
+import { formatCurrency } from '../../utils/formatting/currencyUtils';
 import { 
   Users, 
   FileText, 
@@ -1861,7 +1862,7 @@ const StaffManagementModule: React.FC = () => {
                 <Card>
                   <CardContent className="pt-6">
                     <div className="text-2xl font-bold text-primary">
-                      ₹{salaryRecords.reduce((sum, s) => sum + s.netSalary, 0).toLocaleString()}
+                      {formatCurrency(salaryRecords.reduce((sum, s) => sum + s.netSalary, 0), 'NPR')}
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Total Payroll
@@ -1930,10 +1931,10 @@ const StaffManagementModule: React.FC = () => {
                           <span className="text-sm">{record.payPeriod}</span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm">₹{record.basicSalary.toLocaleString()}</span>
+                          <span className="text-sm">{formatCurrency(record.basicSalary, 'NPR')}</span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm font-bold">₹{record.netSalary.toLocaleString()}</span>
+                          <span className="text-sm font-bold">{formatCurrency(record.netSalary, 'NPR')}</span>
                         </TableCell>
                         <TableCell>
                           <Badge className={cn(
@@ -2020,7 +2021,7 @@ const StaffManagementModule: React.FC = () => {
                 <Card>
                   <CardContent className="pt-6">
                     <div className="text-2xl font-bold text-blue-600">
-                      ₹{trainingRecords.reduce((sum, t) => sum + t.cost, 0).toLocaleString()}
+                      {formatCurrency(trainingRecords.reduce((sum, t) => sum + t.cost, 0), 'NPR')}
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Total Investment

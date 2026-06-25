@@ -685,18 +685,86 @@ export interface DailyWorkItem {
   description: string;
 }
 
-// DAILY REPORT DEFINITION ADDED HERE
+// === DPR / FIELD OPERATIONS TYPES ===
+
+// Plant & Equipment entry for daily reports
+export interface PlantEquipment {
+  id: string;
+  description: string;
+  working: number;
+  standby: number;
+  breakdown: number;
+  total: number;
+  location?: string; // Road/location where equipment is deployed
+}
+
+// Material entry for daily reports
+export interface MaterialEntry {
+  id: string;
+  name: string;
+  unit: string;
+  quantity: number;
+  deliverQty?: number; // Delivered quantity
+  consumeQty?: number; // Consumed quantity
+}
+
+// Personnel entry for daily reports
+export interface PersonnelEntry {
+  id: string;
+  designation: string;
+  nos: number;
+  status: 'Present' | 'Absent';
+  isCustom?: boolean; // Whether this is a custom entry vs from users table
+}
+
+// Multi-road work entry (from PHP daily_log)
+export interface RoadWorkEntry {
+  id: string;
+  roadName: string;
+  description: string;
+  chainage: string; // Can be "0+000 - 1+500" format
+  estQty: string;
+  manpower: string; // "Sk/Unsk" format like "7/16"
+  remarks?: string;
+}
+
+// DAILY REPORT DEFINITION - ENHANCED WITH PHP FEATURES
 export interface DailyReport {
   id: string;
   date: string;
   reportNumber: string;
   status: 'Draft' | 'Submitted' | 'Approved';
   submittedBy: string;
+  receivedBy?: string;
   weather?: string;
+  temperature?: string;
+  humidity?: string;
   remarks?: string;
   workItems?: DailyWorkItem[];
   workToday: DailyWorkItem[];
   photos?: SitePhoto[];
+  
+  // === ENHANCED FIELDS (FROM PHP daily_log) ===
+  // Multi-road works with chainage (from PHP roads array)
+  roadWorks?: RoadWorkEntry[];
+  
+  // Plant & Equipment tracking
+  plantEquipment?: PlantEquipment[];
+  
+  // Material consumption tracking
+  materials?: MaterialEntry[];
+  
+  // Personnel mobilization
+  personnel?: PersonnelEntry[];
+  
+  // Work completed description
+  workCompleted?: string;
+  
+  // Delay/hindrance occurrence
+  delayOccurrence?: string;
+  
+  // Other remarks
+  othersIfAny?: string;
 }
 
 export interface PreConstructionTask {

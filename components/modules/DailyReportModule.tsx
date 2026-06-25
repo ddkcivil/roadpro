@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Project, UserRole, DailyWorkItem, DailyReport } from '../../types';
+import { Project, UserRole, DailyWorkItem, DailyReport, PlantEquipment, MaterialEntry, PersonnelEntry, RoadWorkEntry } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { 
     Activity, FileText, Trash2, Plus, Printer, CheckCircle, Info, 
     CloudSun, Wifi, User, Users, AlertCircle, Eye, ArrowLeft, 
-    Sun, Cloud, CloudRain, BookOpen, Search
+    Sun, Cloud, CloudRain, BookOpen, Search, Truck, Package, MapPin, Clock, AlertTriangle
 } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
@@ -51,6 +51,33 @@ const DailyReportModule: React.FC<Props> = ({
     const [view, setView] = useState<'list' | 'create' | 'view'>(initialView);
     const [selectedReport, setSelectedReport] = useState<DailyReport | null>(null);
     
+// Enhanced DPR Features from PHP daily_log
+    const [temperature, setTemperature] = useState('');
+    const [humidity, setHumidity] = useState('');
+    const [delayedReport, setDelayedReport] = useState('');
+    const [othersIfAny, setOthersIfAny] = useState('');
+    const [workCompleted, setWorkCompleted] = useState('');
+    
+    // Road Works (Multi-road with chainage)
+    const [roadWorks, setRoadWorks] = useState<RoadWorkEntry[]>([
+        { id: Date.now().toString(), roadName: '', description: '', chainage: '', estQty: '', manpower: '' }
+    ]);
+    
+    // Plant & Equipment
+    const [plantEquipment, setPlantEquipment] = useState<PlantEquipment[]>([
+        { id: Date.now().toString(), description: '', working: 0, standby: 0, breakdown: 0, total: 0 }
+    ]);
+    
+    // Materials
+    const [materialsUsed, setMaterialsUsed] = useState<MaterialEntry[]>([
+        { id: Date.now().toString(), name: '', unit: '', quantity: 0 }
+    ]);
+    
+    // Personnel
+    const [personnelUsed, setPersonnelUsed] = useState<PersonnelEntry[]>([
+        { id: Date.now().toString(), designation: '', nos: 0, status: 'Present' }
+    ]);
+
     // Create form states
     const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
     const [weather, setWeather] = useState('Sunny');
@@ -641,11 +668,249 @@ const DailyReportModule: React.FC<Props> = ({
                             </div>
                         </TabsContent>
 
-                        <TabsContent value="1" className="p-6">
-                            <div className="h-48 flex flex-col items-center justify-center border-2 border-dashed rounded-2xl text-muted-foreground">
-                                <Users size={48} className="mb-4 opacity-10" />
-                                <p className="font-black uppercase tracking-widest text-sm">Fleet & Manpower</p>
-                                <p className="text-xs font-medium">Tracking features currently in development.</p>
+<TabsContent value="1" className="p-6">
+                            {/* PLANT & EQUIPMENT TAB - NEW FEATURE FROM PHP */}
+                            <div className="mb-8">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="font-black text-sm uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                                        <Truck className="w-4 h-4" /> Plant & Equipment
+                                    </h3>
+                                    <Button type="button" variant="outline" size="sm" onClick={() => setPlantEquipment([...plantEquipment, { id: Date.now().toString(), description: '', working: 0, standby: 0, breakdown: 0, total: 0 }])} className="rounded-lg">
+                                        <Plus className="w-4 h-4 mr-1" /> Add Equipment
+                                    </Button>
+                                </div>
+                                <div className="border-2 rounded-xl overflow-hidden">
+                                    <Table>
+                                        <TableHeader className="bg-slate-100">
+                                            <TableRow>
+                                                <TableHead className="font-bold">Description</TableHead>
+                                                <TableHead className="font-bold w-20">Working</TableHead>
+                                                <TableHead className="font-bold w-20">Standby</TableHead>
+                                                <TableHead className="font-bold w-20">Breakdown</TableHead>
+                                                <TableHead className="font-bold w-20">Total</TableHead>
+                                                <TableHead className="w-12"></TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {plantEquipment.map((equip, idx) => (
+                                                <TableRow key={equip.id}>
+                                                    <TableCell>
+                                                        <Input 
+                                                            value={equip.description}
+                                                            placeholder="e.g. Excavator, Tipper, Water Tanker"
+                                                            className="font-medium"
+                                                            onChange={(e) => {
+                                                                const updated = [...plantEquipment];
+                                                                updated[idx].description = e.target.value;
+                                                                setPlantEquipment(updated);
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Input 
+                                                            type="number"
+                                                            value={equip.working}
+                                                            className="text-center"
+                                                            onChange={(e) => {
+                                                                const updated = [...plantEquipment];
+                                                                updated[idx].working = parseInt(e.target.value) || 0;
+                                                                updated[idx].total = updated[idx].working + updated[idx].standby + updated[idx].breakdown;
+                                                                setPlantEquipment(updated);
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Input 
+                                                            type="number"
+                                                            value={equip.standby}
+                                                            className="text-center"
+                                                            onChange={(e) => {
+                                                                const updated = [...plantEquipment];
+                                                                updated[idx].standby = parseInt(e.target.value) || 0;
+                                                                updated[idx].total = updated[idx].working + updated[idx].standby + updated[idx].breakdown;
+                                                                setPlantEquipment(updated);
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Input 
+                                                            type="number"
+                                                            value={equip.breakdown}
+                                                            className="text-center"
+                                                            onChange={(e) => {
+                                                                const updated = [...plantEquipment];
+                                                                updated[idx].breakdown = parseInt(e.target.value) || 0;
+                                                                updated[idx].total = updated[idx].working + updated[idx].standby + updated[idx].breakdown;
+                                                                setPlantEquipment(updated);
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+<Input 
+                                                            type="number"
+                                                            value={equip.total}
+                                                            readOnly
+                                                            className="text-center font-bold bg-slate-50"
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setPlantEquipment(plantEquipment.filter((_, i) => i !== idx))}>
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </div>
+
+                            {/* MATERIAL SCHEDULE TAB */}
+                            <div className="mb-8">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="font-black text-sm uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                                        <Package className="w-4 h-4" /> Material Schedule
+                                    </h3>
+                                    <Button type="button" variant="outline" size="sm" onClick={() => setMaterialsUsed([...materialsUsed, { id: Date.now().toString(), name: '', unit: '', quantity: 0 }])} className="rounded-lg">
+                                        <Plus className="w-4 h-4 mr-1" /> Add Material
+                                    </Button>
+                                </div>
+                                <div className="border-2 rounded-xl overflow-hidden">
+                                    <Table>
+                                        <TableHeader className="bg-slate-100">
+                                            <TableRow>
+                                                <TableHead className="font-bold">Material</TableHead>
+                                                <TableHead className="font-bold w-24">Unit</TableHead>
+                                                <TableHead className="font-bold w-32">Quantity</TableHead>
+                                                <TableHead className="w-12"></TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {materialsUsed.map((mat, idx) => (
+                                                <TableRow key={mat.id}>
+                                                    <TableCell>
+                                                        <Input 
+                                                            value={mat.name}
+                                                            placeholder="e.g. Cement, Sand, Aggregate, Brick"
+                                                            className="font-medium"
+                                                            onChange={(e) => {
+                                                                const updated = [...materialsUsed];
+                                                                updated[idx].name = e.target.value;
+                                                                setMaterialsUsed(updated);
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Input 
+                                                            value={mat.unit}
+                                                            placeholder="e.g. bags, cum, nos"
+                                                            className="font-medium"
+                                                            onChange={(e) => {
+                                                                const updated = [...materialsUsed];
+                                                                updated[idx].unit = e.target.value;
+                                                                setMaterialsUsed(updated);
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Input 
+                                                            type="number"
+                                                            value={mat.quantity}
+                                                            className="text-center font-medium"
+                                                            onChange={(e) => {
+                                                                const updated = [...materialsUsed];
+                                                                updated[idx].quantity = parseFloat(e.target.value) || 0;
+                                                                setMaterialsUsed(updated);
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setMaterialsUsed(materialsUsed.filter((_, i) => i !== idx))}>
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </div>
+
+                            {/* PERSONNEL MOBILIZATION TAB */}
+                            <div className="mb-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="font-black text-sm uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                                        <Users className="w-4 h-4" /> Personnel Mobilization
+                                    </h3>
+                                    <Button type="button" variant="outline" size="sm" onClick={() => setPersonnelUsed([...personnelUsed, { id: Date.now().toString(), designation: '', nos: 0, status: 'Present' }])} className="rounded-lg">
+                                        <Plus className="w-4 h-4 mr-1" /> Add Personnel
+                                    </Button>
+                                </div>
+                                <div className="border-2 rounded-xl overflow-hidden">
+                                    <Table>
+                                        <TableHeader className="bg-slate-100">
+                                            <TableRow>
+                                                <TableHead className="font-bold">Designation</TableHead>
+                                                <TableHead className="font-bold w-24">Nos.</TableHead>
+                                                <TableHead className="font-bold w-32">Status</TableHead>
+                                                <TableHead className="w-12"></TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {personnelUsed.map((person, idx) => (
+                                                <TableRow key={person.id}>
+                                                    <TableCell>
+                                                        <Input 
+                                                            value={person.designation}
+                                                            placeholder="e.g. Site Engineer, Supervisor, Labor"
+                                                            className="font-medium"
+                                                            onChange={(e) => {
+                                                                const updated = [...personnelUsed];
+                                                                updated[idx].designation = e.target.value;
+                                                                setPersonnelUsed(updated);
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Input 
+                                                            type="number"
+                                                            value={person.nos}
+                                                            className="text-center font-medium"
+                                                            onChange={(e) => {
+                                                                const updated = [...personnelUsed];
+                                                                updated[idx].nos = parseInt(e.target.value) || 0;
+                                                                setPersonnelUsed(updated);
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Select 
+                                                            value={person.status}
+                                                            onValueChange={(val) => {
+                                                                const updated = [...personnelUsed];
+                                                                updated[idx].status = val as 'Present' | 'Absent';
+                                                                setPersonnelUsed(updated);
+                                                            }}
+                                                        >
+                                                            <SelectTrigger className="font-medium">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="Present" className="font-bold">Present</SelectItem>
+                                                                <SelectItem value="Absent" className="font-bold">Absent</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setPersonnelUsed(personnelUsed.filter((_, i) => i !== idx))}>
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
                             </div>
                         </TabsContent>
 
