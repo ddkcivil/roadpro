@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withErrorHandler } from './_utils/errorHandler';
-import { mapUserFromDb } from './_utils/mappers';
-import { getSupabasePublic, isSupabaseConfigured, getSupabaseConfigStatus } from './_utils/supabaseClient';
+import { withErrorHandler } from './_utils/errorHandler.js';
+import { mapUserFromDb } from './_utils/mappers.js';
+import { getSupabasePublic, isSupabaseConfigured, getSupabaseConfigStatus } from './_utils/supabaseClient.js';
 
 // Debug: Log startup and env availability
 const configStatus = getSupabaseConfigStatus();
