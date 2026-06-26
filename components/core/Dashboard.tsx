@@ -650,7 +650,7 @@ const financialChartData = useMemo(() => {
 
           {/* Financial Distribution Bento Piece */}
           {isWidgetVisible('distribution') && (
-            <Card className="md:col-span-4 lg:col-span-5 rounded-[2.5rem] glass-card border-none overflow-hidden">
+            <Card className="md:col-span-4 lg:col-span-4 rounded-[2.5rem] glass-card border-none overflow-hidden">
               <CardHeader className="py-8 px-10 border-b border-white/5">
                 <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
