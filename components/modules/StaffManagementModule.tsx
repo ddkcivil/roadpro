@@ -485,7 +485,7 @@ const StaffManagementModule: React.FC = () => {
       if (statusFilter !== 'All') {
         filtered = filtered.filter(record => record.status === statusFilter);
       }
-      setFilteredTraining(filtered);
+setFilteredTraining(filtered);
     } else if (activeTab === "evaluations") {
       let filtered = [...evaluationForms];
       if (searchTerm) {
@@ -497,6 +497,8 @@ const StaffManagementModule: React.FC = () => {
       if (statusFilter !== 'All') {
         filtered = filtered.filter(form => form.status === statusFilter);
       }
+      setFilteredEvaluations(filtered);
+    }
   }, [leaveRequests, employees, performanceRecords, attendanceRecords, salaryRecords, trainingRecords, evaluationForms, searchTerm, statusFilter, activeTab]);
 
   const leaveRequestsPagination = usePagination(filteredLeaveRequests, 10);

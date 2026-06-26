@@ -3,6 +3,7 @@ import { Project, User, Message, AppSettings, SyncOperation, StaffLocation } fro
 import { offlineStorage } from '../database/offlineStorage';
 import { LocalStorageUtils } from '../../utils/data/localStorageUtils';
 import { SyncService } from './syncService';
+import { supabase } from '../../lib/supabase';
 
 const DEFAULT_TTL = 30000; // 30 seconds default
 const CACHE_CONFIG: Record<string, number> = {
@@ -40,12 +41,55 @@ class RealApiService {
     return RealApiService.instance;
   }
 
-  /**
+/**
    * Gets the TTL for a specific endpoint
    */
   private getTTL(endpoint: string): number {
     const configKey = Object.keys(CACHE_CONFIG).find(key => endpoint.startsWith(key));
     return configKey !== undefined ? CACHE_CONFIG[configKey] : DEFAULT_TTL;
+  }
+
+  /**
+   * Refreshes the Supabase session using the stored token
+   * This helps recover from race conditions where the token exists but the session needs syncing
+   * @returns The refreshed token or null if refresh failed
+   */
+  private async refreshSession(): Promise<string | null> {
+    const authTokenKey = 'roadmaster-token';
+    const token = localStorage.getItem(authTokenKey);
+    
+    if (!token) {
+      console.warn('[API] Cannot refresh session - no token in localStorage');
+      return null;
+    }
+
+    try {
+      // Try to get session from Supabase to verify token is still valid
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (!error && session) {
+        // Session exists, ensure our local storage matches
+        console.log('[API] ✓ Session verified via Supabase');
+        return token;
+      }
+      
+      // Session might be stale - try to set it explicitly
+      const { error: setSessionError } = await supabase.auth.setSession({
+        access_token: token,
+        refresh_token: ''
+      });
+      
+      if (setSessionError) {
+        console.error('[API] Session refresh failed:', setSessionError.message);
+        return null;
+      }
+      
+      console.log('[API] ✓ Session refreshed successfully');
+      return token;
+    } catch (err: any) {
+      console.error('[API] Session refresh error:', err?.message);
+      return null;
+    }
   }
 
 /**
@@ -92,7 +136,7 @@ class RealApiService {
     return null;
   }
 
-  /**
+/**
    * Internal fetch wrapper with retry logic and automatic token refresh via Supabase
    * @param endpoint - API endpoint path
    * @param options - Request options
@@ -117,7 +161,7 @@ private async fetchWithRetry<T>(endpoint: string, options?: RequestInit, retries
         ...options?.headers as Record<string, string>,
       };
 
-// Add Authorization for all API endpoints if token is available, unless it's a known public endpoint
+      // Add Authorization for all API endpoints if token is available, unless it's a known public endpoint
       const publicEndpoints = ['/health', '/audit'];
       if (token && !publicEndpoints.some(p => endpoint.startsWith(p))) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -134,7 +178,42 @@ private async fetchWithRetry<T>(endpoint: string, options?: RequestInit, retries
         credentials: (options as any)?.credentials ?? 'include',
       });
 
-if (response.status === 401 || response.status === 500) {
+      // Handle 401 Unauthorized - try to refresh session and retry once
+      if (response.status === 401 && retries > 0) {
+        console.warn(`[API] Got 401, attempting session refresh...`);
+        const refreshedToken = await this.refreshSession();
+        
+        if (refreshedToken) {
+          // Retry with refreshed token - update the Authorization header
+          const newHeaders = {
+            ...headers,
+            'Authorization': `Bearer ${refreshedToken}`
+          };
+          console.log(`[API] Retrying ${endpoint} with refreshed session`);
+          
+          // Wait a moment before retry
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          const retryResponse = await fetch(`/api${endpoint}`, {
+            ...options,
+            headers: newHeaders,
+            credentials: (options as any)?.credentials ?? 'include',
+          });
+          
+if (retryResponse.ok || retryResponse.status === 204) {
+            if (retryResponse.status === 204) {
+              return {} as T;
+            }
+            const text = await retryResponse.text();
+            return text ? JSON.parse(text) : {} as T;
+          }
+          
+          // If retry still failed, continue to normal error handling
+          console.warn(`[API] Retry still failed with status: ${retryResponse.status}`);
+        }
+      }
+
+      if (response.status === 401 || response.status === 500) {
         // If we get 401 or 500, the session might be genuinely invalid
         // 500 errors on auth endpoints indicate server-side issues that may invalidate the session
         window.dispatchEvent(new CustomEvent('roadmaster-auth-failure'));
