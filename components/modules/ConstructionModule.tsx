@@ -34,6 +34,8 @@ import { Badge } from '~/components/ui/badge';
 import { Progress } from '~/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { Separator } from '~/components/ui/separator';
+import { usePagination } from '../../hooks/usePagination';
+import { PaginationComponent } from '~/components/ui/pagination-component';
 
 import { 
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
@@ -268,6 +270,7 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
   
   const structures: StructureAsset[] = project.structures || [];
   const selectedStructure = structures.find(s => s.id === detailStructureId);
+  const structurePagination = usePagination(structures, 9); // Grid of 3, so 9 is a good default
 
   const handleUploadDrawing = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0] || !selectedStructure) return;
@@ -907,8 +910,8 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
         </TabsList>
 
         <TabsContent value="list">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {structures.map(str => {
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+              {structurePagination.paginatedData.map(str => {
                   const prog = calculateOverallProgress(str);
                   return (
                       <Card key={str.id} className="group hover:shadow-2xl transition-all duration-500 relative overflow-hidden border-none rounded-[2.5rem] glass-card">
@@ -958,6 +961,17 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
                   );
               })}
           </div>
+          {structures.length > 0 && (
+            <PaginationComponent
+              currentPage={structurePagination.currentPage}
+              totalPages={structurePagination.totalPages}
+              pageSize={structurePagination.pageSize}
+              totalItems={structurePagination.totalItems}
+              onPageChange={structurePagination.setCurrentPage}
+              onPageSizeChange={structurePagination.setPageSize}
+              pageSizeOptions={[9, 18, 27, 45]}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="analytics">

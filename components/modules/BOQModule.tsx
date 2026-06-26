@@ -9,6 +9,8 @@ import StatCard from '../core/StatCard';
 import BOQRegistry from './BOQRegistry';
 import { getCurrencySymbol, formatCurrency } from '../../utils/formatting/currencyUtils';
 import { toast } from 'sonner';
+import { usePagination } from '../../hooks/usePagination';
+import { PaginationComponent } from '~/components/ui/pagination-component';
 
 import { Button } from '~/components/ui/button';
 import { Card, CardContent } from '~/components/ui/card';
@@ -59,6 +61,9 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
     
     // MB State
     const [isMBModalOpen, setIsMBModalOpen] = useState(false);
+    
+    const mbPagination = usePagination(project?.measurementSheets || [], 10);
+    const voPagination = usePagination(project?.variationOrders || [], 10);
     
     // Auto-MB Logic
     const uncertifiedLogs = useMemo(() => {
@@ -651,7 +656,7 @@ const amount = quantity * rate;
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {(project.measurementSheets || []).length > 0 ? (project.measurementSheets || []).map(sheet => (
+                                    {mbPagination.paginatedData.length > 0 ? mbPagination.paginatedData.map(sheet => (
                                         <TableRow key={sheet.id}>
                                             <TableCell className="font-bold">{sheet.sheetNumber}</TableCell>
                                             <TableCell>{sheet.title}</TableCell>
@@ -702,6 +707,14 @@ const amount = quantity * rate;
                             </Table>
                         </CardContent>
                     </Card>
+                    <PaginationComponent
+                        currentPage={mbPagination.currentPage}
+                        totalPages={mbPagination.totalPages}
+                        pageSize={mbPagination.pageSize}
+                        totalItems={mbPagination.totalItems}
+                        onPageChange={mbPagination.setCurrentPage}
+                        onPageSizeChange={mbPagination.setPageSize}
+                    />
                 </TabsContent>
 
                 <TabsContent value="variations">
@@ -709,8 +722,8 @@ const amount = quantity * rate;
                         <h2 className="text-xl font-bold">Variations</h2>
                         <Button onClick={() => setIsVOModalOpen(true)}><Plus className="mr-2 h-4 w-4" /> New VO</Button>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {(project.variationOrders || []).map(vo => (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        {voPagination.paginatedData.map(vo => (
                             <Card key={vo.id}>
                                 <CardContent className="p-4">
                                     <div className="flex justify-between mb-2">
@@ -722,6 +735,14 @@ const amount = quantity * rate;
                             </Card>
                         ))}
                     </div>
+                    <PaginationComponent
+                        currentPage={voPagination.currentPage}
+                        totalPages={voPagination.totalPages}
+                        pageSize={voPagination.pageSize}
+                        totalItems={voPagination.totalItems}
+                        onPageChange={voPagination.setCurrentPage}
+                        onPageSizeChange={voPagination.setPageSize}
+                    />
                 </TabsContent>
             </Tabs>
 

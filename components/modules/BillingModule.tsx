@@ -21,6 +21,8 @@ import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { Checkbox } from '~/components/ui/checkbox';
 import { Separator } from '~/components/ui/separator';
+import { usePagination } from '../../hooks/usePagination';
+import { PaginationComponent } from '~/components/ui/pagination-component';
 
 interface Props {
   project: Project;
@@ -81,6 +83,11 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
 
     const canEdit = [UserRole.ADMIN, UserRole.PROJECT_MANAGER, UserRole.SITE_ENGINEER].includes(userRole);
     const canDelete = [UserRole.ADMIN, UserRole.PROJECT_MANAGER].includes(userRole);
+
+    const reversedBills = useMemo(() => [...bills].reverse(), [bills]);
+    const reversedSubBills = useMemo(() => [...subcontractorBills].reverse(), [subcontractorBills]);
+    const mainPagination = usePagination(reversedBills, 5);
+    const subPagination = usePagination(reversedSubBills, 5);
 
     const calculateIPCDetails = (form: Partial<ContractBill>) => {
         const gross = (form.items || []).reduce((acc, item) => acc + (item.currentAmount || 0), 0);
@@ -455,8 +462,8 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                         </TabsList>
                         
                         <div className="px-2">
-                            <TabsContent value="main">
-                                {[...bills].reverse().map(b => (
+                            <TabsContent value="main" className="flex flex-col h-full">
+                                {mainPagination.paginatedData.map(b => (
                                     <Button 
                                         variant="ghost" 
                                         className={`w-full justify-start py-6 mb-2 ${selectedIpcId === b.id ? 'bg-accent text-accent-foreground' : ''}`}
@@ -483,10 +490,21 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                                         <p className="text-sm">No main contracts billed yet.</p>
                                     </div>
                                 )}
+                                <div className="mt-auto">
+                                    <PaginationComponent
+                                        currentPage={mainPagination.currentPage}
+                                        totalPages={mainPagination.totalPages}
+                                        pageSize={mainPagination.pageSize}
+                                        totalItems={mainPagination.totalItems}
+                                        onPageChange={mainPagination.setCurrentPage}
+                                        onPageSizeChange={mainPagination.setPageSize}
+                                        pageSizeOptions={[5, 10, 20]}
+                                    />
+                                </div>
                             </TabsContent>
 
-                            <TabsContent value="sub">
-                                {[...subcontractorBills].reverse().map(b => {
+                            <TabsContent value="sub" className="flex flex-col h-full">
+                                {subPagination.paginatedData.map(b => {
                                     const subcontractor = project.agencies?.find(a => a.id === b.subcontractorId);
                                     return (
                                         <Button 
@@ -517,6 +535,17 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                                         <p className="text-sm">No subcontractor bills created yet.</p>
                                     </div>
                                 )}
+                                <div className="mt-auto">
+                                    <PaginationComponent
+                                        currentPage={subPagination.currentPage}
+                                        totalPages={subPagination.totalPages}
+                                        pageSize={subPagination.pageSize}
+                                        totalItems={subPagination.totalItems}
+                                        onPageChange={subPagination.setCurrentPage}
+                                        onPageSizeChange={subPagination.setPageSize}
+                                        pageSizeOptions={[5, 10, 20]}
+                                    />
+                                </div>
                             </TabsContent>
                         </div>
                     </Tabs>

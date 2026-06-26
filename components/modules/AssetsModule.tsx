@@ -17,6 +17,8 @@ import {
     History, AlertCircle, Calendar, ShieldCheck, ClipboardList
 } from 'lucide-react';
 import { MaintenanceLog } from '../../types';
+import { usePagination } from '../../hooks/usePagination';
+import { PaginationComponent } from '~/components/ui/pagination-component';
 
 interface Props {
   project: Project;
@@ -56,6 +58,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
   const [coords, setCoords] = useState({ lat: '', lng: '' });
   
   const assets = project.vehicles || [];
+  const assetPagination = usePagination(assets, 10);
 
   const canAdd = true; // All users can add assets
   const canEdit = userRole === UserRole.ADMIN || userRole === UserRole.PROJECT_MANAGER || userRole === UserRole.SITE_ENGINEER;
@@ -337,7 +340,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
             </TableRow>
           </TableHeader>
           <TableBody>
-            {assets.length > 0 ? assets.map((asset) => (
+            {assetPagination.paginatedData.length > 0 ? assetPagination.paginatedData.map((asset) => (
               <TableRow key={asset.id}>
                 <TableCell className="font-medium">{asset.plateNumber}</TableCell>
                 <TableCell>
@@ -442,6 +445,14 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
             )}
           </TableBody>
         </Table>
+        <PaginationComponent
+          currentPage={assetPagination.currentPage}
+          totalPages={assetPagination.totalPages}
+          pageSize={assetPagination.pageSize}
+          totalItems={assetPagination.totalItems}
+          onPageChange={assetPagination.setCurrentPage}
+          onPageSizeChange={assetPagination.setPageSize}
+        />
       </Card>
 
       {/* Add/Edit Asset Modal */}

@@ -25,6 +25,8 @@ import { Switch } from '~/components/ui/switch';
 import { Progress } from '~/components/ui/progress';
 import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs'; // Shadcn Tabs
 import { toast } from 'sonner';
+import { usePagination } from '../../hooks/usePagination';
+import { PaginationComponent } from '~/components/ui/pagination-component';
 
 interface Props {
     project: Project;
@@ -352,6 +354,12 @@ const newTask: ScheduleTask = {
       return [...tasks].sort((a,b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
   }, [project.schedule, searchQuery]);
 
+  const tasksPagination = usePagination(filteredTasks, 10);
+  const resourceAllocationsPagination = usePagination(project.resourceAllocations || [], 10);
+  const resourcesPagination = usePagination(project.resources || [], 10);
+  const capacityPagination = usePagination(project.resources || [], 10);
+  const milestonesPagination = usePagination(project.milestones || [], 10);
+
   const canvasHeight = useMemo(() => {
       return (filteredTasks.length + (canEdit ? 1 : 0)) * ROW_HEIGHT;
   }, [filteredTasks.length, canEdit]);
@@ -500,7 +508,7 @@ const newTask: ScheduleTask = {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredTasks.map(task => {
+                        {tasksPagination.paginatedData.map(task => {
                             const rfis = taskRFIMap[task.id] || [];
                             return (
                                 <tr key={task.id} className="hover:bg-accent/50"> {/* TableRow hover sx={{ '&:nth-of-type(odd)': { bgcolor: 'action.hover' } }} */}
@@ -582,6 +590,19 @@ const newTask: ScheduleTask = {
                         })}
                     </tbody>
                 </table>
+                {filteredTasks.length > 0 && (
+                    <div className="p-4 border-t">
+                        <PaginationComponent
+                            currentPage={tasksPagination.currentPage}
+                            totalPages={tasksPagination.totalPages}
+                            pageSize={tasksPagination.pageSize}
+                            totalItems={tasksPagination.totalItems}
+                            onPageChange={tasksPagination.setCurrentPage}
+                            onPageSizeChange={tasksPagination.setPageSize}
+                            pageSizeOptions={[10, 20, 50]}
+                        />
+                    </div>
+                )}
             </div>
         ) : viewMode === 'RESOURCES' ? (
             <div className="border rounded-lg overflow-hidden flex-1 bg-background"> {/* Paper */}
@@ -604,7 +625,7 @@ const newTask: ScheduleTask = {
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
-                                        {(project.resourceAllocations || []).map(alloc => {
+                                        {resourceAllocationsPagination.paginatedData.map(alloc => {
                                             const task = project.schedule.find(t => t.id === alloc.allocatedTo);
                                             const resource = (project.resources || []).find(r => r.id === alloc.resourceId);
                                             return (
@@ -628,6 +649,19 @@ const newTask: ScheduleTask = {
                                         No resource allocations found
                                     </p>
                                 )}
+                                {(project.resourceAllocations || []).length > 0 && (
+                                    <div className="p-4 border-t">
+                                        <PaginationComponent
+                                            currentPage={resourceAllocationsPagination.currentPage}
+                                            totalPages={resourceAllocationsPagination.totalPages}
+                                            pageSize={resourceAllocationsPagination.pageSize}
+                                            totalItems={resourceAllocationsPagination.totalItems}
+                                            onPageChange={resourceAllocationsPagination.setCurrentPage}
+                                            onPageSizeChange={resourceAllocationsPagination.setPageSize}
+                                            pageSizeOptions={[10, 20, 50]}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <div className="col-span-1 md:col-span-1"> {/* Grid item */}
@@ -644,7 +678,7 @@ const newTask: ScheduleTask = {
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
-                                        {(project.resources || []).map(resource => {
+                                        {resourcesPagination.paginatedData.map(resource => {
                                             const allocated = (project.resourceAllocations || [])
                                                 .filter(alloc => alloc.resourceId === resource.id)
                                                 .reduce((sum, alloc) => sum + alloc.allocatedQuantity, 0);
@@ -676,6 +710,19 @@ const newTask: ScheduleTask = {
                                         No resources defined
                                     </p>
                                 )}
+                                {(project.resources || []).length > 0 && (
+                                    <div className="p-4 border-t">
+                                        <PaginationComponent
+                                            currentPage={resourcesPagination.currentPage}
+                                            totalPages={resourcesPagination.totalPages}
+                                            pageSize={resourcesPagination.pageSize}
+                                            totalItems={resourcesPagination.totalItems}
+                                            onPageChange={resourcesPagination.setCurrentPage}
+                                            onPageSizeChange={resourcesPagination.setPageSize}
+                                            pageSizeOptions={[10, 20, 50]}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -703,7 +750,7 @@ const newTask: ScheduleTask = {
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
-                                        {(project.resources || []).map(resource => {
+                                        {capacityPagination.paginatedData.map(resource => {
                                             const allocated = (project.resourceAllocations || [])
                                                 .filter(alloc => alloc.resourceId === resource.id)
                                                 .reduce((sum, alloc) => sum + alloc.allocatedQuantity, 0);
@@ -749,6 +796,19 @@ const newTask: ScheduleTask = {
                                     <p className="text-center py-4 text-sm text-muted-foreground"> {/* Typography */}
                                         No resources defined
                                     </p>
+                                )}
+                                {(project.resources || []).length > 0 && (
+                                    <div className="p-4 border-t">
+                                        <PaginationComponent
+                                            currentPage={capacityPagination.currentPage}
+                                            totalPages={capacityPagination.totalPages}
+                                            pageSize={capacityPagination.pageSize}
+                                            totalItems={capacityPagination.totalItems}
+                                            onPageChange={capacityPagination.setCurrentPage}
+                                            onPageSizeChange={capacityPagination.setPageSize}
+                                            pageSizeOptions={[10, 20, 50]}
+                                        />
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -812,7 +872,7 @@ const newTask: ScheduleTask = {
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
-                                        {(project.milestones || []).map(milestone => {
+                                        {milestonesPagination.paginatedData.map(milestone => {
                                             const isOverdue = new Date(milestone.date) < new Date() && milestone.status !== 'Completed';
                                             const isUpcoming = new Date(milestone.date) > new Date() && milestone.status === 'Planned';
                                             const isCompleted = milestone.status === 'Completed';
@@ -915,6 +975,19 @@ const newTask: ScheduleTask = {
                                         <Flag size={48} className="text-gray-300" /> {/* color */}
                                         <h3 className="text-lg text-muted-foreground mt-2">No Milestones Defined</h3> {/* Typography */}
                                         <p className="text-sm text-muted-foreground mt-1">Add milestones to track important project events and achievements</p> {/* Typography */}
+                                    </div>
+                                )}
+                                {(project.milestones || []).length > milestonesPagination.pageSize && (
+                                    <div className="p-4 border-t">
+                                        <PaginationComponent
+                                            currentPage={milestonesPagination.currentPage}
+                                            totalPages={milestonesPagination.totalPages}
+                                            pageSize={milestonesPagination.pageSize}
+                                            totalItems={milestonesPagination.totalItems}
+                                            onPageChange={milestonesPagination.setCurrentPage}
+                                            onPageSizeChange={milestonesPagination.setPageSize}
+                                            pageSizeOptions={[10, 20, 50]}
+                                        />
                                     </div>
                                 )}
                             </div>

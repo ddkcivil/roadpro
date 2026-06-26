@@ -18,6 +18,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { Avatar, AvatarImage, AvatarFallback } from '~/components/ui/avatar';
 import { Badge } from '~/components/ui/badge';
 import { useToast } from '~/components/ui/use-toast';
+import { usePagination } from '../../hooks/usePagination';
+import { PaginationComponent } from '~/components/ui/pagination-component';
 
 interface Props {
   project: Project;
@@ -43,7 +45,11 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
 
   const agencies = project.agencies?.filter(a => a.type === 'agency') || [];
   const subcontractors = project.agencies?.filter(a => a.type === 'subcontractor') || []; // Also considered agencies
-  const agencyPayments = (project.agencyPayments || []).filter(p => p.agencyId && agencies.concat(subcontractors).some(a => a.id === p.agencyId));
+  const allAgencies = agencies.concat(subcontractors);
+  const agencyPayments = (project.agencyPayments || []).filter(p => p.agencyId && allAgencies.some(a => a.id === p.agencyId));
+  
+  const vendorPagination = usePagination(allAgencies, 10);
+  const paymentPagination = usePagination(agencyPayments, 10);
   
   const [agencyForm, setAgencyForm] = useState<Partial<Agency>>({
     name: '',
@@ -373,8 +379,8 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
           </TabsList>
 
           <TabsContent value="vendors" className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {agencies.concat(subcontractors).map(agency => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              {vendorPagination.paginatedData.map(agency => (
                 <Card key={agency.id} className="cursor-pointer hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3 mb-3">
@@ -420,6 +426,14 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
                 </Card>
               ))}
             </div>
+            <PaginationComponent
+              currentPage={vendorPagination.currentPage}
+              totalPages={vendorPagination.totalPages}
+              pageSize={vendorPagination.pageSize}
+              totalItems={vendorPagination.totalItems}
+              onPageChange={vendorPagination.setCurrentPage}
+              onPageSizeChange={vendorPagination.setPageSize}
+            />
           </TabsContent>
 
           <TabsContent value="payments" className="p-4">
@@ -441,9 +455,9 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {agencyPayments.map(payment => (
+                {paymentPagination.paginatedData.map(payment => (
                   <TableRow key={payment.id}>
-                    <TableCell>{agencies.concat(subcontractors).find(a => a.id === payment.agencyId)?.name || 'Unknown'}</TableCell>
+                    <TableCell>{allAgencies.find(a => a.id === payment.agencyId)?.name || 'Unknown'}</TableCell>
                     <TableCell>{payment.date}</TableCell>
                     <TableCell>{payment.reference}</TableCell>
                     <TableCell>{payment.type}</TableCell>
@@ -455,6 +469,14 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
                 ))}
               </TableBody>
             </Table>
+            <PaginationComponent
+              currentPage={paymentPagination.currentPage}
+              totalPages={paymentPagination.totalPages}
+              pageSize={paymentPagination.pageSize}
+              totalItems={paymentPagination.totalItems}
+              onPageChange={paymentPagination.setCurrentPage}
+              onPageSizeChange={paymentPagination.setPageSize}
+            />
           </TabsContent>
         </Tabs>
       </Card>

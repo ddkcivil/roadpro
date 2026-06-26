@@ -29,6 +29,8 @@ import {
 } from 'lucide-react';
 import { apiService } from '../../services/api/apiService';
 import { offlineStorage } from '../../services/database/offlineStorage';
+import { usePagination } from '../../hooks/usePagination';
+import { PaginationComponent } from '~/components/ui/pagination-component';
 
 // Types
 interface PerformanceRecord {
@@ -495,9 +497,15 @@ const StaffManagementModule: React.FC = () => {
       if (statusFilter !== 'All') {
         filtered = filtered.filter(form => form.status === statusFilter);
       }
-      setFilteredEvaluations(filtered);
-    }
   }, [leaveRequests, employees, performanceRecords, attendanceRecords, salaryRecords, trainingRecords, evaluationForms, searchTerm, statusFilter, activeTab]);
+
+  const leaveRequestsPagination = usePagination(filteredLeaveRequests, 10);
+  const employeesPagination = usePagination(filteredEmployees, 9); // Grid of 3, so 9 makes sense
+  const performancePagination = usePagination(filteredPerformance, 10);
+  const attendancePagination = usePagination(filteredAttendance, 10);
+  const salariesPagination = usePagination(filteredSalaries, 10);
+  const trainingPagination = usePagination(filteredTraining, 10);
+  const evaluationsPagination = usePagination(filteredEvaluations, 10);
 
   // Leave request handlers
   const handleSubmitLeaveRequest = async (e: React.FormEvent) => {
@@ -1452,7 +1460,7 @@ const StaffManagementModule: React.FC = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredLeaveRequests.map(request => (
+                      {leaveRequestsPagination.paginatedData.map(request => (
                         <TableRow key={request.id} className="hover:bg-slate-50/50">
                           <TableCell>
                             <div className="flex flex-col gap-0.5">
@@ -1548,6 +1556,19 @@ const StaffManagementModule: React.FC = () => {
                     No leave requests found
                   </div>
                 )}
+                {filteredLeaveRequests.length > 0 && (
+                  <div className="mt-4">
+                    <PaginationComponent
+                      currentPage={leaveRequestsPagination.currentPage}
+                      totalPages={leaveRequestsPagination.totalPages}
+                      pageSize={leaveRequestsPagination.pageSize}
+                      totalItems={leaveRequestsPagination.totalItems}
+                      onPageChange={leaveRequestsPagination.setCurrentPage}
+                      onPageSizeChange={leaveRequestsPagination.setPageSize}
+                      pageSizeOptions={[10, 20, 50]}
+                    />
+                  </div>
+                )}
               </>
             )}
             </div>
@@ -1582,7 +1603,7 @@ const StaffManagementModule: React.FC = () => {
 
               {/* Employees Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredEmployees.map(employee => (
+                {employeesPagination.paginatedData.map(employee => (
                   <Card key={employee.id} className="hover:shadow-md transition-shadow">
                     <CardContent className="pt-6">
                       <div className="flex justify-between items-start mb-4">
@@ -1629,6 +1650,19 @@ const StaffManagementModule: React.FC = () => {
               {filteredEmployees.length === 0 && (
                 <div className="text-center text-muted-foreground py-12 bg-slate-50/30 rounded-lg border border-dashed">
                   No employees found
+                </div>
+              )}
+              {filteredEmployees.length > 0 && (
+                <div className="mt-4">
+                  <PaginationComponent
+                    currentPage={employeesPagination.currentPage}
+                    totalPages={employeesPagination.totalPages}
+                    pageSize={employeesPagination.pageSize}
+                    totalItems={employeesPagination.totalItems}
+                    onPageChange={employeesPagination.setCurrentPage}
+                    onPageSizeChange={employeesPagination.setPageSize}
+                    pageSizeOptions={[9, 18, 36]}
+                  />
                 </div>
               )}
             </div>
@@ -1680,7 +1714,7 @@ const StaffManagementModule: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredPerformance.map(record => (
+                    {performancePagination.paginatedData.map(record => (
                       <TableRow key={record.id} className="hover:bg-slate-50/50">
                         <TableCell>
                           <div className="flex flex-col gap-0.5">
@@ -1720,9 +1754,19 @@ const StaffManagementModule: React.FC = () => {
                 </Table>
               </div>
               
-              {filteredPerformance.length === 0 && (
-                <div className="text-center text-muted-foreground py-12 bg-slate-50/30 rounded-lg border border-dashed mt-4">
-                  No performance records found
+                </div>
+              )}
+              {filteredPerformance.length > 0 && (
+                <div className="mt-4">
+                  <PaginationComponent
+                    currentPage={performancePagination.currentPage}
+                    totalPages={performancePagination.totalPages}
+                    pageSize={performancePagination.pageSize}
+                    totalItems={performancePagination.totalItems}
+                    onPageChange={performancePagination.setCurrentPage}
+                    onPageSizeChange={performancePagination.setPageSize}
+                    pageSizeOptions={[10, 20, 50]}
+                  />
                 </div>
               )}
             </div>
@@ -1795,7 +1839,7 @@ const StaffManagementModule: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredAttendance.map(record => (
+                    {attendancePagination.paginatedData.map(record => (
                       <TableRow key={record.id} className="hover:bg-slate-50/50">
                         <TableCell>
                           <div className="flex flex-col gap-0.5">
@@ -1839,9 +1883,19 @@ const StaffManagementModule: React.FC = () => {
                 </Table>
               </div>
               
-              {filteredAttendance.length === 0 && (
-                <div className="text-center text-muted-foreground py-12 bg-slate-50/30 rounded-lg border border-dashed mt-4">
-                  No attendance records found
+                </div>
+              )}
+              {filteredAttendance.length > 0 && (
+                <div className="mt-4">
+                  <PaginationComponent
+                    currentPage={attendancePagination.currentPage}
+                    totalPages={attendancePagination.totalPages}
+                    pageSize={attendancePagination.pageSize}
+                    totalItems={attendancePagination.totalItems}
+                    onPageChange={attendancePagination.setCurrentPage}
+                    onPageSizeChange={attendancePagination.setPageSize}
+                    pageSizeOptions={[10, 20, 50]}
+                  />
                 </div>
               )}
             </div>
@@ -1915,7 +1969,7 @@ const StaffManagementModule: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredSalaries.map(record => (
+                    {salariesPagination.paginatedData.map(record => (
                       <TableRow key={record.id} className="hover:bg-slate-50/50">
                         <TableCell>
                           <div className="flex flex-col gap-0.5">
@@ -1968,9 +2022,19 @@ const StaffManagementModule: React.FC = () => {
                 </Table>
               </div>
               
-              {filteredSalaries.length === 0 && (
-                <div className="text-center text-muted-foreground py-12 bg-slate-50/30 rounded-lg border border-dashed mt-4">
-                  No salary records found
+                </div>
+              )}
+              {filteredSalaries.length > 0 && (
+                <div className="mt-4">
+                  <PaginationComponent
+                    currentPage={salariesPagination.currentPage}
+                    totalPages={salariesPagination.totalPages}
+                    pageSize={salariesPagination.pageSize}
+                    totalItems={salariesPagination.totalItems}
+                    onPageChange={salariesPagination.setCurrentPage}
+                    onPageSizeChange={salariesPagination.setPageSize}
+                    pageSizeOptions={[10, 20, 50]}
+                  />
                 </div>
               )}
             </div>
@@ -2044,7 +2108,7 @@ const StaffManagementModule: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredTraining.map(record => (
+                    {trainingPagination.paginatedData.map(record => (
                       <TableRow key={record.id} className="hover:bg-slate-50/50">
                         <TableCell>
                           <div className="flex flex-col gap-0.5">
@@ -2093,9 +2157,19 @@ const StaffManagementModule: React.FC = () => {
                 </Table>
               </div>
               
-              {filteredTraining.length === 0 && (
-                <div className="text-center text-muted-foreground py-12 bg-slate-50/30 rounded-lg border border-dashed mt-4">
-                  No training records found
+                </div>
+              )}
+              {filteredTraining.length > 0 && (
+                <div className="mt-4">
+                  <PaginationComponent
+                    currentPage={trainingPagination.currentPage}
+                    totalPages={trainingPagination.totalPages}
+                    pageSize={trainingPagination.pageSize}
+                    totalItems={trainingPagination.totalItems}
+                    onPageChange={trainingPagination.setCurrentPage}
+                    onPageSizeChange={trainingPagination.setPageSize}
+                    pageSizeOptions={[10, 20, 50]}
+                  />
                 </div>
               )}
             </div>
@@ -2169,7 +2243,7 @@ const StaffManagementModule: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredEvaluations.map(form => (
+                    {evaluationsPagination.paginatedData.map(form => (
                       <TableRow key={form.id} className="hover:bg-slate-50/50">
                         <TableCell>
                           <div className="flex flex-col gap-0.5">
@@ -2230,9 +2304,19 @@ const StaffManagementModule: React.FC = () => {
                 </Table>
               </div>
               
-              {filteredEvaluations.length === 0 && (
-                <div className="text-center text-muted-foreground py-12 bg-slate-50/30 rounded-lg border border-dashed mt-4">
-                  No evaluation forms found
+                </div>
+              )}
+              {filteredEvaluations.length > 0 && (
+                <div className="mt-4">
+                  <PaginationComponent
+                    currentPage={evaluationsPagination.currentPage}
+                    totalPages={evaluationsPagination.totalPages}
+                    pageSize={evaluationsPagination.pageSize}
+                    totalItems={evaluationsPagination.totalItems}
+                    onPageChange={evaluationsPagination.setCurrentPage}
+                    onPageSizeChange={evaluationsPagination.setPageSize}
+                    pageSizeOptions={[10, 20, 50]}
+                  />
                 </div>
               )}
             </div>

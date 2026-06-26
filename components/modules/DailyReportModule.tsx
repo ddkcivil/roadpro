@@ -24,6 +24,8 @@ import { Textarea } from '~/components/ui/textarea';
 import { ScrollArea } from '~/components/ui/scroll-area';
 import { Badge } from '~/components/ui/badge';
 import { Separator } from '~/components/ui/separator';
+import { usePagination } from '../../hooks/usePagination';
+import { PaginationComponent } from '~/components/ui/pagination-component';
 
 interface Props {
     project: Project;
@@ -282,8 +284,10 @@ const canDelete = userRole === UserRole.ADMIN || userRole === UserRole.PROJECT_M
 
     const renderListView = () => {
         const dailyReports = project.dailyReports || [];
+        const reversedReports = [...dailyReports].reverse();
+        const reportPagination = usePagination(reversedReports, 10);
         return (
-            <div className="space-y-4">
+            <div className="space-y-4 flex flex-col h-[calc(100vh-200px)]">
                 <div className="flex justify-between items-center mb-4">
                     <div className="relative w-64">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -307,7 +311,7 @@ const canDelete = userRole === UserRole.ADMIN || userRole === UserRole.PROJECT_M
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {dailyReports.length > 0 ? [...dailyReports].reverse().map((report: DailyReport) => (
+                                {reportPagination.paginatedData.length > 0 ? reportPagination.paginatedData.map((report: DailyReport) => (
                                     <TableRow key={report.id} className="hover:bg-muted/30 transition-colors">
                                         <TableCell>
                                             <p className="font-bold">{report.date}</p>
@@ -366,6 +370,19 @@ const canDelete = userRole === UserRole.ADMIN || userRole === UserRole.PROJECT_M
                         </Table>
                     </ScrollArea>
                 </Card>
+                {dailyReports.length > 0 && (
+                    <div className="mt-auto pt-4">
+                        <PaginationComponent
+                            currentPage={reportPagination.currentPage}
+                            totalPages={reportPagination.totalPages}
+                            pageSize={reportPagination.pageSize}
+                            totalItems={reportPagination.totalItems}
+                            onPageChange={reportPagination.setCurrentPage}
+                            onPageSizeChange={reportPagination.setPageSize}
+                            pageSizeOptions={[10, 20, 50]}
+                        />
+                    </div>
+                )}
             </div>
         );
     };

@@ -20,6 +20,8 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
 import { cn } from '~/lib/utils';
 import { toast } from 'sonner';
+import { usePagination } from '../../hooks/usePagination';
+import { PaginationComponent } from '~/components/ui/pagination-component';
 
 // NOTE: This is a refactored version of the BOQManager component.
 // The original logic has been temporarily removed to facilitate the UI migration.
@@ -74,8 +76,6 @@ const [newItem, setNewItem] = useState<Partial<BOQItem>>({
   });
 
   const [searchTerm, setSearchTerm] = useState(''); // New state for search term
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
 
   const handleEditClick = (item: BOQItem) => {
     if (!canEdit) {
@@ -245,20 +245,13 @@ const handleNewItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     );
   }, [project.boq, searchTerm]);
 
-
-  const paginatedBoq = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredBoq.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredBoq, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(filteredBoq.length / itemsPerPage);
+  const boqPagination = usePagination(filteredBoq, 50);
 
   return (
     <div className={cn("p-4", compactView ? "p-1" : "p-3")}>
       <div className="flex justify-between items-center mb-4">
         <div>
             <h2 className="text-xl font-bold">BOQ Registry</h2>
-            <p className="text-xs text-muted-foreground">Showing {Math.min(filteredBoq.length, itemsPerPage)} of {filteredBoq.length} items</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -284,8 +277,8 @@ const handleNewItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedBoq.length > 0 ? (
-                paginatedBoq.map((item) => (
+              {boqPagination.paginatedData.length > 0 ? (
+                boqPagination.paginatedData.map((item) => (
                   <TableRow key={item.id}><TableCell>{item.itemNo}</TableCell><TableCell>{item.description}</TableCell><TableCell>{item.unit}</TableCell><TableCell className="text-right">{(item.quantity || 0).toLocaleString()}</TableCell><TableCell className="text-right">{(item.rate || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell><TableCell className="text-right">{((item.quantity || 0) * (item.rate || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell><TableCell className="text-center">{/* Centered for progress bar */}{(() => {
                         const totalQuantity = (item.quantity || 0) + (item.variationQuantity || 0);
                         const progress = totalQuantity > 0 ? (item.completedQuantity || 0) / totalQuantity * 100 : 0;
@@ -349,31 +342,15 @@ const handleNewItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       </Card>
 
       {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4 px-2">
-          <p className="text-xs text-muted-foreground">
-            Page {currentPage} of {totalPages}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
+      <PaginationComponent
+        currentPage={boqPagination.currentPage}
+        totalPages={boqPagination.totalPages}
+        pageSize={boqPagination.pageSize}
+        totalItems={boqPagination.totalItems}
+        onPageChange={boqPagination.setCurrentPage}
+        onPageSizeChange={boqPagination.setPageSize}
+        pageSizeOptions={[10, 25, 50, 100, 500]}
+      />
 
       {/* Edit BOQ Item Dialog */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>

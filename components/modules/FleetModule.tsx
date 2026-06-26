@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import { Alert } from '~/components/ui/alert';
 import { Separator } from '~/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
+import { usePagination } from '../../hooks/usePagination';
+import { PaginationComponent } from '~/components/ui/pagination-component';
 
 import { 
     Truck, Gauge, Droplets, Clock, Signal, Plus, 
@@ -232,6 +234,10 @@ const handleOpenTripLog = () => {
     [activeVehicle]
   );
 
+  const vehiclePagination = usePagination(vehicles, 10);
+  const tripPagination = usePagination(activeVehicleLogs, 10);
+  const maintenancePagination = usePagination(activeMaintenanceLogs, 10);
+
   const handleOpenMaintenance = () => {
     setMaintenanceForm({
       date: new Date().toISOString().split('T')[0],
@@ -305,9 +311,9 @@ const handleOpenTripLog = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            <div className="col-span-12 md:col-span-4">
+            <div className="col-span-12 md:col-span-4 flex flex-col h-full">
                 <div className="flex flex-col space-y-3">
-                    {vehicles.map(v => (
+                    {vehiclePagination.paginatedData.map(v => (
                         <Card 
                             key={v.id} 
                             onClick={() => { setSelectedId(v.id); setActiveDetailTab('0'); }}
@@ -339,6 +345,19 @@ const handleOpenTripLog = () => {
                         </Card>
                     ))}
                 </div>
+                {vehicles.length > 0 && (
+                    <div className="mt-4">
+                        <PaginationComponent
+                            currentPage={vehiclePagination.currentPage}
+                            totalPages={vehiclePagination.totalPages}
+                            pageSize={vehiclePagination.pageSize}
+                            totalItems={vehiclePagination.totalItems}
+                            onPageChange={vehiclePagination.setCurrentPage}
+                            onPageSizeChange={vehiclePagination.setPageSize}
+                            pageSizeOptions={[5, 10, 20]}
+                        />
+                    </div>
+                )}
             </div>
 
             <div className="col-span-12 md:col-span-8">
@@ -432,7 +451,7 @@ const handleOpenTripLog = () => {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {activeVehicleLogs.map(log => (
+                                            {tripPagination.paginatedData.map(log => (
                                                 <TableRow key={log.id}>
                                                     <TableCell className="whitespace-nowrap text-xs">{log.date}</TableCell>
                                                     <TableCell>
@@ -464,6 +483,19 @@ const handleOpenTripLog = () => {
                                             )}
                                         </TableBody>
                                     </Table>
+                                    {activeVehicleLogs.length > 0 && (
+                                        <div className="mt-4">
+                                            <PaginationComponent
+                                                currentPage={tripPagination.currentPage}
+                                                totalPages={tripPagination.totalPages}
+                                                pageSize={tripPagination.pageSize}
+                                                totalItems={tripPagination.totalItems}
+                                                onPageChange={tripPagination.setCurrentPage}
+                                                onPageSizeChange={tripPagination.setPageSize}
+                                                pageSizeOptions={[5, 10, 20]}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -487,7 +519,7 @@ const handleOpenTripLog = () => {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {activeMaintenanceLogs.map(log => (
+                                            {maintenancePagination.paginatedData.map(log => (
                                                 <TableRow key={log.id}>
                                                     <TableCell className="whitespace-nowrap text-xs">{log.date}</TableCell>
                                                     <TableCell>
@@ -524,6 +556,19 @@ const handleOpenTripLog = () => {
                                             )}
                                         </TableBody>
                                     </Table>
+                                    {activeMaintenanceLogs.length > 0 && (
+                                        <div className="mt-4">
+                                            <PaginationComponent
+                                                currentPage={maintenancePagination.currentPage}
+                                                totalPages={maintenancePagination.totalPages}
+                                                pageSize={maintenancePagination.pageSize}
+                                                totalItems={maintenancePagination.totalItems}
+                                                onPageChange={maintenancePagination.setCurrentPage}
+                                                onPageSizeChange={maintenancePagination.setPageSize}
+                                                pageSizeOptions={[5, 10, 20]}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </Card>

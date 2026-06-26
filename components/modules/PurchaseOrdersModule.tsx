@@ -13,6 +13,8 @@ import { Textarea } from '~/components/ui/textarea';
 import { generateUniqueId } from '../../utils/uuidUtils';
 import { formatCurrency } from '../../utils/formatting/currencyUtils';
 import { toast } from 'sonner';
+import { usePagination } from '../../hooks/usePagination';
+import { PaginationComponent } from '~/components/ui/pagination-component';
 
 interface PurchaseOrdersModuleProps {
   project: Project;
@@ -53,6 +55,8 @@ const PurchaseOrdersModule: React.FC<PurchaseOrdersModuleProps> = ({ project, us
     if (filterStatus === 'all') return purchaseOrders;
     return purchaseOrders.filter(po => po.status.toLowerCase() === filterStatus.toLowerCase());
   }, [purchaseOrders, filterStatus]);
+
+  const poPagination = usePagination(filteredPOs, 10);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -525,8 +529,8 @@ const handleStatusChange = (po: PurchaseOrder, newStatus: string) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredPOs.length > 0 ? (
-                filteredPOs.map((po) => (
+              {poPagination.paginatedData.length > 0 ? (
+                poPagination.paginatedData.map((po) => (
                   <TableRow key={po.id} className="hover:bg-muted/20">
                     <TableCell className="font-bold font-mono">{po.poNumber}</TableCell>
                     <TableCell>{po.vendor}</TableCell>
@@ -590,6 +594,19 @@ const handleStatusChange = (po: PurchaseOrder, newStatus: string) => {
               )}
             </TableBody>
           </Table>
+          {filteredPOs.length > 0 && (
+            <div className="p-4 border-t">
+              <PaginationComponent
+                currentPage={poPagination.currentPage}
+                totalPages={poPagination.totalPages}
+                pageSize={poPagination.pageSize}
+                totalItems={poPagination.totalItems}
+                onPageChange={poPagination.setCurrentPage}
+                onPageSizeChange={poPagination.setPageSize}
+                pageSizeOptions={[10, 20, 50]}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 

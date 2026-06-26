@@ -15,6 +15,8 @@ import { ScrollArea } from '~/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { ErrorSummary } from '~/components/ui/error-summary';
+import { usePagination } from '../../hooks/usePagination';
+import { PaginationComponent } from '~/components/ui/pagination-component';
 
 import { Project, RFI, UserRole, RFIStatus, UserWithPermissions } from '../../types';
 import { 
@@ -96,6 +98,9 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
             .filter(r => taskFilter === 'all' || r.linkedTaskId === taskFilter)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [project?.rfis, taskFilter]);
+
+    const checklistPagination = usePagination(projectChecklists, 10);
+    const rfiPagination = usePagination(filteredRFIs, 10);
 
     // RFI handlers
     const handleCreate = () => {
@@ -532,7 +537,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {projectChecklists.map((checklist) => (
+                                        {checklistPagination.paginatedData.map((checklist) => (
                                             <TableRow key={checklist.id} className="group transition-colors hover:bg-muted/20">
                                                 <TableCell className="font-bold text-sm">{checklist.name}</TableCell>
                                                 <TableCell>
@@ -559,6 +564,19 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                                         action={<Button variant="outline" size="sm">Create Checklist Master</Button>}
                                     />
                                 )}
+                                {projectChecklists.length > 0 && (
+                                    <div className="p-4 border-t">
+                                        <PaginationComponent
+                                            currentPage={checklistPagination.currentPage}
+                                            totalPages={checklistPagination.totalPages}
+                                            pageSize={checklistPagination.pageSize}
+                                            totalItems={checklistPagination.totalItems}
+                                            onPageChange={checklistPagination.setCurrentPage}
+                                            onPageSizeChange={checklistPagination.setPageSize}
+                                            pageSizeOptions={[10, 20, 50]}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </Card>
                     </TabsContent>
@@ -579,7 +597,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {filteredRFIs.map((rfi) => {
+                                        {rfiPagination.paginatedData.map((rfi) => {
                                             const linkedTask = project.schedule.find(t => t.id === rfi.linkedTaskId);
                                             return (
                                                 <TableRow key={rfi.id} className="group transition-colors hover:bg-muted/20">
@@ -640,6 +658,19 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
                                         description="No inspection requests have been filed yet. Submit an RFI to begin the quality verification process."
                                         action={<Button onClick={handleCreate} size="sm"><Plus size={14} className="mr-2"/> Create First RFI</Button>}
                                     />
+                                )}
+                                {filteredRFIs.length > 0 && (
+                                    <div className="p-4 border-t">
+                                        <PaginationComponent
+                                            currentPage={rfiPagination.currentPage}
+                                            totalPages={rfiPagination.totalPages}
+                                            pageSize={rfiPagination.pageSize}
+                                            totalItems={rfiPagination.totalItems}
+                                            onPageChange={rfiPagination.setCurrentPage}
+                                            onPageSizeChange={rfiPagination.setPageSize}
+                                            pageSizeOptions={[10, 20, 50]}
+                                        />
+                                    </div>
                                 )}
                             </div>
                         </Card>
