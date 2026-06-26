@@ -247,7 +247,7 @@ const BOQModule: React.FC<Props> = ({ project, settings, userRole, onProjectUpda
         }
     
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             const data = new Uint8Array(e.target?.result as ArrayBuffer);
             const workbook = XLSX.read(data, { type: 'array' });
             const worksheetName = workbook.SheetNames[0];
@@ -342,8 +342,28 @@ const amount = quantity * rate;
                 return;
             }
     
-            onProjectUpdate({ ...project, boq: importedBoqItems });
-                
+            console.log('[BOQ IMPORT] About to call onProjectUpdate with:', {
+                projectId: project.id,
+                boqItemsCount: importedBoqItems.length,
+                boqItems: importedBoqItems,
+                timestamp: new Date().toISOString()
+            });
+
+            // CRITICAL: Await the save to complete before closing modal
+            // Otherwise the browser might close before the async save finishes!
+            try {
+                console.log('[BOQ IMPORT] Awaiting onProjectUpdate to complete...');
+                await onProjectUpdate({ ...project, boq: importedBoqItems });
+                console.log('[BOQ IMPORT] onProjectUpdate completed successfully!');
+            } catch (error) {
+                console.error('[BOQ IMPORT] onProjectUpdate failed:', error);
+                toast.error("Save Failed", { 
+                    description: `Failed to save imported BOQ items. Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+                });
+                setImportFile(null);
+                return;
+            }
+            
             setImportFile(null);
             setIsImportModalOpen(false);
             

@@ -338,14 +338,6 @@ if (response.status === 401 || response.status === 500) {
     return sanitized;
   }
 
-async getProjects(page = 1, limit = 50): Promise<{ data: Project[], pagination: any }> {
-    // DEFENSIVE: Ensure page and limit are always numbers
-    const safePage = typeof page === 'number' && !isNaN(page) ? page : 1;
-    const safeLimit = typeof limit === 'number' && !isNaN(limit) ? limit : 50;
-    
-    return this.fetchApi<{ data: Project[], pagination: any }>(`/projects?page=${safePage}&limit=${safeLimit}`, { method: 'GET' }, true);
-  }
-
   async getProject(id: string, forceRefresh = false): Promise<Project> {
     const result = await this.fetchApi<Project>(`/projects?id=${id}`, { method: 'GET' }, true, forceRefresh);
     console.log('[BOQ DEBUG] getProject response:', {

@@ -175,6 +175,12 @@ useEffect(() => {
   }, []);
 
   const handleSaveProject = useCallback((project: Partial<Project>) => {
+    console.log('[APP] handleSaveProject called with:', {
+      projectId: project.id,
+      hasBOQ: !!project.boq,
+      boqCount: Array.isArray(project.boq) ? project.boq.length : 0,
+      boqData: project.boq
+    });
     return saveProject(project);
   }, [saveProject]);
   

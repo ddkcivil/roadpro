@@ -69,12 +69,15 @@ const projectsReducer = (state: ProjectsState, action: ProjectsAction): Projects
         if (existing) {
           return {
             ...prepared,
+            boq: prepared.boq?.length ? prepared.boq : (existing.boq || []),
             documents: prepared.documents?.length ? prepared.documents : (existing.documents || []),
             variationOrders: prepared.variationOrders?.length ? prepared.variationOrders : (existing.variationOrders || []),
             agencies: prepared.agencies?.length ? prepared.agencies : (existing.agencies || []),
             labTests: prepared.labTests?.length ? prepared.labTests : (existing.labTests || []),
             rfis: prepared.rfis?.length ? prepared.rfis : (existing.rfis || []),
             sitePhotos: prepared.sitePhotos?.length ? prepared.sitePhotos : (existing.sitePhotos || []),
+            structures: prepared.structures?.length ? prepared.structures : (existing.structures || []),
+            measurementSheets: prepared.measurementSheets?.length ? prepared.measurementSheets : (existing.measurementSheets || []),
           };
         }
         return prepared;
@@ -92,9 +95,15 @@ const projectsReducer = (state: ProjectsState, action: ProjectsAction): Projects
         if (existing) {
           return {
             ...p,
+            boq: p.boq?.length ? p.boq : (existing.boq || []),
             documents: p.documents?.length ? p.documents : (existing.documents || []),
             variationOrders: p.variationOrders?.length ? p.variationOrders : (existing.variationOrders || []),
             agencies: p.agencies?.length ? p.agencies : (existing.agencies || []),
+            labTests: p.labTests?.length ? p.labTests : (existing.labTests || []),
+            rfis: p.rfis?.length ? p.rfis : (existing.rfis || []),
+            sitePhotos: p.sitePhotos?.length ? p.sitePhotos : (existing.sitePhotos || []),
+            structures: p.structures?.length ? p.structures : (existing.structures || []),
+            measurementSheets: p.measurementSheets?.length ? p.measurementSheets : (existing.measurementSheets || []),
           };
         }
         return p;
@@ -145,9 +154,21 @@ const lastRefreshTimeRef = useRef<number>(0);
     
     setIsRefreshingDetail(true);
     try {
+      const currentProjectBefore = projectsRef.current.find(p => p.id === state.selectedProjectId);
+      console.log('[SYNC] Before refresh - BOQ:', {
+        projectId: state.selectedProjectId,
+        boqCount: Array.isArray(currentProjectBefore?.boq) ? currentProjectBefore.boq.length : 0
+      });
+
       const updatedProject = await apiService.getProject(state.selectedProjectId, true);
 
       if (!updatedProject) throw new Error('Project not found after refresh.');
+
+      console.log('[SYNC] After fetch - BOQ:', {
+        projectId: state.selectedProjectId,
+        boqCount: Array.isArray(updatedProject.boq) ? updatedProject.boq.length : 0,
+        boqData: updatedProject.boq
+      });
 
       const processedProject = prepareProjectWithMaterials(updatedProject);
       
@@ -268,7 +289,14 @@ const lastRefreshTimeRef = useRef<number>(0);
 
   const currentProject = useMemo(() => {
     if (!state?.projects) return undefined;
-    return state.projects.find(p => p.id === state.selectedProjectId);
+    const selected = state.projects.find(p => p.id === state.selectedProjectId);
+    console.log('[STATE] currentProject:', {
+      projectId: selected?.id,
+      boqCount: Array.isArray(selected?.boq) ? selected.boq.length : 0,
+      selectedProjectId: state.selectedProjectId,
+      timestamp: new Date().toISOString()
+    });
+    return selected;
   }, [state?.projects, state?.selectedProjectId]);
 
   const setSelectedProjectId = useCallback((id: string | null) => {
@@ -316,12 +344,24 @@ const lastRefreshTimeRef = useRef<number>(0);
       contractNo: project.contractNo || baseProject?.contractNo || null,
     } as unknown as Project;
 
+    console.log('[SAVE] completeProjectData - BOQ:', {
+      projectId: completeProjectData.id,
+      boqCount: Array.isArray(completeProjectData.boq) ? completeProjectData.boq.length : 0,
+      boqData: completeProjectData.boq
+    });
+
     if (!completeProjectData.name || !completeProjectData.client) {
       toast.error("Save Blocked", { description: "Project name and employer/client are required." });
       throw new Error("Project name and employer/client are required.");
     }
 
     const sanitizedProjectData = sanitizationUtils.sanitizeObject(completeProjectData) as Project;
+
+    console.log('[SAVE] sanitizedProjectData - BOQ:', {
+      projectId: sanitizedProjectData.id,
+      boqCount: Array.isArray(sanitizedProjectData.boq) ? sanitizedProjectData.boq.length : 0,
+      boqData: sanitizedProjectData.boq
+    });
 
     // DEFENSIVE: Final validation that ID survived sanitization
     if (!sanitizedProjectData.id) {
@@ -362,6 +402,12 @@ const lastRefreshTimeRef = useRef<number>(0);
           }
         );
       }
+
+      console.log('[SAVE] Backend returned project - BOQ:', {
+        projectId: backendProject.id,
+        boqCount: Array.isArray(backendProject.boq) ? backendProject.boq.length : 0,
+        boqData: backendProject.boq
+      });
 
       startTransition(() => {
         const finalProjects = projectsRef.current.map(p => p.id === backendProject.id ? backendProject : p);
