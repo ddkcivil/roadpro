@@ -90,10 +90,18 @@ const projectsReducer = (state: ProjectsState, action: ProjectsAction): Projects
       return { ...state, selectedProjectId: action.payload };
     case 'UPDATE_PROJECTS': {
       const incomingProjects = (action.payload || []).map((p: Project) => prepareProjectWithMaterials(p));
+      console.log('[REDUCER] UPDATE_PROJECTS - incoming projects:', {
+        count: incomingProjects.length,
+        boqCounts: incomingProjects.map(p => ({
+          id: p.id,
+          boqCount: Array.isArray(p.boq) ? p.boq.length : 0
+        }))
+      });
+      
       const mergedProjects = incomingProjects.map(p => {
         const existing = state.projects.find(ep => ep.id === p.id);
         if (existing) {
-          return {
+          const merged = {
             ...p,
             boq: p.boq?.length ? p.boq : (existing.boq || []),
             documents: p.documents?.length ? p.documents : (existing.documents || []),
@@ -105,8 +113,23 @@ const projectsReducer = (state: ProjectsState, action: ProjectsAction): Projects
             structures: p.structures?.length ? p.structures : (existing.structures || []),
             measurementSheets: p.measurementSheets?.length ? p.measurementSheets : (existing.measurementSheets || []),
           };
+          console.log('[REDUCER] Merged project:', {
+            id: merged.id,
+            incomingBOQCount: Array.isArray(p.boq) ? p.boq.length : 0,
+            existingBOQCount: Array.isArray(existing.boq) ? existing.boq.length : 0,
+            mergedBOQCount: Array.isArray(merged.boq) ? merged.boq.length : 0,
+            merged: merged.boq
+          });
+          return merged;
         }
         return p;
+      });
+      console.log('[REDUCER] UPDATE_PROJECTS - returning state with:', {
+        projectsCount: mergedProjects.length,
+        boqCounts: mergedProjects.map(p => ({
+          id: p.id,
+          boqCount: Array.isArray(p.boq) ? p.boq.length : 0
+        }))
       });
       return { ...state, projects: mergedProjects };
     }
@@ -171,6 +194,12 @@ const lastRefreshTimeRef = useRef<number>(0);
       });
 
       const processedProject = prepareProjectWithMaterials(updatedProject);
+      
+      console.log('[SYNC] Processing refreshed project:', {
+        projectId: processedProject.id,
+        boqCount: Array.isArray(processedProject.boq) ? processedProject.boq.length : 0,
+        boqData: processedProject.boq
+      });
       
       startTransition(() => {
         dispatch({ 
@@ -406,7 +435,8 @@ const lastRefreshTimeRef = useRef<number>(0);
       console.log('[SAVE] Backend returned project - BOQ:', {
         projectId: backendProject.id,
         boqCount: Array.isArray(backendProject.boq) ? backendProject.boq.length : 0,
-        boqData: backendProject.boq
+        boqData: backendProject.boq,
+        timestamp: new Date().toISOString()
       });
 
       startTransition(() => {
@@ -414,6 +444,11 @@ const lastRefreshTimeRef = useRef<number>(0);
         if (!isUpdate && !projectsRef.current.find(p => p.id === backendProject.id)) {
           finalProjects.push(backendProject);
         }
+        console.log('[SAVE] Dispatching UPDATE_PROJECTS with:', {
+          projectId: backendProject.id,
+          boqCount: Array.isArray(backendProject.boq) ? backendProject.boq.length : 0,
+          boqInDispatch: backendProject.boq
+        });
         dispatch({ type: 'UPDATE_PROJECTS', payload: finalProjects });
         debouncedCacheSync(finalProjects);
       });
