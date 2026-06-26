@@ -445,7 +445,7 @@ if (!isAuthenticated) {
                             onRefresh={refreshCurrentProject}
                           />
                         )}
-                        {activeTab === 'purchase-orders' && <PurchaseOrdersModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
+                        {activeTab === 'purchase-orders' && <PurchaseOrdersModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
                         {activeTab === 'settings' && userRole === UserRole.ADMIN && (
                           <SettingsModule settings={appSettings} onUpdate={updateSettings} />
                         )}

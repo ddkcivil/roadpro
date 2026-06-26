@@ -313,7 +313,7 @@ let docsData: any[] = [];
       // Fetch paginated projects with explicit columns
       const { data: projects, error: fetchError } = await supabaseAdmin
         .from('projects')
-        .select('id, name, client, contract_no, location, status, budget, start_date, end_date, description, contractor, owner_id, metadata, created_at, updated_at')
+        .select('id, name, client, contract_no, location, status, budget, start_date, end_date, description, contractor, owner_id, metadata, created_at, updated_at, boq')
         .range(skip, skip + limitVal - 1)
         .order('created_at', { ascending: false });
 
