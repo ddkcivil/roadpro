@@ -309,8 +309,8 @@ const UserManagement: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pendingUsers.map((user: any) => (
-                      <TableRow key={user.id || user._id}>
+                    {pendingUsers.filter((user: any) => user != null).map((user: any) => (
+                      <TableRow key={user?.id || user?._id}>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Avatar>
@@ -375,8 +375,8 @@ const UserManagement: React.FC = () => {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    users.map(user => (
-                      <TableRow key={user.id}>
+                    users.filter((user): user is User => user != null).map(user => (
+                      <TableRow key={user?.id}>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Avatar>
