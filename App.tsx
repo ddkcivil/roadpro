@@ -49,7 +49,7 @@ const AIChatModal = lazy(() => import('./components/utilities/AIChatModal'));
 const UserManagement = lazy(() => import('./components/common/UserManagement'));
 const UserActivity = lazy(() => import('./components/common/UserActivity'));
 const UserRegistration = lazy(() => import('./components/common/UserRegistration'));
-const StaffManagementModule = lazy(() => import('./components/modules/StaffManagementModule'));
+
 const DocumentationHub = lazy(() => import('./components/modules/DocumentationHub'));
 const FinancialManagementHub = lazy(() => import('./components/modules/FinancialManagementHub'));
 const SettingsModule = lazy(() => import('./components/modules/SettingsModule'));
@@ -76,8 +76,8 @@ const MPRReportModule = lazy(() => import('./components/modules/MPRReportModule'
 const InventorySyncModule = lazy(() => import('./components/modules/InventorySyncModule'));
 const PurchaseOrdersModule = lazy(() => import('./components/modules/PurchaseOrdersModule'));
 import ProjectsListSkeleton from './components/core/ProjectsListSkeleton';
-import DashboardSkeleton from './components/core/DashboardSkeleton';
-import ModuleSkeleton from './components/core/ModuleSkeleton';
+import DashboardSkeleton from './components/core/DashboardSkeleton.tsx';
+import ModuleSkeleton from './components/core/ModuleSkeleton.tsx';
 import { PageTransition } from './components/common/PageTransition';
 import { AnimatePresence } from 'framer-motion';
 import { ProtectedTab } from './components/common/ProtectedTab';
