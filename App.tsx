@@ -49,6 +49,7 @@ const AIChatModal = lazy(() => import('./components/utilities/AIChatModal'));
 const UserManagement = lazy(() => import('./components/common/UserManagement'));
 const UserActivity = lazy(() => import('./components/common/UserActivity'));
 const UserRegistration = lazy(() => import('./components/common/UserRegistration'));
+const StaffManagementModule = lazy(() => import('./components/modules/StaffManagementModule'));
 
 const DocumentationHub = lazy(() => import('./components/modules/DocumentationHub'));
 const FinancialManagementHub = lazy(() => import('./components/modules/FinancialManagementHub'));
