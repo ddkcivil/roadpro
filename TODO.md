@@ -1,78 +1,31 @@
-# Documentation Hub UI Improvement Plan
+# TODO: Fix StaffManagementModule.tsx TypeScript Errors
 
-## Task: Improve UI and show all document details (ref, description, action)
+## Task Analysis
+The StaffManagementModule.tsx file has ~90 TypeScript errors related to:
+1. Missing/duplicate TabsContent closing tags
+2. Missing state variables (salaryRecords, trainingRecords, evaluationForms, etc.)
+3. Missing pagination hooks
+4. Malformed conditional rendering
 
-## Status: ✅ COMPLETED
+## Issues Identified
+- Performance Tab: Lines ~1674-1778 - TabsContent structure issues
+- Attendance Tab: Lines ~1778-1889 - TabsContent structure issues  
+- Salary Tab: Lines ~1904-2046 - Missing salaryRecords, salariesPagination
+- Training Tab: Lines ~2046-2178 - Missing trainingRecords, trainingPagination
+- Evaluations Tab: Lines ~2178-2327 - Missing evaluationForms, evaluationsPagination
+- Dialog components: Lines ~2330-2516 - JSX structure issues
 
-## Steps Completed:
+## Fixes Applied
+- [x] Fix Performance Tab conditional rendering
+- [x] Fix Attendance Tab conditional rendering
+- [x] Remove duplicate closing tags
 
-- [x] 1. Analyze current DocumentsModule.tsx and understand structure
-- [x] 2. Expand Document Table columns to show more fields (Correspondence Type, Letter Date, Description, Folder)
-- [x] 3. Enhance Preview Panel with full metadata display (status, lastModified, description)
-- [x] 4. Improve visual design with badges and better spacing
-- [x] 5. Add more prominent action buttons (in dropdown menu with color-coded icons)
+## Remaining Fixes Needed
+- [ ] Fix Salary Tab - add proper closing </div> tags
+- [ ] Fix Training Tab - add proper closing </div> tags
+- [ ] Fix Evaluations Tab - add proper closing </div> tags
+- [ ] Fix Dialog components JSX structure
+- [ ] Verify all TypeScript errors are resolved
 
-## Changes Made:
-
-1. **Document Table (8 columns)**:
-   - Name (file icon, filename, tags)
-   - Ref No (reference number)
-   - Subject / Description (truncated with tooltip)
-   - Type (PDF/IMAGE badge)
-   - Corr. Type (incoming/outgoing badge)
-   - Folder (folder badge)
-   - Letter Date
-   - Actions (preview, edit, download, delete)
-
-2. **Preview Panel Enhancements**:
-   - Full metadata display with proper labels
-   - Badge variants for type and correspondence type
-   - Status display
-   - Last Modified date
-   - Version info
-
-3. **Visual Improvements**:
-   - Better badge styling
-   - Color-coded action buttons
-   - Enhanced hover states
-
-## Files Edited:
-- `components/modules/DocumentsModule.tsx`
-
----
-
-## Task: Letter Date is not extracted correctly
-
-## Status: ✅ COMPLETED
-
-## Steps Completed:
-
-- [x] 1. Analyze DocumentsModule.tsx and understand the date extraction logic in handleScanAnalysis
-- [x] 2. Update regex patterns to match more date formats:
-   - DD-MM-YYYY, DD.MM.YYYY, DD/MM/YYYY
-   - YYYY-MM-DD, YYYY/MM/DD
-   - DD-MMM-YYYY (e.g., 15-Jan-2024)
-   - DD MMMM YYYY (e.g., 15 January 2024)
-   - MMMM DD, YYYY (e.g., January 15, 2024)
-- [x] 3. Rewrite normalizeDate function with comprehensive format support
-- [x] 4. Add debugging logs to trace date extraction
-- [x] 5. Verify mappers correctly handle letterDate field
-
-## Changes Made:
-
-1. **Updated handleScanAnalysis function**:
-   - Added multiple date patterns array to try different formats
-   - Added console.log for debugging OCR results
-   - Changed date extraction to preserve original text case (not lowercase) for month name matching
-
-2. **New normalizeDate function**:
-   - Handles DD-MM-YYYY, DD.MM.YYYY, DD/MM/YYYY formats
-   - Handles YYYY-MM-DD format
-   - Handles DD-MMM-YYYY (e.g., 15-Jan-2024)
-   - Handles DD MMMM YYYY (e.g., 15 January 2024)
-   - Handles MMMM DD, YYYY (e.g., January 15, 2024)
-   - Native JavaScript Date parsing as fallback
-
-## Files Edited:
-- `components/modules/DocumentsModule.tsx`
-- `api/_utils/mappers.ts` (already had correct mappings - verified)
+## Test
+Run: `npx tsc --noEmit --skipLibCheck 2>&1`

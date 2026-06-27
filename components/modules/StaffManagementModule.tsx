@@ -930,7 +930,6 @@ setFilteredTraining(filtered);
           </div>
         );
 
-
       case 1: // Educational Qualifications
         return (
           <div className="space-y-4">
@@ -1699,12 +1698,13 @@ setFilteredTraining(filtered);
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Avg Rating
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="rounded-md border border-border overflow-hidden bg-background">
+                     </p>
+                   </CardContent>
+                 </Card>
+               </div>
+               
+               {salaryRecords.length > 0 && (
+               <div className="rounded-md border border-border overflow-hidden bg-background">
                 <Table>
                   <TableHeader className="bg-slate-50/50">
                     <TableRow>

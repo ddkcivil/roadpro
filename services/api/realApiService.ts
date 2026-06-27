@@ -175,7 +175,8 @@ private async fetchWithRetry<T>(endpoint: string, options?: RequestInit, retries
       const response = await fetch(`/api${endpoint}`, {
         ...options,
         headers,
-        credentials: (options as any)?.credentials ?? 'include',
+        // MUST be included so HttpOnly cookie (roadmaster-access) is sent to server middleware
+        credentials: 'include',
       });
 
       // Handle 401 Unauthorized - try to refresh session and retry once
@@ -197,7 +198,8 @@ private async fetchWithRetry<T>(endpoint: string, options?: RequestInit, retries
           const retryResponse = await fetch(`/api${endpoint}`, {
             ...options,
             headers: newHeaders,
-            credentials: (options as any)?.credentials ?? 'include',
+            // MUST be included so HttpOnly cookie (roadmaster-access) is sent on retry too
+            credentials: 'include',
           });
           
 if (retryResponse.ok || retryResponse.status === 204) {
