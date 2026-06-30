@@ -65,7 +65,7 @@ class RealApiService {
     }
     
     if (!token) {
-      // Also try cookie
+      // Also try cookie - must URL-decode since frontend encodes with encodeURIComponent
       if (typeof document !== 'undefined' && document.cookie) {
         const match = document.cookie.match(/roadmaster-access=([^;]+)/);
         if (match) {
@@ -152,6 +152,7 @@ class RealApiService {
     }
     
     // 3. Fall back to cookie if not in localStorage or sessionStorage
+    // IMPORTANT: Must URL-decode since the frontend encodes the token with encodeURIComponent
     if (typeof document !== 'undefined' && document.cookie) {
       const cookies = document.cookie.split(';').reduce((acc: Record<string, string>, cookie) => {
         const [name, value] = cookie.trim().split('=');
@@ -161,21 +162,22 @@ class RealApiService {
       
       const cookieToken = cookies['roadmaster-access'];
       if (cookieToken) {
-        console.log(`[API] ✓ Token found in cookie, syncing to localStorage`);
-        // Sync cookie token to localStorage for future use
+        const decodedToken = decodeURIComponent(cookieToken);
+        console.log(`[API] ✓ Token found in cookie, decoded (length: ${decodedToken.length})`);
+        // Sync decoded token to localStorage for future use
         try {
-          localStorage.setItem(authTokenKey, cookieToken);
+          localStorage.setItem(authTokenKey, decodedToken);
           console.log(`[API] ✓ Token synced from cookie to localStorage`);
         } catch (syncError) {
           console.warn(`[API] Failed to sync token to localStorage:`, syncError);
         }
         // Also store in sessionStorage as backup
         try {
-          sessionStorage.setItem(sessionTokenKey, cookieToken);
+          sessionStorage.setItem(sessionTokenKey, decodedToken);
         } catch (e) {
           console.warn(`[API] Failed to store token in sessionStorage:`, e);
         }
-        return cookieToken;
+        return decodedToken;
       }
     }
     

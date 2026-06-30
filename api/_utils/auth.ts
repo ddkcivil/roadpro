@@ -6,16 +6,29 @@ export const withAuth = (handler: Function, options: { ignoreExpiration?: boolea
   const authHeader = req.headers.authorization;
   const cookieHeader = req.headers.cookie;
   
+  // 1. Try Authorization header first (most reliable from frontend fetch())
   if (authHeader && authHeader.startsWith('Bearer ')) {
     token = authHeader.split(' ')[1];
-  } else if (cookieHeader) {
-    // Optimized cookie extraction
+    console.log(`[Auth] Token found in Authorization header (length: ${token.length})`);
+  }
+  
+  // 2. Fall back to cookie - must URL-decode since frontend encodes it
+  if (!token && cookieHeader) {
     const match = cookieHeader.match(/roadmaster-access=([^;]+)/);
-    if (match) token = match[1];
+    if (match) {
+      token = decodeURIComponent(match[1]);
+      console.log(`[Auth] Token found in cookie, decoded (length: ${token.length})`);
+    }
   }
 
+  // Debug logging to help diagnose missing token issues
+  if (!token && !authHeader && !cookieHeader) {
+    console.error(`[Auth Middleware] 401 Unauthorized: ${req.method} ${req.url} - No Authorization header or cookie found.`);
+    return res.status(401).json({ error: 'Unauthorized: No token provided' });
+  }
+  
   if (!token) {
-    console.error(`[Auth Middleware] 401 Unauthorized: ${req.method} ${req.url} - No token found.`);
+    console.error(`[Auth Middleware] 401 Unauthorized: ${req.method} ${req.url} - Token extraction failed. authHeader: ${!!authHeader}, cookieHeader: ${!!cookieHeader}`);
     return res.status(401).json({ error: 'Unauthorized: No token provided' });
   }
 

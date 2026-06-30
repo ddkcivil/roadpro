@@ -132,7 +132,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
             if (name) acc[name] = value;
             return acc;
           }, {});
-          token = cookies['roadmaster-access'];
+          // Must URL-decode since frontend encodes with encodeURIComponent
+          const rawToken = cookies['roadmaster-access'];
+          if (rawToken) token = decodeURIComponent(rawToken);
         }
 
         if (!token) return res.status(401).json({ valid: false, error: 'No token' });
