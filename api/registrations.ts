@@ -242,9 +242,15 @@ if (action === 'approve') {
             console.error('[Registrations] Delete failed:', deleteError);
           }
 
+// Return user object directly so the frontend can use it as a User
 return res.status(200).json({
-            message: 'Registration approved successfully',
-            user: { id: authUserId, name: pendingReg.name, email: pendingReg.email }
+            id: authUserId,
+            name: pendingReg.name,
+            email: pendingReg.email,
+            role: (pendingReg.requested_role || 'SITE_ENGINEER').toUpperCase(),
+            phone: pendingReg.phone || '',
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`,
+            _id: authUserId
           });
         } catch (error: any) {
           console.error('[Registrations] Approval error:', error);
