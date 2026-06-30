@@ -49,17 +49,33 @@ class RealApiService {
     return configKey !== undefined ? CACHE_CONFIG[configKey] : DEFAULT_TTL;
   }
 
-  /**
+/**
    * Refreshes the Supabase session using the stored token
    * This helps recover from race conditions where the token exists but the session needs syncing
    * @returns The refreshed token or null if refresh failed
    */
   private async refreshSession(): Promise<string | null> {
     const authTokenKey = 'roadmaster-token';
-    const token = localStorage.getItem(authTokenKey);
+    const sessionTokenKey = 'roadmaster-token-session';
+    
+    // Try to get token from any storage
+    let token = localStorage.getItem(authTokenKey);
+    if (!token) {
+      token = sessionStorage.getItem(sessionTokenKey);
+    }
     
     if (!token) {
-      console.warn('[API] Cannot refresh session - no token in localStorage');
+      // Also try cookie
+      if (typeof document !== 'undefined' && document.cookie) {
+        const match = document.cookie.match(/roadmaster-access=([^;]+)/);
+        if (match) {
+          token = decodeURIComponent(match[1]);
+        }
+      }
+    }
+    
+    if (!token) {
+      console.warn('[API] Cannot refresh session - no token found in any storage');
       return null;
     }
 
@@ -94,24 +110,48 @@ class RealApiService {
 
 /**
    * Gets the authentication token from localStorage or cookie
-   * This implements a dual-source token strategy for robustness:
+   * This implements a multi-source token strategy for robustness:
    * 1. First checks localStorage 'roadmaster-token'
-   * 2. Falls back to 'roadmaster-access' cookie
-   * 3. If token found in cookie but not localStorage, syncs it to localStorage
+   * 2. Falls back to sessionStorage 'roadmaster-token-session' (backup)
+   * 3. Falls back to 'roadmaster-access' cookie
+   * 4. If token found in cookie but not localStorage, syncs it to localStorage
    * @returns The token string or null if not found
    */
   private getAuthToken(): string | null {
     const authTokenKey = 'roadmaster-token';
+    const sessionTokenKey = 'roadmaster-token-session';
+    let token = null;
     
     // 1. First check localStorage
-    let token = localStorage.getItem(authTokenKey);
-    
-    if (token) {
-      console.log(`[API] Token found in localStorage`);
-      return token;
+    try {
+      token = localStorage.getItem(authTokenKey);
+      if (token) {
+        console.log(`[API] ✓ Token found in localStorage`);
+        return token;
+      }
+    } catch (e) {
+      console.warn(`[API] ⚠ Error reading from localStorage:`, e);
     }
     
-    // 2. Fall back to cookie if not in localStorage
+    // 2. Fall back to sessionStorage (backup)
+    try {
+      token = sessionStorage.getItem(sessionTokenKey);
+      if (token) {
+        console.log(`[API] ✓ Token found in sessionStorage (backup), syncing to localStorage`);
+        // Sync to localStorage for future API calls
+        try {
+          localStorage.setItem(authTokenKey, token);
+          console.log(`[API] ✓ Token synced from sessionStorage to localStorage`);
+        } catch (syncError) {
+          console.warn(`[API] Failed to sync token to localStorage:`, syncError);
+        }
+        return token;
+      }
+    } catch (e) {
+      console.warn(`[API] ⚠ Error reading from sessionStorage:`, e);
+    }
+    
+    // 3. Fall back to cookie if not in localStorage or sessionStorage
     if (typeof document !== 'undefined' && document.cookie) {
       const cookies = document.cookie.split(';').reduce((acc: Record<string, string>, cookie) => {
         const [name, value] = cookie.trim().split('=');
@@ -121,7 +161,7 @@ class RealApiService {
       
       const cookieToken = cookies['roadmaster-access'];
       if (cookieToken) {
-        console.log(`[API] Token found in cookie, syncing to localStorage`);
+        console.log(`[API] ✓ Token found in cookie, syncing to localStorage`);
         // Sync cookie token to localStorage for future use
         try {
           localStorage.setItem(authTokenKey, cookieToken);
@@ -129,10 +169,17 @@ class RealApiService {
         } catch (syncError) {
           console.warn(`[API] Failed to sync token to localStorage:`, syncError);
         }
+        // Also store in sessionStorage as backup
+        try {
+          sessionStorage.setItem(sessionTokenKey, cookieToken);
+        } catch (e) {
+          console.warn(`[API] Failed to store token in sessionStorage:`, e);
+        }
         return cookieToken;
       }
     }
     
+    console.log(`[API] ⚠ No token found in any storage (localStorage, sessionStorage, or cookie)`);
     return null;
   }
 

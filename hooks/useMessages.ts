@@ -8,14 +8,45 @@ export const useMessages = (currentUser: UserWithPermissions | null, projectId: 
   const [isLoading, setIsLoading] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchMessages = useCallback(async (isInitial = false) => {
+const getTokenWithFallback = (): string | null => {
+  // 1. Try localStorage
+  let token = localStorage.getItem('roadmaster-token');
+  if (token) return token;
+  
+  // 2. Try sessionStorage
+  token = sessionStorage.getItem('roadmaster-token-session');
+  if (token) {
+    // Sync to localStorage
+    try {
+      localStorage.setItem('roadmaster-token', token);
+    } catch (e) { /* ignore */ }
+    return token;
+  }
+  
+  // 3. Try cookie
+  if (document?.cookie) {
+    const match = document.cookie.match(/roadmaster-access=([^;]+)/);
+    if (match) {
+      token = decodeURIComponent(match[1]);
+      // Sync to localStorage
+      try {
+        localStorage.setItem('roadmaster-token', token);
+      } catch (e) { /* ignore */ }
+      return token;
+    }
+  }
+  
+  return null;
+};
+
+const fetchMessages = useCallback(async (isInitial = false) => {
     if (!isAuthenticated || !projectId || !currentUser) {
       return;
     }
 
-    const tokenCheck = localStorage.getItem('roadmaster-token');
+    const tokenCheck = getTokenWithFallback();
     if (!tokenCheck) {
-      console.error('[useMessages] ⚠ No token in localStorage — aborting fetch despite isAuthenticated=true. Auth state may still be initializing.');
+      console.error('[useMessages] ⚠ No token in any storage — aborting fetch despite isAuthenticated=true. Auth state may still be initializing.');
       if (isInitial) setIsLoading(false);
       return;
     }

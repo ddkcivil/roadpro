@@ -11,6 +11,8 @@ import { supabase } from '../lib/supabase';
 
 const AUTH_TOKEN_KEY = 'roadmaster-token';
 const AUTH_USER_KEY = 'roadmaster-user';
+// Backup storage keys for redundancy
+const SESSION_TOKEN_KEY = 'roadmaster-token-session';
 const COOKIE_TOKEN_KEY = 'roadmaster-access';
 // Performance: Auth timeout in ms
 const AUTH_TIMEOUT_MS = 3000;
@@ -32,14 +34,90 @@ const clearTokenCookie = () => {
   }
 };
 
+// Helper: Store token with redundancy - localStorage + sessionStorage as backup
+const storeToken = (token: string) => {
+  try {
+    localStorage.setItem(AUTH_TOKEN_KEY, token);
+    console.log('[useAuth] ✓ Token stored in localStorage');
+  } catch (e) {
+    console.warn('[useAuth] ⚠ Failed to store token in localStorage:', e);
+  }
+  try {
+    sessionStorage.setItem(SESSION_TOKEN_KEY, token);
+    console.log('[useAuth] ✓ Token stored in sessionStorage (backup)');
+  } catch (e) {
+    console.warn('[useAuth] ⚠ Failed to store token in sessionStorage:', e);
+  }
+};
+
+// Helper: Retrieve token with redundancy
+const getStoredToken = (): string | null => {
+  let token = null;
+  
+  // 1. Try localStorage
+  try {
+    token = localStorage.getItem(AUTH_TOKEN_KEY);
+    if (token) {
+      console.log('[useAuth] ✓ Token retrieved from localStorage');
+      return token;
+    }
+  } catch (e) {
+    console.warn('[useAuth] ⚠ Error reading from localStorage:', e);
+  }
+  
+  // 2. Fall back to sessionStorage
+  try {
+    token = sessionStorage.getItem(SESSION_TOKEN_KEY);
+    if (token) {
+      console.log('[useAuth] ✓ Token retrieved from sessionStorage (backup)');
+      // Sync back to localStorage
+      try {
+        localStorage.setItem(AUTH_TOKEN_KEY, token);
+        console.log('[useAuth] ✓ Token synced from sessionStorage to localStorage');
+      } catch (e) {
+        console.warn('[useAuth] ⚠ Failed to sync token to localStorage:', e);
+      }
+      return token;
+    }
+  } catch (e) {
+    console.warn('[useAuth] ⚠ Error reading from sessionStorage:', e);
+  }
+  
+  // 3. Fall back to cookie
+  if (typeof document !== 'undefined' && document.cookie) {
+    const match = document.cookie.match(/roadmaster-access=([^;]+)/);
+    if (match) {
+      token = decodeURIComponent(match[1]);
+      if (token) {
+        console.log('[useAuth] ✓ Token retrieved from cookie');
+        // Try to store in localStorage for future use
+        storeToken(token);
+        return token;
+      }
+    }
+  }
+  
+  console.log('[useAuth] ⚠ No token found in any storage');
+  return null;
+};
+
+// Helper: Clear all token storage
+const clearAllTokenStorage = () => {
+  try {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(SESSION_TOKEN_KEY);
+    sessionStorage.removeItem(SESSION_TOKEN_KEY);
+    console.log('[useAuth] ✓ Token cleared from all storage');
+  } catch (e) {
+    console.warn('[useAuth] ⚠ Error clearing token storage:', e);
+  }
+};
+
 export const useAuth = () => {
   console.log('[useAuth] Hook initialized.');
   const [token, setToken] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem(AUTH_TOKEN_KEY);
-    } catch {
-      return null;
-    }
+    // Use the multi-source helper on init
+    return getStoredToken();
   });
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -123,7 +201,8 @@ export const useAuth = () => {
 // clearAuthState must be defined BEFORE logout since logout references it
   const clearAuthState = useCallback(() => {
     startTransition(() => {
-      localStorage.removeItem(AUTH_TOKEN_KEY);
+      // Clear all token storage (localStorage + sessionStorage)
+      clearAllTokenStorage();
       localStorage.removeItem(AUTH_USER_KEY);
       setToken(null);
       setUser(null);
@@ -136,21 +215,27 @@ export const useAuth = () => {
     });
   }, []);
 
-  const login = useCallback(async (role: UserRole, name: string, token?: string, userId?: string, phone?: string) => {
+const login = useCallback(async (role: UserRole, name: string, token?: string, userId?: string, phone?: string) => {
     console.log('[useAuth] login called:', { role, name, hasToken: !!token, userId, timestamp: new Date().toISOString() });
     
     if (token) {
-      localStorage.setItem(AUTH_TOKEN_KEY, token);
+      // Store token with redundancy (localStorage + sessionStorage)
+      storeToken(token);
       setToken(token);
       setTokenCookie(token);
       
-      // Synchronize Supabase client session
-      await supabase.auth.setSession({
-        access_token: token,
-        refresh_token: ''
-      });
+      // Try to set Supabase session, but don't block login on failure
+      try {
+        await supabase.auth.setSession({
+          access_token: token,
+          refresh_token: ''
+        });
+        console.log('[useAuth] ✓ Supabase session synchronized');
+      } catch (setSessionErr) {
+        console.warn('[useAuth] ⚠ Supabase session sync failed (non-blocking):', setSessionErr);
+      }
       
-      console.log('[useAuth] ✓ Token stored and Supabase session set, length:', token.length);
+      console.log('[useAuth] ✓ Login complete - token stored with redundancy, length:', token.length);
     } else {
       console.warn('[useAuth] ⚠ No token provided to login!');
     }
