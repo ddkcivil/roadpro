@@ -1703,7 +1703,7 @@ setFilteredTraining(filtered);
                  </Card>
                </div>
                
-               {salaryRecords.length > 0 && (
+               {performanceRecords.length > 0 && (
                <div className="rounded-md border border-border overflow-hidden bg-background">
                 <Table>
                   <TableHeader className="bg-slate-50/50">
@@ -1754,11 +1754,9 @@ setFilteredTraining(filtered);
                     ))}
                   </TableBody>
                 </Table>
-              </div>
-              
-                </div>
-              )}
-              {filteredPerformance.length > 0 && (
+               </div>
+               )}
+               {filteredPerformance.length > 0 && (
                 <div className="mt-4">
                   <PaginationComponent
                     currentPage={performancePagination.currentPage}
@@ -1883,11 +1881,8 @@ setFilteredTraining(filtered);
                     ))}
                   </TableBody>
                 </Table>
-              </div>
-              
-                </div>
-              )}
-              {filteredAttendance.length > 0 && (
+               </div>
+               {filteredAttendance.length > 0 && (
                 <div className="mt-4">
                   <PaginationComponent
                     currentPage={attendancePagination.currentPage}
@@ -2022,11 +2017,8 @@ setFilteredTraining(filtered);
                     ))}
                   </TableBody>
                 </Table>
-              </div>
-              
-                </div>
-              )}
-              {filteredSalaries.length > 0 && (
+               </div>
+               {filteredSalaries.length > 0 && (
                 <div className="mt-4">
                   <PaginationComponent
                     currentPage={salariesPagination.currentPage}
@@ -2157,11 +2149,8 @@ setFilteredTraining(filtered);
                     ))}
                   </TableBody>
                 </Table>
-              </div>
-              
-                </div>
-              )}
-              {filteredTraining.length > 0 && (
+               </div>
+               {filteredTraining.length > 0 && (
                 <div className="mt-4">
                   <PaginationComponent
                     currentPage={trainingPagination.currentPage}
@@ -2304,11 +2293,8 @@ setFilteredTraining(filtered);
                     ))}
                   </TableBody>
                 </Table>
-              </div>
-              
-                </div>
-              )}
-              {filteredEvaluations.length > 0 && (
+               </div>
+               {filteredEvaluations.length > 0 && (
                 <div className="mt-4">
                   <PaginationComponent
                     currentPage={evaluationsPagination.currentPage}
