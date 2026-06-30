@@ -48,12 +48,19 @@ self.addEventListener('activate', (event) => {
 });
 
 /**
+ * Check if a request can be cached (only http/https schemes are supported)
+ */
+function isCacheableRequest(request) {
+  return request.url.startsWith('http://') || request.url.startsWith('https://');
+}
+
+/**
  * Helper to fetch and cache with better error handling
  */
 async function fetchAndCache(request, cacheName) {
   try {
     const response = await fetch(request);
-    if (response && response.status === 200) {
+    if (response && response.status === 200 && isCacheableRequest(request)) {
       const cache = await caches.open(cacheName);
       cache.put(request, response.clone());
     }
@@ -153,7 +160,7 @@ self.addEventListener('fetch', (event) => {
       (async () => {
         try {
           const response = await fetch(request);
-          if (response && response.status === 200) {
+          if (response && response.status === 200 && isCacheableRequest(request)) {
             const cache = await caches.open(CACHE_NAME);
             cache.put(request, response.clone());
           }
