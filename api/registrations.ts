@@ -47,7 +47,6 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           email: email.toLowerCase(),
           phone: phone || '',
           password_hash: passwordHash,
-          password, // Store original password so admin can use it during approval
           requested_role: requestedRole,
           status: 'pending',
           created_at: new Date().toISOString()
