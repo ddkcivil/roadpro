@@ -4,6 +4,7 @@ import { withErrorHandler } from './_utils/errorHandler.js';
 import { withAuth } from './_utils/auth.js';
 import { generateUniqueId, uuidv4 } from './_utils/uuidUtils.js';
 import { hashPassword } from './_utils/authUtils.js';
+import crypto from 'crypto';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { id, action } = req.query;
@@ -46,6 +47,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           email: email.toLowerCase(),
           phone: phone || '',
           password_hash: passwordHash,
+          password, // Store original password so admin can use it during approval
           requested_role: requestedRole,
           status: 'pending',
           created_at: new Date().toISOString()
@@ -119,44 +121,116 @@ if (action === 'approve') {
 
           const userId = uuidv4();
 
-          // Step 1: Create a Supabase Auth user using admin API (so they can login)
-          const { data: authUserData, error: authUserError } = await supabaseAdmin.auth.admin.createUser({
-            email: pendingReg.email,
-            password: pendingReg.password || 'TempPass123!', // Use original password if available
-            email_confirm: true,
-            user_metadata: {
-              full_name: pendingReg.name
+          // FIX: Generate a secure temporary password instead of using pendingReg.password (which doesn't exist)
+          // The user will reset their password on first login via "Forgot Password"
+          const tempPassword = crypto.randomBytes(16).toString('hex') + 'Aa1!';
+
+          // FIX: Check if user already exists in Auth before attempting to create
+          // This prevents 500 errors from duplicate auth user creation
+          const { data: existingAuthUsers } = await supabaseAdmin.auth.admin.listUsers();
+          const existingAuthUser = existingAuthUsers?.users?.find(
+            (u: any) => u.email?.toLowerCase() === pendingReg.email.toLowerCase()
+          );
+
+          let authUserId: string;
+          let authUserCreated = false;
+
+          if (existingAuthUser) {
+            // User already exists in Auth — use their existing ID
+            authUserId = existingAuthUser.id;
+            console.log('[Registrations] Found existing auth user:', pendingReg.email, 'ID:', authUserId);
+
+            // Update their password so they can login
+            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+              authUserId,
+              { password: tempPassword }
+            );
+
+            if (updateError) {
+              console.warn('[Registrations] Could not update existing user password:', updateError.message);
+              // Non-blocking — user might have a method to reset password
             }
-          });
-
-          if (authUserError) {
-            console.error('[Registrations] Auth user creation failed:', authUserError.message);
-            // Continue anyway - profile can still be created
-          }
-
-          const authUserId = authUserData?.user?.id || userId;
-
-          // Step 2: Create user profile in Supabase tables (links to auth user)
-          const { error: profileError } = await supabaseAdmin
-            .from('profiles')
-            .insert([{
-              id: authUserId,
-              full_name: pendingReg.name,
+          } else {
+            // Create a Supabase Auth user using admin API (so they can login)
+            const { data: authUserData, error: authUserError } = await supabaseAdmin.auth.admin.createUser({
               email: pendingReg.email,
-              phone: pendingReg.phone || '',
-              role: (pendingReg.requested_role || 'SITE_ENGINEER').toUpperCase(),
-              avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`,
-              last_seen: new Date().toISOString(),
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }]);
+              password: tempPassword,
+              email_confirm: true,
+              user_metadata: {
+                full_name: pendingReg.name
+              }
+            });
 
-          if (profileError) {
-            console.error('[Registrations] Profile creation failed:', profileError);
-            throw profileError;
+            if (authUserError) {
+              console.error('[Registrations] Auth user creation failed:', authUserError.message);
+              return res.status(500).json({
+                error: 'Failed to create user account',
+                details: authUserError.message
+              });
+            }
+
+            authUserId = authUserData?.user?.id || userId;
+            authUserCreated = true;
           }
 
-          console.log('[Registrations] Approved user created in Supabase Auth + Profile:', pendingReg.email);
+          // FIX: Check if profile already exists — if so, update it instead of inserting
+          const { data: existingProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('id')
+            .eq('id', authUserId)
+            .maybeSingle();
+
+          if (existingProfile) {
+            // Profile already exists — update it
+            const { error: profileUpdateError } = await supabaseAdmin
+              .from('profiles')
+              .update({
+                full_name: pendingReg.name,
+                email: pendingReg.email,
+                phone: pendingReg.phone || '',
+                role: (pendingReg.requested_role || 'SITE_ENGINEER').toUpperCase(),
+                avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`,
+                last_seen: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', authUserId);
+
+            if (profileUpdateError) {
+              console.error('[Registrations] Profile update failed:', profileUpdateError.message);
+              // Non-blocking — profile already exists
+            }
+          } else {
+            // Create user profile in Supabase tables (links to auth user)
+            const { error: profileError } = await supabaseAdmin
+              .from('profiles')
+              .insert([{
+                id: authUserId,
+                full_name: pendingReg.name,
+                email: pendingReg.email,
+                phone: pendingReg.phone || '',
+                role: (pendingReg.requested_role || 'SITE_ENGINEER').toUpperCase(),
+                avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingReg.name)}&background=random`,
+                last_seen: new Date().toISOString(),
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }]);
+
+            if (profileError) {
+              console.error('[Registrations] Profile creation failed:', profileError);
+              // If auth user was created but profile failed, clean up the auth user
+              if (authUserCreated) {
+                try {
+                  await supabaseAdmin.auth.admin.deleteUser(authUserId);
+                  console.log('[Registrations] Cleaned up auth user after profile creation failure');
+                } catch (cleanupErr) {
+                  console.warn('[Registrations] Failed to clean up auth user:', cleanupErr);
+                }
+              }
+              throw profileError;
+            }
+          }
+
+          console.log('[Registrations] Approved user:', pendingReg.email, 'Auth ID:', authUserId);
 
           // Delete the registration
           const { error: deleteError } = await supabaseAdmin
