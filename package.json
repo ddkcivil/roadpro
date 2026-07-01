@@ -7,6 +7,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
+    "start": "NODE_OPTIONS='--no-deprecation' vite --host",
     "dev": "NODE_OPTIONS='--no-deprecation' vite --host",
     "dev:api": "NODE_OPTIONS='--no-deprecation' npx tsx api/server.mjs",
     "dev:all": "concurrently -k -n VITE,API -c cyan,yellow \"npm run dev\" \"npm run dev:api\"",
