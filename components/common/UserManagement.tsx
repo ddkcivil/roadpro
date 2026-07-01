@@ -426,7 +426,7 @@ const UserManagement: React.FC = () => {
 
           {/* Add User Modal */}
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px] border-border/50">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <UserPlus className="text-primary" /> Add New User
@@ -496,7 +496,7 @@ const UserManagement: React.FC = () => {
 
           {/* Edit User Modal */}
           <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px] border-border/50">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Edit3 className="text-primary" /> Edit User
