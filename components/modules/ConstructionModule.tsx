@@ -981,7 +981,7 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
 
       {/* Modals */}
       <Dialog open={isLogWorkOpen} onOpenChange={setIsLogWorkOpen}>
-          <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto rounded-[2.5rem] border-none shadow-2xl">
+          <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto border-border/50">
               <DialogHeader className="p-6 pb-0">
                 <DialogTitle className="flex items-center gap-3 text-2xl font-black tracking-tighter italic uppercase">
                   <div className="bg-primary/10 p-2 rounded-2xl"><HardHat className="text-primary" /></div>
@@ -1087,7 +1087,7 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
       </Dialog>
 
       <Dialog open={isMbRecordsOpen} onOpenChange={setIsMbRecordsOpen}>
-          <DialogContent className="max-w-2xl rounded-3xl border-none shadow-2xl">
+          <DialogContent className="max-w-2xl border-border/50">
               <DialogHeader className="p-6 border-b border-border/50">
                 <DialogTitle className="text-xl font-black tracking-tight italic uppercase">Audit Log: {selectedStructure?.name}</DialogTitle>
                 <DialogDescription>Review complete execution history for this structure.</DialogDescription>
@@ -1113,7 +1113,7 @@ const ConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) => {
       </Dialog>
 
       <Dialog open={isTemplateListOpen} onOpenChange={setIsTemplateListOpen}>
-          <DialogContent className="max-w-xl rounded-3xl border-none shadow-2xl">
+          <DialogContent className="max-w-xl border-border/50">
               <DialogHeader className="p-6 border-b">
                 <DialogTitle className="text-xl font-black tracking-tight italic uppercase">Structure Templates</DialogTitle>
                 <DialogDescription>Select a template to deploy for new project assets.</DialogDescription>

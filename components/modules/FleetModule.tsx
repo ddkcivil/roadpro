@@ -584,7 +584,7 @@ const handleOpenTripLog = () => {
 
         {/* Register Asset Dialog */}
         <Dialog open={isRegModalOpen} onOpenChange={setIsRegModalOpen}>
-            <DialogContent className="sm:max-w-[425px] p-0 rounded-xl">
+            <DialogContent className="sm:max-w-[425px] border-border/50">
                 <DialogHeader className="bg-primary text-white p-4 rounded-t-xl">
                     <DialogTitle className="text-white flex items-center gap-2">
                         <Truck size={20} /> Register Asset
@@ -742,7 +742,7 @@ const handleOpenTripLog = () => {
 
 {/* Log Trip Dialog */}
         <Dialog open={isLogTripModalOpen} onOpenChange={setIsLogTripModalOpen}>
-            <DialogContent className="sm:max-w-xl p-0 rounded-xl">
+            <DialogContent className="sm:max-w-xl border-border/50">
                 <DialogHeader className="bg-primary text-white p-4 rounded-t-xl">
                     <DialogTitle className="text-white flex items-center gap-2">
                         <Navigation size={20} /> Log Trip: {activeVehicle?.plateNumber}
@@ -840,7 +840,7 @@ const handleOpenTripLog = () => {
 
         {/* Maintenance Dialog */}
         <Dialog open={isMaintenanceModalOpen} onOpenChange={setIsMaintenanceModalOpen}>
-            <DialogContent className="sm:max-w-lg p-0 rounded-xl">
+            <DialogContent className="sm:max-w-lg border-border/50">
                 <DialogHeader className="bg-amber-600 text-white p-4 rounded-t-xl">
                     <DialogTitle className="text-white flex items-center gap-2">
                         <Wrench size={20} /> Schedule Maintenance

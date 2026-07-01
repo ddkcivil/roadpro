@@ -1219,7 +1219,7 @@ const handleScanAnalysis = async () => {
       </div>
 
       <Dialog open={uploadModalOpen} onOpenChange={setUploadModalOpen}>
-        <DialogContent className="sm:max-w-[800px]">
+        <DialogContent className="sm:max-w-[800px] border-border/50">
           <DialogHeader>
             <DialogTitle>Add to Project Archive</DialogTitle>
             <DialogDescription>Upload documents or scan them using AI OCR.</DialogDescription>
@@ -1420,7 +1420,7 @@ const handleScanAnalysis = async () => {
       </Dialog>
 
       <Dialog open={!!editingDoc} onOpenChange={() => setEditingDoc(null)}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] border-border/50">
           <DialogHeader>
             <DialogTitle>Edit Document</DialogTitle>
             <DialogDescription>Update document metadata for the project archive.</DialogDescription>

@@ -748,7 +748,7 @@ const amount = quantity * rate;
 
             {/* Modals */}
             <Dialog open={isContractValueModalOpen} onOpenChange={setIsContractValueModalOpen}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-md border-border/50">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Receipt className="text-primary" />
@@ -799,7 +799,7 @@ const amount = quantity * rate;
             </Dialog>
 
             <Dialog open={isMBModalOpen} onOpenChange={setIsMBModalOpen}>
-                <DialogContent className="sm:max-w-xl">
+                <DialogContent className="sm:max-w-xl border-border/50">
                     <DialogHeader>
                         <DialogTitle>Initialize Variation</DialogTitle>
                         <DialogDescription>Create a new variation order to track contract amendments.</DialogDescription>

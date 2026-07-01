@@ -362,7 +362,7 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, userRole, 
 
       {/* Contract Bill Creation Dialog */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] border-border/50">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Receipt className="h-5 w-5 text-primary" />

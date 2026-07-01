@@ -331,7 +331,7 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
                       Import from Sync
                     </Button>
                   </DialogTrigger>
-                    <DialogContent className="rounded-3xl max-w-4xl">
+                    <DialogContent className="rounded-3xl max-w-4xl border-border/50">
                     <DialogHeader>
                       <DialogTitle>Import Materials from Sync</DialogTitle>
                       <DialogDescription>Select materials to import from the synchronized inventory. Stock quantity will be carried over.</DialogDescription>
@@ -412,7 +412,7 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
                       <Plus className="mr-2 h-4 w-4" /> Register Material
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="rounded-3xl">
+                  <DialogContent className="rounded-3xl border-border/50">
                     <DialogHeader>
                       <DialogTitle>Register New Material</DialogTitle>
                       <DialogDescription>Add a new material to the project inventory.</DialogDescription>
@@ -457,7 +457,7 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
                       <Plus className="mr-2 h-4 w-4" /> Stock In/Out
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="rounded-3xl">
+                  <DialogContent className="rounded-3xl border-border/50">
                     <DialogHeader>
                       <DialogTitle>Stock Transaction</DialogTitle>
                       <DialogDescription>Record a stock movement (IN or OUT).</DialogDescription>

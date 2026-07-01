@@ -1053,7 +1053,7 @@ onClick={() => handleRemoveWorkToday(i)}
             </div>
 
             <Dialog open={printModalOpen} onOpenChange={setPrintModalOpen}>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 border-none shadow-2xl rounded-3xl">
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto border-border/50">
                     <DialogHeader className="p-8 bg-slate-900 text-white">
                         <DialogTitle className="text-2xl font-black">Official Daily Site Report</DialogTitle>
                         <DialogDescription className="text-slate-400 font-medium">Print-ready document for project archives.</DialogDescription>

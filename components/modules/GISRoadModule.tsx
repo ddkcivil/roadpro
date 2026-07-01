@@ -731,7 +731,7 @@ setIsProcessing(true);
       
       {/* Import Modal */}
       <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
-        <DialogContent className="sm:max-w-[600px] rounded-[2.5rem] glass border-none shadow-2xl overflow-hidden p-0">
+        <DialogContent className="sm:max-w-[600px] border-border/50">
           <div className="bg-primary p-8 text-primary-foreground relative">
              <div className="absolute top-0 right-0 p-12 opacity-10 rotate-12 scale-150">
                <Upload size={120} />
@@ -837,7 +837,7 @@ setIsProcessing(true);
       
       {/* Edit Road Modal */}
       <Dialog open={isEditRoadModalOpen} onOpenChange={setIsEditRoadModalOpen}>
-        <DialogContent className="sm:max-w-[550px] rounded-[2.5rem] glass border-none shadow-2xl overflow-hidden p-0">
+        <DialogContent className="sm:max-w-[550px] border-border/50">
           <div className="bg-slate-900 p-8 text-white relative">
              <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12 scale-150">
                <Edit size={80} />
@@ -940,7 +940,7 @@ setIsProcessing(true);
       
       {/* Edit Alignment Modal */}
       <Dialog open={isEditAlignmentModalOpen} onOpenChange={setIsEditAlignmentModalOpen}>
-        <DialogContent className="sm:max-w-[450px] rounded-[2.5rem] glass border-none shadow-2xl overflow-hidden p-0">
+        <DialogContent className="sm:max-w-[450px] border-border/50">
           <div className="bg-slate-900 p-8 text-white relative">
              <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12 scale-150">
                <Edit size={60} />

@@ -414,7 +414,7 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
             </div>
 
             <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-                <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+                <DialogContent className="max-w-4xl h-[90vh] flex flex-col border-border/50">
                     <DialogHeader className="border-b pb-4">
                         <DialogTitle className="flex items-center text-xl font-bold">
                             <Calculator className="mr-2 h-6 w-6 text-primary"/>

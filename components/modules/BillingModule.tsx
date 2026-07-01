@@ -668,7 +668,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
 
             {/* Create IPC Dialog */}
             <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-                <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+                <DialogContent className="max-w-4xl h-[90vh] flex flex-col border-border/50">
                     <DialogHeader className="border-b pb-4">
                         <DialogTitle className="flex items-center text-xl font-bold">
                             <FileSpreadsheet className="mr-2 h-6 w-6 text-primary" />
@@ -828,7 +828,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
 
             {/* Create Subcontractor Bill Dialog */}
             <Dialog open={isSubcontractorBillModalOpen} onOpenChange={setIsSubcontractorBillModalOpen}>
-                <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+                <DialogContent className="max-w-4xl h-[90vh] flex flex-col border-border/50">
                     <DialogHeader className="border-b pb-4">
                         <DialogTitle className="flex items-center text-xl font-bold">
                             <FileCheck className="mr-2 h-6 w-6 text-amber-600" />

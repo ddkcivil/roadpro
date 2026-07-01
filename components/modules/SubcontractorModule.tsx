@@ -838,7 +838,7 @@ const handleSaveRate = () => {
 
       {/* Add/Edit Subcontractor Modal */}
       <Dialog open={isSubcontractorModalOpen || isEditModalOpen} onOpenChange={() => { setIsSubcontractorModalOpen(false); setIsEditModalOpen(false); }} >
-        <DialogContent className="sm:max-w-[375px]">
+        <DialogContent className="sm:max-w-[375px] border-border/50">
           <DialogDescription className="sr-only">Contractor registration form</DialogDescription>
           <DialogHeader>
             <DialogTitle className="font-bold flex items-center gap-1.5">
@@ -969,7 +969,7 @@ const handleSaveRate = () => {
 
       {/* Payment Modal */}
       <Dialog open={isPaymentModalOpen} onOpenChange={() => setIsPaymentModalOpen(false)} >
-        <DialogContent className="sm:max-w-[375px]">
+        <DialogContent className="sm:max-w-[375px] border-border/50">
           <DialogDescription className="sr-only">Record a new payment transaction</DialogDescription>
           <DialogHeader>
             <DialogTitle className="font-bold flex items-center gap-1">
@@ -1053,7 +1053,7 @@ const handleSaveRate = () => {
 
 {/* Add Rate Modal */}
       <Dialog open={isRatesModalOpen} onOpenChange={() => setIsRatesModalOpen(false)}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] border-border/50">
           <DialogDescription className="sr-only">Manage item rates for subcontractors</DialogDescription>
           <DialogHeader>
             <DialogTitle className="font-bold flex items-center gap-1.5">

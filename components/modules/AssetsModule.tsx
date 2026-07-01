@@ -460,7 +460,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
 
       {/* QR Code Modal */}
       <Dialog open={isQRModalOpen} onOpenChange={setIsQRModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] border-border/50">
           <DialogHeader>
             <DialogTitle>Asset QR Code</DialogTitle>
           </DialogHeader>
@@ -489,7 +489,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
       </Dialog>
       {/* Maintenance History Modal */}
       <Dialog open={isMaintenanceModalOpen} onOpenChange={setIsMaintenanceModalOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto border-border/50">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="h-5 w-5" />
@@ -545,7 +545,7 @@ const AssetsModule: React.FC<Props> = ({ project, onProjectUpdate, userRole }) =
 
       {/* Add Maintenance Log Modal */}
       <Dialog open={isAddLogModalOpen} onOpenChange={setIsAddLogModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] border-border/50">
           <DialogHeader>
             <DialogTitle>Add Maintenance Log</DialogTitle>
           </DialogHeader>

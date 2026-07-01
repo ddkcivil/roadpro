@@ -267,7 +267,7 @@ const RFIModule: React.FC<Props> = ({ project, userRole, currentUser, onProjectU
         <div className="animate-in fade-in duration-500 space-y-6">
             {/* RFI Preview Dialog */}
             <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-                <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0">
+                <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col border-border/50">
                     <DialogHeader className="p-6 border-b bg-muted/30">
                         <div className="flex items-center gap-2">
                             <div className="p-2 bg-primary/10 text-primary rounded-lg">

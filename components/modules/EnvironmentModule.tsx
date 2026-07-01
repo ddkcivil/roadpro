@@ -229,7 +229,7 @@ const handleSaveTree = (e: React.FormEvent<HTMLFormElement>) => {
 
             {/* Tree Modal */}
             <Dialog open={isTreeModalOpen} onOpenChange={setIsTreeModalOpen}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-md border-border/50">
                     <DialogHeader>
                         <DialogTitle>Log Tree Clearing</DialogTitle>
                         <DialogDescription>
@@ -264,7 +264,7 @@ const handleSaveTree = (e: React.FormEvent<HTMLFormElement>) => {
             
             {/* Sprinkling Modal */}
             <Dialog open={isSprinkleModalOpen} onOpenChange={setIsSprinkleModalOpen}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-md border-border/50">
                     <DialogHeader>
                         <DialogTitle>Record Sprinkling Cycle</DialogTitle>
                         <DialogDescription>

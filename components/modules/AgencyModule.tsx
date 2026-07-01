@@ -483,7 +483,7 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
 
       {/* Agency Modal */}
       <Dialog open={isAgencyModalOpen} onOpenChange={setIsAgencyModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] border-border/50">
           <DialogHeader>
             <DialogTitle>Add New Agency</DialogTitle>
             <DialogDescription>Enter the details for the new agency.</DialogDescription>
@@ -519,7 +519,7 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
 
       {/* Edit Agency Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] border-border/50">
           <DialogHeader>
             <DialogTitle>Edit Agency</DialogTitle>
             <DialogDescription>Update the agency details.</DialogDescription>
@@ -555,7 +555,7 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
 
       {/* Payment Modal */}
       <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] border-border/50">
           <DialogHeader>
             <DialogTitle>Add Payment</DialogTitle>
             <DialogDescription>Record a payment to a vendor or agency.</DialogDescription>

@@ -2314,7 +2314,7 @@ setFilteredTraining(filtered);
 
       {/* New Leave Request Modal */}
       <Dialog open={isLeaveModalOpen} onOpenChange={setIsLeaveModalOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl border-border/50">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
@@ -2437,7 +2437,7 @@ setFilteredTraining(filtered);
 
       {/* New Employee Modal */}
       <Dialog open={isJoiningModalOpen} onOpenChange={setIsJoiningModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto border-border/50">
           <DialogHeader>
             <DialogTitle>New Employee Onboarding</DialogTitle>
           </DialogHeader>

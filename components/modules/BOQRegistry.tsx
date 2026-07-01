@@ -354,7 +354,7 @@ const handleNewItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 
       {/* Edit BOQ Item Dialog */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] border-border/50">
           <DialogHeader>
             <DialogTitle>Edit BOQ Item</DialogTitle>
             <DialogDescription>Make changes to the BOQ item here.</DialogDescription>
@@ -413,7 +413,7 @@ const handleNewItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 
       {/* Add New BOQ Item Dialog */}
       <Dialog open={isNewItemModalOpen} onOpenChange={setIsNewItemModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] border-border/50">
           <DialogHeader>
             <DialogTitle>Add New BOQ Item</DialogTitle>
             <DialogDescription>Enter details for the new BOQ item.</DialogDescription>
