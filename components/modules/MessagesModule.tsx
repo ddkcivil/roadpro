@@ -39,13 +39,29 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
   const itemSizeMap = useRef<Record<number, number>>({});
 
   const setRowHeight = useCallback((index: number, size: number) => {
-    if (itemSizeMap.current[index] !== size) {
-        itemSizeMap.current[index] = size;
-        listRef.current?.resetAfterIndex(index);
+    const clampedSize = Math.max(40, size); // Enforce minimum row height
+    if (itemSizeMap.current[index] !== clampedSize) {
+        itemSizeMap.current[index] = clampedSize;
+        if (listRef.current) {
+            listRef.current.resetAfterIndex(0); // Reset from 0 to recalculate all positions
+        }
     }
   }, []);
 
-  const getItemSize = (index: number) => itemSizeMap.current[index] || 120;
+  const getItemSize = (index: number) => {
+    const cached = itemSizeMap.current[index];
+    if (cached) return cached;
+    // Return a reasonable default based on message content length
+    const msg = activeMessages[index];
+    if (!msg) return 100;
+    const contentLength = (msg.content || '').length;
+    const hasAttachment = !!msg.attachmentUrl;
+    // Rough estimate: ~20px per line, base 60px for bubble + padding + timestamp
+    const estimatedLines = Math.max(1, Math.ceil(contentLength / 60));
+    const baseHeight = 60 + (estimatedLines * 20);
+    const attachmentHeight = hasAttachment ? 200 : 0;
+    return Math.min(baseHeight + attachmentHeight, 400); // Cap at 400px estimate
+  };
 
   // Handle mobile responsiveness
   useEffect(() => {

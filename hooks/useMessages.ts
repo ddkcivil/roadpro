@@ -7,6 +7,16 @@ export const useMessages = (currentUser: UserWithPermissions | null, projectId: 
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastFetchAfterRef = useRef<string>('');
+  const isFirstFetchRef = useRef<boolean>(true);
+  const currentUserIdRef = useRef<string | null>(null);
+  const projectIdRef = useRef<string>('');
+
+  // Track stable values to avoid unnecessary re-initialization
+  useEffect(() => {
+    currentUserIdRef.current = currentUser?.id || null;
+    projectIdRef.current = projectId;
+  }, [currentUser?.id, projectId]);
 
 const getTokenWithFallback = (): string | null => {
   // 1. Try localStorage
@@ -55,7 +65,17 @@ const fetchMessages = useCallback(async (isInitial = false) => {
     try {
       if (isInitial) setIsLoading(true);
 
-      const newMessages = await realApiService.getMessages(projectId);
+      // Use the 'after' timestamp for incremental fetches so we only get new messages
+      const afterParam = isInitial ? undefined : (lastFetchAfterRef.current || undefined);
+      const newMessages = await realApiService.getMessages(projectId, undefined, afterParam);
+
+      // Update the 'after' timestamp to the latest message's timestamp for next poll
+      if (newMessages && newMessages.length > 0) {
+        const latestMsg = newMessages[newMessages.length - 1];
+        if (latestMsg.timestamp) {
+          lastFetchAfterRef.current = latestMsg.timestamp;
+        }
+      }
 
       setMessages(prev => {
         const messageMap = new Map();
@@ -74,7 +94,7 @@ const fetchMessages = useCallback(async (isInitial = false) => {
     } finally {
       if (isInitial) setIsLoading(false);
     }
-  }, [projectId, currentUser, isAuthenticated]);
+  }, [projectId, currentUser?.id, isAuthenticated]); // Use currentUser?.id instead of currentUser to avoid re-fetch on object ref change
 
   // Refactored useEffect to strictly control fetching and interval based on auth/context
   useEffect(() => {
@@ -83,6 +103,8 @@ const fetchMessages = useCallback(async (isInitial = false) => {
     // Function to perform fetch and set interval
     const setupMessageFetching = () => {
       console.log('[useMessages] Setting up message fetching and interval.');
+      lastFetchAfterRef.current = ''; // Reset 'after' on new setup
+      isFirstFetchRef.current = true;
       fetchMessages(true); // Perform initial fetch
 
       intervalRef.current = setInterval(() => {
@@ -99,6 +121,7 @@ const fetchMessages = useCallback(async (isInitial = false) => {
       }
       setMessages([]); // Clear messages
       setIsLoading(false); // Reset loading state
+      lastFetchAfterRef.current = '';
     };
 
     // Conditional logic based on authentication and context
@@ -114,7 +137,7 @@ const fetchMessages = useCallback(async (isInitial = false) => {
     return () => {
       cleanupMessageFetching();
     };
-  }, [fetchMessages, isAuthenticated, projectId, currentUser]);
+  }, [fetchMessages, isAuthenticated, projectId, currentUser?.id]); // Use currentUser?.id instead of currentUser
 
   const sendMessage = async (text: string, receiverId: string, projId: string, attachment?: { url: string, name: string, type: string }) => {
     if (!isAuthenticated) {
@@ -133,6 +156,12 @@ const fetchMessages = useCallback(async (isInitial = false) => {
 
       // Add the new message to the state
       setMessages(prev => [...prev, newMessage]);
+
+      // Update the 'after' ref so next poll doesn't re-fetch this message from the server
+      if (newMessage.timestamp) {
+        lastFetchAfterRef.current = newMessage.timestamp;
+      }
+
       return newMessage;
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -157,11 +186,12 @@ const fetchMessages = useCallback(async (isInitial = false) => {
   // Refresh function to manually refetch messages
   const refresh = useCallback(async () => {
     if (isAuthenticated && projectId && currentUser) {
+      lastFetchAfterRef.current = ''; // Reset to get all messages on manual refresh
       await fetchMessages(false);
     } else {
       console.log('[useMessages] Refresh aborted: Not authenticated or missing context.');
     }
-  }, [fetchMessages, isAuthenticated, projectId, currentUser]);
+  }, [fetchMessages, isAuthenticated, projectId, currentUser?.id]);
 
   return {
     messages,

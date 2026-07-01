@@ -124,12 +124,14 @@ const App: React.FC = () => {
     isRefreshingDetail
   } = useProjects(isAuthenticated && (systemReady || !isInitialLoading), currentUser);
 
+// Use selectedProjectId (stable) instead of currentProject?.id (unstable reference) to keep in sync with MessagesModule
+const stableProjectId = selectedProjectId || currentProject?.id || '';
 const {
     messages,
     sendMessage,
     markAsRead,
     isLoading: isLoadingMessages
-} = useMessages(currentUser, currentProject?.id || '', isAuthenticated && (systemReady || !isInitialLoading));
+} = useMessages(currentUser, stableProjectId, isAuthenticated && (systemReady || !isInitialLoading));
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);

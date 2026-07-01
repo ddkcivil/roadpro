@@ -54,9 +54,24 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     // Apply project filter
     queryBuilder = queryBuilder.eq('project_id', projectId);
 
-    // Apply timestamp filter for 'after' - use created_at column (not timestamp)
-    if (after && typeof after === 'string' && after.trim()) {
+    // Apply timestamp filter for 'after' — use created_at column (not timestamp)
+    // Only apply if 'after' is a valid non-empty string to avoid gt('', '') issues
+    if (after && typeof after === 'string' && after.trim().length > 0) {
       queryBuilder = queryBuilder.gt('created_at', after);
+    }
+
+    // Apply receiver filter directly in SQL when explicitly provided
+    if (receiverId && typeof receiverId === 'string' && receiverId.trim()) {
+      if (receiverId === 'general') {
+        queryBuilder = queryBuilder.eq('receiver_id', 'general');
+      } else {
+        // Direct message: get messages where current user is sender or receiver, filtered by receiverId
+        // Use OR filter: (sender_id = currentUser AND receiver_id = receiverId) OR (sender_id = receiverId AND receiver_id = currentUser)
+        queryBuilder = queryBuilder.or(
+          `and(sender_id.eq.${currentUser.userId},receiver_id.eq.${receiverId}),` +
+          `and(sender_id.eq.${receiverId},receiver_id.eq.${currentUser.userId})`
+        );
+      }
     }
 
     // Apply sorting - use created_at column
@@ -88,38 +103,17 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       console.log('[Messages API] Supabase query succeeded, received', data?.length || 0, 'messages');
       let filteredData = data || [];
 
-      // Log values before filtering
-      const currentUserId = String(currentUser?.userId || '');
-      const receiverIdParam = String(receiverId || '');
-
-      console.log('[Messages API] Filtering messages. CurrentUserID:', currentUserId, 'ReceiverIDParam:', receiverIdParam);
-      
-      if (receiverIdParam) {
-        if (receiverIdParam === 'general') {
-          console.log('[Messages API] Applying filter for general messages.');
-          filteredData = filteredData.filter((msg: any) => msg.receiver_id === 'general');
-          console.log('[Messages API] Filtered for general messages. Count:', filteredData.length);
-        } else {
-          console.log('[Messages API] Filtering for private messages between:', currentUserId, 'and', receiverIdParam);
-          filteredData = filteredData.filter((msg: any) => {
-            const senderIdDb = String(msg.sender_id || '');
-            const receiverIdDb = String(msg.receiver_id || '');
-
-            const isMatch1 = senderIdDb === currentUserId && receiverIdDb === receiverIdParam;
-            const isMatch2 = senderIdDb === receiverIdParam && receiverIdDb === currentUserId;
-            
-            return isMatch1 || isMatch2;
-          });
-          console.log('[Messages API] Filtered for private messages. Count:', filteredData.length);
-        }
-      } else {
-        console.log('[Messages API] Filtering for general and user messages for user ID:', currentUserId);
+      // Only apply in-memory filtering if receiverId was NOT provided as a query param
+      // (when receiverId is absent, we need to filter for general + user's own messages)
+      if (!receiverId || typeof receiverId !== 'string' || !receiverId.trim()) {
+        const currentUserId = String(currentUser?.userId || '');
+        console.log('[Messages API] No receiverId in query, applying fallback filter for user:', currentUserId);
         filteredData = filteredData.filter((msg: any) => {
           const senderIdDb = String(msg.sender_id || '');
           const receiverIdDb = String(msg.receiver_id || '');
           return receiverIdDb === 'general' || senderIdDb === currentUserId || receiverIdDb === currentUserId;
         });
-        console.log('[Messages API] Filtered for general and user messages. Count:', filteredData.length);
+        console.log('[Messages API] Fallback filtered for general and user messages. Count:', filteredData.length);
       }
 
       const limitNum = parseInt(req.query.limit as string) || 100;
