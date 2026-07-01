@@ -393,7 +393,7 @@ Engineer: ${project.consultantName || 'N/A'}`;
     { role: 'Project Manager', name: project.projectManager || 'N/A' },
     { role: 'Engineer', name: project.engineer || 'N/A' },
     { role: 'Supervisor', name: project.supervisor || 'N/A' },
-    ...(project.personnel || [])
+    ...(Array.isArray(project.personnel) ? project.personnel : [])
   ];
   
   staff.forEach(s => addTableRow3(s.role, s.name, 'Deployed'));
@@ -403,7 +403,7 @@ Engineer: ${project.consultantName || 'N/A'}`;
   addTableRow3('Equipment Type', 'ID/Plate', 'Status');
   addHorizontalLine();
   
-  const vehicles = project.vehicles || [];
+  const vehicles = Array.isArray(project.vehicles) ? project.vehicles : [];
   if (vehicles.length > 0) {
     vehicles.forEach(v => addTableRow3(v.type, v.plateNumber, v.status));
   } else {
@@ -445,7 +445,7 @@ Engineer: ${project.consultantName || 'N/A'}`;
   addTitle('12-16. Safeguards, Quality & Challenges', 14);
   
   addSubtitle('Health and Safety');
-  addText(`Active NCRs: ${project.ncrs.filter(n => n.status !== 'Closed').length}`, 10);
+  addText(`Active NCRs: ${(Array.isArray(project.ncrs) ? project.ncrs : []).filter(n => n.status !== 'Closed').length}`, 10);
   addText(`Safety Incidents: ${reportDetails?.safetyIncidents || '0'}`, 10);
   
   addSubtitle('Social Safeguards & GRM');
@@ -458,7 +458,7 @@ Engineer: ${project.consultantName || 'N/A'}`;
   addText(reportDetails?.workPlanNextMonth || 'Continue planned construction activities.', 10);
   
   // ==================== PAGE 11: PHOTOGRAPHS ====================
-  if (project.sitePhotos && project.sitePhotos.length > 0) {
+  if (Array.isArray(project.sitePhotos) && project.sitePhotos.length > 0) {
     addNewPage();
     addTitle('19. Site Photographs', 14);
     yPosition += 10;

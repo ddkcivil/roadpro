@@ -3,8 +3,6 @@ import { getSupabaseAdmin, getSupabasePublic, isSupabaseConfigured } from './_ut
 import { withErrorHandler } from './_utils/errorHandler.js';
 import { withAuth } from './_utils/auth.js';
 import { generateUniqueId, uuidv4 } from './_utils/uuidUtils.js';
-import { hashPassword } from './_utils/authUtils.js';
-import crypto from 'crypto';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { id, action } = req.query;
@@ -25,7 +23,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Name, email, password, and requested role are required.' });
       }
 
-      // Check for existing registration in Supabase
+      // Check for existing registration or Auth user with this email
       const { data: existingReg, error: checkError } = await supabaseAdmin
         .from('registrations')
         .select('*')
@@ -36,8 +34,44 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         return res.status(409).json({ error: 'A registration with this email already exists.' });
       }
 
+      // Also check if an Auth user already exists for this email
+      const { data: existingAuthUsers } = await supabaseAdmin.auth.admin.listUsers();
+      const existingAuthUser = existingAuthUsers?.users?.find(
+        (u: any) => u.email?.toLowerCase() === email.toLowerCase()
+      );
+
+      let authUserId: string | undefined;
+
+      if (existingAuthUser) {
+        // User already has an Auth account (e.g., previously created manually or re-registration).
+        // Keep their existing password, just link this registration to them.
+        authUserId = existingAuthUser.id;
+        console.warn('[Registrations] Auth user already exists for', email, 'ID:', authUserId);
+      } else {
+        // Create Supabase Auth user at registration time (not approval time)
+        // so the user's chosen password is used for the Auth account.
+        const { data: authUserData, error: authUserError } = await supabaseAdmin.auth.admin.createUser({
+          email: email.toLowerCase(),
+          password: password,
+          email_confirm: false,
+          user_metadata: {
+            full_name: name,
+            registration_pending: true
+          }
+        });
+
+        if (authUserError) {
+          console.error('[Registrations] Auth user creation failed:', authUserError.message);
+          return res.status(500).json({
+            error: 'Failed to create user account',
+            details: authUserError.message
+          });
+        }
+
+        authUserId = authUserData?.user?.id;
+      }
+
       const newRegId = uuidv4();
-      const passwordHash = await hashPassword(password);
 
       const { data: newReg, error: insertError } = await supabaseAdmin
         .from('registrations')
@@ -46,7 +80,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           name,
           email: email.toLowerCase(),
           phone: phone || '',
-          password_hash: passwordHash,
+          auth_user_id: authUserId,
           requested_role: requestedRole,
           status: 'pending',
           created_at: new Date().toISOString()
@@ -56,10 +90,16 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
       if (insertError) {
         console.error('[Registrations] Insert error:', insertError);
+        // Clean up the auth user if registration insert fails
+        try {
+          await supabaseAdmin.auth.admin.deleteUser(authUserId);
+        } catch (e) {
+          console.warn('[Registrations] Failed to clean up auth user:', e);
+        }
         throw insertError;
       }
 
-      console.log('[Registrations] Submitted registration for:', email);
+      console.log('[Registrations] Submitted registration for:', email, 'Auth ID:', authUserId);
 
       return res.status(201).json({
         message: 'Registration submitted successfully. Awaiting administrator approval.',
@@ -96,7 +136,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST') {
-if (action === 'approve') {
+      if (action === 'approve') {
         if (!id || typeof id !== 'string') return res.status(400).json({ error: 'Invalid ID' });
 
         try {
@@ -111,65 +151,23 @@ if (action === 'approve') {
             return res.status(404).json({ error: 'Pending registration not found' });
           }
 
-          // Get password hash from registration
-          const passwordHash = pendingReg.password_hash;
+          // Auth user was already created at registration time with the user's chosen password.
+          // Now we just need to confirm their email and create their profile.
+          const authUserId = pendingReg.auth_user_id;
 
-          if (!passwordHash) {
-            return res.status(400).json({ error: 'No password hash found in registration' });
+          if (!authUserId) {
+            return res.status(400).json({ error: 'No auth user ID found in registration. User may need to re-register.' });
           }
 
-          const userId = uuidv4();
-
-          // FIX: Generate a secure temporary password instead of using pendingReg.password (which doesn't exist)
-          // The user will reset their password on first login via "Forgot Password"
-          const tempPassword = crypto.randomBytes(16).toString('hex') + 'Aa1!';
-
-          // FIX: Check if user already exists in Auth before attempting to create
-          // This prevents 500 errors from duplicate auth user creation
-          const { data: existingAuthUsers } = await supabaseAdmin.auth.admin.listUsers();
-          const existingAuthUser = existingAuthUsers?.users?.find(
-            (u: any) => u.email?.toLowerCase() === pendingReg.email.toLowerCase()
+          // Confirm the user's email so they can login
+          const { error: confirmError } = await supabaseAdmin.auth.admin.updateUserById(
+            authUserId,
+            { email_confirm: true }
           );
 
-          let authUserId: string;
-          let authUserCreated = false;
-
-          if (existingAuthUser) {
-            // User already exists in Auth — use their existing ID
-            authUserId = existingAuthUser.id;
-            console.log('[Registrations] Found existing auth user:', pendingReg.email, 'ID:', authUserId);
-
-            // Update their password so they can login
-            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-              authUserId,
-              { password: tempPassword }
-            );
-
-            if (updateError) {
-              console.warn('[Registrations] Could not update existing user password:', updateError.message);
-              // Non-blocking — user might have a method to reset password
-            }
-          } else {
-            // Create a Supabase Auth user using admin API (so they can login)
-            const { data: authUserData, error: authUserError } = await supabaseAdmin.auth.admin.createUser({
-              email: pendingReg.email,
-              password: tempPassword,
-              email_confirm: true,
-              user_metadata: {
-                full_name: pendingReg.name
-              }
-            });
-
-            if (authUserError) {
-              console.error('[Registrations] Auth user creation failed:', authUserError.message);
-              return res.status(500).json({
-                error: 'Failed to create user account',
-                details: authUserError.message
-              });
-            }
-
-            authUserId = authUserData?.user?.id || userId;
-            authUserCreated = true;
+          if (confirmError) {
+            console.error('[Registrations] Email confirmation failed:', confirmError.message);
+            // Non-blocking — try to continue
           }
 
           // FIX: Check if profile already exists — if so, update it instead of inserting
@@ -216,15 +214,6 @@ if (action === 'approve') {
 
             if (profileError) {
               console.error('[Registrations] Profile creation failed:', profileError);
-              // If auth user was created but profile failed, clean up the auth user
-              if (authUserCreated) {
-                try {
-                  await supabaseAdmin.auth.admin.deleteUser(authUserId);
-                  console.log('[Registrations] Cleaned up auth user after profile creation failure');
-                } catch (cleanupErr) {
-                  console.warn('[Registrations] Failed to clean up auth user:', cleanupErr);
-                }
-              }
               throw profileError;
             }
           }
