@@ -137,6 +137,7 @@ interface LeaveRequest {
   approvedBy?: string;
   createdAt: string;
   updatedAt: string;
+  documentFolder?: string; // Reference to document folder
 }
 
 interface EmployeeData {
@@ -240,6 +241,7 @@ interface EmployeeData {
   hrisAccess: boolean;
   basicSalary: string;
   allowances: string;
+  documentFolder?: string; // Reference to document folder
 
   // Additional fields for display in StaffManagementModule.tsx
   id: string; // The original EmployeeData interface had this.
@@ -553,7 +555,8 @@ setFilteredTraining(filtered);
         numberOfDays,
         status: 'Pending',
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        documentFolder: 'Leave Request' // Link to document folder
       };
       
       // Try to save to API (MongoDB) first
@@ -650,7 +653,8 @@ setFilteredTraining(filtered);
         ...newEmployee,
         id: `emp-${Date.now()}`,
         joinedDate: new Date().toISOString(),
-        status: 'Active'
+        status: 'Active',
+        documentFolder: 'New Employee' // Link to document folder
       };
       
       // Try API save (MongoDB)

@@ -55,7 +55,7 @@ interface Props {
   onRefresh?: () => Promise<void>;
 }
 
-const FOLDERS = ['General', 'Contracts', 'Drawings', 'Reports', 'Correspondence', 'Financials', 'Sub-Docs'];
+const FOLDERS = ['General', 'Contracts', 'Drawings', 'Reports', 'Correspondence', 'Financials', 'Sub-Docs', 'Leave Request', 'New Employee'];
 
 const DocumentsModule: React.FC<Props> = ({ project, userRole, onProjectUpdate, isLoading, onRefresh }) => {
   const subcontractors = project.agencies?.filter(a => a.type === 'subcontractor') || [];
@@ -978,20 +978,21 @@ const handleScanAnalysis = async () => {
           {/* Document Table */}
           <Card className={cn("flex-1 overflow-hidden flex flex-col transition-all duration-300", previewDoc ? "flex-[0.6]" : "flex-1")}>
             <ScrollArea className="flex-1 w-full rounded-md border">
-<Table>
-<TableHeader className="bg-muted sticky top-0 z-10">
-                  <TableRow>
-                    <TableHead className="w-[25%]">Name</TableHead>
-                    <TableHead className="w-[15%]">Ref No</TableHead>
-                    <TableHead className="w-[18%]">Subject / Description</TableHead>
-                    <TableHead className="w-[8%]">Type</TableHead>
-                    <TableHead className="w-[8%]">Corr. Type</TableHead>
-                    <TableHead className="w-[8%]">Folder</TableHead>
-                    <TableHead className="w-[8%]">Letter Date</TableHead>
-                    <TableHead className="text-right w-[10%]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-<TableBody>
+              <div className="min-w-full">
+                <Table>
+                  <TableHeader className="bg-muted sticky top-0 z-10">
+                    <TableRow className="hover:bg-muted">
+                      <TableHead className="w-[25%] font-semibold whitespace-nowrap">Name</TableHead>
+                      <TableHead className="w-[15%] font-semibold whitespace-nowrap">Ref No</TableHead>
+                      <TableHead className="w-[18%] font-semibold whitespace-nowrap">Subject / Description</TableHead>
+                      <TableHead className="w-[8%] font-semibold whitespace-nowrap">Type</TableHead>
+                      <TableHead className="w-[8%] font-semibold whitespace-nowrap">Corr. Type</TableHead>
+                      <TableHead className="w-[8%] font-semibold whitespace-nowrap">Folder</TableHead>
+                      <TableHead className="w-[8%] font-semibold whitespace-nowrap">Letter Date</TableHead>
+                      <TableHead className="text-right w-[10%] font-semibold whitespace-nowrap">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                   {isLoading ? (
                     <TableRow>
                       <TableCell colSpan={8} className="h-60 text-center">
