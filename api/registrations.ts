@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin, getSupabasePublic, isSupabaseConfigured } from './_utils/supabaseClient.js';
+import { getSupabaseAdmin, isSupabaseConfigured } from './_utils/supabaseClient.js';
 import { withErrorHandler } from './_utils/errorHandler.js';
 import { withAuth } from './_utils/auth.js';
-import { generateUniqueId, uuidv4 } from './_utils/uuidUtils.js';
+import { uuidv4 } from './_utils/uuidUtils.js';
 
 const handler = async function (req: VercelRequest, res: VercelResponse) {
   const { id, action } = req.query;
@@ -43,13 +43,12 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       let authUserId: string | undefined;
 
       if (existingAuthUser) {
-        // User already has an Auth account (e.g., previously created manually or re-registration).
-        // Keep their existing password, just link this registration to them.
+        // User already has an Auth account — use their existing ID
         authUserId = existingAuthUser.id;
         console.warn('[Registrations] Auth user already exists for', email, 'ID:', authUserId);
       } else {
-        // Create Supabase Auth user at registration time (not approval time)
-        // so the user's chosen password is used for the Auth account.
+        // Create Supabase Auth user at registration time with the user's chosen password.
+        // Email is NOT confirmed yet — admin approval will confirm it.
         const { data: authUserData, error: authUserError } = await supabaseAdmin.auth.admin.createUser({
           email: email.toLowerCase(),
           password: password,
@@ -71,6 +70,9 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
         authUserId = authUserData?.user?.id;
       }
 
+      // Store auth_user_id in the registration record's id field since the
+      // registrations table doesn't have a separate auth_user_id column.
+      // This way we can look up the auth user at approval time.
       const newRegId = uuidv4();
 
       const { data: newReg, error: insertError } = await supabaseAdmin
@@ -80,7 +82,7 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           name,
           email: email.toLowerCase(),
           phone: phone || '',
-          auth_user_id: authUserId,
+          password_hash: authUserId, // Reuse password_hash field to store auth_user_id (we no longer hash passwords here)
           requested_role: requestedRole,
           status: 'pending',
           created_at: new Date().toISOString()
@@ -91,10 +93,12 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
       if (insertError) {
         console.error('[Registrations] Insert error:', insertError);
         // Clean up the auth user if registration insert fails
-        try {
-          await supabaseAdmin.auth.admin.deleteUser(authUserId);
-        } catch (e) {
-          console.warn('[Registrations] Failed to clean up auth user:', e);
+        if (!existingAuthUser && authUserId) {
+          try {
+            await supabaseAdmin.auth.admin.deleteUser(authUserId);
+          } catch (e) {
+            console.warn('[Registrations] Failed to clean up auth user:', e);
+          }
         }
         throw insertError;
       }
@@ -153,10 +157,24 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
           // Auth user was already created at registration time with the user's chosen password.
           // Now we just need to confirm their email and create their profile.
-          const authUserId = pendingReg.auth_user_id;
+          // New registrations store auth_user_id in password_hash field (no column migration needed).
+          // Old registrations may have a UUID password_hash — fall back to email lookup.
+          let authUserId = pendingReg.password_hash;
+
+          // Validate that password_hash is actually a UUID (auth user ID), not a bcrypt hash
+          // Auth user IDs are UUIDs (~36 chars). Old bcrypt hashes are ~60 chars starting with "$2".
+          if (!authUserId || authUserId.startsWith('$2')) {
+            // Fall back: look up auth user by email
+            console.warn('[Registrations] password_hash is legacy hash, looking up auth user by email:', pendingReg.email);
+            const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
+            const foundUser = authUsers?.users?.find(
+              (u: any) => u.email?.toLowerCase() === pendingReg.email?.toLowerCase()
+            );
+            authUserId = foundUser?.id;
+          }
 
           if (!authUserId) {
-            return res.status(400).json({ error: 'No auth user ID found in registration. User may need to re-register.' });
+            return res.status(400).json({ error: 'No auth user found for this registration. User may need to re-register.' });
           }
 
           // Confirm the user's email so they can login
