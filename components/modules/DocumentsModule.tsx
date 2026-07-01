@@ -1093,8 +1093,9 @@ const handleScanAnalysis = async () => {
                   )}
                 </TableBody>
               </Table>
-            </ScrollArea>
-          </Card>
+            </div>
+          </ScrollArea>
+        </Card>
 
           {/* Integrated Side Preview */}
           {previewDoc && (
