@@ -56,6 +56,7 @@ class RealApiService {
    */
   private async refreshSession(): Promise<string | null> {
     const authTokenKey = 'roadmaster-token';
+    const refreshTokenKey = 'roadmaster-refresh-token';
     const sessionTokenKey = 'roadmaster-token-session';
     
     // Try to get token from any storage
@@ -79,29 +80,48 @@ class RealApiService {
       return null;
     }
 
+    // Get the stored refresh token
+    const storedRefreshToken = localStorage.getItem(refreshTokenKey);
+    if (!storedRefreshToken) {
+      console.warn('[API] No refresh token stored — cannot refresh expired session');
+      return null;
+    }
+
     try {
-      // Try to get session from Supabase to verify token is still valid
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (!error && session) {
-        // Session exists, ensure our local storage matches
-        console.log('[API] ✓ Session verified via Supabase');
-        return token;
-      }
-      
-      // Session might be stale - try to set it explicitly
-      const { error: setSessionError } = await supabase.auth.setSession({
-        access_token: token,
-        refresh_token: ''
+      // Call the API refresh endpoint with the stored refresh token
+      const response = await fetch('/api/auth?action=refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: storedRefreshToken }),
       });
-      
-      if (setSessionError) {
-        console.error('[API] Session refresh failed:', setSessionError.message);
+
+      if (!response.ok) {
+        console.error('[API] Session refresh via API failed:', response.status);
         return null;
       }
+
+      const result = await response.json();
       
-      console.log('[API] ✓ Session refreshed successfully');
-      return token;
+      if (result.token) {
+        // Update the token in all storage locations
+        localStorage.setItem(authTokenKey, result.token);
+        sessionStorage.setItem(sessionTokenKey, result.token);
+        
+        // Update the refresh token (Supabase rotates it)
+        if (result.refreshToken) {
+          localStorage.setItem(refreshTokenKey, result.refreshToken);
+        }
+        
+        // Also update cookie
+        if (typeof document !== 'undefined') {
+          document.cookie = `roadmaster-access=${encodeURIComponent(result.token)}; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`;
+        }
+        
+        console.log('[API] ✓ Session refreshed successfully via API, new token length:', result.token.length);
+        return result.token;
+      }
+      
+      return null;
     } catch (err: any) {
       console.error('[API] Session refresh error:', err?.message);
       return null;

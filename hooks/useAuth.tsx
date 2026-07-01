@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 
 const AUTH_TOKEN_KEY = 'roadmaster-token';
+const AUTH_REFRESH_KEY = 'roadmaster-refresh-token';
 const AUTH_USER_KEY = 'roadmaster-user';
 // Backup storage keys for redundancy
 const SESSION_TOKEN_KEY = 'roadmaster-token-session';
@@ -35,7 +36,7 @@ const clearTokenCookie = () => {
 };
 
 // Helper: Store token with redundancy - localStorage + sessionStorage as backup
-const storeToken = (token: string) => {
+const storeToken = (token: string, refreshToken?: string) => {
   try {
     localStorage.setItem(AUTH_TOKEN_KEY, token);
     console.log('[useAuth] ✓ Token stored in localStorage');
@@ -47,6 +48,15 @@ const storeToken = (token: string) => {
     console.log('[useAuth] ✓ Token stored in sessionStorage (backup)');
   } catch (e) {
     console.warn('[useAuth] ⚠ Failed to store token in sessionStorage:', e);
+  }
+  // Store refresh token separately for token refresh flow
+  if (refreshToken) {
+    try {
+      localStorage.setItem(AUTH_REFRESH_KEY, refreshToken);
+      console.log('[useAuth] ✓ Refresh token stored in localStorage');
+    } catch (e) {
+      console.warn('[useAuth] ⚠ Failed to store refresh token:', e);
+    }
   }
 };
 
@@ -105,6 +115,7 @@ const getStoredToken = (): string | null => {
 const clearAllTokenStorage = () => {
   try {
     localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_REFRESH_KEY);
     localStorage.removeItem(SESSION_TOKEN_KEY);
     sessionStorage.removeItem(SESSION_TOKEN_KEY);
     console.log('[useAuth] ✓ Token cleared from all storage');
@@ -215,12 +226,12 @@ export const useAuth = () => {
     });
   }, []);
 
-const login = useCallback(async (role: UserRole, name: string, token?: string, userId?: string, phone?: string) => {
-    console.log('[useAuth] login called:', { role, name, hasToken: !!token, userId, timestamp: new Date().toISOString() });
+const login = useCallback(async (role: UserRole, name: string, token?: string, userId?: string, phone?: string, refreshToken?: string) => {
+    console.log('[useAuth] login called:', { role, name, hasToken: !!token, userId, hasRefreshToken: !!refreshToken, timestamp: new Date().toISOString() });
     
     if (token) {
-      // Store token with redundancy (localStorage + sessionStorage)
-      storeToken(token);
+      // Store token with redundancy (localStorage + sessionStorage) + refresh token
+      storeToken(token, refreshToken);
       setToken(token);
       setTokenCookie(token);
       
@@ -228,7 +239,7 @@ const login = useCallback(async (role: UserRole, name: string, token?: string, u
       try {
         await supabase.auth.setSession({
           access_token: token,
-          refresh_token: ''
+          refresh_token: refreshToken || ''
         });
         console.log('[useAuth] ✓ Supabase session synchronized');
       } catch (setSessionErr) {

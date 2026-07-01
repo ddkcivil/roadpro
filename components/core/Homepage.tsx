@@ -81,7 +81,7 @@ const loginSchema = z.object({
 });
 
 interface HomepageProps {
-  onLogin: (role: UserRole, name: string, token?: string, userId?: string, phone?: string) => void;
+  onLogin: (role: UserRole, name: string, token?: string, userId?: string, phone?: string, refreshToken?: string) => void;
   onShowRegistration: () => void;
 }
 
@@ -246,12 +246,12 @@ const Homepage: React.FC<HomepageProps> = ({ onLogin, onShowRegistration }) => {
       }
 
       if (result.user) {
-        const { user, token } = result;
+        const { user, token, refreshToken } = result;
         const role = user.role as UserRole;
         const name = user.name || user.full_name || 'User';
         const userId = user.id;
         
-        onLogin(role, name, token, userId, user.phone);
+        onLogin(role, name, token, userId, user.phone, refreshToken);
         toast.success(`Welcome back, ${name}`);
       }
     } catch (error: any) {

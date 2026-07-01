@@ -87,7 +87,8 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
 
           return res.status(200).json({
             user: safeUser,
-            token: authData.session.access_token
+            token: authData.session.access_token,
+            refreshToken: authData.session.refresh_token // <-- FIX: return refresh token so frontend can refresh expired tokens
           });
         } catch (supEx: any) {
           console.error('[Auth API] Supabase auth exception:', supEx.message);
@@ -161,7 +162,14 @@ const handler = async function (req: VercelRequest, res: VercelResponse) {
           });
 
           if (!refreshError && sessionData?.session) {
-            return res.status(200).json({ session: sessionData.session, token: sessionData.session.access_token });
+            // Update the cookie with the new access token
+            res.setHeader('Set-Cookie', `roadmaster-access=${sessionData.session.access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`);
+            
+            return res.status(200).json({ 
+              session: sessionData.session, 
+              token: sessionData.session.access_token,
+              refreshToken: sessionData.session.refresh_token // <-- FIX: return new refresh token (rotated)
+            });
           }
         }
         return res.status(401).json({ error: 'Failed to refresh session' });
