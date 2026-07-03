@@ -165,13 +165,9 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
     toast.success("Activity updated successfully");
   };
 
-  // --- Logic ---
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('Adding task:', newTask); // Debug log
-    
-    // Check for duplicate description before saving
     if (!newTask.description || newTask.description.trim() === '') {
         toast.error("Please enter an activity name");
         return;
@@ -183,7 +179,6 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
         return;
     }
 
-    // Save histories if they were interacted with
     if (newTask.description) descriptionHistory.saveEntry(newTask.description);
     if (newTask.remarks) remarksHistory.saveEntry(newTask.remarks);
 
@@ -204,15 +199,10 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
         logs: []
     };
     
-    console.log('Created task:', task); // Debug log
-    console.log('Current preConstruction count:', project.preConstruction.length); // Debug log
-    
     const updatedProject = {
         ...project,
-        preConstruction: [...project.preConstruction, task]
+        preConstruction: [...(project.preConstruction || []), task]
     };
-    
-    console.log('Updated project preConstruction count:', updatedProject.preConstruction.length); // Debug log
     
     onProjectUpdate(updatedProject);
     
@@ -537,6 +527,29 @@ return (
                   </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleAddTask} className="grid gap-4 py-4">
+                {/* Category */}
+                <div className="grid gap-2">
+                  <Label htmlFor="category">Category</Label>
+                  <Select 
+                     value={newTask.category}
+                     onValueChange={value => setNewTask({...newTask, category: value as any})}
+                  >
+                      <SelectTrigger id="category">
+                          <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="Survey">Survey</SelectItem>
+                          <SelectItem value="Land Acquisition">Land Acquisition</SelectItem>
+                          <SelectItem value="Forest Clearance">Forest Clearance</SelectItem>
+                          <SelectItem value="Utility Shifting">Utility Shifting</SelectItem>
+                          <SelectItem value="Design">Design</SelectItem>
+                          <SelectItem value="Environmental Clearance">Environmental Clearance</SelectItem>
+                          <SelectItem value="Social Impact Assessment">Social Impact Assessment</SelectItem>
+                          <SelectItem value="Financial Closure">Financial Closure</SelectItem>
+                      </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Activity Description */}
                 <div className="grid gap-2">
                   <Label htmlFor="description">Pre-Construction Activity *</Label>
@@ -576,10 +589,6 @@ return (
                     className="min-h-[100px]"
                   />
                 </div>
-
-                {/* Hidden fields for data integrity */}
-                <input type="hidden" value={newTask.category || 'Survey'} />
-                <input type="hidden" value={newTask.status || 'Not Done'} />
 
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setIsModalOpen(false)}><X className="mr-2 h-4 w-4" />Cancel</Button>
@@ -648,6 +657,28 @@ return (
               </DialogHeader>
               <form onSubmit={handleEditSubmit} className="grid gap-4 py-4">
                 <div className="grid gap-2">
+                  <Label htmlFor="edit-category">Category</Label>
+                  <Select 
+                     value={editForm.category as string || 'Survey'}
+                     onValueChange={value => setEditForm({...editForm, category: value as any})}
+                  >
+                      <SelectTrigger id="edit-category">
+                          <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="Survey">Survey</SelectItem>
+                          <SelectItem value="Land Acquisition">Land Acquisition</SelectItem>
+                          <SelectItem value="Forest Clearance">Forest Clearance</SelectItem>
+                          <SelectItem value="Utility Shifting">Utility Shifting</SelectItem>
+                          <SelectItem value="Design">Design</SelectItem>
+                          <SelectItem value="Environmental Clearance">Environmental Clearance</SelectItem>
+                          <SelectItem value="Social Impact Assessment">Social Impact Assessment</SelectItem>
+                          <SelectItem value="Financial Closure">Financial Closure</SelectItem>
+                      </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
                   <Label htmlFor="edit-description">Pre-Construction Activity *</Label>
                   <Input 
                     id="edit-description" required 
@@ -682,9 +713,6 @@ return (
                     className="min-h-[100px]"
                   />
                 </div>
-                
-                {/* Hidden category field */}
-                <input type="hidden" value={editForm.category || 'Survey'} />
 
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setIsEditModalOpen(false)}><X className="mr-2 h-4 w-4" />Cancel</Button>
