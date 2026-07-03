@@ -769,9 +769,10 @@ export interface DailyReport {
 
 export interface PreConstructionTask {
   id: string;
-  category: 'Survey' | 'Land Acquisition' | 'Forest Clearance' | 'Utility Shifting' | 'Design';
+  category: 'Survey' | 'Land Acquisition' | 'Forest Clearance' | 'Utility Shifting' | 'Design' | 'Environmental Clearance' | 'Social Impact Assessment' | 'Financial Closure';
   description: string;
-  status: 'Pending' | 'In Progress' | 'Completed';
+  documentation?: string;
+  status: 'Not Done' | 'Pending' | 'In Progress' | 'Completed';
   targetDate: string;
   estStartDate?: string;
   estEndDate?: string;
@@ -779,6 +780,8 @@ export interface PreConstructionTask {
   endDate?: string;
   progress: number;
   remarks: string;
+  requirements?: string;
+  responsibleParty?: string;
   logs?: any[];
 }
 

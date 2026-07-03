@@ -25,7 +25,7 @@ import { useHistoryAutoFill } from '~/lib/historyUtils';
 import { hasDuplicate } from '~/utils/validation/dedupUtils';
 
 // Filter and sort types
-type FilterStatus = 'all' | 'Pending' | 'In Progress' | 'Completed';
+type FilterStatus = 'all' | 'Not Done' | 'Pending' | 'In Progress' | 'Completed';
 type SortField = 'category' | 'description' | 'estEndDate' | 'progress' | 'status';
 type SortOrder = 'asc' | 'desc';
 
@@ -52,9 +52,12 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
   // Forms
   const [newTask, setNewTask] = useState<Partial<PreConstructionTask>>({
     category: 'Survey',
-    status: 'Pending',
+    status: 'Not Done',
     description: '',
+    documentation: '',
     remarks: '',
+    requirements: '',
+    responsibleParty: '',
     estStartDate: '',
     estEndDate: '',
     progress: 0
@@ -196,12 +199,15 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
         id: `pre-${Date.now()}`,
         category: newTask.category as any,
         description: newTask.description || '',
+        documentation: newTask.documentation,
         status: newTask.status as any,
         targetDate: newTask.estEndDate || '',
         estStartDate: newTask.estStartDate,
         estEndDate: newTask.estEndDate,
         progress: 0,
         remarks: newTask.remarks || '',
+        requirements: newTask.requirements,
+        responsibleParty: newTask.responsibleParty,
         logs: []
     };
     onProjectUpdate({
@@ -209,7 +215,7 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
         preConstruction: [...project.preConstruction, task]
     });
     setIsModalOpen(false);
-    setNewTask({ category: 'Survey', status: 'Pending', description: '', remarks: '', estStartDate: '', estEndDate: '', progress: 0 });
+    setNewTask({ category: 'Survey', status: 'Not Done', description: '', documentation: '', remarks: '', requirements: '', responsibleParty: '', estStartDate: '', estEndDate: '', progress: 0 });
   };
 
   const handleDeleteTask = (id: string) => {
@@ -287,6 +293,7 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
       switch(status) {
           case 'Completed': return 'success';
           case 'In Progress': return 'default';
+          case 'Not Done': return 'destructive';
           default: return 'secondary';
       }
   };
@@ -382,6 +389,7 @@ return (
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="Not Done">Not Done</SelectItem>
                         <SelectItem value="Pending">Pending</SelectItem>
                         <SelectItem value="In Progress">In Progress</SelectItem>
                         <SelectItem value="Completed">Completed</SelectItem>
@@ -541,6 +549,9 @@ return (
                           <SelectItem value="Forest Clearance">Forest Clearance</SelectItem>
                           <SelectItem value="Utility Shifting">Utility Shifting</SelectItem>
                           <SelectItem value="Design">Design</SelectItem>
+                          <SelectItem value="Environmental Clearance">Environmental Clearance</SelectItem>
+                          <SelectItem value="Social Impact Assessment">Social Impact Assessment</SelectItem>
+                          <SelectItem value="Financial Closure">Financial Closure</SelectItem>
                       </SelectContent>
                   </Select>
                 </div>
@@ -560,6 +571,41 @@ return (
                     {renderSuggestions(descriptionHistory, newTaskDescriptionRef, (value) => setNewTask({...newTask, description: value}))}
                   </div>
                 </div>
+
+                {/* Documentation Field */}
+                <div className="grid gap-2">
+                  <Label htmlFor="documentation">Documentation</Label>
+                  <Textarea 
+                    id="documentation" 
+                    placeholder="Reference documents, permits, or related files"
+                    value={newTask.documentation || ''} 
+                    onChange={(e) => setNewTask({...newTask, documentation: e.target.value})}
+                    className="min-h-[80px]"
+                  />
+                </div>
+
+                {/* Requirements Field */}
+                <div className="grid gap-2">
+                  <Label htmlFor="requirements">Requirements</Label>
+                  <Textarea 
+                    id="requirements" 
+                    placeholder="List specific requirements for this activity"
+                    value={newTask.requirements || ''} 
+                    onChange={(e) => setNewTask({...newTask, requirements: e.target.value})}
+                    className="min-h-[80px]"
+                  />
+                </div>
+
+                {/* Responsible Party Field */}
+                <div className="grid gap-2">
+                  <Label htmlFor="responsibleParty">Responsible Party</Label>
+                  <Input 
+                    id="responsibleParty" 
+                    placeholder="e.g. Site Engineer, Consultant"
+                    value={newTask.responsibleParty || ''} 
+                    onChange={(e) => setNewTask({...newTask, responsibleParty: e.target.value})}
+                  />
+                </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
@@ -577,7 +623,26 @@ return (
                         />
                     </div>
                 </div>
-                
+
+                {/* Status Field */}
+                <div className="grid gap-2">
+                  <Label htmlFor="status">Status</Label>
+                  <Select 
+                     value={newTask.status}
+                     onValueChange={value => setNewTask({...newTask, status: value as any})}
+                  >
+                      <SelectTrigger id="status">
+                          <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="Not Done">Not Done</SelectItem>
+                          <SelectItem value="Pending">Pending</SelectItem>
+                          <SelectItem value="In Progress">In Progress</SelectItem>
+                          <SelectItem value="Completed">Completed</SelectItem>
+                      </SelectContent>
+                  </Select>
+                </div>
+                 
                 {/* Remarks Textarea with History */}
                 <div className="grid gap-2">
                   <Label htmlFor="remarks">Remarks</Label>
@@ -675,6 +740,9 @@ return (
                           <SelectItem value="Forest Clearance">Forest Clearance</SelectItem>
                           <SelectItem value="Utility Shifting">Utility Shifting</SelectItem>
                           <SelectItem value="Design">Design</SelectItem>
+                          <SelectItem value="Environmental Clearance">Environmental Clearance</SelectItem>
+                          <SelectItem value="Social Impact Assessment">Social Impact Assessment</SelectItem>
+                          <SelectItem value="Financial Closure">Financial Closure</SelectItem>
                       </SelectContent>
                   </Select>
                 </div>
@@ -698,6 +766,7 @@ return (
                           <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                          <SelectItem value="Not Done">Not Done</SelectItem>
                           <SelectItem value="Pending">Pending</SelectItem>
                           <SelectItem value="In Progress">In Progress</SelectItem>
                           <SelectItem value="Completed">Completed</SelectItem>
