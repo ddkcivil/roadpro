@@ -169,8 +169,15 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('Adding task:', newTask); // Debug log
+    
     // Check for duplicate description before saving
-    const isDuplicate = newTask.description && hasDuplicate(project.preConstruction, 'description', newTask.description);
+    if (!newTask.description || newTask.description.trim() === '') {
+        toast.error("Please enter an activity name");
+        return;
+    }
+    
+    const isDuplicate = hasDuplicate(project.preConstruction, 'description', newTask.description);
     if (isDuplicate) {
         toast.error("Duplicate: An activity with this description already exists.");
         return;
@@ -180,25 +187,36 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
     if (newTask.description) descriptionHistory.saveEntry(newTask.description);
     if (newTask.remarks) remarksHistory.saveEntry(newTask.remarks);
 
+    const today = new Date().toISOString().split('T')[0];
     const task: PreConstructionTask = {
         id: `pre-${Date.now()}`,
-        category: newTask.category as any,
+        category: (newTask.category as any) || 'Survey',
         description: newTask.description || '',
-        documentation: newTask.documentation,
-        status: newTask.status as any,
-        targetDate: newTask.estEndDate || '',
-        estStartDate: newTask.estStartDate,
-        estEndDate: newTask.estEndDate,
+        documentation: newTask.documentation || '',
+        status: (newTask.status as any) || 'Not Done',
+        targetDate: today,
+        estStartDate: today,
+        estEndDate: today,
         progress: 0,
         remarks: newTask.remarks || '',
-        requirements: newTask.requirements,
-        responsibleParty: newTask.responsibleParty,
+        requirements: newTask.requirements || '',
+        responsibleParty: newTask.responsibleParty || '',
         logs: []
     };
-    onProjectUpdate({
+    
+    console.log('Created task:', task); // Debug log
+    console.log('Current preConstruction count:', project.preConstruction.length); // Debug log
+    
+    const updatedProject = {
         ...project,
         preConstruction: [...project.preConstruction, task]
-    });
+    };
+    
+    console.log('Updated project preConstruction count:', updatedProject.preConstruction.length); // Debug log
+    
+    onProjectUpdate(updatedProject);
+    
+    toast.success("Activity added successfully");
     setIsModalOpen(false);
     setNewTask({ category: 'Survey', status: 'Not Done', description: '', documentation: '', remarks: '', requirements: '', responsibleParty: '', estStartDate: '', estEndDate: '', progress: 0 });
   };
