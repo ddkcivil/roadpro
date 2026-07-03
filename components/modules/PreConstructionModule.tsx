@@ -49,6 +49,17 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
 
+  // Initialize preConstruction array if it doesn't exist
+  React.useEffect(() => {
+    if (!project.preConstruction) {
+      console.log('Initializing preConstruction array');
+      onProjectUpdate({
+        ...project,
+        preConstruction: []
+      });
+    }
+  }, [project, onProjectUpdate]);
+
   // Forms
   const [newTask, setNewTask] = useState<Partial<PreConstructionTask>>({
     category: 'Survey',
@@ -77,7 +88,11 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
 
   // --- Filtered and Sorted Tasks ---
   const filteredAndSortedTasks = useMemo(() => {
-    let tasks = [...project.preConstruction];
+    console.log('Filtering tasks. Total preConstruction:', project.preConstruction?.length || 0);
+    
+    let tasks = [...(project.preConstruction || [])];
+    
+    console.log('Tasks after copy:', tasks.length);
     
     // Filter by status
     if (filterStatus !== 'all') {
@@ -93,6 +108,8 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
         t.remarks?.toLowerCase().includes(term)
       );
     }
+    
+    console.log('Filtered tasks count:', tasks.length);
     
     // Sort
     tasks.sort((a, b) => {
@@ -173,7 +190,9 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
         return;
     }
     
-    const isDuplicate = hasDuplicate(project.preConstruction, 'description', newTask.description);
+    // Ensure preConstruction array exists
+    const existingTasks = project.preConstruction || [];
+    const isDuplicate = hasDuplicate(existingTasks, 'description', newTask.description);
     if (isDuplicate) {
         toast.error("Duplicate: An activity with this description already exists.");
         return;
@@ -199,16 +218,39 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
         logs: []
     };
     
+    console.log('Created task object:', task);
+    
     const updatedProject = {
         ...project,
         preConstruction: [...(project.preConstruction || []), task]
     };
     
+    console.log('Updated project preConstruction count:', updatedProject.preConstruction.length);
+    console.log('Calling onProjectUpdate...');
+    
     onProjectUpdate(updatedProject);
     
-    toast.success("Activity added successfully");
+    console.log('onProjectUpdate called. Modal closing...');
+    
+    toast.success("Activity added successfully", {
+      description: `Added: ${task.description}`
+    });
+    
     setIsModalOpen(false);
-    setNewTask({ category: 'Survey', status: 'Not Done', description: '', documentation: '', remarks: '', requirements: '', responsibleParty: '', estStartDate: '', estEndDate: '', progress: 0 });
+    setNewTask({ 
+        category: 'Survey', 
+        status: 'Not Done', 
+        description: '', 
+        documentation: '', 
+        remarks: '', 
+        requirements: '', 
+        responsibleParty: '', 
+        estStartDate: '', 
+        estEndDate: '', 
+        progress: 0 
+    });
+    
+    console.log('=== TASK ADD COMPLETE ===');
   };
 
   const handleDeleteTask = (id: string) => {
