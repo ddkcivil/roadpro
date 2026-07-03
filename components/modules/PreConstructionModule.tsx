@@ -619,6 +619,41 @@ return (
                   </Label>
                 </div>
 
+                {/* Documentation Field */}
+                <div className="grid gap-2">
+                  <Label htmlFor="documentation">Documentation</Label>
+                  <Textarea 
+                    id="documentation" 
+                    placeholder="Reference documents, permits, or related files"
+                    value={newTask.documentation || ''} 
+                    onChange={(e) => setNewTask({...newTask, documentation: e.target.value})}
+                    className="min-h-[80px]"
+                  />
+                </div>
+
+                {/* Requirements Field */}
+                <div className="grid gap-2">
+                  <Label htmlFor="requirements">Requirements</Label>
+                  <Textarea 
+                    id="requirements" 
+                    placeholder="List specific requirements for this activity"
+                    value={newTask.requirements || ''} 
+                    onChange={(e) => setNewTask({...newTask, requirements: e.target.value})}
+                    className="min-h-[80px]"
+                  />
+                </div>
+
+                {/* Responsible Party Field */}
+                <div className="grid gap-2">
+                  <Label htmlFor="responsibleParty">Responsible Party</Label>
+                  <Input 
+                    id="responsibleParty" 
+                    placeholder="e.g. Site Engineer, Consultant"
+                    value={newTask.responsibleParty || ''} 
+                    onChange={(e) => setNewTask({...newTask, responsibleParty: e.target.value})}
+                  />
+                </div>
+
                 {/* Description/Details */}
                 <div className="grid gap-2">
                   <Label htmlFor="remarks">Description / Details</Label>
@@ -742,6 +777,42 @@ return (
                   <Label htmlFor="edit-status" className="text-sm font-medium">
                     Completed (Yes/No)
                   </Label>
+                </div>
+
+                {/* Description/Details */}
+                {/* Documentation Field */}
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-documentation">Documentation</Label>
+                  <Textarea 
+                    id="edit-documentation" 
+                    placeholder="Reference documents, permits, or related files"
+                    value={editForm.documentation || ''} 
+                    onChange={(e) => setEditForm({...editForm, documentation: e.target.value})}
+                    className="min-h-[80px]"
+                  />
+                </div>
+
+                {/* Requirements Field */}
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-requirements">Requirements</Label>
+                  <Textarea 
+                    id="edit-requirements" 
+                    placeholder="List specific requirements for this activity"
+                    value={editForm.requirements || ''} 
+                    onChange={(e) => setEditForm({...editForm, requirements: e.target.value})}
+                    className="min-h-[80px]"
+                  />
+                </div>
+
+                {/* Responsible Party Field */}
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-responsibleParty">Responsible Party</Label>
+                  <Input 
+                    id="edit-responsibleParty" 
+                    placeholder="e.g. Site Engineer, Consultant"
+                    value={editForm.responsibleParty || ''} 
+                    onChange={(e) => setEditForm({...editForm, responsibleParty: e.target.value})}
+                  />
                 </div>
 
                 {/* Description/Details */}
