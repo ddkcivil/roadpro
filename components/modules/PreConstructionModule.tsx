@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useMemo } from 'react';
 import { 
     Plus, Calendar, Target, Trash2, AlertTriangle, 
@@ -17,6 +16,7 @@ import { toast } from 'sonner';
 import { Badge } from '~/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
 import { Textarea } from '~/components/ui/textarea';
+import { Checkbox } from '~/components/ui/checkbox';
 
 // Import the history hook
 import { useHistoryAutoFill } from '~/lib/historyUtils';
@@ -168,21 +168,6 @@ const PreConstructionModule: React.FC<Props> = ({ project, onProjectUpdate }) =>
   // --- Logic ---
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Date validation - prevent past dates
-    const today = new Date().toISOString().split('T')[0];
-    if (newTask.estStartDate && newTask.estStartDate < today) {
-        toast.error("Start date cannot be in the past");
-        return;
-    }
-    if (newTask.estEndDate && newTask.estEndDate < today) {
-        toast.error("End date cannot be in the past");
-        return;
-    }
-    if (newTask.estStartDate && newTask.estEndDate && newTask.estStartDate > newTask.estEndDate) {
-        toast.error("Start date must be before end date");
-        return;
-    }
     
     // Check for duplicate description before saving
     const isDuplicate = newTask.description && hasDuplicate(project.preConstruction, 'description', newTask.description);
@@ -527,137 +512,56 @@ return (
 
        {/* Add Activity Modal */}
        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
                   <DialogTitle className="flex items-center text-lg font-bold text-primary">
                       <Plus className="mr-2 h-5 w-5" /> Add Pre-Construction Activity
                   </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleAddTask} className="grid gap-4 py-4">
+                {/* Activity Description */}
                 <div className="grid gap-2">
-                  <Label htmlFor="category">Category</Label>
-                  <Select 
-                     value={newTask.category}
-                     onValueChange={value => setNewTask({...newTask, category: value as any})}
-                  >
-                      <SelectTrigger id="category">
-                          <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          <SelectItem value="Survey">Survey</SelectItem>
-                          <SelectItem value="Land Acquisition">Land Acquisition</SelectItem>
-                          <SelectItem value="Forest Clearance">Forest Clearance</SelectItem>
-                          <SelectItem value="Utility Shifting">Utility Shifting</SelectItem>
-                          <SelectItem value="Design">Design</SelectItem>
-                          <SelectItem value="Environmental Clearance">Environmental Clearance</SelectItem>
-                          <SelectItem value="Social Impact Assessment">Social Impact Assessment</SelectItem>
-                          <SelectItem value="Financial Closure">Financial Closure</SelectItem>
-                      </SelectContent>
-                  </Select>
-                </div>
-                
-                {/* Description Input with History */}
-                <div className="grid gap-2">
-                  <Label htmlFor="description">Description</Label>
-                  <div className="relative">
-                    <Input 
-                      id="description" required 
-                      placeholder="e.g. Joint Verification"
-                      value={newTask.description} 
-                      onChange={handleNewDescriptionChange}
-                      onBlur={() => newTask.description && descriptionHistory.saveEntry(newTask.description)} // Save on blur
-                      ref={newTaskDescriptionRef}
-                    />
-                    {renderSuggestions(descriptionHistory, newTaskDescriptionRef, (value) => setNewTask({...newTask, description: value}))}
-                  </div>
-                </div>
-
-                {/* Documentation Field */}
-                <div className="grid gap-2">
-                  <Label htmlFor="documentation">Documentation</Label>
-                  <Textarea 
-                    id="documentation" 
-                    placeholder="Reference documents, permits, or related files"
-                    value={newTask.documentation || ''} 
-                    onChange={(e) => setNewTask({...newTask, documentation: e.target.value})}
-                    className="min-h-[80px]"
-                  />
-                </div>
-
-                {/* Requirements Field */}
-                <div className="grid gap-2">
-                  <Label htmlFor="requirements">Requirements</Label>
-                  <Textarea 
-                    id="requirements" 
-                    placeholder="List specific requirements for this activity"
-                    value={newTask.requirements || ''} 
-                    onChange={(e) => setNewTask({...newTask, requirements: e.target.value})}
-                    className="min-h-[80px]"
-                  />
-                </div>
-
-                {/* Responsible Party Field */}
-                <div className="grid gap-2">
-                  <Label htmlFor="responsibleParty">Responsible Party</Label>
+                  <Label htmlFor="description">Pre-Construction Activity *</Label>
                   <Input 
-                    id="responsibleParty" 
-                    placeholder="e.g. Site Engineer, Consultant"
-                    value={newTask.responsibleParty || ''} 
-                    onChange={(e) => setNewTask({...newTask, responsibleParty: e.target.value})}
+                    id="description" 
+                    required 
+                    placeholder="e.g. Contract Agreement Signing"
+                    value={newTask.description} 
+                    onChange={handleNewDescriptionChange}
+                    ref={newTaskDescriptionRef}
                   />
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="est-start">Est. Start</Label>
-                        <Input 
-                            id="est-start" required type="date" 
-                            value={newTask.estStartDate} onChange={e => setNewTask({...newTask, estStartDate: e.target.value})}
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="est-end">Est. End</Label>
-                        <Input 
-                            id="est-end" required type="date" 
-                            value={newTask.estEndDate} onChange={e => setNewTask({...newTask, estEndDate: e.target.value})}
-                        />
-                    </div>
+
+                {/* Status Checkbox */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="status" 
+                    checked={newTask.status === 'Completed'}
+                    onCheckedChange={(checked) => {
+                      setNewTask({...newTask, status: checked ? 'Completed' : 'Not Done'});
+                    }}
+                  />
+                  <Label htmlFor="status" className="text-sm font-medium">
+                    Completed (Yes/No)
+                  </Label>
                 </div>
 
-                {/* Status Field */}
+                {/* Description/Details */}
                 <div className="grid gap-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select 
-                     value={newTask.status}
-                     onValueChange={value => setNewTask({...newTask, status: value as any})}
-                  >
-                      <SelectTrigger id="status">
-                          <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          <SelectItem value="Not Done">Not Done</SelectItem>
-                          <SelectItem value="Pending">Pending</SelectItem>
-                          <SelectItem value="In Progress">In Progress</SelectItem>
-                          <SelectItem value="Completed">Completed</SelectItem>
-                      </SelectContent>
-                  </Select>
+                  <Label htmlFor="remarks">Description / Details</Label>
+                  <Textarea 
+                    id="remarks" 
+                    placeholder="Enter details like 'Made on 10 October 2025'"
+                    value={newTask.remarks || ''} 
+                    onChange={handleNewRemarksChange}
+                    ref={newTaskRemarksRef}
+                    className="min-h-[100px]"
+                  />
                 </div>
-                 
-                {/* Remarks Textarea with History */}
-                <div className="grid gap-2">
-                  <Label htmlFor="remarks">Remarks</Label>
-                  <div className="relative">
-                    <Textarea 
-                      id="remarks" 
-                      value={newTask.remarks} 
-                      onChange={handleNewRemarksChange}
-                      onBlur={() => newTask.remarks && remarksHistory.saveEntry(newTask.remarks)} // Save on blur
-                      ref={newTaskRemarksRef}
-                      className="min-h-[100px]"
-                    />
-                    {renderSuggestions(remarksHistory, newTaskRemarksRef, (value) => setNewTask({...newTask, remarks: value}))}
-                  </div>
-                </div>
+
+                {/* Hidden fields for data integrity */}
+                <input type="hidden" value={newTask.category || 'Survey'} />
+                <input type="hidden" value={newTask.status || 'Not Done'} />
 
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setIsModalOpen(false)}><X className="mr-2 h-4 w-4" />Cancel</Button>
@@ -718,7 +622,7 @@ return (
 
       {/* Edit Activity Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
                   <DialogTitle className="flex items-center text-lg font-bold text-primary">
                       <Edit2 className="mr-2 h-5 w-5" /> Edit Pre-Construction Activity
@@ -726,92 +630,43 @@ return (
               </DialogHeader>
               <form onSubmit={handleEditSubmit} className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-category">Category</Label>
-                  <Select 
-                     value={editForm.category as string || 'Survey'}
-                     onValueChange={value => setEditForm({...editForm, category: value as any})}
-                  >
-                      <SelectTrigger id="edit-category">
-                          <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          <SelectItem value="Survey">Survey</SelectItem>
-                          <SelectItem value="Land Acquisition">Land Acquisition</SelectItem>
-                          <SelectItem value="Forest Clearance">Forest Clearance</SelectItem>
-                          <SelectItem value="Utility Shifting">Utility Shifting</SelectItem>
-                          <SelectItem value="Design">Design</SelectItem>
-                          <SelectItem value="Environmental Clearance">Environmental Clearance</SelectItem>
-                          <SelectItem value="Social Impact Assessment">Social Impact Assessment</SelectItem>
-                          <SelectItem value="Financial Closure">Financial Closure</SelectItem>
-                      </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-description">Description</Label>
+                  <Label htmlFor="edit-description">Pre-Construction Activity *</Label>
                   <Input 
                     id="edit-description" required 
+                    placeholder="e.g. Contract Agreement Signing"
                     value={editForm.description || ''} 
                     onChange={(e) => setEditForm({...editForm, description: e.target.value})}
                   />
                 </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-status">Status</Label>
-                  <Select 
-                    value={editForm.status as string || 'Pending'}
-                    onValueChange={value => setEditForm({...editForm, status: value as any})}
-                  >
-                      <SelectTrigger id="edit-status">
-                          <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                          <SelectItem value="Not Done">Not Done</SelectItem>
-                          <SelectItem value="Pending">Pending</SelectItem>
-                          <SelectItem value="In Progress">In Progress</SelectItem>
-                          <SelectItem value="Completed">Completed</SelectItem>
-                      </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="edit-est-start">Est. Start</Label>
-                        <Input 
-                            id="edit-est-start" type="date" 
-                            value={editForm.estStartDate || ''} 
-                            onChange={e => setEditForm({...editForm, estStartDate: e.target.value})}
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="edit-est-end">Est. End</Label>
-                        <Input 
-                            id="edit-est-end" type="date" 
-                            value={editForm.estEndDate || ''} 
-                            onChange={e => setEditForm({...editForm, estEndDate: e.target.value})}
-                        />
-                    </div>
+                {/* Status Checkbox */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="edit-status" 
+                    checked={editForm.status === 'Completed'}
+                    onCheckedChange={(checked) => {
+                      setEditForm({...editForm, status: checked ? 'Completed' : 'Not Done'});
+                    }}
+                  />
+                  <Label htmlFor="edit-status" className="text-sm font-medium">
+                    Completed (Yes/No)
+                  </Label>
                 </div>
 
+                {/* Description/Details */}
                 <div className="grid gap-2">
-                    <Label htmlFor="edit-progress">Progress (%)</Label>
-                    <Input 
-                        id="edit-progress" type="number" 
-                        min="0" max="100"
-                        value={editForm.progress || 0} 
-                        onChange={e => setEditForm({...editForm, progress: Number(e.target.value)})}
-                    />
-                </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-remarks">Remarks</Label>
+                  <Label htmlFor="edit-remarks">Description / Details</Label>
                   <Textarea 
                     id="edit-remarks" 
+                    placeholder="Enter details like 'Made on 10 October 2025'"
                     value={editForm.remarks || ''} 
                     onChange={(e) => setEditForm({...editForm, remarks: e.target.value})}
                     className="min-h-[100px]"
                   />
                 </div>
+                
+                {/* Hidden category field */}
+                <input type="hidden" value={editForm.category || 'Survey'} />
 
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setIsEditModalOpen(false)}><X className="mr-2 h-4 w-4" />Cancel</Button>
