@@ -923,7 +923,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, hideStats }) => {
                           <div key={idx} className="p-4 bg-muted/30 rounded-xl space-y-2">
                             <div className="flex justify-between items-start">
                               <span className="text-xs font-bold">{report.date}</span>
-                              <Badge variant="outline">{report.workProgress ?? 'N/A'}</Badge>
+<Badge variant="outline">{(report as any).workProgress ?? 'N/A'}</Badge>
                             </div>
                             <p className="text-sm">{(report as any).activities || 'No activities recorded.'}</p>
                             <p className="text-xs text-muted-foreground">
