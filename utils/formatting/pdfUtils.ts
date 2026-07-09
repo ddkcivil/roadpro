@@ -578,13 +578,42 @@ export const generateSingleRFIPDF = async (rfi: RFI, project: Project) => {
   docAny.setFont('helvetica', 'normal');
   docAny.text(`${rfi.location}`, 40, yPos);
   yPos += 6;
-  
+
+  // Match RFI Production Preview header fields
+  if (rfi.boqItemNo) {
+    docAny.setFont('helvetica', 'bold');
+    docAny.text('BOQ Item No:', 15, yPos);
+    docAny.setFont('helvetica', 'normal');
+    docAny.text(String(rfi.boqItemNo), 45, yPos);
+    yPos += 6;
+  } else {
+    docAny.setFont('helvetica', 'bold');
+    docAny.text('BOQ Item No:', 15, yPos);
+    docAny.setFont('helvetica', 'normal');
+    docAny.text('_ _ _ _ _', 45, yPos);
+    yPos += 6;
+  }
+
+  if (rfi.contractNo) {
+    docAny.setFont('helvetica', 'bold');
+    docAny.text('Contract No:', 15, yPos);
+    docAny.setFont('helvetica', 'normal');
+    docAny.text(String(rfi.contractNo), 45, yPos);
+    yPos += 6;
+  } else {
+    docAny.setFont('helvetica', 'bold');
+    docAny.text('Contract No:', 15, yPos);
+    docAny.setFont('helvetica', 'normal');
+    docAny.text('_ _ _ _ _', 45, yPos);
+    yPos += 6;
+  }
+
   docAny.setFont('helvetica', 'bold');
   docAny.text('Inspection Type:', 15, yPos);
   docAny.setFont('helvetica', 'normal');
   docAny.text(`${rfi.inspectionType || 'N/A'}`, 60, yPos);
   yPos += 6;
-  
+
   docAny.setFont('helvetica', 'bold');
   docAny.text('Purpose:', 15, yPos);
   docAny.setFont('helvetica', 'normal');
@@ -619,7 +648,7 @@ export const generateSingleRFIPDF = async (rfi: RFI, project: Project) => {
   yPos += 8;
   
   docAny.setFont('helvetica', 'bold');
-  docAny.text('Submitted By:', 15, yPos);
+  docAny.text('Submitted By (Contractor):', 15, yPos);
   yPos += 6;
   docAny.setFont('helvetica', 'normal');
   docAny.text(`${rfi.submittedBy || '_ _ _ _ _ _ _ _ _ _ _'}`, 15, yPos);

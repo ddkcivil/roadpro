@@ -140,7 +140,7 @@ if (!response.ok) {
   };
 
   return (
-    <div className="min-h-screen bg-muted flex items-center justify-center p-4 relative overflow-hidden safe-pt safe-pb">
+    <div className="min-h-screen bg-muted flex items-center justify-center p-4 relative safe-pt safe-pb">
       <div className="absolute inset-0 z-0">
         <Waves 
           backgroundColor="transparent" 
