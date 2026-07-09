@@ -41,6 +41,7 @@ const DataAnalysisModule = lazy(() => import('./components/modules/administratio
 const Dashboard = lazy(() => import('./components/core/Dashboard'));
 const BOQModule = lazy(() => import('./components/modules/BOQModule'));
 const BillingModule = lazy(() => import('./components/modules/BillingModule'));
+const MeasurementSheetModule = lazy(() => import('./components/modules/MeasurementSheetModule'));
 const VariationModule = lazy(() => import('./components/modules/VariationModule'));
 const RFIModule = lazy(() => import('./components/modules/RFIModule'));
 const ScheduleModule = lazy(() => import('./components/modules/ScheduleModule'));
@@ -397,6 +398,7 @@ if (!isAuthenticated) {
                         )}
                         {activeTab === 'boq' && <BOQModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
                         {activeTab === 'billing' && <BillingModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
+                        {activeTab === 'measurement-sheets' && <MeasurementSheetModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
                         {activeTab === 'variations' && <VariationModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
                         {activeTab === 'financials' && <FinancialManagementHub project={currentProject!} userRole={userRole} settings={appSettings} onProjectUpdate={handleSaveProject as any} />}
                         {activeTab === 'ocr-extraction' && <ChandraOCRAnalyzer />}

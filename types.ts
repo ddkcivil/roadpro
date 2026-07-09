@@ -935,23 +935,40 @@ export interface BillItem {
 export interface MeasurementSheetEntry {
   id: string;
   boqItemId: string;
+  itemNo?: string;
+  description?: string;
+  unit?: string;
   quantity: number;
+  length?: number;
+  breadth?: number;
+  height?: number;
   rate: number;
   amount: number;
+  remarks?: string;
+  location?: string;
+  date?: string;
 }
 
 export interface MeasurementSheet {
   id: string;
-  sheetNumber: string;
+  sheetNumber?: string;
+  title: string;
   date: string;
-  category: string;
-  description: string;
-  title?: string;
+  category?: string;
+  description?: string;
+  location?: string;
   measuredBy: string;
-  verifiedBy: string;
+  checkedBy?: string;
+  approvedBy?: string;
+  verifiedBy?: string;
   totalAmount: number;
   entries: MeasurementSheetEntry[];
-  status: 'Draft' | 'Under Review' | 'Approved';
+  status: 'Draft' | 'Submitted' | 'Approved' | 'Rejected';
+  createdAt?: string;
+  updatedAt?: string;
+  submittedAt?: string;
+  approvedAt?: string;
+  projectId?: string;
 }
 
 export interface StaffLocation {
