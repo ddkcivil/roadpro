@@ -70,6 +70,7 @@ const overviewItems: NavItem[] = [
     { title: 'Project Overview', items: overviewItems },
     { title: 'Commercial & Finance', items: [
         { id: 'boq', label: 'BOQ Ledger', icon: FileText },
+        { id: 'measurement-sheets', label: 'Measurement Sheets', icon: ClipboardList },
         { id: 'billing', label: 'Billing & Invoicing', icon: CreditCard },
         { id: 'variations', label: 'Amendments', icon: FileDiff },
         { id: 'financials', label: 'Financials & Commercial', icon: DollarSign },
