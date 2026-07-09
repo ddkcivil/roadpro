@@ -403,7 +403,6 @@ const StaffManagementModule: React.FC = () => {
             // Sync to offlineStorage for offline availability
             await offlineStorage.setItem(`staff-${cat.key}`, data);
           } catch (error) {
-            console.warn(`API failed for ${cat.key}, falling back to offlineStorage:`, error);
             const offlineData = await offlineStorage.getItem<any[]>(`staff-${cat.key}`);
             if (offlineData) {
               cat.setter(offlineData);
@@ -412,7 +411,6 @@ const StaffManagementModule: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error('Error loading staff data:', error);
       } finally {
         setLoading(false);
       }
@@ -567,7 +565,6 @@ setFilteredTraining(filtered);
         // Sync to offlineStorage
         await offlineStorage.setItem('staff-leave-requests', updatedRequests);
       } catch (error) {
-        console.warn('API save failed for leave request, falling back to offlineStorage:', error);
         const updatedRequests = [...leaveRequests, leaveRequest];
         setLeaveRequests(updatedRequests);
         await offlineStorage.setItem('staff-leave-requests', updatedRequests);
@@ -609,7 +606,6 @@ setFilteredTraining(filtered);
         setLeaveRequests(updatedRequests);
         await offlineStorage.setItem('staff-leave-requests', updatedRequests);
       } catch (error) {
-        console.warn('API update failed for leave request, falling back to offlineStorage:', error);
         const updatedRequests = leaveRequests.map(r => r.id === id ? updatedData : r);
         setLeaveRequests(updatedRequests);
         await offlineStorage.setItem('staff-leave-requests', updatedRequests);
@@ -664,7 +660,6 @@ setFilteredTraining(filtered);
         setEmployees(updatedEmployees);
         await offlineStorage.setItem('staff-employees', updatedEmployees);
       } catch (error) {
-        console.warn('API save failed for employee, falling back to offlineStorage:', error);
         const updatedEmployees = [...employees, employee];
         setEmployees(updatedEmployees);
         await offlineStorage.setItem('staff-employees', updatedEmployees);
@@ -751,7 +746,6 @@ setFilteredTraining(filtered);
       setIsJoiningModalOpen(false);
       alert('Employee onboarded successfully');
     } catch (error) {
-      console.error('Error saving employee:', error);
       alert('Failed to save employee data. Please try again.');
     }
   };

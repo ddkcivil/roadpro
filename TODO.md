@@ -1,31 +1,26 @@
-# TODO: Fix StaffManagementModule.tsx TypeScript Errors
+# Console Cleanup – TODO
 
-## Task Analysis
-The StaffManagementModule.tsx file has ~90 TypeScript errors related to:
-1. Missing/duplicate TabsContent closing tags
-2. Missing state variables (salaryRecords, trainingRecords, evaluationForms, etc.)
-3. Missing pagination hooks
-4. Malformed conditional rendering
+## Plan
+- [ ] Remove `console.log`, `console.warn`, `console.error` statements from:
+  - [ ] components/modules/StaffManagementModule.tsx
+  - [ ] components/modules/PreConstructionModule.tsx
+  - [ ] components/modules/DocumentsModule.tsx
+  - [ ] components/modules/BOQModule.tsx
+  - [ ] components/modules/GISRoadModule.tsx
+  - [ ] components/modules/App.tsx (root `App.tsx`)
+  - [ ] components/core/Login.tsx
+  - [ ] components/core/Homepage.tsx
+  - [ ] components/hubs/ReportsAnalyticsHub.tsx
+  - [ ] components/modules/BOQRegistry.tsx
+- [ ] Verify TypeScript build/lint
+- [ ] Run thorough frontend verification (navigate all affected pages/tabs; exercise primary interactions)
+  - [ ] Login/Homepage
+  - [ ] PreConstruction add/edit/track + filtering/search
+  - [ ] Documents upload + AI OCR scan + preview + edit metadata + delete/download paths
+  - [ ] BOQ import + auto-MB + registry add/edit/delete + certify
+  - [ ] GIS Road KML ingest + edit road/alignment
+  - [ ] ReportsAnalyticsHub tabs + export buttons
+- [ ] Confirm no functional/UX regressions
 
-## Issues Identified
-- Performance Tab: Lines ~1674-1778 - TabsContent structure issues
-- Attendance Tab: Lines ~1778-1889 - TabsContent structure issues  
-- Salary Tab: Lines ~1904-2046 - Missing salaryRecords, salariesPagination
-- Training Tab: Lines ~2046-2178 - Missing trainingRecords, trainingPagination
-- Evaluations Tab: Lines ~2178-2327 - Missing evaluationForms, evaluationsPagination
-- Dialog components: Lines ~2330-2516 - JSX structure issues
-
-## Fixes Applied
-- [x] Fix Performance Tab conditional rendering
-- [x] Fix Attendance Tab conditional rendering
-- [x] Remove duplicate closing tags
-
-## Remaining Fixes Needed
-- [ ] Fix Salary Tab - add proper closing </div> tags
-- [ ] Fix Training Tab - add proper closing </div> tags
-- [ ] Fix Evaluations Tab - add proper closing </div> tags
-- [ ] Fix Dialog components JSX structure
-- [ ] Verify all TypeScript errors are resolved
-
-## Test
-Run: `npx tsc --noEmit --skipLibCheck 2>&1`
+## Progress
+- [ ] Start console cleanup
