@@ -108,6 +108,7 @@ const apiFiles = [
   { path: './health.ts', route: '/api/health' },
   { path: './files.ts', route: '/api/files' },
   { path: './ai.ts', route: '/api/ai' },
+  { path: './inventorySync.ts', route: '/api/inventorySync' },
 ];
 
 async function registerRoutes() {
