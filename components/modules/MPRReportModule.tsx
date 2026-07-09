@@ -15,9 +15,9 @@ import { cn } from '~/lib/utils';
 
 import {
   FileText, Calendar, Users, FileSpreadsheet, TrendingUp,
-  AlertTriangle, Shield, BookOpen, ChevronDown, CloudSun, Wind, Thermometer, List
+  AlertTriangle, Shield, BookOpen, ChevronDown, CloudSun, Wind, Thermometer, List, Image, Camera, Clipboard, TestTube, FileSignature, Sun
 } from 'lucide-react';
-import { Project, AppSettings, RFIStatus } from '../../types';
+import { Project, AppSettings, RFIStatus, DailyReport, SitePhoto, LabTest } from '../../types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
 import { generateMPRPDF } from '../../utils/formatting/mprPDFGenerator';
 import { fetchDailyWeatherHistory, fetchMonthlySummary, DailyWeatherRecord, MonthlyWeatherSummary } from '../../services/analytics/weatherService';
@@ -37,6 +37,16 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, hideStats }) => {
   const [weatherHistory, setWeatherHistory] = useState<DailyWeatherRecord[]>([]);
   const [weatherSummary, setWeatherSummary] = useState<MonthlyWeatherSummary | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(false);
+  const [dailyReportEntries, setDailyReportEntries] = useState(project.dailyReports.filter(r => {
+    const reportDate = new Date(r.date);
+    const [year, month] = reportMonth.split('-').map(Number);
+    return reportDate.getFullYear() === year && reportDate.getMonth() === month - 1;
+  }));
+  const [labTestEntries, setLabTestEntries] = useState<LabTest[]>(project.labTests.filter(t => {
+    const testDate = new Date(t.date);
+    const [year, month] = reportMonth.split('-').map(Number);
+    return testDate.getFullYear() === year && testDate.getMonth() === month - 1;
+  }));
   
   // Report-specific editable state
   const [reportDetails, setReportDetails] = useState({
@@ -47,6 +57,8 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, hideStats }) => {
     safetyIncidents: '0',
     environmentalCompliance: 'Satisfactory',
     socialSafeguards: 'Resettlement plan survey ongoing. No major grievances reported.',
+    gmmDiscussion: '',
+    gmmDecision: '',
   });
 
   // Fetch weather data when report month changes
@@ -398,17 +410,20 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, hideStats }) => {
           onValueChange={(value) => setActiveTab(parseInt(value))}
           className="flex flex-col h-full"
         >
-          <TabsList className="border-b justify-start overflow-x-auto h-auto p-0 rounded-none bg-transparent">
+<TabsList className="border-b justify-start overflow-x-auto h-auto p-0 rounded-none bg-transparent">
             <TabsTrigger value="0" className="py-3 px-4 border-b-2 border-transparent data-[state=active]:border-primary rounded-none">Executive Summary</TabsTrigger>
             <TabsTrigger value="1" className="py-3 px-4 border-b-2 border-transparent data-[state=active]:border-primary rounded-none">Physical Progress</TabsTrigger>
             <TabsTrigger value="2" className="py-3 px-4 border-b-2 border-transparent data-[state=active]:border-primary rounded-none">Financial Progress</TabsTrigger>
             <TabsTrigger value="3" className="py-3 px-4 border-b-2 border-transparent data-[state=active]:border-primary rounded-none">Resources</TabsTrigger>
             <TabsTrigger value="4" className="py-3 px-4 border-b-2 border-transparent data-[state=active]:border-primary rounded-none">Quality & Safety</TabsTrigger>
             <TabsTrigger value="5" className="py-3 px-4 border-b-2 border-transparent data-[state=active]:border-primary rounded-none">Environmental</TabsTrigger>
-            <TabsTrigger value="6" className="py-3 px-4 border-b-2 border-transparent data-[state=active]:border-primary rounded-none">Weather Record</TabsTrigger>
+            <TabsTrigger value="6" className="py-3 px-4 border-b-2 border-transparent data-[state=active]:border-primary rounded-none">Weather</TabsTrigger>
             <TabsTrigger value="7" className="py-3 px-4 border-b-2 border-transparent data-[state=active]:border-primary rounded-none">Endorsement</TabsTrigger>
             <TabsTrigger value="8" className="py-3 px-4 border-b-2 border-transparent data-[state=active]:border-primary rounded-none">Issues</TabsTrigger>
             <TabsTrigger value="9" className="py-3 px-4 border-b-2 border-transparent data-[state=active]:border-primary rounded-none">Photos</TabsTrigger>
+            <TabsTrigger value="10" className="py-3 px-4 border-b-2 border-transparent data-[state=active]:border-primary rounded-none">Daily Reports</TabsTrigger>
+            <TabsTrigger value="11" className="py-3 px-4 border-b-2 border-transparent data-[state=active]:border-primary rounded-none">Lab Tests</TabsTrigger>
+            <TabsTrigger value="12" className="py-3 px-4 border-b-2 border-transparent data-[state=active]:border-primary rounded-none">Meeting Minutes</TabsTrigger>
           </TabsList>
 
           <ScrollArea className="flex-1">
@@ -879,7 +894,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, hideStats }) => {
               </Card>
             </TabsContent>
 
-            <TabsContent value="9" className="p-6 m-0 focus-visible:outline-none">
+<TabsContent value="9" className="p-6 m-0 focus-visible:outline-none">
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {(!project.sitePhotos || project.sitePhotos.length === 0) ? (
                   <p className="col-span-full text-center py-12 text-muted-foreground italic">No photos available.</p>
@@ -890,6 +905,108 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, hideStats }) => {
                     </div>
                   ))
                 )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="10" className="p-6 m-0 focus-visible:outline-none">
+              <div className="space-y-6">
+                <Card className="rounded-3xl">
+                  <CardContent className="p-6">
+                    <h2 className="text-lg font-black mb-4 flex items-center gap-2">
+                      <Clipboard size={20} className="text-primary" /> Daily Progress Reports - {reportMonth}
+                    </h2>
+{dailyReportEntries.length === 0 ? (
+                      <p className="text-sm text-muted-foreground italic">No daily reports recorded for this period.</p>
+                    ) : (
+                      <div className="space-y-4">
+                        {dailyReportEntries.slice(0, 7).map((report, idx) => (
+                          <div key={idx} className="p-4 bg-muted/30 rounded-xl space-y-2">
+                            <div className="flex justify-between items-start">
+                              <span className="text-xs font-bold">{report.date}</span>
+                              <Badge variant="outline">{report.workProgress ?? 'N/A'}</Badge>
+                            </div>
+                            <p className="text-sm">{(report as any).activities || 'No activities recorded.'}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Manpower: {(report as any).manpowerCount || 0} | Equipment: {(report as any).equipmentCount || 0}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="11" className="p-6 m-0 focus-visible:outline-none">
+              <div className="space-y-6">
+                <Card className="rounded-3xl">
+                  <CardContent className="p-6">
+                    <h2 className="text-lg font-black mb-4 flex items-center gap-2">
+                      <TestTube size={20} className="text-primary" /> Laboratory Test Reports - {reportMonth}
+                    </h2>
+                    {labTestEntries.length === 0 ? (
+                      <p className="text-sm text-muted-foreground italic">No lab tests recorded for this period.</p>
+                    ) : (
+                      <ShadcnTable>
+                        <ShadcnTableHeader>
+                          <ShadcnTableRow>
+                            <ShadcnTableHead>Sample ID</ShadcnTableHead>
+                            <ShadcnTableHead>Test Name</ShadcnTableHead>
+                            <ShadcnTableHead>Date</ShadcnTableHead>
+                            <ShadcnTableHead>Location</ShadcnTableHead>
+                            <ShadcnTableHead className="text-right">Result</ShadcnTableHead>
+                          </ShadcnTableRow>
+                        </ShadcnTableHeader>
+                        <ShadcnTableBody>
+                          {labTestEntries.map((test, idx) => (
+                            <ShadcnTableRow key={idx}>
+                              <ShadcnTableCell>{test.sampleId}</ShadcnTableCell>
+                              <ShadcnTableCell>{test.testName}</ShadcnTableCell>
+                              <ShadcnTableCell>{test.date}</ShadcnTableCell>
+                              <ShadcnTableCell>{test.location}</ShadcnTableCell>
+                              <ShadcnTableCell className="text-right font-bold">{test.result}</ShadcnTableCell>
+                            </ShadcnTableRow>
+                          ))}
+                        </ShadcnTableBody>
+                      </ShadcnTable>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="12" className="p-6 m-0 focus-visible:outline-none">
+              <div className="space-y-6">
+                <Card className="rounded-3xl">
+                  <CardContent className="p-6">
+                    <h2 className="text-lg font-black mb-4 flex items-center gap-2">
+                      <FileSignature size={20} className="text-primary" /> GMM - Minutes of Meeting - {reportMonth}
+                    </h2>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="gmm-discussion" className="text-xs font-black uppercase">Discussion Points</Label>
+                        <textarea
+                          id="gmm-discussion"
+                          className="w-full text-xs p-2 rounded-lg border bg-background h-32 resize-none"
+                          placeholder="Enter discussion points from GMM..."
+                          value={reportDetails.gmmDiscussion}
+                          onChange={(e) => setReportDetails({...reportDetails, gmmDiscussion: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="gmm-decision" className="text-xs font-black uppercase">Decisions Made</Label>
+                        <textarea
+                          id="gmm-decision"
+                          className="w-full text-xs p-2 rounded-lg border bg-background h-32 resize-none"
+                          placeholder="Enter decisions made in GMM..."
+                          value={reportDetails.gmmDecision}
+                          onChange={(e) => setReportDetails({...reportDetails, gmmDecision: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
           </ScrollArea>

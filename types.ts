@@ -1220,6 +1220,61 @@ export interface WeatherInfo {
   impactOnSchedule: 'None' | 'Minor' | 'Moderate' | 'Severe'; // Impact on construction activities
 }
 
+export interface InterimPayment {
+  id: string;
+  ipcNumber: string;
+  periodFrom: string;
+  periodTo: string;
+  submissionDate: string;
+  status: 'Draft' | 'Submitted' | 'Approved' | 'Paid';
+  grossAmount: number;
+  vatAmount: number;
+  retentionAmount: number;
+  advancePaymentDeduction?: number;
+  incomeTaxDeduction?: number;
+  contractorDevelopmentFund?: number;
+  totalDeductions?: number;
+  netAmount: number;
+  measurementSheets: MeasurementSheet[];
+  billItems: BillItem[];
+  remarks?: string;
+  approvedBy?: string;
+  approvedDate?: string;
+}
+
+export interface MonthlyReport {
+  id: string;
+  reportNumber: string;
+  month: string;
+  year: string;
+  submissionDate: string;
+  status: 'Draft' | 'Submitted' | 'Approved';
+  executiveSummary: string;
+  physicalProgress: {
+    planned: number;
+    actual: number;
+  };
+  financialProgress: {
+    budgeted: number;
+    actual: number;
+  };
+  challenges?: string;
+  workPlanNextMonth?: string;
+  dailyReports: DailyReport[];
+  sitePhotos: SitePhoto[];
+  labTests: LabTest[];
+  meetingMinutes?: string;
+  environmentalMonitoring?: any;
+  grievanceRegister?: any[];
+  socialSafeguard?: any;
+  weatherSummary?: any;
+  resources: {
+    personnel?: any[];
+    equipment?: any[];
+    materials?: any[];
+  };
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -1294,6 +1349,9 @@ export interface Project {
   accountingTransactions?: AccountingTransaction[];
   personnel?: any[];
   roads?: Road[];
+  // Interim Payments and Monthly Reports
+  interimPayments?: InterimPayment[];
+  monthlyReports?: MonthlyReport[];
 }
 
 export interface SubcontractorRateEntry {

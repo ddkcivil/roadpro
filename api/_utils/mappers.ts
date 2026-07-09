@@ -110,6 +110,8 @@ mapped.mapOverlays = dbProj.map_overlays || dbProj.mapOverlays || [];
   mapped.ncrs = dbProj.ncrs || [];
   mapped.contractBills = dbProj.contract_bills || dbProj.contractBills || [];
   mapped.measurementSheets = dbProj.measurement_sheets || dbProj.measurementSheets || [];
+  mapped.interimPayments = dbProj.interim_payments || dbProj.interimPayments || [];
+  mapped.monthlyReports = dbProj.monthly_reports || dbProj.monthlyReports || [];
   mapped.roads = dbProj.roads || [];
   mapped.staffLocations = (dbProj.staff_locations || dbProj.staffLocation || []).filter(
     (loc: any) => loc && typeof loc.userId === 'string'

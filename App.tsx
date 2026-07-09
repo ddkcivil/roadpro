@@ -51,7 +51,8 @@ const UserManagement = lazy(() => import('./components/common/UserManagement'));
 const UserActivity = lazy(() => import('./components/common/UserActivity'));
 const UserRegistration = lazy(() => import('./components/common/UserRegistration'));
 const StaffManagementModule = lazy(() => import('./components/modules/StaffManagementModule'));
-
+const InterimPaymentsModule = lazy(() => import('./components/modules/InterimPaymentsModule'));
+ 
 const DocumentationHub = lazy(() => import('./components/modules/DocumentationHub'));
 const FinancialManagementHub = lazy(() => import('./components/modules/FinancialManagementHub'));
 const SettingsModule = lazy(() => import('./components/modules/SettingsModule'));
@@ -454,10 +455,13 @@ if (!isAuthenticated) {
                         {activeTab === 'settings' && userRole === UserRole.ADMIN && (
                           <SettingsModule settings={appSettings} onUpdate={updateSettings} />
                         )}
-                        {activeTab === 'staff-management' && (
+{activeTab === 'staff-management' && (
                           <ProtectedTab permission={Permission.USER_READ}>
                             <StaffManagementModule />
                           </ProtectedTab>
+                        )}
+                        {activeTab === 'interim-payments' && (
+                          <InterimPaymentsModule project={currentProject!} settings={appSettings} userRole={userRole} onProjectUpdate={handleSaveProject as any} />
                         )}
                       </div>
                     </div>
