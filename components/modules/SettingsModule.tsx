@@ -510,6 +510,7 @@ const SettingsModule: React.FC<Props> = ({ settings, onUpdate }) => {
                               id="session-timeout"
                               type="number"
                               value={30} 
+                              readOnly
                           />
                           <p className="text-sm text-gray-500 mt-1">Session expires after inactivity period</p>
                       </div>
@@ -624,6 +625,7 @@ const SettingsModule: React.FC<Props> = ({ settings, onUpdate }) => {
                               id="refresh-interval"
                               type="number"
                               value={300} 
+                              readOnly
                           />
                       </div>
                   </div>
