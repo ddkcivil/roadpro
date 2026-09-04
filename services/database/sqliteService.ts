@@ -43,7 +43,10 @@ export const sqliteService = {
       let data = JSON.parse(raw);
       
       if (key === 'roadmaster-settings') {
-        const updatedSettings = { ...data, ...record };
+        // Key-value semantics: record = { key, value }. Storing the record object
+        // directly caused settings to be nested inside themselves on every sync,
+        // growing exponentially until localStorage quota was exceeded.
+        const updatedSettings = { ...data, [record.key]: record.value };
         try {
           localStorage.setItem(key, JSON.stringify(updatedSettings));
           console.debug(`[sqliteService] Settings updated. Size: ${(JSON.stringify(updatedSettings).length / 1024).toFixed(1)}KB`);

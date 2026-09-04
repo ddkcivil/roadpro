@@ -162,9 +162,12 @@ export class DataSyncService {
     try {
       const settings = LocalStorageUtils.getSettings();
       if (settings) {
+        // Strip the shim's internal snapshot key to avoid nesting settings
+        // inside themselves (exponential growth -> quota exceeded)
+        const { app_settings: _ignored, ...cleanSettings } = settings as any;
         await sqliteService.insert('settings', {
           key: 'app_settings',
-          value: JSON.stringify(settings)
+          value: JSON.stringify(cleanSettings)
         });
       }
     } catch (error) {

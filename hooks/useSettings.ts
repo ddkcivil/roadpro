@@ -11,6 +11,9 @@ export const useSettings = () => {
       if (savedSettings) {
         try {
           const parsed = JSON.parse(savedSettings);
+          // Strip the sqliteService shim's internal snapshot key to prevent
+          // nested/exponential settings growth
+          delete parsed.app_settings;
           // Merge with defaults to handle new fields
           return { ...DEFAULT_APP_SETTINGS, ...parsed };
         } catch (e) {
