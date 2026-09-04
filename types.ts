@@ -1185,9 +1185,13 @@ export interface AppSettings {
   backupFrequency?: string;
   defaultLocation?: string; // e.g. "27.7006, 83.4484" for Butwal
   theme?: string; // Added for Appearance tab
+  primaryColor?: string; // Added for Appearance tab
   compactMode?: boolean; // Added for Appearance tab
   minPasswordLength?: number; // Added for Security tab
   dashboardDefaultView?: string; // Added for Dashboard tab
+  chainageFormat?: string; // Added for Project Parameters tab (e.g., "KM", "M", "MILES")
+  startChainage?: string; // Added for Project Parameters tab
+  endChainage?: string; // Added for Project Parameters tab
   notifications: {
     enableEmail: boolean;
     enableInApp: boolean;

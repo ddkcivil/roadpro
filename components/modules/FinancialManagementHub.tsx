@@ -173,7 +173,7 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, userRole, 
                 <CardContent className="pt-6">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Original Contract</h3>
                   <p className="text-2xl font-black text-primary">
-                    {formatCurrency(financialStats.originalContract, settings.currency)}
+                    {formatCurrency(financialStats.originalContract, settings)}
                   </p>
                 </CardContent>
               </Card>
@@ -181,7 +181,7 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, userRole, 
                 <CardContent className="pt-6">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Variations</h3>
                   <p className="text-2xl font-black text-amber-500">
-                    {formatCurrency(financialStats.variations, settings.currency)}
+                    {formatCurrency(financialStats.variations, settings)}
                   </p>
                 </CardContent>
               </Card>
@@ -189,7 +189,7 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, userRole, 
                 <CardContent className="pt-6">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Revised Contract</h3>
                   <p className="text-2xl font-black text-green-600">
-                    {formatCurrency(financialStats.revisedContract, settings.currency)}
+                    {formatCurrency(financialStats.revisedContract, settings)}
                   </p>
                 </CardContent>
               </Card>
@@ -211,8 +211,8 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, userRole, 
                 <CardContent>
                   <Progress value={financialStats.paymentPercentage} className="mb-4" />
                   <div className="space-y-1">
-                    <p className="text-sm flex justify-between"><span>Billed:</span> <span className="font-bold">{formatCurrency(financialStats.totalBilled, settings.currency)}</span></p>
-                    <p className="text-sm flex justify-between"><span>Balance:</span> <span className="font-bold">{formatCurrency(financialStats.balanceToBill, settings.currency)}</span></p>
+                    <p className="text-sm flex justify-between"><span>Billed:</span> <span className="font-bold">{formatCurrency(financialStats.totalBilled, settings)}</span></p>
+                    <p className="text-sm flex justify-between"><span>Balance:</span> <span className="font-bold">{formatCurrency(financialStats.balanceToBill, settings)}</span></p>
                   </div>
                 </CardContent>
               </Card>
@@ -222,7 +222,7 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, userRole, 
                 </CardHeader>
                 <CardContent>
                   <p className="text-3xl font-black text-primary">
-                    {formatCurrency(financialStats.totalSubBilled, settings.currency)}
+                    {formatCurrency(financialStats.totalSubBilled, settings)}
                   </p>
                   <p className="text-sm text-muted-foreground">Total Subcontractor Net Certified</p>
                 </CardContent>
@@ -250,7 +250,7 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, userRole, 
                     <TableRow key={bill.id}>
                       <TableCell className="font-bold">{bill.billNumber}</TableCell>
                       <TableCell>{new Date(bill.date).toLocaleDateString()}</TableCell>
-                      <TableCell className="font-black text-primary">{formatCurrency(bill.netAmount || 0, settings.currency)}</TableCell>
+                      <TableCell className="font-black text-primary">{formatCurrency(bill.netAmount || 0, settings)}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">{bill.status}</Badge>
                       </TableCell>
@@ -295,7 +295,7 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, userRole, 
                 <CardContent className="pt-6">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-1">Total Impact</h3>
                   <p className="text-2xl font-black text-blue-600">
-                    {formatCurrency(voStats.totalValue, settings.currency)}
+                    {formatCurrency(voStats.totalValue, settings)}
                   </p>
                 </CardContent>
               </Card>
@@ -332,7 +332,7 @@ const FinancialManagementHub: React.FC<Props> = ({ project, settings, userRole, 
                       <TableCell className="font-bold">{vo.voNumber}</TableCell>
                       <TableCell>{vo.title}</TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{vo.reason}</TableCell>
-                      <TableCell className="font-black text-primary">{formatCurrency(vo.totalImpact || 0, settings.currency)}</TableCell>
+                      <TableCell className="font-black text-primary">{formatCurrency(vo.totalImpact || 0, settings)}</TableCell>
                       <TableCell>
                         <Badge 
                           variant={vo.status === 'Approved' ? 'default' : 'secondary'}

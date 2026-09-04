@@ -304,15 +304,15 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
             <div className="grid grid-cols-1 gap-2">
               <Card className="p-3 bg-indigo-50/30 border-indigo-100">
                 <p className="text-xs text-indigo-600 font-bold uppercase">Total Payable</p>
-                <p className="text-lg font-black text-indigo-900">{formatCurrency(billingSummary.total, settings.currency)}</p>
+                <p className="text-lg font-black text-indigo-900">{formatCurrency(billingSummary.total, settings)}</p>
               </Card>
               <Card className="p-3 bg-emerald-50/30 border-emerald-100">
                 <p className="text-xs text-emerald-600 font-bold uppercase">Paid to Date</p>
-                <p className="text-lg font-black text-emerald-900">{formatCurrency(billingSummary.paid, settings.currency)}</p>
+                <p className="text-lg font-black text-emerald-900">{formatCurrency(billingSummary.paid, settings)}</p>
               </Card>
               <Card className="p-3 bg-amber-50/30 border-amber-100">
                 <p className="text-xs text-amber-600 font-bold uppercase">Pending Approval</p>
-                <p className="text-lg font-black text-amber-900">{formatCurrency(billingSummary.pending, settings.currency)}</p>
+                <p className="text-lg font-black text-amber-900">{formatCurrency(billingSummary.pending, settings)}</p>
               </Card>
             </div>
           </div>
@@ -331,7 +331,7 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
                     <Badge variant="outline" className="text-[10px] h-4">{b.status}</Badge>
                   </div>
                   <p className="text-[10px] text-muted-foreground truncate">{subcontractors.find(s => s.id === b.subcontractorId)?.name || 'Unknown'}</p>
-                  <p className="text-xs font-bold text-amber-700 mt-1">{formatCurrency(b.netAmount, settings.currency)}</p>
+                  <p className="text-xs font-bold text-amber-700 mt-1">{formatCurrency(b.netAmount, settings)}</p>
                 </div>
               ))}
             </div>
@@ -366,15 +366,15 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
                 <div className="grid grid-cols-4 gap-4 mt-4">
                   <div className="p-3 border rounded-xl bg-slate-50">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Gross Amount</p>
-                    <p className="text-lg font-black">{formatCurrency(viewingBill.grossAmount, settings.currency)}</p>
+                    <p className="text-lg font-black">{formatCurrency(viewingBill.grossAmount, settings)}</p>
                   </div>
                   <div className="p-3 border rounded-xl bg-slate-50">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Retention ({viewingBill.retentionPercent}%)</p>
-                    <p className="text-lg font-black text-red-600">-{formatCurrency(viewingBill.grossAmount * (viewingBill.retentionPercent/100), settings.currency)}</p>
+                    <p className="text-lg font-black text-red-600">-{formatCurrency(viewingBill.grossAmount * (viewingBill.retentionPercent/100), settings)}</p>
                   </div>
                   <div className="p-3 border rounded-xl bg-amber-900 text-white col-span-2">
                     <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest">Net Payable</p>
-                    <p className="text-2xl font-black">{formatCurrency(viewingBill.netAmount, settings.currency)}</p>
+                    <p className="text-2xl font-black">{formatCurrency(viewingBill.netAmount, settings)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -406,8 +406,8 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
                             <TableCell className="max-w-md truncate">{item.description}</TableCell>
                             <TableCell className="text-right">{item.unit}</TableCell>
                             <TableCell className="text-right font-medium">{(item.currentQuantity || 0).toLocaleString()}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(item.rate, settings.currency)}</TableCell>
-                            <TableCell className="text-right font-black text-amber-700">{formatCurrency(item.currentAmount || 0, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(item.rate, settings)}</TableCell>
+                            <TableCell className="text-right font-black text-amber-700">{formatCurrency(item.currentAmount || 0, settings)}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -563,7 +563,7 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
                   <h3 className="text-lg font-black text-slate-900">Line Item Matrix</h3>
                   <div className="text-right">
                     <p className="text-[10px] font-bold text-muted-foreground uppercase">Current Gross Total</p>
-                    <p className="text-2xl font-black text-amber-700">{formatCurrency(billDetails.grossAmount, settings.currency)}</p>
+                    <p className="text-2xl font-black text-amber-700">{formatCurrency(billDetails.grossAmount, settings)}</p>
                   </div>
                 </div>
 
@@ -583,7 +583,7 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
                         <TableRow key={item.id}>
                           <TableCell className="font-bold text-xs">{item.itemNo}</TableCell>
                           <TableCell className="text-xs max-w-xs truncate">{item.description}</TableCell>
-                          <TableCell className="text-right text-xs">{formatCurrency(item.rate, settings.currency)}</TableCell>
+                          <TableCell className="text-right text-xs">{formatCurrency(item.rate, settings)}</TableCell>
                           <TableCell className="text-right bg-amber-50/30">
                             <Input 
                               type="number" 
@@ -592,7 +592,7 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
                               className="h-8 text-right font-bold text-amber-700 border-amber-200"
                             />
                           </TableCell>
-                          <TableCell className="text-right font-black text-slate-900">{formatCurrency(item.currentAmount, settings.currency)}</TableCell>
+                          <TableCell className="text-right font-black text-slate-900">{formatCurrency(item.currentAmount, settings)}</TableCell>
                         </TableRow>
                       ))}
                       {(!billForm.items || billForm.items.length === 0) && (
@@ -649,16 +649,16 @@ const SubcontractorBillingModule: React.FC<Props> = ({ project, settings, onProj
                     <div className="space-y-4">
                       <div className="flex justify-between items-center opacity-70">
                         <span className="text-sm font-medium">Gross Certified Work</span>
-                        <span className="font-bold">{formatCurrency(billDetails.grossAmount, settings.currency)}</span>
+                        <span className="font-bold">{formatCurrency(billDetails.grossAmount, settings)}</span>
                       </div>
                       <div className="flex justify-between items-center text-red-300">
                         <span className="text-sm font-medium">Retention Deduction ({billForm.retentionPercent}%)</span>
-                        <span className="font-bold">-{formatCurrency(billDetails.retentionAmount, settings.currency)}</span>
+                        <span className="font-bold">-{formatCurrency(billDetails.retentionAmount, settings)}</span>
                       </div>
                       <Separator className="bg-amber-800" />
                       <div className="flex justify-between items-center pt-2">
                         <span className="text-lg font-black uppercase tracking-wider text-amber-200">Total Net Payable</span>
-                        <span className="text-3xl font-black text-green-400">{formatCurrency(billDetails.netAmount, settings.currency)}</span>
+                        <span className="text-3xl font-black text-green-400">{formatCurrency(billDetails.netAmount, settings)}</span>
                       </div>
                     </div>
                   </Card>

@@ -3,7 +3,7 @@ import { type LucideIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { cn } from '~/lib/utils';
 import { Shimmer } from '~/components/ui/shimmer';
-import { motion } from 'framer-motion';
+import { motion, easeOut } from 'framer-motion';
 
 interface StatCardProps {
   title: string;
@@ -51,7 +51,7 @@ const StatCard: React.FC<StatCardProps> = memo(({ title, value, icon: Icon, colo
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      transition={{ duration: 0.5, ease: easeOut }}
       className="h-full"
       onClick={onClick}
     >

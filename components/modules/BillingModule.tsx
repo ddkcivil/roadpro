@@ -569,92 +569,92 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                         <TableRow>
                             <TableCell className="font-bold">A</TableCell>
                             <TableCell>Provisional Sum with VAT</TableCell>
-                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.unit === 'PS').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
-                            <TableCell className="text-right font-bold text-blue-700">{formatCurrency(ps, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.unit === 'PS').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
+                            <TableCell className="text-right font-bold text-blue-700">{formatCurrency(ps, settings)}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className="font-bold">B</TableCell>
                             <TableCell>General Items</TableCell>
-                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'General Items').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'General Items').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className="font-bold">C</TableCell>
                             <TableCell>Site Clearance</TableCell>
-                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Site Clearance').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Site Clearance').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className="font-bold">D</TableCell>
                             <TableCell>Earthwork</TableCell>
-                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Earthwork').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Earthwork').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className="font-bold">E</TableCell>
                             <TableCell>Structure Work</TableCell>
-                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Structure Work').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Structure Work').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className="font-bold">F</TableCell>
                             <TableCell>Cross and Side Drainage Works</TableCell>
-                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Cross and Side Drainage Works').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Cross and Side Drainage Works').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className="font-bold">G</TableCell>
                             <TableCell>Road Work</TableCell>
-                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Road Works').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Road Works').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className="font-bold">H</TableCell>
                             <TableCell>Road Furniture</TableCell>
-                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Road Furnitures').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Road Furnitures').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className="font-bold">I</TableCell>
                             <TableCell>Junction Improvement</TableCell>
-                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Junction Improvement').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Junction Improvement').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className="font-bold">J</TableCell>
                             <TableCell>Day Work</TableCell>
-                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Day Works').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Day Works').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
                         </TableRow>
                         <TableRow className="bg-muted/50 font-bold">
                             <TableCell className="font-bold">K</TableCell>
                             <TableCell>Sub Total (B+...+J)</TableCell>
-                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.unit !== 'PS').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(gross, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.unit !== 'PS').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(gross, settings)}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className="font-bold">M</TableCell>
                             <TableCell>Price Adjustment</TableCell>
                             <TableCell className="text-right">0</TableCell>
-                            <TableCell className="text-right">{formatCurrency(cpa, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(cpa, settings)}</TableCell>
                         </TableRow>
                         <TableRow className="bg-blue-50 font-bold">
                             <TableCell className="font-bold">O</TableCell>
                             <TableCell>Total including PS</TableCell>
-                            <TableCell className="text-right">{formatCurrency(project.boq.reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
-                            <TableCell className="text-right text-lg">{formatCurrency(withCPA, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(project.boq.reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
+                            <TableCell className="text-right text-lg">{formatCurrency(withCPA, settings)}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className="font-bold">P</TableCell>
                             <TableCell>Add VAT @ 13%</TableCell>
-                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.unit !== 'PS').reduce((a, b) => a + b.amount, 0) * 0.13, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(vat, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.unit !== 'PS').reduce((a, b) => a + b.amount, 0) * 0.13, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(vat, settings)}</TableCell>
                         </TableRow>
                         <TableRow className="bg-green-50 font-bold">
                             <TableCell className="font-bold">Q</TableCell>
                             <TableCell>Grand Total</TableCell>
-                            <TableCell className="text-right">{formatCurrency(project.boq.reduce((a, b) => a + b.amount, 0) * 1.13, settings.currency)}</TableCell>
-                            <TableCell className="text-right text-lg text-green-700">{formatCurrency(totalWithVat, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(project.boq.reduce((a, b) => a + b.amount, 0) * 1.13, settings)}</TableCell>
+                            <TableCell className="text-right text-lg text-green-700">{formatCurrency(totalWithVat, settings)}</TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>
@@ -673,37 +673,37 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                             <TableRow>
                                 <TableCell className="font-bold">i</TableCell>
                                 <TableCell>Repayment of Advance Payment (10% of O)</TableCell>
-                                <TableCell className="text-right">{formatCurrency(ipc.advancePaymentDeduction || 0, settings.currency)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(ipc.advancePaymentDeduction || 0, settings)}</TableCell>
                             </TableRow>
                             <TableRow>
                                 <TableCell className="font-bold">ii</TableCell>
                                 <TableCell>Tax Deduction at Source (TDS) @ 1.5%</TableCell>
-                                <TableCell className="text-right">{formatCurrency(tds, settings.currency)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(tds, settings)}</TableCell>
                             </TableRow>
                             <TableRow>
                                 <TableCell className="font-bold">iii</TableCell>
                                 <TableCell>Retention Money @ 5%</TableCell>
-                                <TableCell className="text-right">{formatCurrency(retention, settings.currency)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(retention, settings)}</TableCell>
                             </TableRow>
                             <TableRow>
                                 <TableCell className="font-bold">iv</TableCell>
                                 <TableCell>Contractor's Association Fund @ 0.1%</TableCell>
-                                <TableCell className="text-right">{formatCurrency(devFund, settings.currency)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(devFund, settings)}</TableCell>
                             </TableRow>
                             <TableRow>
                                 <TableCell className="font-bold">v</TableCell>
                                 <TableCell>Deductible VAT (30% of VAT)</TableCell>
-                                <TableCell className="text-right">{formatCurrency(dedVat, settings.currency)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(dedVat, settings)}</TableCell>
                             </TableRow>
                             <TableRow>
                                 <TableCell className="font-bold">vi</TableCell>
                                 <TableCell>Liquidated Damages</TableCell>
-                                <TableCell className="text-right">{formatCurrency(ipc.liquidatedDamages || 0, settings.currency)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(ipc.liquidatedDamages || 0, settings)}</TableCell>
                             </TableRow>
                             <TableRow className="bg-red-100 font-bold">
                                 <TableCell className="font-bold">X</TableCell>
                                 <TableCell>Total Deductions</TableCell>
-                                <TableCell className="text-right text-lg text-red-700">{formatCurrency(totalDed, settings.currency)}</TableCell>
+                                <TableCell className="text-right text-lg text-red-700">{formatCurrency(totalDed, settings)}</TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>
@@ -712,7 +712,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                 <div className="bg-green-100 p-4 rounded-lg border border-green-300 mt-4">
                     <div className="flex justify-between items-center">
                         <h3 className="text-xl font-bold">Y. Net Payable Amount in this IPC</h3>
-                        <p className="text-2xl font-black text-green-800">{formatCurrency(netPayable, settings.currency)}</p>
+                        <p className="text-2xl font-black text-green-800">{formatCurrency(netPayable, settings)}</p>
                     </div>
                 </div>
 
@@ -769,8 +769,8 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                        <p><span className="font-semibold">Original Contract Amount (incl. VAT):</span> {formatCurrency(project.boq.reduce((a, b) => a + b.amount, 0) * 1.13, settings.currency)}</p>
-                        <p><span className="font-semibold">Original Contract Amount (excl. VAT):</span> {formatCurrency(project.boq.reduce((a, b) => a + b.amount, 0), settings.currency)}</p>
+                        <p><span className="font-semibold">Original Contract Amount (incl. VAT):</span> {formatCurrency(project.boq.reduce((a, b) => a + b.amount, 0) * 1.13, settings)}</p>
+                        <p><span className="font-semibold">Original Contract Amount (excl. VAT):</span> {formatCurrency(project.boq.reduce((a, b) => a + b.amount, 0), settings)}</p>
                         <p><span className="font-semibold">Contract Period:</span> 730 Days (24 Months)</p>
                     </div>
                     <div>
@@ -795,43 +795,43 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                             <TableCell className="font-bold">A</TableCell>
                             <TableCell>Bill Amount without PS</TableCell>
                             <TableCell className="text-right">0</TableCell>
-                            <TableCell className="text-right font-bold">{formatCurrency(gross, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(gross, settings.currency)}</TableCell>
+                            <TableCell className="text-right font-bold">{formatCurrency(gross, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(gross, settings)}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className="font-bold">B</TableCell>
                             <TableCell>Provisional Sum (PS)</TableCell>
                             <TableCell className="text-right">0</TableCell>
-                            <TableCell className="text-right font-bold text-blue-700">{formatCurrency(ps, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(ps, settings.currency)}</TableCell>
+                            <TableCell className="text-right font-bold text-blue-700">{formatCurrency(ps, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(ps, settings)}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className="font-bold">C</TableCell>
                             <TableCell>Price Adjustment</TableCell>
                             <TableCell className="text-right">0</TableCell>
-                            <TableCell className="text-right">{formatCurrency(cpa, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(cpa, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(cpa, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(cpa, settings)}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className="font-bold">D</TableCell>
                             <TableCell>Bill Amount + Price Adjustment + PS</TableCell>
                             <TableCell className="text-right">0</TableCell>
-                            <TableCell className="text-right font-bold">{formatCurrency(withCPA, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(withCPA, settings.currency)}</TableCell>
+                            <TableCell className="text-right font-bold">{formatCurrency(withCPA, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(withCPA, settings)}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell className="font-bold">E</TableCell>
                             <TableCell>VAT @ 13%</TableCell>
                             <TableCell className="text-right">0</TableCell>
-                            <TableCell className="text-right">{formatCurrency(vat, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(vat, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(vat, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(vat, settings)}</TableCell>
                         </TableRow>
                         <TableRow className="bg-green-50 font-bold">
                             <TableCell className="font-bold">F</TableCell>
                             <TableCell>Total Bill Amount</TableCell>
                             <TableCell className="text-right">0</TableCell>
-                            <TableCell className="text-right text-lg text-green-700">{formatCurrency(totalWithVat, settings.currency)}</TableCell>
-                            <TableCell className="text-right text-lg">{formatCurrency(totalWithVat, settings.currency)}</TableCell>
+                            <TableCell className="text-right text-lg text-green-700">{formatCurrency(totalWithVat, settings)}</TableCell>
+                            <TableCell className="text-right text-lg">{formatCurrency(totalWithVat, settings)}</TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>
@@ -850,32 +850,32 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                             <TableRow>
                                 <TableCell>1</TableCell>
                                 <TableCell>Retention Money @ 5% of D</TableCell>
-                                <TableCell className="text-right">{formatCurrency(retention, settings.currency)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(retention, settings)}</TableCell>
                             </TableRow>
                             <TableRow>
                                 <TableCell>2</TableCell>
                                 <TableCell>Advance Payment Deduction</TableCell>
-                                <TableCell className="text-right">{formatCurrency(ipc.advancePaymentDeduction || 0, settings.currency)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(ipc.advancePaymentDeduction || 0, settings)}</TableCell>
                             </TableRow>
                             <TableRow>
                                 <TableCell>3</TableCell>
                                 <TableCell>Advance Income Tax @ 1.5% of D</TableCell>
-                                <TableCell className="text-right">{formatCurrency(tds, settings.currency)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(tds, settings)}</TableCell>
                             </TableRow>
                             <TableRow>
                                 <TableCell>4</TableCell>
                                 <TableCell>Liquidated Damages</TableCell>
-                                <TableCell className="text-right">{formatCurrency(ipc.liquidatedDamages || 0, settings.currency)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(ipc.liquidatedDamages || 0, settings)}</TableCell>
                             </TableRow>
                             <TableRow>
                                 <TableCell>5</TableCell>
                                 <TableCell>Contractor's Development Fund @ 0.1% of D</TableCell>
-                                <TableCell className="text-right">{formatCurrency(devFund, settings.currency)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(devFund, settings)}</TableCell>
                             </TableRow>
                             <TableRow className="bg-red-100 font-bold">
                                 <TableCell>H</TableCell>
                                 <TableCell>Total Deductions</TableCell>
-                                <TableCell className="text-right text-lg text-red-700">{formatCurrency(totalDed, settings.currency)}</TableCell>
+                                <TableCell className="text-right text-lg text-red-700">{formatCurrency(totalDed, settings)}</TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>
@@ -884,7 +884,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                 <div className="bg-green-100 p-4 rounded-lg border border-green-300">
                     <div className="flex justify-between items-center">
                         <h3 className="text-xl font-bold">I. Total Amount Payable to the Contractor (Including VAT)</h3>
-                        <p className="text-2xl font-black text-green-800">{formatCurrency(netPayable, settings.currency)}</p>
+                        <p className="text-2xl font-black text-green-800">{formatCurrency(netPayable, settings)}</p>
                     </div>
                 </div>
 
@@ -938,100 +938,100 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                     <TableRow className="bg-yellow-50">
                         <TableCell className="font-bold">1</TableCell>
                         <TableCell className="font-semibold">PROVISIONAL SUM (VAT INCLUDED)</TableCell>
-                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.unit === 'PS').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.unit === 'PS').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
                         <TableCell className="text-right">0</TableCell>
-                        <TableCell className="text-right font-bold text-blue-700">{formatCurrency(ipc.provisionalSum || 0, settings.currency)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(ipc.provisionalSum || 0, settings.currency)}</TableCell>
+                        <TableCell className="text-right font-bold text-blue-700">{formatCurrency(ipc.provisionalSum || 0, settings)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(ipc.provisionalSum || 0, settings)}</TableCell>
                         <TableCell className="text-xs"></TableCell>
                     </TableRow>
                     <TableRow>
                         <TableCell className="font-bold">2</TableCell>
                         <TableCell>GENERAL ITEMS</TableCell>
-                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'General Items').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'General Items').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
                         <TableCell className="text-right">0</TableCell>
-                        <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
                         <TableCell className="text-xs"></TableCell>
                     </TableRow>
                     <TableRow>
                         <TableCell className="font-bold">3</TableCell>
                         <TableCell>SITE CLEARANCE</TableCell>
-                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Site Clearance').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Site Clearance').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
                         <TableCell className="text-right">0</TableCell>
-                        <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
                         <TableCell className="text-xs"></TableCell>
                     </TableRow>
                     <TableRow>
                         <TableCell className="font-bold">4</TableCell>
                         <TableCell>EARTHWORK</TableCell>
-                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Earthwork').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Earthwork').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
                         <TableCell className="text-right">0</TableCell>
-                        <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
                         <TableCell className="text-xs"></TableCell>
                     </TableRow>
                     <TableRow>
                         <TableCell className="font-bold">5</TableCell>
                         <TableCell>STRUCTURE WORK</TableCell>
-                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Structure Work').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Structure Work').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
                         <TableCell className="text-right">0</TableCell>
-                        <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
                         <TableCell className="text-xs"></TableCell>
                     </TableRow>
                     <TableRow>
                         <TableCell className="font-bold">6</TableCell>
                         <TableCell>CROSS AND SIDE DRAINAGE WORKS</TableCell>
-                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Cross and Side Drainage Works').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Cross and Side Drainage Works').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
                         <TableCell className="text-right">0</TableCell>
-                        <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
                         <TableCell className="text-xs"></TableCell>
                     </TableRow>
                     <TableRow>
                         <TableCell className="font-bold">7</TableCell>
                         <TableCell>ROAD WORKS</TableCell>
-                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Road Works').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Road Works').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
                         <TableCell className="text-right">0</TableCell>
-                        <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
                         <TableCell className="text-xs"></TableCell>
                     </TableRow>
                     <TableRow>
                         <TableCell className="font-bold">8</TableCell>
                         <TableCell>ROAD FURNITURES</TableCell>
-                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Road Furnitures').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Road Furnitures').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
                         <TableCell className="text-right">0</TableCell>
-                        <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
                         <TableCell className="text-xs"></TableCell>
                     </TableRow>
                     <TableRow>
                         <TableCell className="font-bold">9</TableCell>
                         <TableCell>JUNCTION IMPROVEMENT</TableCell>
-                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Junction Improvement').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Junction Improvement').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
                         <TableCell className="text-right">0</TableCell>
-                        <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
                         <TableCell className="text-xs"></TableCell>
                     </TableRow>
                     <TableRow>
                         <TableCell className="font-bold">10</TableCell>
                         <TableCell>DAY WORKS</TableCell>
-                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Day Works').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.category === 'Day Works').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
                         <TableCell className="text-right">0</TableCell>
-                        <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(0, settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(0, settings)}</TableCell>
                         <TableCell className="text-xs"></TableCell>
                     </TableRow>
                     <TableRow className="bg-muted/50 font-bold">
                         <TableCell className="font-bold">11</TableCell>
                         <TableCell>Total Excluding PS (K)</TableCell>
-                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.unit !== 'PS').reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.unit !== 'PS').reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
                         <TableCell className="text-right">0</TableCell>
-                        <TableCell className="text-right">{formatCurrency(ipc.billAmountGross || 0, settings.currency)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(ipc.billAmountGross || 0, settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(ipc.billAmountGross || 0, settings)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(ipc.billAmountGross || 0, settings)}</TableCell>
                         <TableCell className="text-xs"></TableCell>
                     </TableRow>
                     <TableRow>
@@ -1039,35 +1039,35 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                         <TableCell>Price Adjustment (M)</TableCell>
                         <TableCell className="text-right">0</TableCell>
                         <TableCell className="text-right">0</TableCell>
-                        <TableCell className="text-right">{formatCurrency(ipc.cpaAmount || 0, settings.currency)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(ipc.cpaAmount || 0, settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(ipc.cpaAmount || 0, settings)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(ipc.cpaAmount || 0, settings)}</TableCell>
                         <TableCell className="text-xs"></TableCell>
                     </TableRow>
                     <TableRow className="bg-blue-50 font-bold">
                         <TableCell className="font-bold">14</TableCell>
                         <TableCell>Total Amounts Including PS (N)</TableCell>
-                        <TableCell className="text-right">{formatCurrency(project.boq.reduce((a, b) => a + b.amount, 0), settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(project.boq.reduce((a, b) => a + b.amount, 0), settings)}</TableCell>
                         <TableCell className="text-right">0</TableCell>
-                        <TableCell className="text-right text-lg">{formatCurrency((ipc.billAmountWithCPA || 0), settings.currency)}</TableCell>
-                        <TableCell className="text-right text-lg">{formatCurrency((ipc.billAmountWithCPA || 0), settings.currency)}</TableCell>
+                        <TableCell className="text-right text-lg">{formatCurrency(ipc.billAmountWithCPA || 0, settings)}</TableCell>
+                        <TableCell className="text-right text-lg">{formatCurrency(ipc.billAmountWithCPA || 0, settings)}</TableCell>
                         <TableCell className="text-xs"></TableCell>
                     </TableRow>
                     <TableRow>
                         <TableCell className="font-bold">15</TableCell>
                         <TableCell>VAT @ 13% (O)</TableCell>
-                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.unit !== 'PS').reduce((a, b) => a + b.amount, 0) * 0.13, settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(project.boq.filter(i => i.unit !== 'PS').reduce((a, b) => a + b.amount, 0) * 0.13,    settings)}</TableCell>
                         <TableCell className="text-right">0</TableCell>
-                        <TableCell className="text-right">{formatCurrency(ipc.vatAmount || 0, settings.currency)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(ipc.vatAmount || 0, settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(ipc.vatAmount || 0, settings)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(ipc.vatAmount || 0, settings)}</TableCell>
                         <TableCell className="text-xs"></TableCell>
                     </TableRow>
                     <TableRow className="bg-green-50 font-bold">
                         <TableCell className="font-bold">16</TableCell>
                         <TableCell>Total amount of work done (P)</TableCell>
-                        <TableCell className="text-right">{formatCurrency(project.boq.reduce((a, b) => a + b.amount, 0) * 1.13, settings.currency)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(project.boq.reduce((a, b) => a + b.amount, 0) * 1.13, settings)}</TableCell>
                         <TableCell className="text-right">0</TableCell>
-                        <TableCell className="text-right text-lg text-green-700">{formatCurrency(ipc.totalBillWithVat || 0, settings.currency)}</TableCell>
-                        <TableCell className="text-right text-lg">{formatCurrency(ipc.totalBillWithVat || 0, settings.currency)}</TableCell>
+                        <TableCell className="text-right text-lg text-green-700">{formatCurrency(ipc.totalBillWithVat || 0, settings)}</TableCell>
+                        <TableCell className="text-right text-lg">{formatCurrency(ipc.totalBillWithVat || 0, settings)}</TableCell>
                         <TableCell className="text-xs"></TableCell>
                     </TableRow>
                 </TableBody>
@@ -1076,7 +1076,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
             <div className="bg-green-100 p-4 rounded-lg border border-green-300">
                 <div className="flex justify-between items-center">
                     <h3 className="text-xl font-bold">Net Payable Amount in this IPC</h3>
-                    <p className="text-2xl font-black text-green-800">{formatCurrency(ipc.totalAmountPayable || 0, settings.currency)}</p>
+                    <p className="text-2xl font-black text-green-800">{formatCurrency(ipc.totalAmountPayable || 0, settings)}</p>
                 </div>
             </div>
         </div>
@@ -1126,38 +1126,38 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                         <TableRow className="bg-blue-50 font-bold">
                             <TableCell>A</TableCell>
                             <TableCell>Payment in this IPC (without VAT, retention, TDS)</TableCell>
-                            <TableCell className="text-right">{formatCurrency(total, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(centralGov, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(adbLoan, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(tdfLoan, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(municipal, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(total, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(centralGov, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(adbLoan, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(tdfLoan, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(municipal, settings)}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell>C</TableCell>
                             <TableCell>Sub-Total</TableCell>
-                            <TableCell className="text-right">{formatCurrency(total, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(centralGov, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(adbLoan, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(tdfLoan, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(municipal, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(total, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(centralGov, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(adbLoan, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(tdfLoan, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(municipal, settings)}</TableCell>
                         </TableRow>
                         <TableRow>
                             <TableCell>D</TableCell>
                             <TableCell>VAT 13%</TableCell>
-                            <TableCell className="text-right">{formatCurrency(vat, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(vatCentral, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(vatAdb, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(vatTdf, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(vatMunicipal, settings.currency)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(vat, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(vatCentral, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(vatAdb, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(vatTdf, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(vatMunicipal, settings)}</TableCell>
                         </TableRow>
                         <TableRow className="bg-green-50 font-bold">
                             <TableCell>E</TableCell>
                             <TableCell>Grand Total with VAT</TableCell>
-                            <TableCell className="text-right text-lg">{formatCurrency(total + vat, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(centralGov + vatCentral, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(adbLoan + vatAdb, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(tdfLoan + vatTdf, settings.currency)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(municipal + vatMunicipal, settings.currency)}</TableCell>
+                            <TableCell className="text-right text-lg">{formatCurrency(total + vat, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(centralGov + vatCentral, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(adbLoan + vatAdb, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(tdfLoan + vatTdf, settings)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(municipal + vatMunicipal, settings)}</TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>
@@ -1180,38 +1180,38 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                             <TableRow>
                                 <TableCell>G</TableCell>
                                 <TableCell>Retention @ 5%</TableCell>
-                                <TableCell className="text-right">{formatCurrency(retention, settings.currency)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(retention * 0.151, settings.currency)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(retention * 0.599, settings.currency)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(retention * 0.18, settings.currency)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(retention * 0.07, settings.currency)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(retention, settings)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(retention * 0.151, settings)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(retention * 0.599, settings)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(retention * 0.18, settings)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(retention * 0.07, settings)}</TableCell>
                             </TableRow>
                             <TableRow>
                                 <TableCell>H</TableCell>
                                 <TableCell>TDS @ 1.5%</TableCell>
-                                <TableCell className="text-right">{formatCurrency(tds, settings.currency)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(tds * 0.151, settings.currency)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(tds * 0.599, settings.currency)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(tds * 0.18, settings.currency)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(tds * 0.07, settings.currency)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(tds, settings)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(tds * 0.151, settings)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(tds * 0.599, settings)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(tds * 0.18, settings)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(tds * 0.07, settings)}</TableCell>
                             </TableRow>
                             <TableRow>
                                 <TableCell>I</TableCell>
                                 <TableCell>Contractor's Fund @ 0.1%</TableCell>
-                                <TableCell className="text-right">{formatCurrency(devFund, settings.currency)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(devFund * 0.151, settings.currency)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(devFund * 0.599, settings.currency)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(devFund * 0.18, settings.currency)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(devFund * 0.07, settings.currency)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(devFund, settings)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(devFund * 0.151, settings)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(devFund * 0.599, settings)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(devFund * 0.18, settings)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(devFund * 0.07, settings)}</TableCell>
                             </TableRow>
                             <TableRow className="bg-red-100 font-bold">
                                 <TableCell>J</TableCell>
                                 <TableCell>Total Deduction</TableCell>
-                                <TableCell className="text-right">{formatCurrency(retention + tds + devFund, settings.currency)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency((retention + tds + devFund) * 0.151, settings.currency)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency((retention + tds + devFund) * 0.599, settings.currency)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency((retention + tds + devFund) * 0.18, settings.currency)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency((retention + tds + devFund) * 0.07, settings.currency)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(retention + tds + devFund, settings)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency((retention + tds + devFund) * 0.151, settings)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency((retention + tds + devFund) * 0.599, settings)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency((retention + tds + devFund) * 0.18, settings)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency((retention + tds + devFund) * 0.07, settings)}</TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>
@@ -1220,7 +1220,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                 <div className="bg-green-100 p-4 rounded-lg border border-green-300">
                     <div className="flex justify-between items-center">
                         <h3 className="text-xl font-bold">Net Payable in this IPC (with VAT)</h3>
-                        <p className="text-2xl font-black text-green-800">{formatCurrency(ipc.totalAmountPayable || 0, settings.currency)}</p>
+                        <p className="text-2xl font-black text-green-800">{formatCurrency(ipc.totalAmountPayable || 0, settings)}</p>
                     </div>
                 </div>
             </div>
@@ -1273,7 +1273,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                 <tfoot>
                     <TableRow className="bg-blue-100 font-bold">
                         <TableCell colSpan={8} className="text-right text-lg">Total Current Amount</TableCell>
-                        <TableCell className="text-right text-lg">{formatCurrency(ipc.billAmountGross || 0, settings.currency)}</TableCell>
+                        <TableCell className="text-right text-lg">{formatCurrency(ipc.billAmountGross || 0, settings)}</TableCell>
                     </TableRow>
                 </tfoot>
             </Table>
@@ -1512,7 +1512,7 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                                     <div>
                                         <h3 className="text-xl font-bold">{viewingIpc.billNumber}</h3>
                                         <p className="text-sm text-muted-foreground">
-                                            Order: {viewingIpc.orderOfBill} • Date: {viewingIpc.date} • Net Payable: <span className="font-bold text-green-600">{formatCurrency(viewingIpc.totalAmountPayable || 0, settings.currency)}</span>
+                                            Order: {viewingIpc.orderOfBill} • Date: {viewingIpc.date} • Net Payable: <span className="font-bold text-green-600">{formatCurrency(viewingIpc.totalAmountPayable || 0, settings)}</span>
                                         </p>
                                     </div>
                                 </div>
@@ -1586,25 +1586,25 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                             <Card>
                                 <CardContent className="pt-4">
                                     <p className="text-xs text-muted-foreground uppercase">Gross Work</p>
-                                    <p className="text-xl font-bold">{formatCurrency(viewingIpc.billAmountGross || 0, settings.currency)}</p>
+                                    <p className="text-xl font-bold">{formatCurrency(viewingIpc.billAmountGross || 0, settings)}</p>
                                 </CardContent>
                             </Card>
                             <Card>
                                 <CardContent className="pt-4">
                                     <p className="text-xs text-muted-foreground uppercase">VAT (13%)</p>
-                                    <p className="text-xl font-bold">{formatCurrency(viewingIpc.vatAmount || 0, settings.currency)}</p>
+                                    <p className="text-xl font-bold">{formatCurrency(viewingIpc.vatAmount || 0, settings)}</p>
                                 </CardContent>
                             </Card>
                             <Card>
                                 <CardContent className="pt-4">
                                     <p className="text-xs text-muted-foreground uppercase">Total Deductions</p>
-                                    <p className="text-xl font-bold text-red-600">{formatCurrency((viewingIpc.retentionAmount || 0) + (viewingIpc.advanceIncomeTax || 0) + (viewingIpc.contractorDevFund || 0) + (viewingIpc.liquidatedDamages || 0) + (viewingIpc.advancePaymentDeduction || 0), settings.currency)}</p>
+                                    <p className="text-xl font-bold text-red-600">{formatCurrency((viewingIpc.retentionAmount || 0) + (viewingIpc.advanceIncomeTax || 0) + (viewingIpc.contractorDevFund || 0) + (viewingIpc.liquidatedDamages || 0) + (viewingIpc.advancePaymentDeduction || 0), settings)}</p>
                                 </CardContent>
                             </Card>
                             <Card className="bg-green-50 border-green-200">
                                 <CardContent className="pt-4">
                                     <p className="text-xs text-green-700 uppercase font-bold">Net Payable</p>
-                                    <p className="text-xl font-bold text-green-800">{formatCurrency(viewingIpc.totalAmountPayable || 0, settings.currency)}</p>
+                                    <p className="text-xl font-bold text-green-800">{formatCurrency(viewingIpc.totalAmountPayable || 0, settings)}</p>
                                 </CardContent>
                             </Card>
                         </div>
@@ -1654,9 +1654,9 @@ const BillingModule: React.FC<Props> = ({ project, settings, userRole, onProject
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            <TableRow><TableCell>{getRowLabel('1', 'Gross Bill Amount')}</TableCell><TableCell className="text-right">{formatCurrency(viewingSubcontractorBill.grossAmount, settings.currency)}</TableCell></TableRow>
-                                            <TableRow><TableCell>{getRowLabel('2', `Less: Retention (${viewingSubcontractorBill.retentionPercent || 0}%)`)}</TableCell><TableCell className="text-right">{formatCurrency(viewingSubcontractorBill.grossAmount * ((viewingSubcontractorBill.retentionPercent || 0)/100), settings.currency)}</TableCell></TableRow>
-                                            <TableRow className="bg-amber-50/20"><TableCell>{getRowLabel('3', 'Net Payable Amount')}</TableCell><TableCell className="text-right font-bold">{formatCurrency(viewingSubcontractorBill.netAmount, settings.currency)}</TableCell></TableRow>
+                                            <TableRow><TableCell>{getRowLabel('1', 'Gross Bill Amount')}</TableCell><TableCell className="text-right">{formatCurrency(viewingSubcontractorBill.grossAmount, settings)}</TableCell></TableRow>
+                                            <TableRow><TableCell>{getRowLabel('2', `Less: Retention (${viewingSubcontractorBill.retentionPercent || 0}%)`)}</TableCell><TableCell className="text-right">{formatCurrency(viewingSubcontractorBill.grossAmount * ((viewingSubcontractorBill.retentionPercent || 0)/100), settings)}</TableCell></TableRow>
+                                            <TableRow className="bg-amber-50/20"><TableCell>{getRowLabel('3', 'Net Payable Amount')}</TableCell><TableCell className="text-right font-bold">{formatCurrency(viewingSubcontractorBill.netAmount, settings)}</TableCell></TableRow>
                                         </TableBody>
                                     </Table>
                                 </CardContent>

@@ -203,7 +203,7 @@ const PortfolioDashboard: React.FC<Props> = ({ projects, userRole, settings, onS
                 <Globe className="h-6 w-6" />
               </div>
               <div>
-                <h2 className="text-2xl font-black tracking-tight truncate">{formatCurrency(totalPortfolioValue, settings.currency)}</h2>
+                <h2 className="text-2xl font-black tracking-tight truncate">{formatCurrency(totalPortfolioValue, settings)}</h2>
                 <p className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500">Grid Value</p>
               </div>
             </div>

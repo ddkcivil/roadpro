@@ -19,7 +19,14 @@ const mockRoadData = (name: string): Omit<Road, 'id'> => ({
 
 describe('roadTypes Utilities', () => {
   describe('parseChainage', () => {
-    it('should parse valid chainage format "X+YYY"', () => {
+    it('should parse valid chainage format "X+YYY.DD"', () => {
+      expect(parseChainage('0+000.00')).toBe(0);
+      expect(parseChainage('1+000.00')).toBe(1000);
+      expect(parseChainage('3+025.50')).toBe(3025.50);
+      expect(parseChainage('3+025.75')).toBe(3025.75);
+    });
+
+    it('should parse chainage format without decimals "X+YYY"', () => {
       expect(parseChainage('0+000')).toBe(0);
       expect(parseChainage('1+000')).toBe(1000);
       expect(parseChainage('3+025')).toBe(3025);
@@ -27,6 +34,7 @@ describe('roadTypes Utilities', () => {
 
     it('should parse simple numeric strings as fallback', () => {
       expect(parseChainage('500')).toBe(500);
+      expect(parseChainage('500.50')).toBe(500.50);
     });
 
     it('should return 0 for invalid formats', () => {
@@ -36,14 +44,22 @@ describe('roadTypes Utilities', () => {
   });
 
   describe('formatChainage', () => {
-    it('should format meters into "X+YYY" format', () => {
-      expect(formatChainage(0)).toBe('0+000');
-      expect(formatChainage(1000)).toBe('1+000');
-      expect(formatChainage(3025)).toBe('3+025');
+    it('should format meters into "X+YYY.DD" format with 2 decimal places', () => {
+      expect(formatChainage(0)).toBe('0+000.00');
+      expect(formatChainage(1000)).toBe('1+000.00');
+      expect(formatChainage(3025)).toBe('3+025.00');
+      expect(formatChainage(3025.50)).toBe('3+025.50');
+      expect(formatChainage(3025.75)).toBe('3+025.75');
     });
 
     it('should handle large values', () => {
-      expect(formatChainage(12500)).toBe('12+500');
+      expect(formatChainage(12500)).toBe('12+500.00');
+      expect(formatChainage(12500.25)).toBe('12+500.25');
+    });
+
+    it('should round decimals correctly', () => {
+      expect(formatChainage(1000.005)).toBe('1+000.01');
+      expect(formatChainage(1000.004)).toBe('1+000.00');
     });
   });
 });

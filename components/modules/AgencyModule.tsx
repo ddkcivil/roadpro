@@ -461,7 +461,7 @@ const AgencyModule: React.FC<Props> = ({ project, onProjectUpdate, userRole, set
                     <TableCell>{payment.date}</TableCell>
                     <TableCell>{payment.reference}</TableCell>
                     <TableCell>{payment.type}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(payment.amount, settings.currency)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(payment.amount, settings)}</TableCell>
                     <TableCell>
                       <Badge variant={payment.status === 'Confirmed' ? 'default' : 'secondary'}>{payment.status}</Badge>
                     </TableCell>
