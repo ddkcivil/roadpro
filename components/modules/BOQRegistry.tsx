@@ -331,7 +331,7 @@ const handleNewItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8">
+                  <TableCell colSpan={10} className="text-center py-8">
                     <p className="text-muted-foreground">No matching BOQ items found.</p>
                   </TableCell>
                 </TableRow>
