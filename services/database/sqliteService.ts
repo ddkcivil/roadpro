@@ -63,7 +63,24 @@ export const sqliteService = {
 
       // Array tables: users, projects, messages
       if (Array.isArray(data)) {
-        data.push(record);
+        // UPSERT by id: replace existing record with the same id instead of
+        // blindly pushing, which caused duplicate users (duplicate React keys).
+        const recordId = record?.id;
+        const existingIndex = recordId !== undefined ? data.findIndex(item => item?.id === recordId) : -1;
+        if (existingIndex >= 0) {
+          data[existingIndex] = record;
+        } else {
+          data.push(record);
+        }
+        // DEDUPE: also clean up any duplicates left by previous blind-push inserts
+        const seen = new Set<string>();
+        data = data.filter(item => {
+          const id = item?.id;
+          if (id === undefined || id === null) return true;
+          if (seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        });
         // PRUNING: Keep only last 100 items to prevent unbounded growth
         if (data.length > 100) {
           data = data.slice(-100);

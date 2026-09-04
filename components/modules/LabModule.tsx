@@ -310,7 +310,9 @@ const LabModule: React.FC<Props> = ({ project, userRole, onProjectUpdate }) => {
                             {(() => {
                                 const savedUsers = localStorage.getItem('roadmaster-users');
                                 const users: User[] = savedUsers ? JSON.parse(savedUsers) : [];
-                                return users.map(u => <SelectItem key={u.id} value={u.id}>{u.name} ({u.role})</SelectItem> );
+                                // Dedupe by id to avoid duplicate React keys
+                                const uniqueUsers = users.filter((u, i, arr) => u?.id && arr.findIndex(x => x?.id === u.id) === i);
+                                return uniqueUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.name} ({u.role})</SelectItem> );
                             })()}
                           </SelectContent>
                         </Select>
