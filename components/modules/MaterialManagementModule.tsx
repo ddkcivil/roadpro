@@ -52,102 +52,11 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isPOOpen, setIsPOOpen] = useState(false);
   const [isStockTransactionOpen, setIsStockTransactionOpen] = useState(false);
-  const [isImportOpen, setIsImportOpen] = useState(false);
   const [newMaterial, setNewMaterial] = useState({ name: '', category: '', unit: '', quantity: 0 });
   const [newPO, setNewPO] = useState({ poNumber: '', vendor: '', date: new Date().toISOString().split('T')[0], totalAmount: 0 });
   const [transaction, setTransaction] = useState<{materialId: string, quantity: number, type: 'In' | 'Out'}>({ materialId: '', quantity: 0, type: 'In' });
   const [stockHistory, setStockHistory] = useState<any[]>([]);
-  const [isImporting, setIsImporting] = useState(false);
-  const [syncMaterials, setSyncMaterials] = useState<any[]>([]);
-  const [selectedMaterials, setSelectedMaterials] = useState<Set<number>>(new Set());
-  const [importPage, setImportPage] = useState(1);
-  const ITEMS_PER_PAGE = 20;
 
-  // Fetch materials from inventory sync (summary view with actual stock quantities)
-  const fetchSyncMaterials = async () => {
-    setIsImporting(true);
-    try {
-      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('roadmaster-token') : null;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      const response = await fetch('/api/inventorySync?summary=true', {
-        method: 'GET',
-        headers,
-        credentials: 'include',
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch sync materials');
-      }
-      const data = await response.json();
-      // The summary endpoint returns { materials: [...], summary: {...} }
-      const materials = data.materials || data.data || (Array.isArray(data) ? data : []);
-      setSyncMaterials(materials.map((mat: any) => ({
-        id: mat.id,
-        name: mat.name || mat.material_detail,
-        category: mat.category || '',
-        unit: mat.unit || '',
-        total_quantity: mat.total_quantity || 0,
-        transaction_count: mat.transaction_count || 1,
-        latest_location: mat.latest_location || '',
-      })));
-    } catch (err: any) {
-      console.error('Error fetching sync materials:', err);
-      toast.error('Failed to fetch sync materials');
-    } finally {
-      setIsImporting(false);
-    }
-  };
-
-  // Build dynamic category list from sync materials merged with predefined CATEGORIES
-  const syncCategories = useMemo(() => {
-    const syncCatSet = new Set<string>();
-    syncMaterials.forEach((m: any) => {
-      if (m.category) syncCatSet.add(m.category);
-    });
-    const merged = new Set([...CATEGORIES, ...Array.from(syncCatSet)]);
-    return Array.from(merged).sort();
-  }, [syncMaterials]);
-
-  // Import selected materials to project
-  const handleImportMaterials = () => {
-    const newMaterials = [...materials];
-    let imported = 0;
-    selectedMaterials.forEach((id) => {
-      const syncMat = syncMaterials.find((m: any) => m.id === id);
-      if (syncMat && !isDuplicate(newMaterials, 'name', syncMat.name)) {
-        const importedQty = syncMat.total_quantity || 0;
-        newMaterials.push({
-          id: generateUniqueId(),
-          name: syncMat.name,
-          category: syncMat.category,
-          unit: syncMat.unit,
-          quantity: importedQty,
-          location: syncMat.latest_location || 'Main Store',
-          lastUpdated: new Date().toISOString(),
-          availableQuantity: importedQty,
-          reorderLevel: 10,
-          status: importedQty === 0 ? 'Out of Stock' : (importedQty < 10 ? 'Low Stock' : 'Available'),
-        });
-        imported++;
-      }
-    });
-    onProjectUpdate({ ...project, materials: newMaterials });
-    setIsImportOpen(false);
-    setSelectedMaterials(new Set());
-    toast.success(`Imported ${imported} materials with stock quantities`);
-  };
-
-  const toggleMaterialSelection = (id: number) => {
-    const newSelected = new Set(selectedMaterials);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedMaterials(newSelected);
-  };
 
   const handleRegisterMaterial = () => {
     if (!newMaterial.name || !newMaterial.unit) {
@@ -257,13 +166,6 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
     return materials.filter(m => m.quantity <= (m.reorderLevel || 10));
   }, [materials]);
 
-  // Pagination for import dialog
-  const totalImportPages = Math.ceil(syncMaterials.length / ITEMS_PER_PAGE);
-  const paginatedMaterials = useMemo(() => {
-    const start = (importPage - 1) * ITEMS_PER_PAGE;
-    return syncMaterials.slice(start, start + ITEMS_PER_PAGE);
-  }, [syncMaterials, importPage]);
-
   const chartData = useMemo(() => {
     return materials.map(m => ({
       name: m.name,
@@ -324,88 +226,6 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
 <CardHeader className="flex flex-row justify-between items-center">
               <CardTitle className="text-sm font-black uppercase tracking-widest opacity-70">Current Stock Levels</CardTitle>
               <div className="flex gap-2">
-                <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" variant="outline" className="rounded-xl font-black uppercase tracking-widest text-[10px]" onClick={fetchSyncMaterials}>
-                      {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                      Import from Sync
-                    </Button>
-                  </DialogTrigger>
-                    <DialogContent className="rounded-3xl max-w-4xl border-border/50">
-                    <DialogHeader>
-                      <DialogTitle>Import Materials from Sync</DialogTitle>
-                      <DialogDescription>Select materials to import from the synchronized inventory. Stock quantity will be carried over.</DialogDescription>
-                    </DialogHeader>
-<div className="grid gap-4 py-4 max-h-[400px] overflow-y-auto">
-                      {syncMaterials.length === 0 ? (
-                        <p className="text-center text-muted-foreground py-8">No synchronized materials found. Run inventory sync first.</p>
-                      ) : (
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="bg-muted/30">
-                              <TableHead>Select</TableHead>
-                              <TableHead>Material</TableHead>
-                              <TableHead>Category</TableHead>
-                              <TableHead>Unit</TableHead>
-                              <TableHead className="text-right">Stock Qty</TableHead>
-                              <TableHead>Txn Count</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {paginatedMaterials.map((mat: any) => (
-                              <TableRow key={mat.id} className="hover:bg-muted/20">
-<TableCell>
-                                  <label className="flex items-center cursor-pointer">
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedMaterials.has(mat.id)}
-                                      onChange={() => toggleMaterialSelection(mat.id)}
-                                      className="h-4 w-4"
-                                      title={`Select ${mat.name}`}
-                                    />
-                                  </label>
-                                </TableCell>
-                                <TableCell className="font-bold">{mat.name}</TableCell>
-                                <TableCell>{mat.category || 'N/A'}</TableCell>
-                                <TableCell>{mat.unit || 'N/A'}</TableCell>
-                                <TableCell className="text-right font-mono font-bold">{mat.total_quantity || 0}</TableCell>
-                                <TableCell className="text-center text-xs text-muted-foreground">{mat.transaction_count || 0}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      )}
-                    </div>
-                    {totalImportPages > 1 && (
-                      <div className="flex items-center justify-between py-2 border-t">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setImportPage(p => Math.max(1, p - 1))}
-                          disabled={importPage === 1}
-                        >
-                          Previous
-                        </Button>
-                        <span className="text-sm text-muted-foreground">
-                          Page {importPage} of {totalImportPages} ({syncMaterials.length} materials)
-                        </span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setImportPage(p => Math.min(totalImportPages, p + 1))}
-                          disabled={importPage === totalImportPages}
-                        >
-                          Next
-                        </Button>
-                      </div>
-                    )}
-                    <DialogFooter>
-                      <Button onClick={handleImportMaterials} disabled={selectedMaterials.size === 0} className="rounded-xl">
-                        <Check className="mr-2 h-4 w-4" /> Import Selected ({selectedMaterials.size})
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
                 <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
                   <DialogTrigger asChild>
                     <Button size="sm" className="rounded-xl font-black uppercase tracking-widest text-[10px]">
@@ -429,7 +249,7 @@ const MaterialManagementModule: React.FC<MaterialManagementModuleProps> = ({ pro
                             <SelectValue placeholder="Select a category" />
                           </SelectTrigger>
                           <SelectContent>
-                            {(syncCategories.length > CATEGORIES.length ? syncCategories : CATEGORIES).map(category => (
+                            {CATEGORIES.map(category => (
                               <SelectItem key={category} value={category}>{category}</SelectItem>
                             ))}
                           </SelectContent>

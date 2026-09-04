@@ -1,0 +1,38 @@
+App.test.tsx(210,44): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+App.test.tsx(211,64): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+App.test.tsx(240,54): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+App.test.tsx(241,47): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+App.test.tsx(242,49): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+App.test.tsx(243,46): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+components/core/AppHeader.test.tsx(60,46): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+components/core/AppHeader.test.tsx(61,41): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+components/core/AppHeader.test.tsx(74,53): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+components/core/AppHeader.test.tsx(75,55): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+components/core/Login.test.tsx(27,42): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+components/core/Login.test.tsx(28,45): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+components/core/Login.test.tsx(29,48): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+components/core/StatCard.test.tsx(17,48): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+components/core/StatCard.test.tsx(18,36): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+components/core/StatCard.test.tsx(35,9): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+components/core/StatCard.test.tsx(36,40): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+components/ui/data-table/data-table.test.tsx(33,38): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+components/ui/data-table/data-table.test.tsx(34,40): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+components/ui/data-table/data-table.test.tsx(35,47): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+components/ui/data-table/data-table.test.tsx(36,46): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+components/ui/data-table/data-table.test.tsx(45,47): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+components/ui/data-table/data-table.test.tsx(46,52): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement | null>'.
+components/ui/data-table/data-table.test.tsx(55,45): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+components/ui/data-table/data-table.test.tsx(60,59): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.
+deprecate/PavementModule.tsx(2,50): error TS2307: Cannot find module '../../types' or its corresponding type declarations.
+deprecate/PavementModule.tsx(69,66): error TS7006: Parameter 'log' implicitly has an 'any' type.
+scripts/seed_admin_profile.ts(50,10): error TS2551: Property 'catch' does not exist on type 'PostgrestFilterBuilder<any, any, any, any, "exec_sql", null, "RPC">'. Did you mean 'match'?
+scripts/seed_admin_profile.ts(89,5): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+test/api_files.test.ts(3,33): error TS2307: Cannot find module '../api/utils/supabaseClient.js' or its corresponding type declarations.
+test/api_files.test.ts(51,26): error TS2503: Cannot find namespace 'vi'.
+test/api_files.test.ts(52,34): error TS2503: Cannot find namespace 'vi'.
+test/api_files.test.ts(53,34): error TS2503: Cannot find namespace 'vi'.
+test/api_files.test.ts(54,38): error TS2503: Cannot find namespace 'vi'.
+test/api_registrations.test.ts(3,33): error TS2307: Cannot find module '../api/utils/supabaseClient.js' or its corresponding type declarations.
+test/api_users.test.ts(3,33): error TS2307: Cannot find module '../api/utils/supabaseClient.js' or its corresponding type declarations.
+test/MapModule.test.tsx(155,52): error TS2339: Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'.

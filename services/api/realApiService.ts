@@ -31,7 +31,19 @@ class RealApiService {
   private lastSyncTime: number = 0;
 
   constructor() {
-    // Private constructor for singleton
+    // Proactive session refresh: refresh the access token every 10 minutes
+    // so it never expires while the app is open. Prevents 401 storms from
+    // polling endpoints (messages, users) after the 1h Supabase token TTL.
+    if (typeof window !== 'undefined') {
+      setInterval(() => {
+        try {
+          const hasRefreshToken = !!localStorage.getItem('roadmaster-refresh-token');
+          if (hasRefreshToken) {
+            this.refreshSession().catch(() => { /* silent — reactive refresh still available */ });
+          }
+        } catch { /* storage unavailable */ }
+      }, 10 * 60 * 1000);
+    }
   }
 
   public static getInstance(): RealApiService {

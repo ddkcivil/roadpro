@@ -423,6 +423,7 @@ const MapDrawingTool: React.FC<{
 import { VisualEmptyState } from '../common/VisualEmptyState';
 
 interface LayerVisibility {
+  alignments: boolean;
   structures: boolean;
   vehicles: boolean;
   staff: boolean;
@@ -485,6 +486,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
   const [isPendingDelete, startDeleteTransition] = React.useTransition();
 
   const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({
+    alignments: true,
     structures: true,
     vehicles: true,
     staff: true,
@@ -1025,6 +1027,73 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
     }).filter(Boolean);
   }, [project.mapOverlays, layerVisibility.overlays]);
 
+  // Road Design Alignment layers (color-coded by type, dash by status)
+  const ALIGNMENT_TYPE_COLORS: Record<string, string> = {
+    pavement: '#2563eb', asphalt: '#1d4ed8', base: '#7c3aed', 'sub-base': '#8b5cf6',
+    subgrade: '#a78bfa', drainage: '#0891b2', footpath: '#16a34a', kerb: '#94a3b8',
+    shoulder: '#d97706', median: '#f59e0b', lane: '#3b82f6', service: '#64748b', other: '#4f46e5',
+  };
+
+  const alignmentLayers = useMemo(() => {
+    if (!layerVisibility.alignments) return [];
+    const sourceRoads = selectedRoad ? [selectedRoad] : roads;
+    return sourceRoads.flatMap((road) =>
+      (road.alignments || []).map((alignment) => {
+        if (!alignment.coordinates || alignment.coordinates.length < 2) return null;
+        const typeKey = (alignment.type || 'other').toString().toLowerCase();
+        const color = ALIGNMENT_TYPE_COLORS[typeKey] || '#4f46e5';
+        const dashArray =
+          alignment.status === 'Completed' ? undefined :
+          alignment.status === 'In Progress' ? '10, 6' :
+          alignment.status === 'Delayed' ? '6, 6' :
+          '2, 8';
+        const toLatLng = (c: any) => Array.isArray(c) ? [c[0], c[1]] : [c.lat, c.lng];
+
+        return (
+          <Polyline
+            key={`alignment-${road.id}-${alignment.id}`}
+            positions={(alignment.coordinates as any[]).map(toLatLng)}
+            pathOptions={{ color, weight: 5, opacity: 0.9, dashArray }}
+          >
+            <Popup>
+              <div className="p-1 min-w-[200px]">
+                <h3 className="font-bold text-base border-b pb-1 mb-2">{alignment.name}</h3>
+                <p className="text-sm"><span className="text-gray-500">Road:</span> {road.name}</p>
+                <p className="text-sm"><span className="text-gray-500">Type:</span> {alignment.type}</p>
+                <p className="text-sm"><span className="text-gray-500">Length:</span> {alignment.totalLength ? `${(alignment.totalLength / 1000).toFixed(2)} km` : '—'}</p>
+                <p className="text-sm"><span className="text-gray-500">Chainage:</span> {alignment.chainagePoints?.length ? `${alignment.chainagePoints[0].chainage} → ${alignment.chainagePoints[alignment.chainagePoints.length - 1].chainage}` : '—'}</p>
+                {alignment.status && (
+                  <p className="text-sm flex items-center gap-2 mt-2">
+                    <span className="text-gray-500 font-medium">Status:</span>
+                    <Badge variant="outline" className={cn(
+                      alignment.status === 'Completed' ? 'bg-green-500 text-white' :
+                      alignment.status === 'In Progress' ? 'bg-orange-500 text-white' :
+                      alignment.status === 'Delayed' ? 'bg-red-500 text-white' :
+                      'bg-gray-500 text-white'
+                    )}>
+                      {alignment.status}
+                    </Badge>
+                  </p>
+                )}
+                {typeof alignment.progress === 'number' && (
+                  <div className="mt-2">
+                    <div className="flex justify-between text-[10px] font-bold text-gray-500 uppercase"><span>Progress</span><span>{alignment.progress}%</span></div>
+                    <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${alignment.progress}%`, backgroundColor: color }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Popup>
+            <MapTooltip sticky direction="top">
+              <span className="text-[11px] font-bold">{alignment.name} · {alignment.type}</span>
+            </MapTooltip>
+          </Polyline>
+        );
+      })
+    ).filter(Boolean);
+  }, [roads, selectedRoad, layerVisibility.alignments]);
+
   // Site Photo markers
   const sitePhotoMarkers = useMemo(() => {
     if (!project.sitePhotos || !layerVisibility.sitePhotos) return [];
@@ -1419,6 +1488,7 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
             {layerVisibility.structures && structureMarkers}
             {layerVisibility.vehicles && vehicleMarkers}
             {layerVisibility.staff && staffMarkers}
+            {layerVisibility.alignments && alignmentLayers}
             {layerVisibility.landParcels && landParcelPolygons}
             {layerVisibility.overlays && mapOverlayLayers}
             {layerVisibility.sitePhotos && sitePhotoMarkers}
@@ -1915,6 +1985,21 @@ export const MapModule: React.FC<MapModuleProps> = ({ project, onProjectUpdate, 
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="pt-2 pb-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                            <Route size={16} />
+                          </div>
+                          <div>
+                            <Label className="font-bold text-sm text-slate-700">Alignments</Label>
+                            <p className="text-[10px] text-muted-foreground uppercase">Road Design Layers</p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={layerVisibility.alignments}
+                          onCheckedChange={() => toggleLayer('alignments')}
+                        />
+                      </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">

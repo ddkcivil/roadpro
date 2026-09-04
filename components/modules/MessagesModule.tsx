@@ -110,6 +110,13 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
     );
   }, [messages, activeChatId, projectId, currentUser]);
 
+  // Clear cached row heights whenever the active chat or message list changes,
+  // otherwise stale index-keyed heights cause rows to overlap.
+  useEffect(() => {
+    itemSizeMap.current = {};
+    if (listRef.current) listRef.current.resetAfterIndex(0, true);
+  }, [activeChatId, activeMessages.length, projectId]);
+
   const scrollToBottom = useCallback(() => {
     if (listRef.current && activeMessages.length > 0) {
       listRef.current.scrollToItem(activeMessages.length - 1, 'end');
@@ -147,6 +154,7 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
     }, [index, setRowHeight]);
 
     const msg = activeMessages[index];
+    if (!msg) return null;
     const isMe = msg.senderId === currentUser?.id;
     const sender = getUser(msg.senderId);
     
@@ -226,7 +234,7 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                       {isFirstInGroup && (
                         <Avatar className="h-8 w-8 shadow-sm"> 
                            <AvatarImage src={sender?.avatar} />
-                           <AvatarFallback className="bg-primary/10 text-primary text-xs">{sender?.name.charAt(0)}</AvatarFallback>
+                           <AvatarFallback className="bg-primary/10 text-primary text-xs">{(sender?.name || '?').charAt(0)}</AvatarFallback>
                         </Avatar>
                       )}
                     </div>
@@ -472,7 +480,7 @@ const MessagesModule: React.FC<Props> = ({ currentUser, users = [], messages = [
                          <div className="relative">
                             <Avatar className="h-10 w-10 md:h-12 md:w-12 shadow-md"> 
                                 <AvatarImage src={activeUser?.avatar} />
-                                <AvatarFallback className="bg-primary/5 text-primary">{activeUser?.name.charAt(0)}</AvatarFallback>
+                                <AvatarFallback className="bg-primary/5 text-primary">{(activeUser?.name || '?').charAt(0)}</AvatarFallback>
                             </Avatar>
                             {isOnline(activeUser) && (
                                 <span className="absolute bottom-0 right-0 h-3 md:h-3.5 w-3 md:w-3.5 rounded-full bg-emerald-500 ring-2 ring-card shadow-sm" />

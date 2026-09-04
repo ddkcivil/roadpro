@@ -9,6 +9,7 @@ import { useMessages } from './hooks/useMessages';
 import { useSettings } from './hooks/useSettings';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useAppInitialization } from './hooks/useAppInitialization';
+import { useSmartNotifications } from './hooks/useSmartNotifications';
 
 import { apiService } from './services/api/apiService';
 
@@ -76,7 +77,6 @@ const ReportsAnalyticsHub = lazy(() => import('./components/hubs/ReportsAnalytic
 const ChandraOCRAnalyzer = lazy(() => import('./components/utilities/ChandraOCRAnalyzer'));
 const MaterialManagementModule = lazy(() => import('./components/modules/MaterialManagementModule'));
 const MPRReportModule = lazy(() => import('./components/modules/MPRReportModule'));
-const InventorySyncModule = lazy(() => import('./components/modules/InventorySyncModule'));
 const PurchaseOrdersModule = lazy(() => import('./components/modules/PurchaseOrdersModule'));
 import ProjectsListSkeleton from './components/core/ProjectsListSkeleton';
 import DashboardSkeleton from './components/core/DashboardSkeleton.tsx';
@@ -104,6 +104,9 @@ const App: React.FC = () => {
 
   // Initialize App with custom hook
   useAppInitialization(setLoadingStatus, setSystemReady, setIsInitialLoading);
+
+  // Smart notifications: login alerts, pending leaves, daily summary, scheduled alerts
+  useSmartNotifications(isAuthenticated, userRole as string, userName, currentUserId);
 
   const { 
     appSettings, 
@@ -417,7 +420,6 @@ if (!isAuthenticated) {
                         {activeTab === 'mpr-report' && <MPRReportModule project={currentProject!} settings={appSettings} />}
                         {activeTab === 'rfis' && <RFIModule project={currentProject!} userRole={userRole} currentUser={currentUser} onProjectUpdate={handleSaveProject as any} />}
 {activeTab === 'materials-hub' && <MaterialManagementModule project={currentProject!} userRole={userRole} onProjectUpdate={handleSaveProject as any} />}
-                        {activeTab === 'inventory-sync' && <InventorySyncModule isAuthenticated={isAuthenticated} userRole={userRole} />}
                         {activeTab === 'assets' && <AssetsModule project={currentProject!} onProjectUpdate={handleSaveProject as any} userRole={userRole} />}
                         {activeTab === 'fleet' && <FleetModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}
                         {activeTab === 'resource-matrix' && <ResourceMatrixModule project={currentProject!} onProjectUpdate={handleSaveProject as any} />}

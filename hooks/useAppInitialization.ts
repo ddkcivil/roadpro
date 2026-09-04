@@ -90,21 +90,37 @@ export const useAppInitialization = (setLoadingStatus: (status: string) => void,
     
     initApp();
     
+    // Service Worker is only registered in production (built) environments, and any
+    // previously-installed SW is actively unregistered during local dev. This prevents a
+    // stale SW cache from serving outdated/mixed JS bundles — a known trigger of
+    // "Cannot read properties of null (reading 'useState')" invalid-hook errors.
     if ('serviceWorker' in navigator) {
-      const registerSW = async () => {
-        try {
-          if (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-            await navigator.serviceWorker.register('/sw.js');
+      if (!import.meta.env.DEV) {
+        const registerSW = async () => {
+          try {
+            if (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+              await navigator.serviceWorker.register('/sw.js');
+            }
+          } catch (error) {
+            console.error('SW registration failed: ', error);
           }
-        } catch (error) {
-          console.error('SW registration failed: ', error);
+        };
+        
+        if (document.readyState === 'loading') {
+          window.addEventListener('load', registerSW);
+        } else {
+          registerSW();
         }
-      };
-      
-      if (document.readyState === 'loading') {
-        window.addEventListener('load', registerSW);
       } else {
-        registerSW();
+        // Dev only: detach any existing service worker so old cached bundles can't
+        // interfere with the live-reloaded app.
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          for (const reg of registrations) {
+            reg.unregister().then((ok) => {
+              if (ok) console.log('[AppInit] Unregistered stale service worker in dev mode.');
+            });
+          }
+        }).catch((e) => console.warn('[AppInit] Failed to unregister service worker in dev:', e));
       }
     }
     

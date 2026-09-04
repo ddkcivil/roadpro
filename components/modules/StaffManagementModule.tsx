@@ -137,7 +137,6 @@ interface LeaveRequest {
   approvedBy?: string;
   createdAt: string;
   updatedAt: string;
-  documentFolder?: string; // Reference to document folder
 }
 
 interface EmployeeData {
@@ -241,7 +240,6 @@ interface EmployeeData {
   hrisAccess: boolean;
   basicSalary: string;
   allowances: string;
-  documentFolder?: string; // Reference to document folder
 
   // Additional fields for display in StaffManagementModule.tsx
   id: string; // The original EmployeeData interface had this.
@@ -403,6 +401,7 @@ const StaffManagementModule: React.FC = () => {
             // Sync to offlineStorage for offline availability
             await offlineStorage.setItem(`staff-${cat.key}`, data);
           } catch (error) {
+            console.warn(`API failed for ${cat.key}, falling back to offlineStorage:`, error);
             const offlineData = await offlineStorage.getItem<any[]>(`staff-${cat.key}`);
             if (offlineData) {
               cat.setter(offlineData);
@@ -411,6 +410,7 @@ const StaffManagementModule: React.FC = () => {
           }
         }
       } catch (error) {
+        console.error('Error loading staff data:', error);
       } finally {
         setLoading(false);
       }
@@ -553,8 +553,7 @@ setFilteredTraining(filtered);
         numberOfDays,
         status: 'Pending',
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        documentFolder: 'Leave Request' // Link to document folder
+        updatedAt: new Date().toISOString()
       };
       
       // Try to save to API (MongoDB) first
@@ -565,6 +564,7 @@ setFilteredTraining(filtered);
         // Sync to offlineStorage
         await offlineStorage.setItem('staff-leave-requests', updatedRequests);
       } catch (error) {
+        console.warn('API save failed for leave request, falling back to offlineStorage:', error);
         const updatedRequests = [...leaveRequests, leaveRequest];
         setLeaveRequests(updatedRequests);
         await offlineStorage.setItem('staff-leave-requests', updatedRequests);
@@ -606,6 +606,7 @@ setFilteredTraining(filtered);
         setLeaveRequests(updatedRequests);
         await offlineStorage.setItem('staff-leave-requests', updatedRequests);
       } catch (error) {
+        console.warn('API update failed for leave request, falling back to offlineStorage:', error);
         const updatedRequests = leaveRequests.map(r => r.id === id ? updatedData : r);
         setLeaveRequests(updatedRequests);
         await offlineStorage.setItem('staff-leave-requests', updatedRequests);
@@ -649,8 +650,7 @@ setFilteredTraining(filtered);
         ...newEmployee,
         id: `emp-${Date.now()}`,
         joinedDate: new Date().toISOString(),
-        status: 'Active',
-        documentFolder: 'New Employee' // Link to document folder
+        status: 'Active'
       };
       
       // Try API save (MongoDB)
@@ -660,6 +660,7 @@ setFilteredTraining(filtered);
         setEmployees(updatedEmployees);
         await offlineStorage.setItem('staff-employees', updatedEmployees);
       } catch (error) {
+        console.warn('API save failed for employee, falling back to offlineStorage:', error);
         const updatedEmployees = [...employees, employee];
         setEmployees(updatedEmployees);
         await offlineStorage.setItem('staff-employees', updatedEmployees);
@@ -746,6 +747,7 @@ setFilteredTraining(filtered);
       setIsJoiningModalOpen(false);
       alert('Employee onboarded successfully');
     } catch (error) {
+      console.error('Error saving employee:', error);
       alert('Failed to save employee data. Please try again.');
     }
   };
@@ -1752,9 +1754,9 @@ setFilteredTraining(filtered);
                     ))}
                   </TableBody>
                 </Table>
-               </div>
-               )}
-               {filteredPerformance.length > 0 && (
+              </div>
+              )}
+              {filteredPerformance.length > 0 && (
                 <div className="mt-4">
                   <PaginationComponent
                     currentPage={performancePagination.currentPage}
@@ -1824,6 +1826,7 @@ setFilteredTraining(filtered);
                 </Card>
               </div>
 
+{filteredAttendance.length > 0 && (
               <div className="rounded-md border border-border overflow-hidden bg-background">
                 <Table>
                   <TableHeader className="bg-slate-50/50">
@@ -1879,8 +1882,9 @@ setFilteredTraining(filtered);
                     ))}
                   </TableBody>
                 </Table>
-               </div>
-               {filteredAttendance.length > 0 && (
+              </div>
+              )}
+              {filteredAttendance.length > 0 && (
                 <div className="mt-4">
                   <PaginationComponent
                     currentPage={attendancePagination.currentPage}
@@ -1950,6 +1954,7 @@ setFilteredTraining(filtered);
                 </Card>
               </div>
 
+{filteredSalaries.length > 0 && (
               <div className="rounded-md border border-border overflow-hidden bg-background">
                 <Table>
                   <TableHeader className="bg-slate-50/50">
@@ -2015,8 +2020,9 @@ setFilteredTraining(filtered);
                     ))}
                   </TableBody>
                 </Table>
-               </div>
-               {filteredSalaries.length > 0 && (
+              </div>
+              )}
+              {filteredSalaries.length > 0 && (
                 <div className="mt-4">
                   <PaginationComponent
                     currentPage={salariesPagination.currentPage}
@@ -2086,6 +2092,7 @@ setFilteredTraining(filtered);
                 </Card>
               </div>
 
+{filteredTraining.length > 0 && (
               <div className="rounded-md border border-border overflow-hidden bg-background">
                 <Table>
                   <TableHeader className="bg-slate-50/50">
@@ -2147,8 +2154,9 @@ setFilteredTraining(filtered);
                     ))}
                   </TableBody>
                 </Table>
-               </div>
-               {filteredTraining.length > 0 && (
+              </div>
+              )}
+              {filteredTraining.length > 0 && (
                 <div className="mt-4">
                   <PaginationComponent
                     currentPage={trainingPagination.currentPage}
@@ -2218,6 +2226,7 @@ setFilteredTraining(filtered);
                 </Card>
               </div>
 
+{filteredEvaluations.length > 0 && (
               <div className="rounded-md border border-border overflow-hidden bg-background">
                 <Table>
                   <TableHeader className="bg-slate-50/50">
@@ -2291,8 +2300,9 @@ setFilteredTraining(filtered);
                     ))}
                   </TableBody>
                 </Table>
-               </div>
-               {filteredEvaluations.length > 0 && (
+              </div>
+              )}
+              {filteredEvaluations.length > 0 && (
                 <div className="mt-4">
                   <PaginationComponent
                     currentPage={evaluationsPagination.currentPage}
@@ -2312,7 +2322,7 @@ setFilteredTraining(filtered);
 
       {/* New Leave Request Modal */}
       <Dialog open={isLeaveModalOpen} onOpenChange={setIsLeaveModalOpen}>
-        <DialogContent className="max-w-3xl border-border/50">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
@@ -2435,7 +2445,7 @@ setFilteredTraining(filtered);
 
       {/* New Employee Modal */}
       <Dialog open={isJoiningModalOpen} onOpenChange={setIsJoiningModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto border-border/50">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>New Employee Onboarding</DialogTitle>
           </DialogHeader>

@@ -51,7 +51,7 @@ const loadEnvFiles = () => {
   const apiLocalEnvPath = path.resolve(__dirname, '.env.local');
   const vercelEnvPath = path.resolve(__dirname, '..', '.env.vercel');
 
-  const envFilesToLoad = [rootEnvPath, apiEnvPath, apiLocalEnvPath, vercelEnvPath];
+  const envFilesToLoad = [vercelEnvPath, rootEnvPath, apiEnvPath, apiLocalEnvPath]; // least-priority first
 
   envFilesToLoad.forEach(filePath => {
     console.log(`[API Server] Attempting to load .env from: ${filePath}`);
@@ -108,7 +108,6 @@ const apiFiles = [
   { path: './health.ts', route: '/api/health' },
   { path: './files.ts', route: '/api/files' },
   { path: './ai.ts', route: '/api/ai' },
-  { path: './inventorySync.ts', route: '/api/inventorySync' },
 ];
 
 async function registerRoutes() {
@@ -139,13 +138,18 @@ async function registerStaffRoutes() {
   const files = fs.readdirSync(staffDir).filter(f => f.endsWith('.ts'));
   for (const file of files) {
     const name = file.replace('.ts', '');
-    const route = `/api/staff/${name}`;
     const absPath = path.join(staffDir, file);
+    const route = name === 'index' ? '/api/staff' : `/api/staff/${name}`;
     try {
       const mod = await import(pathToFileURL(absPath).href);
       const handler = mod.default || mod;
       app.all(route, vercelToExpress({ default: handler }));
       console.log(`  ✓ Registered ${route} from staff/${file}`);
+      // Also expose /api/staff/index as an alias for the index handler.
+      if (name === 'index') {
+        app.all('/api/staff/index', vercelToExpress({ default: handler }));
+        console.log(`  ✓ Registered /api/staff/index (alias) from staff/${file}`);
+      }
     } catch (e) {
       console.error(`  ✗ Failed to load ${route} (staff/${file}):`, e);
     }

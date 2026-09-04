@@ -216,18 +216,6 @@ const AppSidebar: React.FC<AppSidebarProps> = React.memo(({
                   <Settings className="h-[1.1rem] w-[1.1rem] shrink-0 opacity-50" />
                   {!isSidebarCollapsed && <span className="text-sm tracking-tight">Settings</span>}
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  className={cn(
-                    "w-full justify-start rounded-xl h-11 transition-all duration-300 font-bold", 
-                    isSidebarCollapsed ? "px-0 justify-center w-12 mx-auto" : "gap-4 px-4",
-                    activeTab === 'inventory-sync' ? "bg-white/10 shadow-sm" : "text-emerald-500 hover:text-emerald-400"
-                  )}
-                  onClick={() => setActiveTab('inventory-sync')}
-                >
-                  <RefreshCw className="h-[1.1rem] w-[1.1rem] shrink-0 opacity-50" />
-                  {!isSidebarCollapsed && <span className="text-sm tracking-tight">Sync Inventory</span>}
-                </Button>
               </>
             )}
             

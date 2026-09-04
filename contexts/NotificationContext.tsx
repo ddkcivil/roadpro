@@ -72,13 +72,13 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       const saved = localStorage.getItem(PREFERENCES_STORAGE_KEY);
       return saved ? JSON.parse(saved) : {
         channels: ['in-app'],
-        types: ['info', 'success', 'warning', 'error'],
+        types: ['info', 'success', 'warning', 'error', 'reminder', 'alert', 'update', 'task'],
         enabled: true
       };
     }
     return {
       channels: ['in-app'],
-      types: ['info', 'success', 'warning', 'error'],
+      types: ['info', 'success', 'warning', 'error', 'reminder', 'alert', 'update', 'task'],
       enabled: true
     };
   });
