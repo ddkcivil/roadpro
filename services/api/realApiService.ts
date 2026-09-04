@@ -108,7 +108,15 @@ class RealApiService {
       });
 
       if (!response.ok) {
+        // 400 = no refresh token in body, 401 = refresh token invalid/expired/rotated.
+        // Either way the stored refresh token is useless — clear it so we stop
+        // hammering the refresh endpoint and the auth-failure flow can log out cleanly.
         console.error('[API] Session refresh via API failed:', response.status);
+        if (response.status === 400 || response.status === 401) {
+          try {
+            localStorage.removeItem('roadmaster-refresh-token');
+          } catch { /* storage unavailable */ }
+        }
         return null;
       }
 

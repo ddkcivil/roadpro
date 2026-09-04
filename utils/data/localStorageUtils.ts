@@ -289,6 +289,7 @@ export const LocalStorageUtils = {
     const essentialKeys = [
       LOCAL_STORAGE_KEYS.SETTINGS,
       'roadmaster-token',
+      'roadmaster-refresh-token', // REQUIRED: without it an expired access token cannot be renewed -> permanent 401 storm
       'roadmaster-user',
       'app_language',
       'roadmaster-active-tab'
