@@ -203,19 +203,19 @@ const InterimPaymentsModule: React.FC<Props> = ({ project, settings, userRole, o
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 <div className="p-3 bg-muted rounded-xl">
                           <p className="text-[10px] font-black text-muted-foreground uppercase">Gross Amount</p>
-                          <p className="text-lg font-black">{formatCurrency(payment.grossAmount, settings)}</p>
+                          <p className="text-lg font-black">{formatCurrency(payment.grossAmount, settings.currency)}</p>
                         </div>
                         <div className="p-3 bg-muted rounded-xl">
                           <p className="text-[10px] font-black text-muted-foreground uppercase">VAT</p>
-                          <p className="text-lg font-black">{formatCurrency(payment.vatAmount, settings)}</p>
+                          <p className="text-lg font-black">{formatCurrency(payment.vatAmount, settings.currency)}</p>
                         </div>
                         <div className="p-3 bg-muted rounded-xl">
                           <p className="text-[10px] font-black text-muted-foreground uppercase">Total Deductions</p>
-                          <p className="text-lg font-black text-red-600">{formatCurrency(totalDeductions, settings)}</p>
+                          <p className="text-lg font-black text-red-600">{formatCurrency(totalDeductions, settings.currency)}</p>
                         </div>
                         <div className="p-3 bg-muted rounded-xl">
                           <p className="text-[10px] font-black text-muted-foreground uppercase">Net Payable</p>
-                          <p className="text-lg font-black text-green-600">{formatCurrency(net, settings)}</p>
+                          <p className="text-lg font-black text-green-600">{formatCurrency(net, settings.currency)}</p>
                         </div>
                       </div>
 

@@ -313,7 +313,7 @@ const MeasurementSheetModule: React.FC<Props> = ({ project, settings, userRole, 
                                         {sheet.entries.length} entries
                                     </p>
                                     <p className="text-sm font-bold text-green-600">
-                                        {formatCurrency(calculateSheetTotal(sheet), settings)}
+                                        {formatCurrency(calculateSheetTotal(sheet), settings.currency)}
                                     </p>
                                 </div>
                             </div>
@@ -338,7 +338,7 @@ const MeasurementSheetModule: React.FC<Props> = ({ project, settings, userRole, 
                                             {selectedSheet.status}
                                         </Badge>
                                         <span className="text-sm font-bold text-green-600">
-                                            Total: {formatCurrency(calculateSheetTotal(selectedSheet), settings)}
+                                            Total: {formatCurrency(calculateSheetTotal(selectedSheet), settings.currency)}
                                         </span>
                                     </div>
                                 </div>
@@ -447,7 +447,7 @@ const MeasurementSheetModule: React.FC<Props> = ({ project, settings, userRole, 
                                             <TableRow className="bg-green-50 font-bold">
                                                 <TableCell colSpan={6} className="text-right text-lg">Total</TableCell>
                                                 <TableCell className="text-right text-lg text-green-700">
-                                                    {formatCurrency(calculateSheetTotal(selectedSheet), settings)}
+                                                    {formatCurrency(calculateSheetTotal(selectedSheet), settings.currency)}
                                                 </TableCell>
                                                 <TableCell colSpan={2}></TableCell>
                                             </TableRow>
@@ -593,7 +593,7 @@ const MeasurementSheetModule: React.FC<Props> = ({ project, settings, userRole, 
                                 </p>
                                 <p className="text-xs text-muted-foreground mt-1">
                                     Unit: {project.boq.find(b => b.id === entryForm.boqItemId)?.unit} | 
-                                    Rate: {formatCurrency(project.boq.find(b => b.id === entryForm.boqItemId)?.rate || 0, settings)}
+                                    Rate: {formatCurrency(project.boq.find(b => b.id === entryForm.boqItemId)?.rate || 0, settings.currency)}
                                 </p>
                             </div>
                         )}

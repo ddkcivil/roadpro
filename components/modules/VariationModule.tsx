@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Project, UserRole, AppSettings, VariationOrder, VariationItem, WorkCategory } from '../../types';
 import { formatCurrency } from '../../utils/formatting/exportUtils';
+import { getCurrencySymbol } from '~/utils/formatting/currencyUtils';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '~/components/ui/dialog';
@@ -56,7 +57,7 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
         description: '', unit: '', quantityDelta: 0, rate: 0, isNewItem: false
     });
 
-    const currency = formatCurrency(0, settings).substring(0, formatCurrency(0, settings).indexOf('0'));
+    const currency = getCurrencySymbol(settings.currency);
     const variationOrders = project?.variationOrders || [];
     
     const financialSummary = useMemo(() => {
@@ -259,7 +260,7 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                                     <div className="flex justify-between items-center text-sm text-muted-foreground">
                                         <span className="flex items-center gap-1"><Calendar className="h-3 w-3"/> {vo.date}</span>
                                         <span className={`font-bold ${vo.totalImpact >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                            {formatCurrency(vo.totalImpact, settings)}
+                                            {formatCurrency(vo.totalImpact, settings.currency)}
                                         </span>
                                     </div>
                                 </Card>
@@ -276,13 +277,13 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
                                 <div>
                                     <p className="text-xs font-bold text-muted-foreground uppercase mb-1">REVISED CONTRACT TOTAL</p>
-                                    <p className="text-3xl font-bold">{formatCurrency(financialSummary.revised, settings)}</p>
-                                    <p className="text-sm text-muted-foreground">Original: {formatCurrency(financialSummary.original, settings)}</p>
+                                    <p className="text-3xl font-bold">{formatCurrency(financialSummary.revised, settings.currency)}</p>
+                                    <p className="text-sm text-muted-foreground">Original: {formatCurrency(financialSummary.original, settings.currency)}</p>
                                 </div>
                                 <div>
                                     <p className="text-xs font-bold text-muted-foreground uppercase mb-1">NET CHANGE IMPACT</p>
                                     <p className={`text-3xl font-bold ${financialSummary.variation >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                        {formatCurrency(financialSummary.variation, settings)}
+                                        {formatCurrency(financialSummary.variation, settings.currency)}
                                     </p>
                                     <div className="flex items-center gap-2 mt-1">
                                         <Progress value={Math.min(100, Math.abs(financialSummary.percent) * 5)} className="flex-1" />
@@ -378,7 +379,7 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                                                                     {item.quantityDelta >= 0 ? '+' : ''}{item.quantityDelta} {item.unit}
                                                                 </p>
                                                             </TableCell>
-                                                            <TableCell className="text-right">{formatCurrency(item.rate, settings)}</TableCell>
+                                                            <TableCell className="text-right">{formatCurrency(item.rate, settings.currency)}</TableCell>
                                                             <TableCell className="text-right font-bold">
                                                                 {currency}{(item.quantityDelta * item.rate).toLocaleString()}
                                                             </TableCell>
@@ -392,7 +393,7 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                                                     <TableRow className="bg-gray-900 text-white">
                                                         <TableCell colSpan={3} className="text-right text-white text-xs font-bold uppercase">TOTAL VO IMPACT</TableCell>
                                                         <TableCell className="text-right text-white text-base font-bold">
-                                                            {formatCurrency(viewingVO.totalImpact, settings)}
+                                                            {formatCurrency(viewingVO.totalImpact, settings.currency)}
                                                         </TableCell>
                                                         <TableCell></TableCell>
                                                     </TableRow>
@@ -536,7 +537,7 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                                             <div className="text-right">
                                                 <p className="text-xs font-bold text-muted-foreground uppercase">TOTAL NET VALUE</p>
                                                 <p className="text-3xl font-bold text-primary">
-                                                    {formatCurrency(voForm.items?.reduce((acc, i) => acc + (i.quantityDelta * i.rate), 0) || 0, settings)}
+                                                    {formatCurrency(voForm.items?.reduce((acc, i) => acc + (i.quantityDelta * i.rate), 0) || 0, settings.currency)}
                                                 </p>
                                             </div>
                                         </div>
@@ -566,7 +567,7 @@ const VariationModule: React.FC<Props> = ({ project, settings, onProjectUpdate, 
                                                                 {item.quantityDelta >= 0 ? '+' : ''}{item.quantityDelta} {item.unit}
                                                             </p>
                                                         </TableCell>
-                                                        <TableCell className="text-right">{formatCurrency(item.rate, settings)}</TableCell>
+                                                        <TableCell className="text-right">{formatCurrency(item.rate, settings.currency)}</TableCell>
                                                         <TableCell className="text-right font-bold">
                                                             {currency}{(item.quantityDelta * item.rate).toLocaleString()}
                                                         </TableCell>

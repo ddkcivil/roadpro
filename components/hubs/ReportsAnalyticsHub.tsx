@@ -191,7 +191,7 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, settings }) => {
                                         <DollarSign className="h-4 w-4 text-violet-600" />
                                     </div>
                                     <p className="text-2xl font-bold text-muted-foreground">
-                                        {formatCurrency(boq.reduce((sum, item) => sum + (item.quantity * item.rate), 0), settings)}
+                                        {formatCurrency(boq.reduce((sum, item) => sum + (item.quantity * item.rate), 0), settings.currency)}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -219,8 +219,8 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, settings }) => {
                                                         <p className="text-xs text-muted-foreground">{item.category}</p>
                                                     </TableCell>
                                                     <TableCell className="text-right">{item.quantity} {item.unit}</TableCell>
-                                                    <TableCell className="text-right">{formatCurrency(item.rate, settings)}</TableCell>
-                                                    <TableCell className="text-right font-bold">{formatCurrency(item.amount, settings)}</TableCell>
+                                                    <TableCell className="text-right">{formatCurrency(item.rate, settings.currency)}</TableCell>
+                                                    <TableCell className="text-right font-bold">{formatCurrency(item.amount, settings.currency)}</TableCell>
                                                     <TableCell className="text-right">
                                                         <Badge variant={item.status === 'Completed' ? 'default' : item.status === 'Executing' ? 'secondary' : 'outline'}>
                                                             {item.status || 'Planned'}
@@ -665,17 +665,17 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, settings }) => {
                                     <div className="mt-6 space-y-3">
                                         <div className="flex justify-between items-center">
                                             <span className="text-xs font-medium text-muted-foreground">Planned Value (PV)</span>
-                                            <span className="text-xs font-bold">{formatCurrency(evmMetrics.plannedValue, settings)}</span>
+                                            <span className="text-xs font-bold">{formatCurrency(evmMetrics.plannedValue, settings.currency)}</span>
                                         </div>
                                         <Separator />
                                         <div className="flex justify-between items-center">
                                             <span className="text-xs font-medium text-muted-foreground">Earned Value (EV)</span>
-                                            <span className="text-xs font-bold">{formatCurrency(evmMetrics.earnedValue, settings)}</span>
+                                            <span className="text-xs font-bold">{formatCurrency(evmMetrics.earnedValue, settings.currency)}</span>
                                         </div>
                                         <Separator />
                                         <div className="flex justify-between items-center">
                                             <span className="text-xs font-medium text-muted-foreground">Actual Cost (AC)</span>
-                                            <span className="text-xs font-bold">{formatCurrency(evmMetrics.actualCost, settings)}</span>
+                                            <span className="text-xs font-bold">{formatCurrency(evmMetrics.actualCost, settings.currency)}</span>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -691,7 +691,7 @@ const ReportsAnalyticsHub: React.FC<Props> = ({ project, settings }) => {
                                             <AlertTriangle className="h-4 w-4 text-amber-600" />
                                             <p className="text-xs font-bold text-amber-700 uppercase">Estimate at Completion</p>
                                         </div>
-                                        <p className="text-2xl font-black text-amber-600">{formatCurrency(evmMetrics.estimateAtCompletion, settings)}</p>
+                                        <p className="text-2xl font-black text-amber-600">{formatCurrency(evmMetrics.estimateAtCompletion, settings.currency)}</p>
                                         <p className="text-[10px] text-amber-600/70 font-medium mt-1">Based on current performance trends.</p>
                                     </div>
                                     

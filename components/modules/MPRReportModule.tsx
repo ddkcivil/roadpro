@@ -238,11 +238,11 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, hideStats }) => {
                   <div className="bg-muted/50 p-4 rounded-2xl border space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground font-medium">Contract Value:</span>
-                      <span className="font-bold">{formatCurrency(financialSummary.revised, settings)}</span>
+                      <span className="font-bold">{formatCurrency(financialSummary.revised, settings.currency)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground font-medium">Work Certified:</span>
-                      <span className="font-bold text-green-600">{formatCurrency(financialSummary.progressValue, settings)}</span>
+                      <span className="font-bold text-green-600">{formatCurrency(financialSummary.progressValue, settings.currency)}</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between text-sm">
@@ -438,15 +438,15 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, hideStats }) => {
                     <div className="grid grid-cols-3 gap-4 mb-4">
                       <Card className="p-4 text-center bg-muted">
                         <p className="text-xs text-muted-foreground">Original</p>
-                        <p className="text-lg font-bold">{formatCurrency(financialSummary.original, settings)}</p>
+                        <p className="text-lg font-bold">{formatCurrency(financialSummary.original, settings.currency)}</p>
                       </Card>
                       <Card className="p-4 text-center bg-muted">
                         <p className="text-xs text-muted-foreground">Variation</p>
-                        <p className="text-lg font-bold">{formatCurrency(financialSummary.variation, settings)}</p>
+                        <p className="text-lg font-bold">{formatCurrency(financialSummary.variation, settings.currency)}</p>
                       </Card>
                       <Card className="p-4 text-center bg-muted">
                         <p className="text-xs text-muted-foreground">Revised</p>
-                        <p className="text-lg font-bold">{formatCurrency(financialSummary.revised, settings)}</p>
+                        <p className="text-lg font-bold">{formatCurrency(financialSummary.revised, settings.currency)}</p>
                       </Card>
                     </div>
 
@@ -454,7 +454,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, hideStats }) => {
                       <p className="text-xs text-muted-foreground mb-2">Progress Value</p>
                       <Card className="p-4 bg-muted">
                         <p className="text-2xl font-black text-green-600">
-                          {formatCurrency(financialSummary.progressValue, settings)}
+                          {formatCurrency(financialSummary.progressValue, settings.currency)}
                         </p>
                       </Card>
                     </div>
@@ -550,8 +550,8 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, hideStats }) => {
                     <p className="text-sm mb-4">
                       The project is currently executing {project.boq.length} BOQ items across {project.structures?.length || 0} structural assets.
                       As of {new Date().toLocaleDateString()}, the physical progress stands at {(physicalProgress.actual * 100).toFixed(2)}% against
-                      the planned {(physicalProgress.planned * 100).toFixed(2)}%. The project value stands at {formatCurrency(financialSummary.revised, settings)}
-                      with a progress value of {formatCurrency(financialSummary.progressValue, settings)}.
+                      the planned {(physicalProgress.planned * 100).toFixed(2)}%. The project value stands at {formatCurrency(financialSummary.revised, settings.currency)}
+                      with a progress value of {formatCurrency(financialSummary.progressValue, settings.currency)}.
                     </p>
 
                     <div className="mt-4 flex gap-2 flex-wrap">
@@ -594,7 +594,7 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, hideStats }) => {
                                   {((item.completedQuantity / item.quantity) * 100).toFixed(2)}%
                                 </Badge>
                               </ShadcnTableCell>
-                              <ShadcnTableCell className="text-right">{formatCurrency(item.completedQuantity * item.rate, settings)}</ShadcnTableCell>
+                              <ShadcnTableCell className="text-right">{formatCurrency(item.completedQuantity * item.rate, settings.currency)}</ShadcnTableCell>
                             </ShadcnTableRow>
                           ))}
                         </ShadcnTableBody>
@@ -638,16 +638,16 @@ const MPRReportModule: React.FC<Props> = ({ project, settings, hideStats }) => {
                     <div className="grid grid-cols-2 gap-4">
                       <Card className="p-4 text-center bg-muted">
                         <p className="text-xs text-muted-foreground">Budget Allocated</p>
-                        <p className="text-xl font-black">{formatCurrency(financialSummary.revised, settings)}</p>
+                        <p className="text-xl font-black">{formatCurrency(financialSummary.revised, settings.currency)}</p>
                       </Card>
                       <Card className="p-4 text-center bg-muted">
                         <p className="text-xs text-muted-foreground">Expended</p>
-                        <p className="text-xl font-black text-green-600">{formatCurrency(financialSummary.progressValue, settings)}</p>
+                        <p className="text-xl font-black text-green-600">{formatCurrency(financialSummary.progressValue, settings.currency)}</p>
                       </Card>
                       <Card className="p-4 text-center bg-muted">
                         <p className="text-xs text-muted-foreground">Balance</p>
                         <p className="text-xl font-black text-yellow-600">
-                          {formatCurrency(financialSummary.revised - financialSummary.progressValue, settings)}
+                          {formatCurrency(financialSummary.revised - financialSummary.progressValue, settings.currency)}
                         </p>
                       </Card>
                       <Card className="p-4 text-center bg-muted">
