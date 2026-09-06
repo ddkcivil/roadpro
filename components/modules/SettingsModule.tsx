@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, easeOut } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '~/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '~/components/ui/tabs';
@@ -32,9 +32,26 @@ interface Props {
   onUpdate: (settings: AppSettings) => void;
 }
 
+
 const SettingsModule: React.FC<Props> = ({ settings, onUpdate }) => {
   const [activeTab, setActiveTab] = useState("general");
   const [formData, setFormData] = useState<AppSettings>(settings);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({
+          ...prev,
+          companyLogo: reader.result as string
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
 
   const handleUpdate = (e?: React.FormEvent) => {
       e?.preventDefault();
@@ -465,30 +482,40 @@ const SettingsModule: React.FC<Props> = ({ settings, onUpdate }) => {
                 <CardContent>
                   <h6 className="text-lg font-bold mb-4 text-primary">Report Branding</h6>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div>
-                          <div 
-                              className="h-[150px] border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:border-primary hover:text-primary hover:bg-blue-50 transition-colors"
-                          >
-                              <ImageIcon size={28} />
-                              <p className="text-xs mt={2}">Upload Company Logo</p>
-                          </div>
-                      </div>
-                      <div>
-                          <Label htmlFor="report-footer" className="mb-2 block">Report Footer / Disclaimer Text</Label>
-                          <textarea 
-                              id="report-footer"
-                              className="flex h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                              defaultValue="This report is generated automatically. Please verify critical data on site."
-                              placeholder="Enter disclaimer text for reports..."
-                              title="Report Footer Disclaimer"
-                          ></textarea>
-                          <div className="flex items-center space-x-2 mt-4">
-                              <Switch id="include-signature-block" defaultChecked />
-                              <Label htmlFor="include-signature-block">Include Signature Block</Label>
-                          </div>
-                      </div>
-                  </div>
+
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                       <div>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              ref={logoInputRef}
+                              onChange={handleLogoChange}
+                              style={{ display: 'none' }}
+                            />
+                           <div 
+                               className="h-[150px] border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:border-primary hover:text-primary hover:bg-blue-50 transition-colors"
+                               onClick={() => logoInputRef.current?.click()}
+                           >
+                               <ImageIcon size={28} />
+                               <p className="text-xs mt-2">Upload Company Logo</p>
+                           </div>
+                           {formData.companyLogo && <img src={formData.companyLogo} alt="Logo Preview" style={{ maxWidth: '200px', marginTop: '10px' }} />}
+                       <div>
+                           <Label htmlFor="report-footer" className="mb-2 block">Report Footer / Disclaimer Text</Label>
+                           <textarea 
+                               id="report-footer"
+                               className="flex h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                               defaultValue="This report is generated automatically. Please verify critical data on site."
+                               placeholder="Enter disclaimer text for reports..."
+                               title="Report Footer Disclaimer"
+                           ></textarea>
+                           <div className="flex items-center space-x-2 mt-4">
+                               <Switch id="include-signature-block" defaultChecked />
+                               <Label htmlFor="include-signature-block">Include Signature Block</Label>
+                           </div>
+                       </div>
+                   </div>
+                       </div>
                 </CardContent>
               </Card>
           </TabsContent>

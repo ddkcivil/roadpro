@@ -1175,6 +1175,7 @@ export interface DashboardWidget {
 export interface AppSettings {
   companyName: string;
   currency: string;
+   companyLogo?: string;
   vatRate: number;
   retentionPercentage?: number;
   fiscalYearStart: string;
